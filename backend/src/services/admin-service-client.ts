@@ -6,7 +6,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateRuleFlowDto, ResponseRuleFlowDto, Rules, GlobalVariableDto } from '../services/rules/dto/rules.dto';
+import { ResponseRuleFlowDto, Rules, GlobalVariableDto, RequestSaveFlow } from '../services/rules/dto/rules.dto';
 import { firstValueFrom } from 'rxjs';
 import { ResponseNodesDto } from './nodes/dto';
 import { GetNodesQuery } from './nodes/interfaces/node.interface';
@@ -24,7 +24,7 @@ export class AdminServiceClient {
   }
 
 
-    private getAuthHeaders(token: string): Record<string, string> {
+  private getAuthHeaders(token: string): Record<string, string> {
     return {
       Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`,
     };
@@ -132,9 +132,9 @@ export class AdminServiceClient {
 
         const message =
           data &&
-          typeof data === 'object' &&
-          'message' in data &&
-          typeof data.message === 'string'
+            typeof data === 'object' &&
+            'message' in data &&
+            typeof data.message === 'string'
             ? data.message
             : typeof data === 'string'
               ? data
@@ -171,9 +171,9 @@ export class AdminServiceClient {
 
       const message =
         data &&
-        typeof data === 'object' &&
-        'message' in data &&
-        typeof data.message === 'string'
+          typeof data === 'object' &&
+          'message' in data &&
+          typeof data.message === 'string'
           ? data.message
           : 'Admin service returned an error response';
 
@@ -195,7 +195,7 @@ export class AdminServiceClient {
     }
   }
 
-    async getAllRulesWithFilters(
+  async getAllRulesWithFilters(
     offset: number,
     limit: number,
     filters: Record<string, unknown>,
@@ -209,12 +209,12 @@ export class AdminServiceClient {
     );
   }
   async getRulesById(id: number, token: string): Promise<Rules> {
-  return this.executeHttpRequest<Rules>(
-    'GET',
-    `${RULES_WITH_ID}/${id}`,
-    token,
-  );
-}
+    return this.executeHttpRequest<Rules>(
+      'GET',
+      `${RULES_WITH_ID}/${id}`,
+      token,
+    );
+  }
 
   async getVersionsOfTransactionType(transactionType: string, token: string): Promise<string[]> {
     try {
@@ -245,50 +245,36 @@ export class AdminServiceClient {
   async saveRuleRequest(
     txTp: string,
     tenantId: string,
-    token:string,
+    token: string,
     ruleRequest: any,
   ): Promise<any> {
-    try {
-      const response = await this.forwardRequest(
-        'POST',
-        `/v1/admin/trs/saveRuleRequest`,
-        { txTp, tenantId, ruleRequest },
-        {
-          Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`,
-        },
-      );
-
-      return response;
-    } catch (error) {
-      return this.handleError(error, 'saveRuleRequest');
-    }
+    return this.forwardRequest(
+      'POST',
+      `/v1/admin/trs/saveRuleRequest`,
+      { txTp, tenantId, ruleRequest },
+      {
+        Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`,
+      },
+    );
   }
 
   async createRule(ruleData: Partial<Rules>, token: string): Promise<Rules> {
-    try {
-      const response = await this.forwardRequest(
-        'POST',
-        '/v1/admin/trs/rule',
-        ruleData, 
-        {
-          Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`,
-        },
+    const response = await this.executeHttpRequest<{ rule: Rules }>(
+      'POST',
+      '/v1/admin/trs/rule',
+      token,
+      ruleData,
+    );
+
+    if (!response || !response.rule) {
+      this.logger.error('Invalid response from admin-service createRule');
+      throw new HttpException(
+        'Invalid response from admin service',
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
-
-      console.log("the response from admin service client is", response);
-
-      if (!response || typeof response !== 'object' || !('rule' in response)) {
-        this.logger.error('Invalid response from admin-service createRule');
-        throw new HttpException(
-          'Invalid response from admin service',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-
-      return (response as { rule: Rules }).rule;
-    } catch (error) {
-      return this.handleError(error, 'createRule');
     }
+
+    return response.rule;
   }
 
   async getRuleIds(token: string): Promise<any[]> {
@@ -486,7 +472,7 @@ export class AdminServiceClient {
     try {
       this.logger.log(`Fetching full config for transaction type: ${transactionType} in MMGMT`);
 
-        // go here and find out whats wrong
+      // go here and find out whats wrong
       const response = await this.forwardRequest(
         'GET',
         `/v1/admin/config/${encodeURIComponent(transactionType)}`,
@@ -537,7 +523,7 @@ export class AdminServiceClient {
     }
   }
 
-   // Nodes API
+  // Nodes API
   /**
    * 
    * @param token
@@ -545,18 +531,14 @@ export class AdminServiceClient {
    * @returns return a list of created nodes
    */
   async createNode(token: string, createNodeDto: Record<string, unknown>[]): Promise<ResponseNodesDto[]> {
-    try {
-      return await this.forwardRequest(
-        'POST',
-        '/v1/admin/nodes/create',
-        createNodeDto,
-        {
-          Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`,
-        },
-      ) as ResponseNodesDto[];
-    } catch (error) {
-      return this.handleError(error, 'createNode');
-    }
+    return await this.forwardRequest(
+      'POST',
+      '/v1/admin/nodes/create',
+      createNodeDto,
+      {
+        Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`,
+      },
+    ) as ResponseNodesDto[];
   }
 
   /**
@@ -566,139 +548,128 @@ export class AdminServiceClient {
    * @returns return a list of nodes
    */
   async getAllNodes(token: string, query: GetNodesQuery): Promise<ResponseNodesDto[]> {
-    try {
-      const queryParams = new URLSearchParams();
-      if (query.tenantId) {
-        queryParams.append('tenantId', query.tenantId);
-      }
-      if (query.type) {
-        queryParams.append('type', query.type);
-      }
-      if (query.category) {
-        queryParams.append('category', query.category);
-      }
-      if (query.sortBy) {
-        queryParams.append('sortBy', query.sortBy);
-      }
-      if (query.sortOrder) {
-        queryParams.append('sortOrder', query.sortOrder);
-      }
-      const path = `/v1/admin/nodes?${queryParams.toString()}`;
-      const response = await firstValueFrom(
-        this.httpService.get(
-          `${this.adminServiceUrl}${path}`,
-          {
-            headers: {
-              Authorization: token.startsWith('Bearer ')
-                ? token
-                : `Bearer ${token}`,
-            },
-          },
-        ),
-      );
-
-      if (!response.data?.nodes) {
-        this.logger.warn('No nodes found in admin-service response');
-        return [];
-      }
-      return response.data.nodes;
-    } catch (error) {
-      return this.handleError(error, 'getAllNodes');
+    const queryParams = new URLSearchParams();
+    if (query.tenantId) {
+      queryParams.append('tenantId', query.tenantId);
     }
+    if (query.type) {
+      queryParams.append('type', query.type);
+    }
+    if (query.category) {
+      queryParams.append('category', query.category);
+    }
+    if (query.sortBy) {
+      queryParams.append('sortBy', query.sortBy);
+    }
+    if (query.sortOrder) {
+      queryParams.append('sortOrder', query.sortOrder);
+    }
+    const path = `/v1/admin/nodes?${queryParams.toString()}`;
+    const response = await firstValueFrom(
+      this.httpService.get(
+        `${this.adminServiceUrl}${path}`,
+        {
+          headers: {
+            Authorization: token.startsWith('Bearer ')
+              ? token
+              : `Bearer ${token}`,
+          },
+        },
+      ),
+    );
+
+    if (!response.data?.nodes) {
+      this.logger.warn('No nodes found in admin-service response');
+      return [];
+    }
+    return response.data.nodes;
   }
 
   async deleteNodeByNodeId(nodeId: string, token: string): Promise<{ success: boolean; message: string }> {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.delete(
-          `${this.adminServiceUrl}/v1/admin/nodes/${nodeId}`,
-          {
-            headers: {
-              Authorization: token.startsWith('Bearer ')
-                ? token
-                : `Bearer ${token}`,
-            },
+    const response = await firstValueFrom(
+      this.httpService.delete(
+        `${this.adminServiceUrl}/v1/admin/nodes/${nodeId}`,
+        {
+          headers: {
+            Authorization: token.startsWith('Bearer ')
+              ? token
+              : `Bearer ${token}`,
           },
-        ),
-      );
+        },
+      ),
+    );
 
-      if (!response.data) {
-        this.logger.error(`No response data after deleting node ${nodeId}`);
-        throw new HttpException(
-          `Failed to delete node ${nodeId}`,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-      return response.data;
-    } catch(err) {
-      return this.handleError(err, 'deleteNodeByNodeId');
+    if (!response.data) {
+      this.logger.error(`No response data after deleting node ${nodeId}`);
+      throw new HttpException(
+        `Failed to delete node ${nodeId}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
+    return response.data;
   }
 
   async createRuleFlow(ruleId: string, flowData: JSON, token: string): Promise<ResponseRuleFlowDto> {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.adminServiceUrl}/v1/admin/trs/rule-flow/${ruleId}`,
-          flowData,
-          {
-            headers: {
-              Authorization: token.startsWith('Bearer ')
-                ? token
-                : `Bearer ${token}`,
-            },
+    const response = await firstValueFrom(
+      this.httpService.post(
+        `${this.adminServiceUrl}/v1/admin/trs/rule-flow/${ruleId}`,
+        flowData,
+        {
+          headers: {
+            Authorization: token.startsWith('Bearer ')
+              ? token
+              : `Bearer ${token}`,
           },
-        ),
+        },
+      ),
+    );
+    if (!response.data) {
+      this.logger.error(`No response data after creating flow for rule ${ruleId}`);
+      throw new HttpException(
+        `Failed to create flow for rule ${ruleId}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
-      if (!response.data) {
-        this.logger.error(`No response data after creating flow for rule ${ruleId}`);
-        throw new HttpException(
-          `Failed to create flow for rule ${ruleId}`,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-      return response.data;
-    } catch (error) {
-      return this.handleError(error, 'createRuleFlow');
     }
+    return response.data;
+
   }
-async getRuleFlow(
-  ruleId: string,
-  token: string,
-): Promise<ResponseRuleFlowDto> {
-  return this.executeHttpRequest<ResponseRuleFlowDto>(
-    'GET',
-    `${RULE_FLOW}/${ruleId}`,
-    token,
-  );
-}
+  async getRuleFlow(
+    ruleId: string,
+    token: string,
+  ): Promise<ResponseRuleFlowDto> {
+    return this.executeHttpRequest<ResponseRuleFlowDto>(
+      'GET',
+      `${RULE_FLOW}/${ruleId}`,
+      token,
+    );
+  }
 
-async updateRuleFlow(
-  ruleId: string,
-  flowData: JSON,
-  token: string,
-): Promise<ResponseRuleFlowDto> {
-  return this.executeHttpRequest<ResponseRuleFlowDto>(
-    'PUT',
-    `${RULE_FLOW}/${ruleId}`,
-    token,
-    flowData,
-  );
-}
+  async updateRuleFlow(
+    ruleId: string,
+    payload: RequestSaveFlow,
+    token: string,
+  ): Promise<ResponseRuleFlowDto> {
+    return this.executeHttpRequest<ResponseRuleFlowDto>(
+      'PUT',
+      `${RULE_FLOW}/${ruleId}`,
+      token,
+      payload,
+    );
+  }
 
-async getGlobalVariables(
-  ruleId: string,
-  tenantId: string,
-  token: string,
-): Promise<GlobalVariableDto> {
-  return this.executeHttpRequest<GlobalVariableDto>(
-    'GET',
-    `${GLOBAL_VARIABLES}/${ruleId}/${tenantId}`,
-    token,
-  );
-}
+  async getGlobalVariables(
+    ruleId: string,
+    tenantId: string,
+    token: string,
+  ): Promise<GlobalVariableDto> {
+    return this.executeHttpRequest<GlobalVariableDto>(
+      'GET',
+      `${GLOBAL_VARIABLES}/${ruleId}/${tenantId}`,
+      token,
+    );
+  }
 
-async updateRuleStatus(ruleId: string, status: string, reason: string, token: string): Promise<Rules> {
+  async updateRuleStatus(ruleId: string, status: string, reason: string, token: string): Promise<Rules> {
     try {
       const response = await firstValueFrom(
         this.httpService.put(

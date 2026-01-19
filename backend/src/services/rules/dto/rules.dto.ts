@@ -242,21 +242,6 @@ export class FlowDto {
   @IsNotEmpty()
   edges: FlowEdgeDto[];
 }
-
-export class CreateRuleFlowDto {
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => FlowNodeDto)
-  @IsNotEmpty()
-  nodes: FlowNodeDto[];
-
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => FlowEdgeDto)
-  @IsNotEmpty()
-  edges: FlowEdgeDto[];
-}
-
 export class ResponseRuleFlowDto {
   @IsString()
   @IsNotEmpty()
@@ -265,6 +250,9 @@ export class ResponseRuleFlowDto {
   @IsObject()
   @IsNotEmpty()
   flow: FlowDto;
+
+  @IsString()
+  ts_file_base64: string;
 }
 
 export class FlowNodeDto {
@@ -368,4 +356,13 @@ export class UpdateRuleStatusDto {
   @IsString()
   @IsNotEmpty()
   reason: string;
+}
+export class RequestSaveFlow {
+  @ApiProperty({description: 'ts file base64', example: 'data:image/png;base64,iVBORw0KGgoAAAANSUh...'})
+  @IsString()
+  ts_file_base64: string
+
+  @ApiProperty({description: 'Json of the flow', example: '{"edges": {}, "nodes": {} }'})
+  @IsObject()
+  flow_json: Record<string, unknown>;
 }

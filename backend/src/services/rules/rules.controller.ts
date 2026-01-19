@@ -18,15 +18,15 @@ import type { AuthenticatedUser } from '../auth/auth.types';
 import { TazamaClaims, RequireAnyClaims } from '../../decorators/auth.decorator';
 import { RulesService } from './rules.service';
 import { 
-  Rules, 
-  CreateRuleFlowDto, 
+  Rules,
   ResponseRuleFlowDto, 
   GlobalVariableDto, 
   RuleStatusArrayDto, 
   RuleIdResponseDto, 
   RuleFiltersDto, 
   UpdateRuleDto, 
-  UpdateRuleStatusDto 
+  UpdateRuleStatusDto, 
+  RequestSaveFlow
 } from './dto/rules.dto';
 
 @ApiTags('Rules')
@@ -290,7 +290,7 @@ export class RulesController {
   })
   @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: 'high-value-transfer-001' })
   @ApiBody({ 
-    type: CreateRuleFlowDto,
+    type: RequestSaveFlow,
     description: 'Flow configuration with nodes and edges'
   })
   @ApiResponse({ 
@@ -338,7 +338,7 @@ export class RulesController {
   })
   @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: 'high-value-transfer-001' })
   @ApiBody({ 
-    type: CreateRuleFlowDto,
+    type: RequestSaveFlow,
     description: 'Updated flow configuration'
   })
   @ApiResponse({ 
@@ -352,10 +352,10 @@ export class RulesController {
   @ApiResponse({ status: 403, description: 'Forbidden - Editor permissions required' })
   async updateRuleFlow(
     @Param('ruleId') ruleId: string,
-    @Body() flowData: JSON,
+    @Body() payload :RequestSaveFlow,
     @User() user: AuthenticatedUser,
   ): Promise<ResponseRuleFlowDto> {
-    return await this.rulesService.updateRuleFlow(ruleId, flowData, user.token.tokenString);
+    return await this.rulesService.updateRuleFlow(ruleId, payload, user.token.tokenString);
   }
  
 
