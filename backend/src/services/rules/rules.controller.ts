@@ -17,7 +17,17 @@ import { User } from '../../decorators/user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { TazamaClaims, RequireAnyClaims } from '../../decorators/auth.decorator';
 import { RulesService } from './rules.service';
-import { Rules, CreateRuleFlowDto, ResponseRuleFlowDto, GlobalVariableDto } from './dto/rules.dto';
+import { 
+  Rules, 
+  CreateRuleFlowDto, 
+  ResponseRuleFlowDto, 
+  GlobalVariableDto, 
+  RuleStatusArrayDto, 
+  RuleIdResponseDto, 
+  RuleFiltersDto, 
+  UpdateRuleDto, 
+  UpdateRuleStatusDto 
+} from './dto/rules.dto';
 
 @ApiTags('Rules')
 @ApiBearerAuth('JWT-auth')
@@ -38,11 +48,7 @@ export class RulesController {
   @ApiResponse({ 
     status: 200, 
     description: 'Rule statuses retrieved successfully',
-    schema: {
-      type: 'array',
-      items: { type: 'string' },
-      example: ['ACTIVE', 'INACTIVE', 'TESTING']
-    }
+    type: [String]
   })
   @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
   @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
@@ -68,18 +74,9 @@ export class RulesController {
   @ApiQuery({ name: 'offset', required: true, type: String, description: 'Starting position (0-based index)' })
   @ApiQuery({ name: 'limit', required: true, type: String, description: 'Number of records per page' })
   @ApiBody({ 
+    type: RuleFiltersDto,
     required: false,
-    description: 'Optional filters for rule search',
-    schema: {
-      type: 'object',
-      properties: {
-        status: { type: 'string', example: 'ACTIVE' },
-        txtp: { type: 'string', example: 'pain.001.001.11' },
-        publishing_status: { type: 'string', example: 'PUBLISHED' },
-        rule_id: { type: 'string', example: 'RULE-001' },
-        rule_name: { type: 'string', example: 'High Value Check' }
-      }
-    }
+    description: 'Optional filters for rule search'
   })
   @ApiResponse({ 
     status: 200, 
@@ -117,17 +114,13 @@ export class RulesController {
   @ApiResponse({ 
     status: 200, 
     description: 'Rule IDs retrieved successfully',
-    schema: {
-      type: 'array',
-      items: { type: 'object' },
-      example: [{ id: 'RULE-001', name: 'High Value Check' }]
-    }
+    type: [RuleIdResponseDto]
   })
   @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
   @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
   async getRuleIds(
     @User() user: AuthenticatedUser,
-  ): Promise<any[]> {
+  ): Promise<RuleIdResponseDto[]> {
     console.log("Fetching rule IDs for user:", user.validated);
     return await this.rulesService.getRuleIds(
       user.token.tokenString,
@@ -179,8 +172,7 @@ export class RulesController {
   @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: 'high-value-transfer-001' })
   @ApiResponse({ 
     status: 200, 
-    description: 'Rule configuration retrieved successfully',
-    schema: { type: 'object' }
+    description: 'Rule configuration retrieved successfully'
   })
   @ApiResponse({ status: 404, description: 'Rule configuration not found' })
   @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
@@ -204,15 +196,8 @@ export class RulesController {
   })
   @ApiParam({ name: 'ruleId', description: 'Rule identifier to update', example: 'high-value-transfer-001' })
   @ApiBody({ 
-    description: 'Partial rule data for update',
-    schema: {
-      type: 'object',
-      properties: {
-        description: { type: 'string', example: 'Updated: Enhanced fraud detection rule' },
-        version: { type: 'string', example: '1.1.0' },
-        status: { type: 'string', enum: ['ACTIVE', 'INACTIVE', 'TESTING'] }
-      }
-    }
+    type: UpdateRuleDto,
+    description: 'Partial rule data for update'
   })
   @ApiResponse({ 
     status: 200, 
@@ -224,7 +209,7 @@ export class RulesController {
   @ApiResponse({ status: 403, description: 'Forbidden - Editor permissions required' })
   async updateRule(
     @Param('ruleId') ruleId: string,
-    @Body() updateData: Partial<Rules>,
+    @Body() updateData: UpdateRuleDto,
     @User() user: AuthenticatedUser,
   ): Promise<Rules> {
     return await this.rulesService.updateRule(
@@ -280,11 +265,7 @@ export class RulesController {
   })
   @ApiResponse({ 
     status: 200, 
-    description: 'Active network map retrieved successfully',
-    schema: {
-      type: 'object',
-      description: 'Network map object showing rule relationships'
-    }
+    description: 'Active network map retrieved successfully'
   })
   @ApiResponse({ status: 404, description: 'No active network map found' })
   @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
@@ -309,34 +290,8 @@ export class RulesController {
   })
   @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: 'high-value-transfer-001' })
   @ApiBody({ 
-    description: 'Flow configuration with nodes and edges',
-    schema: {
-      type: 'object',
-      properties: {
-        nodes: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              id: { type: 'string', example: 'start' },
-              type: { type: 'string', example: 'input' },
-              position: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' } } }
-            }
-          }
-        },
-        edges: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              id: { type: 'string', example: 'e1' },
-              source: { type: 'string', example: 'start' },
-              target: { type: 'string', example: 'process' }
-            }
-          }
-        }
-      }
-    }
+    type: CreateRuleFlowDto,
+    description: 'Flow configuration with nodes and edges'
   })
   @ApiResponse({ 
     status: 201, 
@@ -383,14 +338,8 @@ export class RulesController {
   })
   @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: 'high-value-transfer-001' })
   @ApiBody({ 
-    description: 'Updated flow configuration',
-    schema: {
-      type: 'object',
-      properties: {
-        nodes: { type: 'array', description: 'Array of flow nodes' },
-        edges: { type: 'array', description: 'Array of node connections' }
-      }
-    }
+    type: CreateRuleFlowDto,
+    description: 'Updated flow configuration'
   })
   @ApiResponse({ 
     status: 200, 
@@ -479,23 +428,8 @@ export class RulesController {
   })
   @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: 'high-value-transfer-001' })
   @ApiBody({ 
-    description: 'Status update with reason',
-    schema: {
-      type: 'object',
-      properties: {
-        status: { 
-          type: 'string', 
-          example: 'active',
-          description: 'New status for the rule'
-        },
-        reason: { 
-          type: 'string', 
-          example: 'Updated compliance requirements',
-          description: 'Reason for status change'
-        }
-      },
-      required: ['status', 'reason']
-    }
+    type: UpdateRuleStatusDto,
+    description: 'Status update with reason'
   })
   @ApiResponse({ 
     status: 200, 
@@ -508,7 +442,7 @@ export class RulesController {
   @ApiResponse({ status: 403, description: 'Forbidden - Multiple role permissions required' })
   async updateRuleStatus(
     @Param('ruleId') ruleId: string,
-    @Body() body: { status: string; reason: string },
+    @Body() body: UpdateRuleStatusDto,
     @User() user: AuthenticatedUser,
   ): Promise<Rules> {
     return await this.rulesService.updateRuleStatus(

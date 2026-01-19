@@ -130,38 +130,47 @@ export class CreateRuleDto {
 }
 
 export class UpdateRuleDto {
+  @ApiPropertyOptional({ description: 'Rule name', example: 'Updated High Value Transaction Check' })
   @IsOptional()
   @IsString()
   rule_name?: string;
 
+  @ApiPropertyOptional({ description: 'Rule description', example: 'Updated: Detects transactions above threshold' })
   @IsOptional()
   @IsString()
   description?: string;
 
+  @ApiPropertyOptional({ description: 'Transaction type', example: 'pain.001.001.11' })
   @IsOptional()
   @IsString()
   txtp?: string;
 
+  @ApiPropertyOptional({ description: 'Rule version', example: '1.1.0' })
   @IsOptional()
   @IsString()
   version?: string;
 
+  @ApiPropertyOptional({ description: 'Transaction type version', example: '11' })
   @IsOptional()
   @IsString()
   txtpVersion?: string;
 
+  @ApiPropertyOptional({ description: 'Rule status', example: 'ACTIVE', enum: ['ACTIVE', 'INACTIVE', 'TESTING'] })
   @IsOptional()
   @IsString()
   status?: string;
 
+  @ApiPropertyOptional({ description: 'Publishing status', example: 'PUBLISHED', enum: ['DRAFT', 'SUBMITTED', 'APPROVED', 'PUBLISHED'] })
   @IsOptional()
   @IsString()
   publishing_status?: string;
 
+  @ApiPropertyOptional({ description: 'Rule type classification', example: 'fraud_detection', enum: ['fraud_detection', 'aml', 'security', 'compliance'] })
   @IsOptional()
   @IsString()
   rule_type?: string;
 
+  @ApiPropertyOptional({ description: 'Configuration identifier', example: 'CFG001' })
   @IsOptional()
   @IsString()
   rule_config_id?: string;
@@ -287,15 +296,76 @@ export class FlowNodeDto {
 }
 
 export class GlobalVariableDto {
+  @ApiProperty({ description: 'Rule request object configuration' })
   @IsNotEmpty()
   @IsObject()
   RuleRequest: RuleRequest;
 
+  @ApiProperty({ description: 'Rule configuration object' })
   @IsNotEmpty()
   @IsObject()
   RuleConfig: RuleConfig;
 
+  @ApiProperty({ description: 'Rule result object structure' })
   @IsNotEmpty()
   @IsObject()
   RuleResult: RuleResult;
+}
+
+export class RuleStatusArrayDto {
+  @ApiProperty({ 
+    description: 'Available rule statuses', 
+    type: [String], 
+    example: ['ACTIVE', 'INACTIVE', 'TESTING'] 
+  })
+  statuses: string[];
+}
+
+export class RuleIdResponseDto {
+  @ApiProperty({ description: 'Rule identifier', example: 'RULE-001' })
+  @IsString()
+  id: string;
+
+  @ApiProperty({ description: 'Rule name', example: 'High Value Check' })
+  @IsString()
+  name: string;
+}
+
+export class RuleFiltersDto {
+  @ApiPropertyOptional({ description: 'Filter by rule status', example: 'ACTIVE' })
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by transaction type', example: 'pain.001.001.11' })
+  @IsOptional()
+  @IsString()
+  txtp?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by publishing status', example: 'PUBLISHED' })
+  @IsOptional()
+  @IsString()
+  publishing_status?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by rule ID', example: 'RULE-001' })
+  @IsOptional()
+  @IsString()
+  rule_id?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by rule name', example: 'High Value Check' })
+  @IsOptional()
+  @IsString()
+  rule_name?: string;
+}
+
+export class UpdateRuleStatusDto {
+  @ApiProperty({ description: 'New status for the rule', example: 'ACTIVE' })
+  @IsString()
+  @IsNotEmpty()
+  status: string;
+
+  @ApiProperty({ description: 'Reason for status change', example: 'Updated compliance requirements' })
+  @IsString()
+  @IsNotEmpty()
+  reason: string;
 }
