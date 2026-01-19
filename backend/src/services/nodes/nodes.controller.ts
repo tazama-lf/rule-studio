@@ -50,11 +50,7 @@ export class NodesController {
     @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
     @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
     async createNode(@Body() createNodeDto: Record<string, unknown>[], @User() user: AuthenticatedUser): Promise<ResponseNodesDto[]> {
-        try {
-            return await this.nodesService.createNode(user.token.tokenString, createNodeDto);
-        } catch (error) {
-            throw error;
-        }
+        return await this.nodesService.createNode(user.token.tokenString, createNodeDto);
     }
 
     @Get('')
@@ -77,11 +73,7 @@ export class NodesController {
     @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
     @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
     async getAllNodes(@Query() query: GetNodesQuery, @User() user: AuthenticatedUser): Promise<ResponseNodesDto[]> {
-        try {
-            return await this.nodesService.getAllNodes(user.token.tokenString, query);
-        } catch (error) {
-            throw error;
-        }
+        return await this.nodesService.getAllNodes(user.token.tokenString, query);
     }
 
     @Delete(':nodeId')
@@ -111,10 +103,6 @@ export class NodesController {
     @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
     @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
     async deleteNodeById(@Query('nodeId') nodeId: string, @User() user: AuthenticatedUser): Promise<{ success: boolean; message: string }> {
-        try {
-            return await this.nodesService.deleteNodeById(nodeId, user.token.tokenString);
-        } catch (error) {
-            throw error;
-        }
+        return await this.nodesService.deleteNodeById(nodeId, user.token.tokenString);
     }
 }

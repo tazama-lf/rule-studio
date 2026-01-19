@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AdminServiceClient } from '../admin-service-client';
-import { CreateRuleFlowDto, ResponseRuleFlowDto, Rules, GlobalVariableDto } from './dto/rules.dto';
+import { ResponseRuleFlowDto, Rules, GlobalVariableDto, RequestSaveFlow } from './dto/rules.dto';
 import * as jwt from 'jsonwebtoken';
 
 @Injectable()
@@ -126,9 +126,9 @@ export class RulesService {
     }
   }
 
-  async updateRuleFlow(ruleId: string, flowData: JSON, token: string): Promise<ResponseRuleFlowDto> {
+  async updateRuleFlow(ruleId: string, payload: RequestSaveFlow, token: string): Promise<ResponseRuleFlowDto> {
     try {
-      return await this.adminServiceClient.updateRuleFlow(ruleId, flowData, token);
+      return await this.adminServiceClient.updateRuleFlow(ruleId, payload, token);
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Error updating flow for rule ${ruleId}: ${err.message}`);
