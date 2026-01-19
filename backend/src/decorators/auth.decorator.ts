@@ -27,9 +27,9 @@ export const RequireClaim = (claim: string): MethodDecorator =>
   SetMetadata(CLAIMS_KEY, [claim]);
 
 export const TazamaClaims = {
-  EDITOR: 'editor',
-  APPROVER: 'approver',
-  PUBLISHER: 'publisher',
+  EDITOR: 'trs_editor',
+  APPROVER: 'trs_approver',
+  PUBLISHER: 'trs_publisher',
   MANAGE_ACCOUNT: 'manage-account',
   MANAGE_ACCOUNT_LINKS: 'manage-account-links',
   VIEW_PROFILE: 'view-profile',
