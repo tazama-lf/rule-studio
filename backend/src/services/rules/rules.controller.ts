@@ -419,9 +419,7 @@ export class RulesController {
 
   // update the status of a rule based on rule ID
   @Put('/api/:ruleId/status')
-  @RequireAnyClaims(TazamaClaims.EDITOR)
-  @RequireAnyClaims(TazamaClaims.APPROVER)
-  @RequireAnyClaims(TazamaClaims.PUBLISHER)
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
   @ApiOperation({ 
     summary: 'Update rule status', 
     description: 'Updates the activation status of a specific rule with reason for change' 
