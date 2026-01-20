@@ -354,8 +354,8 @@ export class UpdateRuleStatusDto {
 
   @ApiProperty({ description: 'Reason for status change', example: 'Updated compliance requirements' })
   @IsString()
-  @IsNotEmpty()
-  reason: string;
+  @IsOptional()
+  comment: string;
 }
 export class RequestSaveFlow {
   @ApiProperty({description: 'ts file base64', example: 'data:image/png;base64,iVBORw0KGgoAAAANSUh...'})
