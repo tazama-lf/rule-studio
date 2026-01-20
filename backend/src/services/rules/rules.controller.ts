@@ -95,7 +95,7 @@ export class RulesController {
     return await this.rulesService.getAllRules(
       parseInt(offset, 10),
       parseInt(limit, 10),
-      filters ?? {},
+      filters || {},
       user.token.tokenString,
     );
   }
