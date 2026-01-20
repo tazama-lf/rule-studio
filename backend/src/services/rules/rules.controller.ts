@@ -92,11 +92,21 @@ export class RulesController {
     @User() user: AuthenticatedUser,
     @Body() filters?: Record<string, unknown>,
   ): Promise<Rules[]> {
+    const updatedFilters = filters ?? {};
+    
+    if (!updatedFilters.status || 
+        updatedFilters.status === '' || 
+        (Array.isArray(updatedFilters.status) && updatedFilters.status.length === 0)) {
+      const allowedStatuses = await this.rulesService.getRulesStatusbyRole(user.token.tokenString);
+      if (allowedStatuses.length > 0) {
+        updatedFilters.status = allowedStatuses.join(',');
+      }
+    }
     
     return await this.rulesService.getAllRules(
       parseInt(offset, 10),
       parseInt(limit, 10),
-      filters || {},
+      updatedFilters,
       user.token.tokenString,
     );
   }
