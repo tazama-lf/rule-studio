@@ -136,38 +136,8 @@ export class RulesService {
     }
   }
 
-  async getRulesStatusbyRole(tokenString: string): Promise<string[]> {
-    try {
-      const outerDecoded = jwt.decode(tokenString) as any;
-      if (!outerDecoded) {
-        this.logger.error('Failed to decode outer JWT token - token is null or invalid');
-        return [];
-      }
-      const innerDecoded = jwt.decode(outerDecoded.tokenString) as any;
-      if (!innerDecoded) {
-        this.logger.error('Failed to decode inner JWT token - tokenString is null or invalid');
-        return [];
-      }
-
-      if (!innerDecoded.status) {
-        this.logger.warn('Inner token payload does not contain status field');
-        this.logger.log(`Available inner token fields: ${Object.keys(innerDecoded).join(', ')}`);
-        return [];
-      }
-
-      const statusString = innerDecoded.status as string;
-      const statuses = statusString
-        .split(',')
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0);
-
-      this.logger.log(`Extracted ${statuses.length} allowed statuses from token: ${statuses.join(', ')}`);
-      return statuses;
-    } catch (error) {
-      const err = error as Error;
-      this.logger.error(`Failed to decode JWT token: ${err.message}`);
-      return [];
-    }
+  async getRulesStatusbyRole(user: any): Promise<string[]> {
+    return user.allowedStatuses ?? [];
   }
 
   async getGlobalVariables(ruleId: string, tenantId: string, token: string): Promise<GlobalVariableDto> {
