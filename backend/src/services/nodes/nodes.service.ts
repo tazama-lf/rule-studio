@@ -10,7 +10,7 @@ export class NodesService {
         private readonly adminServiceClient: AdminServiceClient,
     ) { }
 
-    async createNode(token: string, createNodeDto: Record<string, unknown>[]): Promise<ResponseNodesDto[]> {
+    async createNode(token: string, createNodeDto: CreateNodeDto[]): Promise<ResponseNodesDto[]> {
         try {
             return await this.adminServiceClient.createNode(token, createNodeDto);
         } catch (error) {
