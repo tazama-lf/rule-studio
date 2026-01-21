@@ -42,6 +42,8 @@ CREATE TABLE trs_rule_flow (
     id SERIAL PRIMARY KEY,
     rule_id INT NOT NULL,
     flow_json JSONB NOT NULL,
+    ts_file_base64 TEXT,
+    tenant_id VARCHAR(255) NOT NULL DEFAULT 'DEFAULT',
     created_at DATE,
     updated_at DATE
 );
