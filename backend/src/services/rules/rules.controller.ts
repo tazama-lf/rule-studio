@@ -278,17 +278,17 @@ export class RulesController {
     );
   }
 
+  @ApiOperation({ 
+    summary: 'Create rule flow', 
+    description: 'Creates a new flow configuration for a specific rule with nodes and connections' 
+  })
   @Post('/api/:ruleId/flow')
   @RequireAnyClaims(
     TazamaClaims.EDITOR,
     TazamaClaims.APPROVER,
     TazamaClaims.PUBLISHER,
   )
-  @ApiOperation({ 
-    summary: 'Create rule flow', 
-    description: 'Creates a new flow configuration for a specific rule with nodes and connections' 
-  })
-  @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: 'high-value-transfer-001' })
+  @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: '001' })
   @ApiBody({ 
     type: RequestSaveFlow,
     description: 'Flow configuration with nodes and edges'
@@ -306,17 +306,17 @@ export class RulesController {
     return await this.rulesService.createRuleFlow(ruleId, flowData, user.token.tokenString);
   }
 
+  @ApiOperation({ 
+    summary: 'Get rule flow', 
+    description: 'Retrieves the flow configuration for a specific rule showing nodes and connections' 
+  })
   @Get('/api/:ruleId/flow')
   @RequireAnyClaims(
     TazamaClaims.EDITOR,
     TazamaClaims.APPROVER,
     TazamaClaims.PUBLISHER,
   )
-  @ApiOperation({ 
-    summary: 'Get rule flow', 
-    description: 'Retrieves the flow configuration for a specific rule showing nodes and connections' 
-  })
-  @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: 'high-value-transfer-001' })
+  @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: '001' })
   @ApiResponse({ 
     status: 200, 
     description: 'Rule flow retrieved successfully',
@@ -329,14 +329,14 @@ export class RulesController {
     const result = await this.rulesService.getRuleFlow(ruleId,user.token.tokenString,);
     return result;
   }
-
-  @Put('/api/:ruleId/flow')
-  @RequireAnyClaims(TazamaClaims.EDITOR)
+  
   @ApiOperation({ 
     summary: 'Update rule flow', 
     description: 'Updates the flow configuration for a specific rule with new nodes and connections' 
   })
-  @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: 'high-value-transfer-001' })
+  @Put('/api/:ruleId/flow')
+  @RequireAnyClaims(TazamaClaims.EDITOR)
+  @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: '001' })
   @ApiBody({ 
     type: RequestSaveFlow,
     description: 'Updated flow configuration'

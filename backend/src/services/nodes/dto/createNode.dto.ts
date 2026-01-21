@@ -1,34 +1,43 @@
-// ...existing code...
-import { IsJSON, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsNotEmpty, IsObject, IsOptional, IsString, IsNumber } from 'class-validator';
 
 export class CreateNodeDto {
+  @ApiProperty({
+    description: 'JSON representation of the node',
+    example: {
+      id: 'node-001',
+      type: 'processor',
+      name: 'Transaction Validator',
+      description: 'Validates incoming transactions',
+      config: { timeout: 5000, retries: 3 },
+    },
+  })
+  @IsObject()
+  @IsNotEmpty()
+  node_json: Record<string, any>;
+
+  @ApiProperty({
+    description: 'Tenant identifier',
+    example: 'cbe',
+  })
   @IsString()
   @IsNotEmpty()
-  label: string;
+  tenant_id: string;
 
-  @IsString()
-  type: string;
-
-  @IsString()
-  name: string;
-
-  @IsString()
-  @IsOptional()
-  desc?: string;
-
-  @IsString()
-  @IsOptional()
-  color?: string;
-
+  @ApiProperty({
+    description: 'Identifier of the user who created the node',
+    example: '1b7f59dd-8754-48eb-9573-65d106951635',
+  })
   @IsString()
   @IsNotEmpty()
-  category: string;
+  created_by: string;
 
-  @IsString()
+  @ApiProperty({
+    description: 'Order of the node',
+    example: 1,
+    required: false,
+  })
   @IsOptional()
-  code_template?: string;
-
-  @IsJSON()
-  @IsOptional()
-  default_data?: any;
+  @IsNumber()
+  order?: number;
 }

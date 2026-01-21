@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { ResponseRuleFlowDto, Rules, GlobalVariableDto, RequestSaveFlow } from '../services/rules/dto/rules.dto';
 import { firstValueFrom } from 'rxjs';
-import { ResponseNodesDto } from './nodes/dto';
+import { CreateNodeDto, ResponseNodesDto } from './nodes/dto';
 import { GetNodesQuery } from './nodes/interfaces/node.interface';
 import { BASE_URL, GLOBAL_VARIABLES, RULE_FLOW, RULES_WITH_FILTERS, RULES_WITH_ID } from '../constants/constant';
 
@@ -530,7 +530,7 @@ export class AdminServiceClient {
    * @param createNodeDto list of nodes
    * @returns return a list of created nodes
    */
-  async createNode(token: string, createNodeDto: Record<string, unknown>[]): Promise<ResponseNodesDto[]> {
+  async createNode(token: string, createNodeDto: CreateNodeDto[]): Promise<ResponseNodesDto[]> {
     return await this.forwardRequest(
       'POST',
       '/v1/admin/nodes/create',
@@ -586,27 +586,31 @@ export class AdminServiceClient {
   }
 
   async deleteNodeByNodeId(nodeId: string, token: string): Promise<{ success: boolean; message: string }> {
-    const response = await firstValueFrom(
-      this.httpService.delete(
-        `${this.adminServiceUrl}/v1/admin/nodes/${nodeId}`,
-        {
-          headers: {
-            Authorization: token.startsWith('Bearer ')
-              ? token
-              : `Bearer ${token}`,
+    try {
+      const response = await firstValueFrom(
+        this.httpService.delete(
+          `${this.adminServiceUrl}/v1/admin/nodes/${nodeId}`,
+          {
+            headers: {
+              Authorization: token.startsWith('Bearer ')
+                ? token
+                : `Bearer ${token}`,
+            },
           },
-        },
-      ),
-    );
-
-    if (!response.data) {
-      this.logger.error(`No response data after deleting node ${nodeId}`);
-      throw new HttpException(
-        `Failed to delete node ${nodeId}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        ),
       );
+
+      if (!response.data) {
+        this.logger.error(`No response data after deleting node ${nodeId}`);
+        throw new HttpException(
+          `Failed to delete node ${nodeId}`,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      return response.data;
+    } catch (error) {
+      return this.handleError(error, 'deleteNodeByNodeId');
     }
-    return response.data;
   }
 
   async createRuleFlow(ruleId: string, flowData: JSON, token: string): Promise<ResponseRuleFlowDto> {
