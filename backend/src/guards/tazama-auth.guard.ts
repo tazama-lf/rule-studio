@@ -70,12 +70,25 @@ export class TazamaAuthGuard implements CanActivate {
     }
 
     const decoded = this.extractTokenPayload(token);
+    
+    const innerDecoded = this.extractInnerToken(token);
+    const allowedStatuses = innerDecoded?.status
+      ? (innerDecoded.status as string).split(',').map(s => s.trim()).filter(s => s.length > 0)
+      : undefined;
+    
+    if (allowedStatuses) {
+      this.logger.log(`Extracted ${allowedStatuses.length} allowed statuses: ${allowedStatuses.join(', ')}`, logContext);
+    } else {
+      this.logger.warn('No status field found in token', logContext);
+    }
+    
     const authenticatedUser: AuthenticatedUser = {
       token: { ...decoded, tokenString: token },
       validated,
       validClaims: valid,
       tenantId: decoded.tenantId,
       userId: decoded.clientId,
+      allowedStatuses,
     };
 
     request.user = authenticatedUser;
@@ -170,5 +183,25 @@ export class TazamaAuthGuard implements CanActivate {
     }
 
     return decoded;
+  }
+
+  private extractInnerToken(outerToken: string): any {
+    try {
+      const outerDecoded = jwt.decode(outerToken) as any;
+      this.logger.log(`Outer token keys: ${outerDecoded ? Object.keys(outerDecoded).join(', ') : 'null'}`);
+      
+      if (!outerDecoded?.tokenString) {
+        this.logger.warn('No tokenString field in outer token, returning outer token itself');
+        return outerDecoded; // Return outer token if there's no inner token
+      }
+      
+      const innerDecoded = jwt.decode(outerDecoded.tokenString) as any;
+      this.logger.log(`Inner token keys: ${innerDecoded ? Object.keys(innerDecoded).join(', ') : 'null'}`);
+      return innerDecoded;
+    } catch (error) {
+      const err = error as Error;
+      this.logger.warn(`Failed to extract inner token payload: ${err.message}`);
+      return null;
+    }
   }
 }

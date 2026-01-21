@@ -7,6 +7,7 @@ export interface AuthenticatedUser {
   validClaims: string[];
   tenantId: string;
   userId: string;
+  allowedStatuses?: string[];
 }
 
 export interface AuthenticatedRequest extends Request {
