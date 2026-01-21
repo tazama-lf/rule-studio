@@ -19,11 +19,6 @@ export class Rules {
   @IsString()
   id?: string;
 
-  @ApiProperty({ description: 'Rule name', example: 'High Value Transaction Check' })
-  @IsString()
-  @IsNotEmpty()
-  rule_name: string;
-
   @ApiProperty({ description: 'Rule description', example: 'Detects transactions above threshold' })
   @IsString()
   @IsNotEmpty()
@@ -84,11 +79,6 @@ export class CreateRuleDto {
   @IsNotEmpty()
   rule_id: string;
 
-  @ApiProperty({ description: 'Rule name', example: 'High Value Transfer Detection' })
-  @IsString()
-  @IsNotEmpty()
-  rule_name: string;
-
   @ApiProperty({ description: 'Rule description', example: 'Detects payment transfers exceeding $10,000 for fraud prevention' })
   @IsString()
   @IsNotEmpty()
@@ -137,11 +127,6 @@ export class CreateRuleDto {
 }
 
 export class UpdateRuleDto {
-  @ApiPropertyOptional({ description: 'Rule name', example: 'Updated High Value Transaction Check' })
-  @IsOptional()
-  @IsString()
-  rule_name?: string;
-
   @ApiPropertyOptional({ description: 'Rule description', example: 'Updated: Detects transactions above threshold' })
   @IsOptional()
   @IsString()
