@@ -7,6 +7,7 @@ import {
   IsNumber,
   IsObject,
   ValidateNested,
+  Matches,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -17,11 +18,6 @@ export class Rules {
   @IsOptional()
   @IsString()
   id?: string;
-
-  @ApiProperty({ description: 'Rule name', example: 'High Value Transaction Check' })
-  @IsString()
-  @IsNotEmpty()
-  rule_name: string;
 
   @ApiProperty({ description: 'Rule description', example: 'Detects transactions above threshold' })
   @IsString()
@@ -36,6 +32,9 @@ export class Rules {
   @ApiProperty({ description: 'Rule version', example: '1.0.0' })
   @IsString()
   @IsNotEmpty()
+  @Matches(/^\d+\.\d+\.\d+$/, {
+    message: 'Version must be in semantic versioning format (major.minor.patch), e.g., 1.0.0'
+  })
   version: string;
 
   @ApiPropertyOptional({ description: 'Transaction type version', example: '11' })
@@ -80,11 +79,6 @@ export class CreateRuleDto {
   @IsNotEmpty()
   rule_id: string;
 
-  @ApiProperty({ description: 'Rule name', example: 'High Value Transfer Detection' })
-  @IsString()
-  @IsNotEmpty()
-  rule_name: string;
-
   @ApiProperty({ description: 'Rule description', example: 'Detects payment transfers exceeding $10,000 for fraud prevention' })
   @IsString()
   @IsNotEmpty()
@@ -98,6 +92,9 @@ export class CreateRuleDto {
   @ApiProperty({ description: 'Rule version', example: '1.0.0' })
   @IsString()
   @IsNotEmpty()
+  @Matches(/^\d+\.\d+\.\d+$/, {
+    message: 'Version must be in semantic versioning format (major.minor.patch), e.g., 1.0.0'
+  })
   version: string;
 
   @ApiPropertyOptional({ description: 'Transaction type version', example: '11' })
@@ -130,11 +127,6 @@ export class CreateRuleDto {
 }
 
 export class UpdateRuleDto {
-  @ApiPropertyOptional({ description: 'Rule name', example: 'Updated High Value Transaction Check' })
-  @IsOptional()
-  @IsString()
-  rule_name?: string;
-
   @ApiPropertyOptional({ description: 'Rule description', example: 'Updated: Detects transactions above threshold' })
   @IsOptional()
   @IsString()
@@ -148,6 +140,9 @@ export class UpdateRuleDto {
   @ApiPropertyOptional({ description: 'Rule version', example: '1.1.0' })
   @IsOptional()
   @IsString()
+  @Matches(/^\d+\.\d+\.\d+$/, {
+    message: 'Version must be in semantic versioning format (major.minor.patch), e.g., 1.0.0'
+  })
   version?: string;
 
   @ApiPropertyOptional({ description: 'Transaction type version', example: '11' })
@@ -354,8 +349,8 @@ export class UpdateRuleStatusDto {
 
   @ApiProperty({ description: 'Reason for status change', example: 'Updated compliance requirements' })
   @IsString()
-  @IsNotEmpty()
-  reason: string;
+  @IsOptional()
+  comment: string;
 }
 export class RequestSaveFlow {
   @ApiProperty({description: 'ts file base64', example: 'data:image/png;base64,iVBORw0KGgoAAAANSUh...'})

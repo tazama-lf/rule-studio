@@ -35,7 +35,8 @@ import {
 @UseGuards(TazamaAuthGuard)
 export class RulesController {
   constructor(private readonly rulesService: RulesService) {}
- @Get('/api/status')
+  
+  @Get('/api/status')
   @RequireAnyClaims(
     TazamaClaims.EDITOR,
     TazamaClaims.APPROVER,
@@ -55,9 +56,7 @@ export class RulesController {
   async getRulesStatus(
     @User() user: AuthenticatedUser,
   ): Promise<string[]> {
-    return await this.rulesService.getRulesStatusbyRole(
-      user.token.tokenString,
-    );
+    return await this.rulesService.getRulesStatusbyRole(user);
   }
 
   @Post('/api/all')
@@ -92,10 +91,21 @@ export class RulesController {
     @User() user: AuthenticatedUser,
     @Body() filters?: Record<string, unknown>,
   ): Promise<Rules[]> {
+    const updatedFilters = filters ?? {};
+    
+    if (!updatedFilters.status || 
+        updatedFilters.status === '' || 
+        (Array.isArray(updatedFilters.status) && updatedFilters.status.length === 0)) {
+      const allowedStatuses = await this.rulesService.getRulesStatusbyRole(user);
+      if (allowedStatuses.length > 0) {
+        updatedFilters.status = allowedStatuses.join(',');
+      }
+    }
+    
     return await this.rulesService.getAllRules(
       parseInt(offset, 10),
       parseInt(limit, 10),
-      filters ?? {},
+      updatedFilters,
       user.token.tokenString,
     );
   }
@@ -419,9 +429,7 @@ export class RulesController {
 
   // update the status of a rule based on rule ID
   @Put('/api/:ruleId/status')
-  @RequireAnyClaims(TazamaClaims.EDITOR)
-  @RequireAnyClaims(TazamaClaims.APPROVER)
-  @RequireAnyClaims(TazamaClaims.PUBLISHER)
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
   @ApiOperation({ 
     summary: 'Update rule status', 
     description: 'Updates the activation status of a specific rule with reason for change' 
@@ -448,7 +456,7 @@ export class RulesController {
     return await this.rulesService.updateRuleStatus(
       ruleId,
       body.status,
-      body.reason,
+      body.comment,
       user.token.tokenString,
     );
   }
