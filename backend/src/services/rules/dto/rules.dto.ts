@@ -37,6 +37,9 @@ export class Rules {
   @ApiProperty({ description: 'Rule version', example: '1.0.0' })
   @IsString()
   @IsNotEmpty()
+  @Matches(/^\d+\.\d+\.\d+$/, {
+    message: 'Version must be in semantic versioning format (major.minor.patch), e.g., 1.0.0'
+  })
   version: string;
 
   @ApiPropertyOptional({ description: 'Transaction type version', example: '11' })
