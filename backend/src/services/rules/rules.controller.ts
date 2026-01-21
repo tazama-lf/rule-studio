@@ -35,7 +35,8 @@ import {
 @UseGuards(TazamaAuthGuard)
 export class RulesController {
   constructor(private readonly rulesService: RulesService) {}
- @Get('/api/status')
+  
+  @Get('/api/status')
   @RequireAnyClaims(
     TazamaClaims.EDITOR,
     TazamaClaims.APPROVER,
@@ -55,9 +56,7 @@ export class RulesController {
   async getRulesStatus(
     @User() user: AuthenticatedUser,
   ): Promise<string[]> {
-    return await this.rulesService.getRulesStatusbyRole(
-      user.token.tokenString,
-    );
+    return await this.rulesService.getRulesStatusbyRole(user);
   }
 
   @Post('/api/all')
@@ -97,7 +96,7 @@ export class RulesController {
     if (!updatedFilters.status || 
         updatedFilters.status === '' || 
         (Array.isArray(updatedFilters.status) && updatedFilters.status.length === 0)) {
-      const allowedStatuses = await this.rulesService.getRulesStatusbyRole(user.token.tokenString);
+      const allowedStatuses = await this.rulesService.getRulesStatusbyRole(user);
       if (allowedStatuses.length > 0) {
         updatedFilters.status = allowedStatuses.join(',');
       }
