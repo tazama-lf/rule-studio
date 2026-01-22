@@ -2,7 +2,7 @@ import { Body, Controller, Get, Post, Query, UseGuards, Delete, Param } from "@n
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam, ApiBody } from '@nestjs/swagger';
 import { TazamaAuthGuard } from "../../guards/tazama-auth.guard";
 import { NodesService } from "./nodes.service";
-import { CreateNodeDto, ResponseNodesDto } from "./dto";
+import { CreateNodeDto, RequestQueryNodeDto, ResponseNodesDto, ResponseQueryNodeDto } from "./dto";
 import { RequireAnyClaims, TazamaClaims } from "../../decorators/auth.decorator";
 import type { AuthenticatedUser } from "../auth/auth.types";
 import { User } from "../../decorators/user.decorator";
@@ -85,5 +85,31 @@ export class NodesController {
     @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
     async deleteNodeById(@Param('nodeId') nodeId: string, @User() user: AuthenticatedUser): Promise<{ success: boolean; message: string }> {
         return await this.nodesService.deleteNodeById(nodeId, user.token.tokenString);
+    }
+
+    @Post('execute-query')
+    @RequireAnyClaims(
+        TazamaClaims.EDITOR,
+        TazamaClaims.APPROVER,
+        TazamaClaims.PUBLISHER,
+    )
+    @ApiOperation({ 
+        summary: 'Execute query node', 
+        description: 'Executes a query node and returns the result'
+    })
+    @ApiBody({ type: RequestQueryNodeDto })
+    @ApiResponse({
+        status: 200,
+        description: 'Query executed successfully',
+        type: ResponseQueryNodeDto,
+    })
+    @ApiResponse({ status: 400, description: 'Invalid query parameter' })
+    @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+    @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
+    async executeQueryNode(
+        @Body() body: RequestQueryNodeDto,
+        @User() user: AuthenticatedUser
+    ): Promise<ResponseQueryNodeDto> {
+        return await this.nodesService.executeQueryNode(user.token.tokenString, body);
     }
 }
