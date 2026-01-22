@@ -1,5 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { CreateNodeDto, ResponseNodesDto } from "./dto";
+import { CreateNodeDto, RequestQueryNodeDto, ResponseNodesDto, ResponseQueryNodeDto } from "./dto";
 import { AdminServiceClient } from "../admin-service-client";
 import { GetNodesQuery } from "./interfaces/node.interface";
 
@@ -37,6 +37,16 @@ export class NodesService {
         } catch (error) {
             const err = error as Error;
             this.logger.error(`Error deleting node with ID ${nodeId}: ${err.message}`);
+            throw error;
+        }
+    }
+
+    async executeQueryNode(token: string, data: RequestQueryNodeDto): Promise<ResponseQueryNodeDto> {
+        try {
+            return await this.adminServiceClient.executeQueryNode(token, data);
+        } catch (error) {
+            const err = error as Error;
+            this.logger.error(`Error executing query node: ${err.message}`);
             throw error;
         }
     }

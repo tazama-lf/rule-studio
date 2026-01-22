@@ -8,9 +8,10 @@ import {
 } from '@nestjs/common';
 import { ResponseRuleFlowDto, Rules, GlobalVariableDto, RequestSaveFlow } from '../services/rules/dto/rules.dto';
 import { firstValueFrom } from 'rxjs';
-import { CreateNodeDto, ResponseNodesDto } from './nodes/dto';
+import { CreateNodeDto, RequestQueryNodeDto, ResponseNodesDto } from './nodes/dto';
 import { GetNodesQuery } from './nodes/interfaces/node.interface';
-import { BASE_URL, GLOBAL_VARIABLES, RULE_FLOW, RULES_WITH_FILTERS, RULES_WITH_ID } from '../constants/constant';
+import { BASE_URL, GLOBAL_VARIABLES, NODES, RULE_FLOW, RULES_WITH_FILTERS, RULES_WITH_ID } from '../constants/constant';
+import { ResponseQueryNodeDto } from './nodes/dto/responseNode.dto';
 
 @Injectable()
 export class AdminServiceClient {
@@ -703,5 +704,14 @@ export class AdminServiceClient {
     }
   }
 
+  async executeQueryNode(token: string, data: RequestQueryNodeDto): Promise<ResponseQueryNodeDto> {
+    const response = await this.executeHttpRequest(
+      'POST',
+      `${NODES}/query`,
+      token,
+      { query: data.query, params: data.params },
+    )
 
+    return response as ResponseQueryNodeDto;
+  }
 }

@@ -41,3 +41,21 @@ export class CreateNodeDto {
   @IsNumber()
   order?: number;
 }
+
+export class RequestQueryNodeDto {
+  @ApiProperty({
+    description: 'The query string to be executed',
+    example: 'SELECT * FROM nodes WHERE type = \'processor\'',
+  })
+  @IsString()
+  @IsNotEmpty()
+  query: string;
+
+  @ApiProperty({
+    description: 'Optional parameters for the query',
+    example: ['processor'],
+  })
+  @IsOptional()
+  @IsObject({ each: true })
+  params?: unknown[];
+}

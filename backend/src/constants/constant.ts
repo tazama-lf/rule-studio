@@ -7,3 +7,5 @@ export const RULES_WITH_ID : string = `/v1/admin/trs/rules`;
 export const RULE_FLOW : string = `/v1/admin/trs/rule-flow`;
 
 export const GLOBAL_VARIABLES: string = '/v1/admin/trs/global-variables';
+
+export const NODES: string = '/v1/admin/nodes';
