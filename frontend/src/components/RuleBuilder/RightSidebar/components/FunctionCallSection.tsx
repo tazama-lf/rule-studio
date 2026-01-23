@@ -212,7 +212,7 @@ const FunctionCallSection: React.FC<FunctionCallSectionProps> = ({
               fullWidth
               size="small"
               label="Result Variable Name"
-              value={currentParams['resultVariable'] || 'result'}
+              value={'resultVariable' in currentParams ? currentParams['resultVariable'] : 'result'}
               onChange={onParamChange('resultVariable')}
               onBlur={onParamBlur}
               onDrop={onDrop('resultVariable')}
@@ -234,7 +234,7 @@ const FunctionCallSection: React.FC<FunctionCallSectionProps> = ({
         </Typography>
 
         {parameters.map((param: FunctionParameter, index: number) => {
-          const currentValue = currentParams[param.name] || '';
+          const currentValue = param.name in currentParams ? currentParams[param.name] : '';
           const hasGlobalVariable = /\{\{\s*.+?\s*\}\}/.test(currentValue);
           const fieldError = getFieldError?.(param.name);
 

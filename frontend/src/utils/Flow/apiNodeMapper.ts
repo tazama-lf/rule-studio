@@ -10,7 +10,7 @@ interface ApiNodeInput {
   options?: string[];
 }
 
-interface ApiNode {
+export interface ApiNode {
   id: number;
   node_json: {
     name: string;

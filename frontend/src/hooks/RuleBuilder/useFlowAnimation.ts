@@ -27,7 +27,6 @@ export const useFlowAnimation = ({
   const setEdgesRef = useRef<((edges: Edge[] | ((prevEdges: Edge[]) => Edge[])) => void) | null>(null);
   const nestedCanvasDataRef = useRef(nestedCanvasData);
   
-  // Update ref when nestedCanvasData changes, but don't trigger re-renders
   useEffect(() => {
     nestedCanvasDataRef.current = nestedCanvasData;
   }, [nestedCanvasData]);

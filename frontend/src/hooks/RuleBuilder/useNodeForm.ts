@@ -26,7 +26,6 @@ export const useNodeForm = ({
 
   const nodeData = selectedNode?.data as NodeData | undefined;
 
-  // Reset editing state when node changes
   const prevNodeIdRef = React.useRef<string | undefined>(selectedNode?.id);
   if (prevNodeIdRef.current !== selectedNode?.id) {
     prevNodeIdRef.current = selectedNode?.id;
@@ -35,7 +34,6 @@ export const useNodeForm = ({
     if (variableError !== null) setVariableError(null);
   }
 
-  // Memoized current values
   const currentLabel = useMemo(
     () => editingLabel !== null ? editingLabel : (nodeData?.label || ''),
     [editingLabel, nodeData?.label]
@@ -46,7 +44,6 @@ export const useNodeForm = ({
     [editingParams, nodeData?.params]
   );
 
-  // Compute validation error for SetVariable nodes
   const computedVariableError = useMemo(() => {
     if (nodeData?.nodeType === 'SetVariable' && selectedNode) {
       const varName = currentParams.name || currentParams.variableName;
@@ -83,7 +80,6 @@ export const useNodeForm = ({
       const newValue = event.target.value;
       const updatedParams = { ...currentParams, [paramKey]: newValue };
 
-      // Special validation for SetVariable node's variable name
       if (nodeData?.nodeType === 'SetVariable' && (paramKey === 'name' || paramKey === 'variableName')) {
         const existingVars = extractVariablesFromNodes(allNodes);
         const validation = validateVariableName(newValue, selectedNode?.id || '', existingVars);
@@ -106,7 +102,6 @@ export const useNodeForm = ({
     [currentParams, nodeData?.nodeType, selectedNode, allNodes, onUpdateNode]
   );
 
-  // Store refs for input elements
   const inputRefs = React.useRef<Record<string, HTMLInputElement | HTMLTextAreaElement>>({});
 
   const handleDrop = useCallback(
@@ -121,14 +116,12 @@ export const useNodeForm = ({
         let newValue: string;
 
         if (inputElement) {
-          // Insert at cursor position
           const start = inputElement.selectionStart || 0;
           const end = inputElement.selectionEnd || 0;
           const textBefore = currentValue.substring(0, start);
           const textAfter = currentValue.substring(end);
           newValue = textBefore + variablePath + textAfter;
-
-          // Update cursor position after insert
+          
           setTimeout(() => {
             const newCursorPos = start + variablePath.length;
             inputElement.setSelectionRange(newCursorPos, newCursorPos);

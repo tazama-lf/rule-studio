@@ -13,10 +13,8 @@ import { usesDynamicParameters } from '../../../utils/Flow/functionParameterUtil
 import {
   NodeHeader,
   BasicPropertiesSection,
-  FetchDBSection,
   IfConditionEditor,
   ParameterSection,
-  FunctionPropertiesSection,
   FunctionCallSection,
   ParameterConfigSection,
 } from './components';
@@ -25,9 +23,11 @@ import { useNodeValidation } from '../../../hooks/RuleBuilder/useNodeValidation'
 interface RightSidebarProps {
   selectedNode: Node | null;
   onClose: () => void;
-  onUpdateNode: (nodeId: string, updates: Record<string, unknown>) => void;
+  onUpdateNode: (nodeId: string, updates: Record<string, unknown>, shouldForceSave?: boolean) => void;
   allNodes?: Node[];
   viewOnly?: boolean;
+  ruleId?: string;
+  edges?: import('@xyflow/react').Edge[];
 }
 
 interface NodeData {
@@ -51,6 +51,8 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
   onUpdateNode,
   allNodes,
   viewOnly = false,
+  ruleId,
+  edges = [],
 }) => {
   const collapsed = !selectedNode;
 
@@ -101,9 +103,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
     currentParamsRef.current = currentParams;
   }, [currentParams]);
 
-  // Reset on node change
   React.useEffect(() => {
-    // Clear any pending updates and validations
     if (updateTimeoutRef.current) {
       clearTimeout(updateTimeoutRef.current);
       updateTimeoutRef.current = null;
@@ -114,14 +114,13 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
     }
     setEditingLabel(null);
     setEditingParams(null);
-    // Validate new node immediately
+    
     if (selectedNode && nodeData?.nodeType && nodeData?.params) {
       validate(nodeData.params);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedNode?.id]);
 
-  // Get If conditions
   const conditions: IfCondition[] = useMemo(() => {
     if (nodeData?.nodeType !== 'If') return [];
     try {
@@ -132,7 +131,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
     }
   }, [currentParams, nodeData?.nodeType]);
 
-  // ===== HANDLERS =====
   const handleLabelChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const newLabel = event.target.value;
@@ -148,8 +146,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
     setEditingLabel(null);
   }, []);
   
-  const handleParamBlur = useCallback(() => {
-    // Immediately apply pending updates when field loses focus
+  const handleParamBlur = useCallback((shouldForceSave = false, overrideParams?: Record<string, string>) => {
     if (updateTimeoutRef.current) {
       clearTimeout(updateTimeoutRef.current);
       updateTimeoutRef.current = null;
@@ -158,17 +155,17 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
       clearTimeout(validationTimeoutRef.current);
       validationTimeoutRef.current = null;
     }
-    if (selectedNode && editingParams) {
-      onUpdateNode(selectedNode.id, { params: editingParams });
-      // Validate immediately on blur
-      validate(editingParams);
+    if (selectedNode) {
+      const paramsToSave = overrideParams || editingParams;
+      if (paramsToSave) {
+        onUpdateNode(selectedNode.id, { params: paramsToSave }, shouldForceSave);
+        validate(paramsToSave);
+      }
     }
   }, [selectedNode, editingParams, onUpdateNode, validate]);
 
-  // Direct update handler for immediate param updates (e.g., from modal saves)
   const handleDirectUpdate = useCallback(
     (updatedParams: Record<string, string>) => {
-      // Clear any pending timeouts
       if (updateTimeoutRef.current) {
         clearTimeout(updateTimeoutRef.current);
         updateTimeoutRef.current = null;
@@ -177,12 +174,10 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         clearTimeout(validationTimeoutRef.current);
         validationTimeoutRef.current = null;
       }
-      
-      // Update refs and state immediately
+ 
       currentParamsRef.current = updatedParams;
       setEditingParams(updatedParams);
-      
-      // Update node immediately
+
       if (selectedNode) {
         onUpdateNode(selectedNode.id, { params: updatedParams });
         validate(updatedParams);
@@ -195,7 +190,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
     (paramKey: string) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const newValue = event.target.value;
       
-      // Check if this is a multi-update (for atomic updates of multiple params)
       const target = event.target as HTMLInputElement & { dataset?: { multiUpdate?: string } };
       let updatedParams: Record<string, string>;
       
@@ -212,12 +206,10 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
       
       setEditingParams(updatedParams);
       
-      // Debounce node updates - only update after 300ms of no typing
       if (updateTimeoutRef.current) {
         clearTimeout(updateTimeoutRef.current);
       }
-      
-      // Debounce validation - run after 500ms of no typing
+
       if (validationTimeoutRef.current) {
         clearTimeout(validationTimeoutRef.current);
       }
@@ -252,7 +244,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
           const end = inputElement.selectionEnd || 0;
           const textBefore = currentValue.substring(0, start);
           const textAfter = currentValue.substring(end);
-          // Wrap variable with {{ }} for UI indication
           newValue = textBefore + `{{ ${variablePath} }}` + textAfter;
           setTimeout(() => {
             const newCursorPos = start + `{{ ${variablePath} }}`.length;
@@ -260,7 +251,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
             inputElement.focus();
           }, 0);
         } else {
-          // Wrap variable with {{ }} for UI indication
+  
           const wrappedVariable = `{{ ${variablePath} }}`;
           newValue = currentValue ? `${currentValue} ${wrappedVariable}` : wrappedVariable;
         }
@@ -278,7 +269,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
     event.dataTransfer.dropEffect = 'copy';
   }, []);
 
-  // ===== IF CONDITION HANDLERS (Keep inline for proper state sync) =====
   const handleConditionChange = useCallback(
     (index: number, newCondition: string) => {
       const newConditions = [...conditions];
@@ -373,13 +363,11 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         newConditions.splice(index, 1);
         const updatedParams = { ...currentParamsRef.current, conditions: JSON.stringify(newConditions) };
         setEditingParams(updatedParams);
-        
-        // Debounce the update
+
         if (updateTimeoutRef.current) {
           clearTimeout(updateTimeoutRef.current);
         }
-        
-        // Debounce validation
+
         if (validationTimeoutRef.current) {
           clearTimeout(validationTimeoutRef.current);
         }
@@ -398,7 +386,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
     [conditions, selectedNode, onUpdateNode, validate]
   );
 
-  // ===== RENDER =====
   if (collapsed) {
     return (
       <SidebarContainer collapsed={true}>
@@ -480,21 +467,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         viewOnly={viewOnly}
       />
 
-      {nodeData?.nodeType === 'FetchDB' && (
-        <FetchDBSection
-          currentParams={currentParams}
-          onParamChange={handleParamChange}
-          onParamBlur={handleParamBlur}
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          inputRefs={inputRefs}
-          isReadOnly={isReadOnly}
-          viewOnly={viewOnly}
-          allNodes={allNodes}
-          getFieldError={getFieldError}
-        />
-      )}
-
       {nodeData?.nodeType === 'CustomFunction' && mode === 'definition' ? (
         <ParameterConfigSection
           currentParams={currentParams}
@@ -553,16 +525,11 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
             nodeType={nodeData?.nodeType}
             allNodes={allNodes}
             getFieldError={getFieldError}
+            ruleId={ruleId}
+            edges={edges}
+            selectedNodeId={selectedNode?.id}
           />
         )
-      )}
-
-      {isFunctionNode && template.description && (
-        <FunctionPropertiesSection 
-          template={{
-            description: template.description
-          }} 
-        />
       )}
     </SidebarContainer>
   );

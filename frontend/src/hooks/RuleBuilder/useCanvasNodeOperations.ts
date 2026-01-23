@@ -23,7 +23,6 @@ export const useCanvasNodeOperations = ({
       const template = getNodeTemplate(type, mode);
       const newNodeId = generateNodeId();
 
-      // Initialize params with default values from template
       const defaultParams: Record<string, string> = {};
       if (template?.inputs) {
         template.inputs.forEach((input) => {
@@ -78,7 +77,6 @@ export const useCanvasNodeOperations = ({
     [setNodes, saveHistory]
   );
 
-  // Update a node with new data
   const updateNode = useCallback(
     (nodeId: string, updates: Record<string, unknown>) => {
       setNodes((nds) =>
@@ -91,8 +89,6 @@ export const useCanvasNodeOperations = ({
     },
     [setNodes]
   );
-
-  // Delete selected nodes (excluding protected ones)
   const deleteSelectedNodes = useCallback(
     (currentNodes: Node[], selectedNodes: Node[]) => {
       const deletableNodes = selectedNodes.filter(
@@ -122,8 +118,6 @@ export const useCanvasNodeOperations = ({
     },
     [setEdges, clearNodeErrors]
   );
-
-  // Delete selected edges
   const deleteSelectedEdges = useCallback(
     (currentEdges: Edge[]) => {
       return currentEdges.filter((edge) => !edge.selected);
@@ -131,13 +125,11 @@ export const useCanvasNodeOperations = ({
     []
   );
 
-  // Clear selections
   const clearSelections = useCallback(() => {
     setNodes((nds) => nds.map((node) => ({ ...node, selected: false })));
     setEdges((eds) => eds.map((edge) => ({ ...edge, selected: false })));
   }, [setNodes, setEdges]);
 
-  // Check if a node is protected from deletion
   const isProtectedNode = useCallback((node: Node) => {
     const nodeType = String(node.data.nodeType);
     return (

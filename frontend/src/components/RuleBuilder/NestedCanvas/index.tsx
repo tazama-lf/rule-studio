@@ -49,11 +49,8 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
   ruleId,
   mainCanvasNodes = [],
 }) => {
-  // Generate initial nodes and edges once using lazy initialization
   const [initialNodesEdges] = useState(() => {
-    // Use provided nodes/edges if available, otherwise create defaults
     if (providedInitialNodes && providedInitialEdges) {
-      // Sync nested node counter with existing node IDs to prevent ID collisions
       const maxNestedNodeId = providedInitialNodes.reduce((max, node) => {
         const match = node.id.match(/^nested-node-(\d+)$/);
         if (match) {
@@ -62,8 +59,6 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
         }
         return max;
       }, 0);
-      
-      // Update the nested node counter if we found existing nested nodes
       if (maxNestedNodeId > 0) {
         setCounters(0, 0, maxNestedNodeId);
       }
@@ -77,7 +72,6 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
     const startTemplate = getNodeTemplate('Start');
     const endTemplate = getNodeTemplate('End');
 
-    // Helper to get default params
     const getDefaultParams = (template: ReturnType<typeof getNodeTemplate>) => {
       const params: Record<string, string> = {};
       if (template?.inputs) {
@@ -121,18 +115,15 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const { clearNodeErrors } = useValidationContext();
   
-  // Use refs to track current state without triggering re-renders
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
   const saveTimeoutRef = useRef<number | null>(null);
   const onSaveRef = useRef(onSave);
-  
-  // Update onSave ref when it changes
+
   useEffect(() => {
     onSaveRef.current = onSave;
   }, [onSave]);
-  
-  // Update refs when nodes/edges change
+
   useEffect(() => {
     nodesRef.current = nodes;
     edgesRef.current = edges;
@@ -141,20 +132,16 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
   const allNodes = useMemo(() => {
     return [...mainCanvasNodes, ...nodes];
   }, [mainCanvasNodes, nodes]);
-  
-  // Debounced auto-save: save 1 second after last change
+
   useEffect(() => {
-    // Clear previous timeout
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
     
-    // Set new timeout to save after 1 second
     saveTimeoutRef.current = setTimeout(() => {
       onSaveRef.current(nodes, edges);
     }, 1000);
     
-    // Cleanup on unmount or before next effect
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
@@ -162,28 +149,32 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
     };
   }, [nodes, edges]);
 
-  // Immediate save on unmount to catch any unsaved changes
   useEffect(() => {
     return () => {
-      // Clear any pending saves
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
-      // Save immediately on unmount
       onSaveRef.current(nodesRef.current, edgesRef.current);
     };
   }, []);
 
-  // Node operations (inline implementation)
   const updateNode = useCallback(
-    (nodeId: string, updates: Record<string, unknown>) => {
-      setNodes((nds) =>
-        nds.map((node) =>
+    (nodeId: string, updates: Record<string, unknown>, shouldForceSave = false) => {
+      setNodes((nds) => {
+        const updatedNodes = nds.map((node) =>
           node.id === nodeId
             ? { ...node, data: { ...node.data, ...updates } }
             : node
-        )
-      );
+        );
+        if (shouldForceSave) {
+          nodesRef.current = updatedNodes;
+          setTimeout(() => {
+            onSaveRef.current(updatedNodes, edgesRef.current);
+          }, 50);
+        }
+        
+        return updatedNodes;
+      });
     },
     [setNodes]
   );
@@ -224,7 +215,6 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
     setEdges((currentEdges) => currentEdges.filter((edge) => !edge.selected));
   }, [setEdges]);
 
-  // Edge operations (inline implementation)
   const onConnect = useCallback(
     (params: Connection) => {
   
@@ -232,7 +222,6 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
 
       setEdges((eds) => {
         if (!hasMultipleHandles) {
-          // For nodes without multiple handles, check if source already has an outgoing edge
           const sourceHasEdge = eds.some((edge) => edge.source === params.source);
 
           if (sourceHasEdge) {
@@ -240,7 +229,6 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
             return eds;
           }
         } else {
-          // For nodes with multiple handles (If/Loop), check if this specific handle already has an edge
           const handleHasEdge = eds.some(
             (edge) =>
               edge.source === params.source && edge.sourceHandle === params.sourceHandle
@@ -251,8 +239,6 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
             return eds;
           }
         }
-
-        // Add label and style for If and Loop node edges
         const edgeWithLabel = {
           ...params,
           label:
@@ -273,14 +259,10 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
     },
     [setEdges]
   );
-
-  // Keyboard shortcuts (inline implementation)
   const onKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      // Delete: Delete or Backspace
       if (event.key === 'Delete' || event.key === 'Backspace') {
         const target = event.target as HTMLElement;
-        // Don't delete when typing in input fields
         if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
           return;
         }
@@ -295,7 +277,6 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
         }
       }
 
-      // Select All: Ctrl+A
       if (event.ctrlKey && event.key === 'a') {
         const target = event.target as HTMLElement;
         if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
@@ -306,8 +287,6 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
         setNodes((nds) => nds.map((node) => ({ ...node, selected: true })));
         setEdges((eds) => eds.map((edge) => ({ ...edge, selected: true })));
       }
-
-      // Deselect All: Escape
       if (event.key === 'Escape') {
         setNodes((nds) => nds.map((node) => ({ ...node, selected: false })));
         setEdges((eds) => eds.map((edge) => ({ ...edge, selected: false })));
@@ -316,14 +295,11 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
     },
     [edges, setNodes, setEdges, deleteSelectedNodes, deleteSelectedEdges]
   );
-
-  // Setup keyboard event listener
   useEffect(() => {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [onKeyDown]);
 
-  // Drag and drop handlers
   const onDragOver = useCallback((event: DragEvent) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
@@ -338,10 +314,8 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
       const dragData = event.dataTransfer.getData('application/reactflow');
       if (!dragData) return;
 
-      // Extract type and mode from drag data (format: "Type::mode" or just "Type")
       const [type, mode] = dragData.includes('::') ? dragData.split('::') : [dragData, undefined];
       
-      // Convert string "undefined" to actual undefined
       const cleanMode = mode === 'undefined' ? undefined : mode;
 
       const position = reactFlowInstance.screenToFlowPosition({
@@ -349,8 +323,6 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
         y: event.clientY,
       });
 
-
-      // Create node with nested canvas ID
       const template = getNodeTemplate(type, cleanMode);
       
       const newNodeId = generateNestedNodeId();
@@ -380,11 +352,8 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
     },
     [reactFlowInstance, setNodes]
   );
-
-  // Node click handler - Open sidebar for editable nodes
   const onNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
-      // Don't open sidebar for Start and End nodes
       if (node.data.nodeType === 'Start' || node.data.nodeType === 'End') {
         setSelectedNode(null);
         return;
@@ -394,24 +363,19 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
     []
   );
 
-  // Pane click handler - Close sidebar when clicking empty space
   const onPaneClick = useCallback(() => {
     setSelectedNode(null);
   }, []);
 
-  // Close right sidebar handler
   const handleCloseRightSidebar = () => {
     setSelectedNode(null);
   };
 
-  // Handle node updates from RightSidebar
-  const handleNodeUpdate = (nodeId: string, updates: Record<string, unknown>) => {
-    updateNode(nodeId, updates);
+  const handleNodeUpdate = (nodeId: string, updates: Record<string, unknown>, shouldForceSave = false) => {
+    updateNode(nodeId, updates, shouldForceSave);
   };
 
-  // Handle back button - save state before returning
   const handleBack = useCallback(() => {
-    // Use refs to get the latest state
     onSave(nodesRef.current, edgesRef.current);
     onBack();
   }, [onSave, onBack]);
@@ -430,7 +394,6 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
         flexDirection: 'column',
       }}
     >
-      {/* Header */}
       <Paper
         elevation={2}
         sx={{
@@ -455,13 +418,8 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
           </Typography>
         </Box>
       </Paper>
-
-      {/* Main Content with Sidebar and Canvas */}
       <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {/* Left Sidebar with Global Variables */}
         {!viewOnly && <LeftSidebar mode="modal" hideCustomFunctions={false} hideImportNode={true} showGlobalVariables={true} allNodes={nodes} edges={edges} selectedNodeId={selectedNode?.id || null} ruleId={ruleId} />}
-
-        {/* Canvas */}
         <Box ref={reactFlowWrapper} sx={{ flex: 1, position: 'relative' }}>
           <ReactFlow
             nodes={nodes}
@@ -486,8 +444,6 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
             <MiniMap />
           </ReactFlow>
         </Box>
-
-        {/* Right Sidebar */}
         <RightSidebar
           key={selectedNode?.id || 'no-selection'}
           selectedNode={selectedNode}

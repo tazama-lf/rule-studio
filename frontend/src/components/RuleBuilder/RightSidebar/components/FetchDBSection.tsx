@@ -1,7 +1,14 @@
-import React from 'react';
-import { TextField, Typography, Divider } from '@mui/material';
+import React, { useState, useCallback, useMemo } from 'react';
+import { TextField, Typography, Divider, Button, Box } from '@mui/material';
+import CodeIcon from '@mui/icons-material/Code';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import type { Node } from '@xyflow/react';
 import { PropertyRow, SectionContainer, SectionTitle } from '../styles';
+import QueryEditorModal from './QueryEditorModal';
+import QueryExecutionResultModal from './QueryExecutionResultModal';
+import { useExecuteQueryMutation } from '../../../../redux/Api/Rule-builder';
+import type { QueryExecutionResponse } from '../../../../types/queryExecution';
+import { extractErrorMessage } from '../../../../types/queryExecution';
 
 interface FetchDBSectionProps {
   currentParams: Record<string, string>;
@@ -27,13 +34,82 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
   viewOnly,
   getFieldError,
 }) => {
+  const [queryEditorOpen, setQueryEditorOpen] = useState<boolean>(false);
+  const [resultsModalOpen, setResultsModalOpen] = useState<boolean>(false);
+  const [queryResults, setQueryResults] = useState<Record<string, unknown>[] | null>(null);
+  const [totalCount, setTotalCount] = useState<number | undefined>(undefined);
+  const [displayCount, setDisplayCount] = useState<number | undefined>(undefined);
+  const [executionError, setExecutionError] = useState<string | null>(null);
+
+  const [executeQuery, { isLoading: isExecuting }] = useExecuteQueryMutation();
+
+  const queryLineCount = useMemo(
+    () => currentParams.query?.split('\n').length ?? 0,
+    [currentParams.query]
+  );
+  
+  const hasQuery = useMemo(
+    () => Boolean(currentParams.query?.trim()),
+    [currentParams.query]
+  );
+
+  const handleOpenQueryEditor = useCallback(() => {
+    setQueryEditorOpen(true);
+  }, []);
+
+  const handleCloseQueryEditor = useCallback(() => {
+    setQueryEditorOpen(false);
+    setExecutionError(null);
+  }, []);
+
+  const handleSaveQuery = useCallback((query: string) => {
+    const syntheticEvent = {
+      target: { value: query }
+    } as React.ChangeEvent<HTMLInputElement>;
+    onParamChange('query')(syntheticEvent);
+    onParamBlur?.();
+  }, [onParamChange, onParamBlur]);
+
+  const handleExecuteQuery = useCallback(async (query: string) => {
+    try {
+      setExecutionError(null);
+      
+      const response = await executeQuery({
+        query,
+      }).unwrap() as QueryExecutionResponse;
+
+      const data = Array.isArray(response.result) ? response.result : [];
+      const rowCount = data.length;
+
+      setQueryResults(data);
+      setTotalCount(rowCount);
+      setDisplayCount(rowCount);
+      setResultsModalOpen(true);
+      
+    } catch (error: unknown) {
+      const errorMessage = extractErrorMessage(
+        error,
+        'Failed to execute query. Please check your query and try again.'
+      );
+      setExecutionError(errorMessage);
+      setQueryResults([]);
+      setTotalCount(0);
+      setDisplayCount(0);
+      setResultsModalOpen(true);
+    }
+  }, [executeQuery]);
+
+  const handleCloseResults = useCallback(() => {
+    setResultsModalOpen(false);
+  }, []);
+
+  const isDisabled = isReadOnly || viewOnly;
+
   return (
     <>
       <Divider />
       <SectionContainer>
         <SectionTitle>Database Query</SectionTitle>
-
-        {/* Query Input */}
         <PropertyRow>
           <Typography variant="body2" color="text.secondary" gutterBottom>
             SQL Query
@@ -41,50 +117,68 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
               *
             </Typography>
           </Typography>
-          <TextField
-            fullWidth
-            multiline
-            rows={12}
-            value={currentParams.query ?? ''}
-            onChange={onParamChange('query')}
-            onBlur={onParamBlur}
-            disabled={isReadOnly || viewOnly}
-            placeholder="Enter SQL query..."
-            error={!!getFieldError?.('query')}
-            helperText={getFieldError?.('query') || '💡 Drag global variables into the query'}
-            onDrop={onDrop('query')}
-            onDragOver={onDragOver}
-            inputRef={(el: HTMLInputElement | null) => {
-              if (el) {
-                inputRefsRef.current['query'] = el;
-              }
-            }}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                fontFamily: 'monospace',
-                fontSize: '0.875rem',
-                backgroundColor: 'background.paper',
-                transition: 'all 0.2s',
-              },
-              '& .MuiOutlinedInput-input': {
-                ...((currentParams.query &&
-                  currentParams.query.length > 0 &&
-                  (currentParams.query.includes('RuleRequest.') || currentParams.query.includes('RuleConfig.'))) && {
-                  background: `linear-gradient(to bottom, 
-                    transparent 0%, 
-                    transparent calc(100% - 2px), 
-                    #4caf50 calc(100% - 2px), 
-                    #4caf50 100%
-                  )`,
-                  backgroundSize: '100% 100%',
-                  backgroundRepeat: 'no-repeat',
-                }),
-              },
-            }}
-          />
+          
+          <Box>
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<CodeIcon />}
+              onClick={handleOpenQueryEditor}
+              disabled={isDisabled}
+              sx={{
+                justifyContent: 'flex-start',
+                textAlign: 'left',
+                py: 1.5,
+                px: 2,
+                borderColor: getFieldError?.('query') ? 'error.main' : 'divider',
+                borderWidth: getFieldError?.('query') ? 2 : 1,
+                '&:hover': {
+                  borderColor: getFieldError?.('query') ? 'error.dark' : 'primary.main',
+                  backgroundColor: 'action.hover',
+                },
+              }}
+            >
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1 }}>
+                <Typography variant="body2" fontWeight={500}>
+                  {hasQuery ? 'Edit SQL Query' : 'Write SQL Query'}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {hasQuery ? `${queryLineCount} lines` : 'Click to open query editor'}
+                </Typography>
+              </Box>
+            </Button>
+            
+            {getFieldError?.('query') && (
+              <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+                {getFieldError('query')}
+              </Typography>
+            )}
+            
+            {!getFieldError?.('query') && (
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                💡 Use Monaco editor to write and test your SQL query
+              </Typography>
+            )}
+          </Box>
         </PropertyRow>
-
-        {/* Result Variable */}
+        {hasQuery && !isDisabled && (
+          <PropertyRow>
+            <Button
+              fullWidth
+              variant="contained"
+              color="success"
+              startIcon={<PlayArrowIcon />}
+              onClick={() => handleExecuteQuery(currentParams.query)}
+              disabled={isExecuting}
+              sx={{ py: 1 }}
+            >
+              {isExecuting ? 'Executing Query...' : 'Execute & Test Query'}
+            </Button>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block', textAlign: 'center' }}>
+              Test your query before saving to see sample results
+            </Typography>
+          </PropertyRow>
+        )}
         <PropertyRow>
           <Typography variant="body2" color="text.secondary" gutterBottom>
             Store Result In
@@ -97,10 +191,17 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
             value={currentParams.resultVar ?? currentParams.variable ?? ''}
             onChange={onParamChange('resultVar')}
             onBlur={onParamBlur}
-            disabled={isReadOnly || viewOnly}
+            disabled={isDisabled}
             placeholder="Variable name (e.g., dbResult)"
             error={!!getFieldError?.('resultVar')}
             helperText={getFieldError?.('resultVar') || '💡 Variable name to store query results'}
+            onDrop={onDrop('resultVar')}
+            onDragOver={onDragOver}
+            inputRef={(el: HTMLInputElement | null) => {
+              if (el) {
+                inputRefsRef.current['resultVar'] = el;
+              }
+            }}
             sx={{
               '& .MuiOutlinedInput-root': {
                 fontFamily: 'monospace',
@@ -110,6 +211,23 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
           />
         </PropertyRow>
       </SectionContainer>
+      <QueryEditorModal
+        open={queryEditorOpen}
+        onClose={handleCloseQueryEditor}
+        onSave={handleSaveQuery}
+        onExecute={handleExecuteQuery}
+        initialValue={currentParams.query ?? ''}
+        isExecuting={isExecuting}
+        executionError={executionError}
+      />
+      <QueryExecutionResultModal
+        open={resultsModalOpen}
+        onClose={handleCloseResults}
+        results={queryResults}
+        totalCount={totalCount}
+        displayCount={displayCount}
+        error={executionError}
+      />
     </>
   );
 };

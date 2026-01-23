@@ -8,6 +8,11 @@ export { useVariableTree, type VariableTreeNode } from './useVariableTree';
 export { useLocalVariables } from './useLocalVariables';
 export { useNodeScope } from './useNodeScope';
 
+// Query Editor Hooks
+export { useQueryValidation } from './useQueryValidation';
+export { useDragDropEditor } from './useDragDropEditor';
+export { useVariableData } from './useVariableData';
+
 // Node Palette Hook
 export { useNodePalette, type NodeTemplate as NodePaletteTemplate } from './useNodePalette';
 

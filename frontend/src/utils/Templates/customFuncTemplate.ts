@@ -71,8 +71,8 @@ export const nodeTemplates: Readonly<NodeTemplates> = {
   FetchDB: {
     displayName: 'Fetch from DB',
     inputs: [
-      { key: 'variable', label: 'Variable', defaultValue: 'data' },
-      { key: 'query', label: 'SQL Query', defaultValue: 'SELECT * FROM users' },
+      { key: 'query', label: 'SQL Query', defaultValue: 'SELECT * FROM users', required: true },
+      { key: 'resultVar', label: 'Store Result In', defaultValue: 'dbResult', required: true },
     ],
     handles: { source: true, target: true },
     bgColor: 'bg-orange-50 border-orange-400',

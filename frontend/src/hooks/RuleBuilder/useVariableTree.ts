@@ -9,14 +9,12 @@ export interface VariableTreeNode {
   children?: VariableTreeNode[];
 }
 
-// Helper function to get type of value
 const getValueType = (value: unknown): 'object' | 'array' | 'string' | 'number' | 'boolean' | 'null' => {
   if (value === null) return 'null';
   if (Array.isArray(value)) return 'array';
   return typeof value as 'object' | 'string' | 'number' | 'boolean';
 };
 
-// Helper function to build tree structure
 const buildVariableTree = (obj: unknown, parentPath: string = ''): VariableTreeNode[] => {
   if (typeof obj !== 'object' || obj === null) {
     return [];
@@ -28,7 +26,7 @@ const buildVariableTree = (obj: unknown, parentPath: string = ''): VariableTreeN
   entries.forEach(([key, value]) => {
     const currentPath = parentPath ? `${parentPath}.${key}` : key;
     const valueType = getValueType(value);
-    const isDraggable = valueType !== 'object' && valueType !== 'array';
+    const isDraggable = true;
 
     const node: VariableTreeNode = {
       key,
@@ -38,7 +36,6 @@ const buildVariableTree = (obj: unknown, parentPath: string = ''): VariableTreeN
       isDraggable,
     };
 
-    // Recursively build children for objects and arrays
     if (valueType === 'object') {
       node.children = buildVariableTree(value, currentPath);
     } else if (valueType === 'array' && Array.isArray(value)) {
@@ -50,7 +47,7 @@ const buildVariableTree = (obj: unknown, parentPath: string = ''): VariableTreeN
           path: arrayPath,
           value: item,
           type: itemType,
-          isDraggable: itemType !== 'object' && itemType !== 'array',
+          isDraggable: true,
         };
 
         if (itemType === 'object') {

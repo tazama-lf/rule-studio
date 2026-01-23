@@ -3,25 +3,21 @@ import type { Node } from '@xyflow/react';
 import type { DebugLog } from '../../components/RuleBuilder/DebuggerPanel';
 
 export const useFlowState = () => {
-  // Modal state
   const [jsonModalOpen, setJsonModalOpen] = useState<boolean>(false);
   const [codeModalOpen, setCodeModalOpen] = useState<boolean>(false);
   const [jsonOutput, setJsonOutput] = useState<string>('');
   const [codeOutput, setCodeOutput] = useState<string>('');
   
-  // Animation and debugging state
   const [debugVariables, _setDebugVariables] = useState<Record<string, unknown>>({});
   const [debugLogs, _setDebugLogs] = useState<DebugLog[]>([]);
   const [currentAnimationNode, _setCurrentAnimationNode] = useState<string | undefined>();
   
-  // UI state
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [generatedCode, setGeneratedCode] = useState<string>('');
   const [allNodes, _setAllNodes] = useState<Node[]>([]);
   const [edges, _setEdges] = useState<import('@xyflow/react').Edge[]>([]);
 
-  // Memoize setters to prevent unnecessary re-renders
   const setDebugVariables = useCallback((vars: Record<string, unknown>) => {
     _setDebugVariables(vars);
   }, []);
@@ -82,7 +78,6 @@ export const useFlowState = () => {
   }, []);
 
   return {
-    // Modal state
     jsonModalOpen,
     setJsonModalOpen,
     codeModalOpen,
@@ -91,16 +86,12 @@ export const useFlowState = () => {
     setJsonOutput,
     codeOutput,
     setCodeOutput,
-    
-    // Animation and debugging state
     debugVariables,
     setDebugVariables,
     debugLogs,
     setDebugLogs,
     currentAnimationNode,
     setCurrentAnimationNode,
-    
-    // UI state
     selectedNode,
     setSelectedNode,
     sidebarCollapsed,
@@ -111,8 +102,6 @@ export const useFlowState = () => {
     setAllNodes,
     edges,
     setEdges,
-    
-    // Handlers
     handleToggleSidebar,
     handleCloseRightSidebar,
     handleJsonGenerate,
