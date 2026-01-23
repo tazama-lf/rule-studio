@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import Editor from '@monaco-editor/react';
+import type { Monaco } from '@monaco-editor/react';
 
 interface CodeEditorProps {
   value: string;
@@ -28,6 +29,25 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
 }) => {
   const handleEditorChange = (value: string | undefined) => {
     onChange(value || '');
+  };
+
+  const handleEditorMount = (editor: Parameters<NonNullable<React.ComponentProps<typeof Editor>['onMount']>>[0], monaco: Monaco) => {
+    editor.addCommand(monaco.KeyCode.Space, () => {
+      const position = editor.getPosition();
+      editor.executeEdits('', [{
+        range: {
+          startLineNumber: position.lineNumber,
+          startColumn: position.column,
+          endLineNumber: position.lineNumber,
+          endColumn: position.column,
+        },
+        text: ' ',
+      }]);
+      editor.setPosition({
+        lineNumber: position.lineNumber,
+        column: position.column + 1,
+      });
+    });
   };
 
   return (
@@ -68,6 +88,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
           language={language}
           value={value}
           onChange={handleEditorChange}
+          onMount={handleEditorMount}
           theme="vs-dark"
           options={{
             minimap: { enabled: false },
@@ -83,6 +104,19 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
               horizontal: 'auto',
               verticalScrollbarSize: 10,
               horizontalScrollbarSize: 10,
+            },
+            formatOnPaste: false,
+            formatOnType: false,
+            autoIndent: 'none',
+            quickSuggestions: false,
+            suggestOnTriggerCharacters: false,
+            acceptSuggestionOnCommitCharacter: false,
+            acceptSuggestionOnEnter: 'off',
+            tabCompletion: 'off',
+            wordBasedSuggestions: 'off',
+            parameterHints: { enabled: false },
+            suggest: {
+              showWords: false,
             },
           }}
         />

@@ -24,7 +24,6 @@ export const useCanvasCodeGeneration = ({
   onJsonGenerate,
   onCodeGenerate,
 }: UseCanvasCodeGenerationProps) => {
-  // Generate JSON output
   const generateJson = useCallback(() => {
     const flowData = {
       nodes: nodes.map((node) => {
@@ -35,8 +34,7 @@ export const useCanvasCodeGeneration = ({
           params: node.data.params || {},
           position: node.position,
         };
-        
-        // Preserve mode, generation_type, and function_name for function nodes
+
         if (node.data.mode) {
           baseNode.mode = node.data.mode;
         }
@@ -46,8 +44,6 @@ export const useCanvasCodeGeneration = ({
         if (node.data.function_name) {
           baseNode.function_name = node.data.function_name;
         }
-
-        // If HandleTransaction node, include nested canvas data
         if (
           node.data.nodeType === 'HandleTransaction' &&
           nestedCanvasData[node.id]
@@ -69,8 +65,7 @@ export const useCanvasCodeGeneration = ({
                   params: nestedNode.data.params || {},
                   position: nestedNode.position,
                 };
-                
-                // Preserve mode, generation_type, and function_name for function nodes
+
                 if (nestedNode.data.mode) {
                   nestedBaseNode.mode = nestedNode.data.mode;
                 }
@@ -115,8 +110,6 @@ export const useCanvasCodeGeneration = ({
     }
     return json;
   }, [nodes, edges, nestedCanvasData, onJsonGenerate]);
-
-  // Generate TypeScript code
   const generateCode = useCallback(() => {
     const code = generateTypeScriptCode(nodes, edges, nestedCanvasData);
 
@@ -124,16 +117,14 @@ export const useCanvasCodeGeneration = ({
       onCodeGenerate(code);
     }
     
-    return code; // Return the generated code
+    return code;
   }, [nodes, edges, nestedCanvasData, onCodeGenerate]);
 
-  // Expose methods to parent via window object
   useEffect(() => {
     window.generateFlowJson = generateJson;
     window.generateFlowCode = generateCode;
     
     return () => {
-      // Cleanup on unmount
       window.generateFlowJson = undefined;
       window.generateFlowCode = undefined;
     };

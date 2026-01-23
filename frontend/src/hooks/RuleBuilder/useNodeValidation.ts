@@ -73,7 +73,6 @@ export const useNodeValidation = (nodeId: string, nodeType: string, nodeName: st
     [nodeType]
   );
 
-  // Reactively get current error when errorsMap changes
   const currentError = useMemo(
     () => getNodeError(nodeId),
     [nodeId, getNodeError]

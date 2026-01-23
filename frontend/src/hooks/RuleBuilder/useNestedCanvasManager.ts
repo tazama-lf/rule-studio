@@ -15,7 +15,6 @@ export const useNestedCanvasManager = () => {
     return defaultFlow.nestedCanvasData as Record<string, NestedCanvasData>;
   });
   
-  // Memoized setter to provide stable reference
   const setNestedCanvasData = useCallback((updater: Record<string, NestedCanvasData> | ((prev: Record<string, NestedCanvasData>) => Record<string, NestedCanvasData>)) => {
     _setNestedCanvasData(updater);
   }, []);

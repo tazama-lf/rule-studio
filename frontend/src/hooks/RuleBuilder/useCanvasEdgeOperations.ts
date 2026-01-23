@@ -11,17 +11,14 @@ export const useCanvasEdgeOperations = ({
   setEdges,
   saveHistory,
 }: UseCanvasEdgeOperationsProps) => {
-  // Handle edge connection
   const onConnect = useCallback(
     (params: Connection) => {
       saveHistory();
 
       setEdges((eds) => {
-        // Check if source has multiple handles (indicating an If or Loop node)
         const hasMultipleHandles = params.sourceHandle !== null;
 
         if (!hasMultipleHandles) {
-          // For nodes without multiple handles, check if source already has an outgoing edge
           const sourceHasEdge = eds.some((edge) => edge.source === params.source);
 
           if (sourceHasEdge) {
@@ -29,7 +26,6 @@ export const useCanvasEdgeOperations = ({
             return eds;
           }
         } else {
-          // For nodes with multiple handles (If/Loop), check if this specific handle already has an edge
           const handleHasEdge = eds.some(
             (edge) =>
               edge.source === params.source && edge.sourceHandle === params.sourceHandle
@@ -41,7 +37,6 @@ export const useCanvasEdgeOperations = ({
           }
         }
 
-        // Add label and style for If and Loop node edges
         const edgeWithLabel = {
           ...params,
           label:
@@ -63,13 +58,10 @@ export const useCanvasEdgeOperations = ({
     [setEdges, saveHistory]
   );
 
-  // Validate if a connection is valid
   const isValidConnection = useCallback((connection: Connection) => {
-    // Add validation logic here if needed
     return connection.source !== connection.target;
   }, []);
 
-  // Get edge style based on handle
   const getEdgeStyle = useCallback((sourceHandle: string | null) => {
     if (!sourceHandle) return undefined;
 

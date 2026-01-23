@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton, Box, Typography } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import Editor from '@monaco-editor/react';
+import type { Monaco } from '@monaco-editor/react';
 
 interface CodeEditorModalProps {
   open: boolean;
@@ -43,6 +44,25 @@ const CodeEditorModal: React.FC<CodeEditorModalProps> = ({
     setCode(value || '');
   };
 
+  const handleEditorMount = (editor: Parameters<NonNullable<React.ComponentProps<typeof Editor>['onMount']>>[0], monaco: Monaco) => {
+    editor.addCommand(monaco.KeyCode.Space, () => {
+      const position = editor.getPosition();
+      editor.executeEdits('', [{
+        range: {
+          startLineNumber: position.lineNumber,
+          startColumn: position.column,
+          endLineNumber: position.lineNumber,
+          endColumn: position.column,
+        },
+        text: ' ',
+      }]);
+      editor.setPosition({
+        lineNumber: position.lineNumber,
+        column: position.column + 1,
+      });
+    });
+  };
+
   return (
     <Dialog
       open={open}
@@ -78,6 +98,7 @@ const CodeEditorModal: React.FC<CodeEditorModalProps> = ({
             language={language}
             value={code}
             onChange={handleEditorChange}
+            onMount={handleEditorMount}
             theme="vs-dark"
             options={{
               minimap: { enabled: true },

@@ -13,6 +13,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DownloadIcon from '@mui/icons-material/Download';
 import Editor from '@monaco-editor/react';
+import type { Monaco } from '@monaco-editor/react';
 
 interface OutputModalProps {
   open: boolean;
@@ -35,6 +36,27 @@ const OutputModal: React.FC<OutputModalProps> = ({
 }) => {
   const handleCopy = () => {
     navigator.clipboard.writeText(content);
+  };
+
+  const handleEditorMount = (editor: Parameters<NonNullable<React.ComponentProps<typeof Editor>['onMount']>>[0], monaco: Monaco) => {
+    editor.addCommand(monaco.KeyCode.Space, () => {
+      const position = editor.getPosition();
+      if (position) {
+        editor.executeEdits('', [{
+          range: {
+            startLineNumber: position.lineNumber,
+            startColumn: position.column,
+            endLineNumber: position.lineNumber,
+            endColumn: position.column,
+          },
+          text: ' ',
+        }]);
+        editor.setPosition({
+          lineNumber: position.lineNumber,
+          column: position.column + 1,
+        });
+      }
+    });
   };
 
   return (
@@ -106,6 +128,7 @@ const OutputModal: React.FC<OutputModalProps> = ({
               height="100%"
               language={language}
               value={content}
+              onMount={handleEditorMount}
               theme="vs-dark"
               options={{
                 readOnly: true,

@@ -21,13 +21,10 @@ export const useCanvasKeyboardShortcuts = ({
   const historyRef = useRef<{ nodes: Node[]; edges: Edge[] }[]>([]);
   const redoRef = useRef<{ nodes: Node[]; edges: Edge[] }[]>([]);
 
-  // Handle keyboard shortcuts
   const onKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      // Delete: Delete or Backspace
       if (event.key === 'Delete' || event.key === 'Backspace') {
         const target = event.target as HTMLElement;
-        // Don't delete when typing in input fields
         if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
           return;
         }
@@ -41,8 +38,6 @@ export const useCanvasKeyboardShortcuts = ({
           deleteSelectedNodes();
         }
       }
-
-      // Undo: Ctrl+Z
       if (event.ctrlKey && event.key === 'z' && !event.shiftKey) {
         event.preventDefault();
         if (historyRef.current.length > 0) {
@@ -53,7 +48,6 @@ export const useCanvasKeyboardShortcuts = ({
         }
       }
 
-      // Redo: Ctrl+Y or Ctrl+Shift+Z
       if (
         (event.ctrlKey && event.key === 'y') ||
         (event.ctrlKey && event.shiftKey && event.key === 'z')
@@ -76,14 +70,11 @@ export const useCanvasKeyboardShortcuts = ({
       deleteSelectedEdges,
     ]
   );
-
-  // Setup event listener
   useEffect(() => {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [onKeyDown]);
 
-  // History management - should be called before any state change
   const pushHistory = useCallback(() => {
     historyRef.current.push({ nodes: [...nodes], edges: [...edges] });
     redoRef.current = [];

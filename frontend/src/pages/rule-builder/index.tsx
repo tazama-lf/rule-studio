@@ -294,6 +294,8 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
             onUpdateNode={handleNodeUpdate}
             allNodes={flowState.allNodes}
             viewOnly={viewOnly}
+            ruleId={ruleId}
+            edges={flowState.edges}
           />
 
           {nestedCanvasManager.activeNestedCanvas && (

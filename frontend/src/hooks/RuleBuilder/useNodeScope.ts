@@ -26,10 +26,6 @@ interface UseNodeScopeResult {
   isInLoopScope: boolean;
 }
 
-/**
- * Detects if a node is inside a loop scope and returns parent loop contexts
- * Traverses the graph backwards to find all parent Loop nodes
- */
 export const useNodeScope = ({ nodeId, edges, nodes }: UseNodeScopeProps): UseNodeScopeResult => {
   return useMemo(() => {
     if (!nodeId) {
@@ -39,14 +35,10 @@ export const useNodeScope = ({ nodeId, edges, nodes }: UseNodeScopeProps): UseNo
     const parentLoops: LoopContext[] = [];
     const visited = new Set<string>();
 
-    /**
-     * Recursively traverse backwards through edges to find parent Loop nodes
-     */
     const findParentLoops = (currentNodeId: string) => {
       if (visited.has(currentNodeId)) return;
       visited.add(currentNodeId);
 
-      // Find all edges that target this node
       const incomingEdges = edges.filter((edge) => edge.target === currentNodeId);
 
       for (const edge of incomingEdges) {
@@ -55,7 +47,6 @@ export const useNodeScope = ({ nodeId, edges, nodes }: UseNodeScopeProps): UseNo
 
         const nodeData = sourceNode.data as NodeData;
 
-        // Check if this edge comes from a Loop node's loopBody handle
         if (nodeData?.nodeType === 'Loop' && edge.sourceHandle === 'loopBody') {
           const params = nodeData.params || {};
           
@@ -68,7 +59,6 @@ export const useNodeScope = ({ nodeId, edges, nodes }: UseNodeScopeProps): UseNo
           });
         }
 
-        // Continue traversing backwards (handles nested loops)
         findParentLoops(edge.source);
       }
     };

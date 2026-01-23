@@ -4,13 +4,11 @@ import { getNodeTemplate } from '../../utils/Flow/nodeTemplateService';
 import { useNodeStyles, useNodeHandles } from './index';
 
 export const useNodeRenderer = (nodeData: EditableNodeData) => {
-  // Memoize mode extraction to prevent unnecessary lookups
   const mode = useMemo(
     () => nodeData.mode || nodeData.generation_type,
     [nodeData.mode, nodeData.generation_type]
   );
   
-  // Extract clean nodeType (without mode if accidentally combined)
   const cleanNodeType = useMemo(() => {
     let nodeType = nodeData.nodeType;
     if (nodeType && nodeType.includes('::')) {
@@ -19,7 +17,6 @@ export const useNodeRenderer = (nodeData: EditableNodeData) => {
     return nodeType;
   }, [nodeData.nodeType]);
   
-  // Memoize template lookup (expensive operation)
   const template = useMemo(
     () => getNodeTemplate(cleanNodeType, mode),
     [cleanNodeType, mode]
@@ -27,10 +24,8 @@ export const useNodeRenderer = (nodeData: EditableNodeData) => {
   
   const { backgroundColor, borderColor } = useNodeStyles(cleanNodeType);
   
-  // Memoize local params to prevent unnecessary re-renders
   const localParams = useMemo(() => nodeData.params || {}, [nodeData.params]);
 
-  // Check if this is a special node (Start, End, HandleTransaction)
   const isSpecialNode = useMemo(
     () =>
       cleanNodeType === 'Start' ||
@@ -39,7 +34,6 @@ export const useNodeRenderer = (nodeData: EditableNodeData) => {
     [cleanNodeType]
   );
 
-  // Get conditions for If nodes
   const conditions = useMemo(() => {
     if (cleanNodeType !== 'If') return [];
     try {
@@ -50,7 +44,6 @@ export const useNodeRenderer = (nodeData: EditableNodeData) => {
     }
   }, [cleanNodeType, localParams]);
 
-  // Get handle configurations (provide defaults if template not found)
   const hasTargetHandle = template?.handles?.target ?? true;
   const hasSourceHandle = template?.handles?.source ?? true;
   

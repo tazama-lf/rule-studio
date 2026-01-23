@@ -12,7 +12,6 @@ interface UseIfConditionsProps {
 export const useIfConditions = ({
   currentParams,
 }: UseIfConditionsProps) => {
-  // Parse conditions from params
   const getConditions = useCallback((): IfCondition[] => {
     try {
       const conditionsStr = currentParams['conditions'];

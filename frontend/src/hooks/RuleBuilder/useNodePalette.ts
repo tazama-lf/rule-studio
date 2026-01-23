@@ -45,12 +45,10 @@ export const useNodePalette = ({
   hideImportNode = false,
   apiNodes = [],
 }: UseNodePaletteProps) => {
-  // Use API nodes if available, otherwise fall back to predefined nodes
   const basicNodes: NodeTemplate[] = useMemo(
     () => {
       if (apiNodes && apiNodes.length > 0) {
         let nodes = apiNodes.filter((node) => {
-          // Filter by canvas visibility
           const visibleOn = node.visible_on_canvas || ['main', 'nested'];
           const isVisibleOnThisCanvas = mode === 'modal' 
             ? visibleOn.includes('nested') 
@@ -59,7 +57,6 @@ export const useNodePalette = ({
           return !node.isFunction && isVisibleOnThisCanvas;
         });
         
-        // Filter out Import nodes if hideImportNode is true
         if (hideImportNode) {
           nodes = nodes.filter((node) => node.type !== 'Import');
         }
@@ -74,7 +71,6 @@ export const useNodePalette = ({
         { type: 'FetchDB', label: 'Fetch from DB', description: 'Database query', color: '#fb923c' },
         { type: 'ThrowError', label: 'Throw Error', description: 'Raise an error', color: '#f87171' },
       ];
-      // Filter out Import nodes if hideImportNode is true
       return hideImportNode ? nodes.filter((n) => n.type !== 'Import') : nodes;
     },
     [apiNodes, hideImportNode, mode]
@@ -91,7 +87,6 @@ export const useNodePalette = ({
         return apiNodes.filter((node) => {
           if (!node.isFunction) return false;
           
-          // Filter by canvas visibility
           const visibleOn = node.visible_on_canvas || ['nested'];
           return mode === 'modal' 
             ? visibleOn.includes('nested') 

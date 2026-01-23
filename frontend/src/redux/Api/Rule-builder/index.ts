@@ -1,5 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { getAuthToken } from "../../../utils/Common/storage";
+import type { QueryExecutionRequest, QueryExecutionResponse } from "../../../types/queryExecution";
 
 const BASE_URL = import.meta.env.VITE_API_URL as string;
 
@@ -39,6 +40,13 @@ export const ruleBuilderApi = createApi({
                 method: "GET",
             }),
         }),
+        executeQuery: builder.mutation<QueryExecutionResponse, QueryExecutionRequest>({
+            query: (queryData: QueryExecutionRequest) => ({
+                url: `nodes/execute-query`,
+                method: "POST",
+                body: queryData,
+            }),
+        }),
     }),
 })
 
@@ -47,4 +55,5 @@ export const {
     useGetFlowQuery,
     useSaveFlowMutation,
     useGetGlobalVariablesQuery,
+    useExecuteQueryMutation,
 } = ruleBuilderApi
