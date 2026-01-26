@@ -1,16 +1,14 @@
 import dayjs from "dayjs";
-import type { User } from "./types";
 import type { DropdownOption } from "../../components/DropDown";
+import type { User } from "./types";
 
 export const hideValue = (value: string, sign = "*") => sign?.repeat(value?.length)
 
-// Generic type for nodes with id property
 interface NodeWithId {
   id: string;
   [key: string]: unknown;
 }
 
-// Generic type for edges with source and target
 interface EdgeWithSourceTarget {
   source: string;
   target: string;
@@ -21,34 +19,28 @@ export const sortNodesInFlowOrder = <T extends NodeWithId, E extends EdgeWithSou
   nodesToSort: T[],
   edgesToSort: E[]
 ): T[] => {
-  // Create adjacency map
   const adjacencyMap = new Map<string, string[]>();
   const inDegree = new Map<string, number>();
 
-  // Initialize all nodes
   nodesToSort.forEach(node => {
     adjacencyMap.set(node.id, []);
     inDegree.set(node.id, 0);
   });
 
-  // Build graph
   edgesToSort.forEach(edge => {
     adjacencyMap.get(edge.source)?.push(edge.target);
     inDegree.set(edge.target, (inDegree.get(edge.target) || 0) + 1);
   });
 
-  // Topological sort (Kahn's algorithm)
   const queue: string[] = [];
   const sorted: string[] = [];
 
-  // Find all nodes with no incoming edges
   inDegree.forEach((degree, nodeId) => {
     if (degree === 0) {
       queue.push(nodeId);
     }
   });
 
-  // Process queue
   while (queue.length > 0) {
     const nodeId = queue.shift()!;
     sorted.push(nodeId);
@@ -63,19 +55,14 @@ export const sortNodesInFlowOrder = <T extends NodeWithId, E extends EdgeWithSou
     });
   }
 
-  // Create a map for quick node lookup
   const nodeMap = new Map(nodesToSort.map(node => [node.id, node]));
 
-  // Return sorted nodes, fallback to original order if cycle detected
   if (sorted.length === nodesToSort.length) {
     return sorted.map(id => nodeMap.get(id)!);
   }
   return nodesToSort;
 }
 
-/**
- * Get label text for If and Loop node handles
- */
 export const getLabelForHandle = (handleId: string): string => {
   if (handleId === 'if') return 'if';
   if (handleId === 'else') return 'else';
@@ -85,9 +72,6 @@ export const getLabelForHandle = (handleId: string): string => {
   return '';
 };
 
-/**
- * Get color for If and Loop node handles
- */
 export const getColorForHandle = (handleId: string): string => {
   if (handleId === 'if') return '#4caf50'; // green
   if (handleId === 'else') return '#4caf50'; // green
@@ -97,9 +81,6 @@ export const getColorForHandle = (handleId: string): string => {
   return '#555';
 };
 
-/**
- * Get nodes following a specific handle from an If node (used in code generation)
- */
 export const getNodesInBranch = <T extends NodeWithId, E extends EdgeWithSourceTarget>(
   startNodeId: string,
   handleId: string | null,
@@ -109,7 +90,6 @@ export const getNodesInBranch = <T extends NodeWithId, E extends EdgeWithSourceT
 ): T[] => {
   const branchNodes: T[] = [];
 
-  // Find the edge from this node and handle
   const outgoingEdges = edges.filter(
     (edge) => edge.source === startNodeId && (handleId === null || (edge as { sourceHandle?: string }).sourceHandle === handleId)
   );
@@ -120,13 +100,11 @@ export const getNodesInBranch = <T extends NodeWithId, E extends EdgeWithSourceT
 
     const nodeData = (targetNode as { data?: { nodeType?: string } }).data;
 
-    // Stop at End node
     if (nodeData?.nodeType === 'End') continue;
 
     visitedNodes.add(targetNode.id);
     branchNodes.push(targetNode);
 
-    // If this is not an If node, recursively get its children
     if (nodeData?.nodeType !== 'If') {
       const childNodes = getNodesInBranch(targetNode.id, null, nodes, edges, visitedNodes);
       branchNodes.push(...childNodes);
