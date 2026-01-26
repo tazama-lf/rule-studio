@@ -49,7 +49,7 @@ const QueryEditorModal: React.FC<QueryEditorModalProps> = ({
   const [query, setQuery] = useState(initialValue);
 
   const { validationError, validateAndSanitize, clearValidationError } = useQueryValidation(query);
-  const { handleEditorMount, handleDrop, handleDragOver } = useDragDropEditor();
+  const { handleEditorMount, handleDrop, handleDragOver, handleDragEnter, handleDragLeave } = useDragDropEditor();
   const variableData = useVariableData({ ruleId, allNodes, edges, selectedNodeId });
 
   const handleSave = useCallback(() => {
@@ -126,6 +126,8 @@ const QueryEditorModal: React.FC<QueryEditorModalProps> = ({
           onEditorMount={handleEditorMount}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
         />
 
         <Divider orientation="vertical" flexItem />

@@ -28,13 +28,13 @@ export const useInputVisibility = ({ currentParams, nodeType }: UseInputVisibili
     if (input.key === 'arrayVariable' && loopType === 'while') {
       return false;
     }
-    if (input.key === 'resultVariable' && loopType !== 'map' && loopType !== 'filter') {
+    if (input.key === 'resultVariable' && (loopType === 'for' || loopType === 'while')) {
       return false;
     }
     if (input.key === 'filterCondition' && loopType !== 'filter') {
       return false;
     }
-    if (input.key === 'condition' && !['every', 'some', 'find'].includes(loopType)) {
+    if (input.key === 'condition' && !['every', 'some', 'find', 'map', 'forEach'].includes(loopType)) {
       return false;
     }
     if (['reduceLogic', 'initialValue'].includes(input.key) && loopType !== 'reduce') {
@@ -71,6 +71,10 @@ export const useInputVisibility = ({ currentParams, nodeType }: UseInputVisibili
     }
 
     if (input.key === 'returnValue' && exitType !== 'return') {
+      return false;
+    }
+
+    if (nodeType === 'Ternary' && (input.key === 'ternaryTree' || input.key === 'storeResult' || input.key === 'resultVar')) {
       return false;
     }
 

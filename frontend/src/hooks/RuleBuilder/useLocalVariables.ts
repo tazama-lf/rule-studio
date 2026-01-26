@@ -23,16 +23,12 @@ interface UseLocalVariablesResult {
   };
 }
 
-/**
- * Extract local variables from SetVariable, FetchDB, and CustomFunction nodes
- * Also extracts loop variables if selectedNodeId is inside a loop scope
- */
 export const useLocalVariables = ({ 
   allNodes, 
   edges = [], 
   selectedNodeId = null 
 }: UseLocalVariablesProps): UseLocalVariablesResult => {
-  // Get loop scope context for selected node
+
   const { parentLoops, isInLoopScope } = useNodeScope({
     nodeId: selectedNodeId,
     edges,
@@ -47,14 +43,12 @@ export const useLocalVariables = ({
       const nodeData = node.data as NodeData;
       const params = nodeData?.params || {};
 
-      // SetVariable nodes
       if (nodeData?.nodeType === 'SetVariable') {
         const varName = params.name || params.variableName;
         const varValue = params.value || params.variableValue || '';
         const dataType = params.dataType || 'any';
         
         if (varName) {
-          // Handle undefined or empty value
           if (!varValue || varValue.trim() === '' || dataType === 'undefined') {
             localVars[varName] = undefined;
           } else {
@@ -63,39 +57,37 @@ export const useLocalVariables = ({
         }
       }
 
-      // FetchDB nodes
       if (nodeData?.nodeType === 'FetchDB') {
         const resultVar = params.resultVar || params.variable;
         if (resultVar) {
-          localVars[resultVar] = '{ }'; // Placeholder for DB result
+          localVars[resultVar] = '{ }';
+        }
+        const queryVar = params.queryVar;
+        if (queryVar) {
+          localVars[queryVar] = 'string';
         }
       }
 
-      // Custom Function nodes
       if (nodeData?.nodeType === 'CustomFunction') {
         const resultVar = params.resultVar;
         if (resultVar) {
-          localVars[resultVar] = '{ }'; // Placeholder for function result
+          localVars[resultVar] = '{ }';
         }
       }
-
-      // Math Function nodes
       if (nodeData?.nodeType === 'math') {
         const resultVar = params.resultVar;
         if (resultVar) {
-          localVars[resultVar] = '<number>'; // Math result
+          localVars[resultVar] = '<number>';
         }
       }
 
-      // String Function nodes
       if (nodeData?.nodeType === 'stringFunc') {
         const resultVar = params.resultVar;
         if (resultVar) {
-          localVars[resultVar] = '<string>'; // String result
+          localVars[resultVar] = '<string>';
         }
       }
 
-      // Array Operation nodes
       if (nodeData?.nodeType === 'arrayOp') {
         const resultVar = params.resultVar;
         if (resultVar) {
@@ -103,7 +95,6 @@ export const useLocalVariables = ({
         }
       }
 
-      // Object Operation nodes
       if (nodeData?.nodeType === 'objectOp') {
         const resultVar = params.resultVar;
         const operation = params.operation;
@@ -118,7 +109,6 @@ export const useLocalVariables = ({
         }
       }
 
-      // length nodes
       if (nodeData?.nodeType === 'length') {
         const resultVar = params.resultVar;
         if (resultVar) {
@@ -126,24 +116,29 @@ export const useLocalVariables = ({
         }
       }
 
+      if (nodeData?.nodeType === 'Ternary') {
+        const storeResult = params.storeResult !== 'false';
+        const resultVar = params.resultVar;
+        if (storeResult && resultVar) {
+          localVars[resultVar] = '<any>';
+        }
+      }
+
       if (nodeData?.nodeType === 'Loop') {
         const loopType = params.loopType;
         const resultVar = params.resultVariable;
 
-        // For loops that return a single value or a new array
         if (resultVar && ['map', 'filter', 'reduce', 'find', 'every', 'some'].includes(loopType)) {
           const varType = (loopType === 'map' || loopType === 'filter') ? '<array>' : '<any>';
           localVars[resultVar] = varType;
         }
-        
-        // For "for" loops, register array result variable
+
         if (loopType === 'for' && params.arrayResultVariable) {
           localVars[params.arrayResultVariable] = '<array>';
         }
       }
     });
 
-    // Extract loop variables from parent loops (if node is in loop scope)
     const loopNames: string[] = [];
     
     parentLoops.forEach((loopContext, index) => {
@@ -151,23 +146,18 @@ export const useLocalVariables = ({
       const loopLabel = (loopContext.loopNode.data as { label?: string }).label || `Loop ${index + 1}`;
       loopNames.push(loopLabel);
 
-      // Add item variable (current element in iteration) - only if defined
-      // For 'for' and 'while' loops, this is optional
       if (loopContext.itemVariable && loopContext.itemVariable.trim() !== '') {
         loopVars[loopContext.itemVariable] = `<item from ${loopContext.arrayVariable}>`;
       }
 
-      // Add index variable (current iteration index) - only if defined
       if (loopContext.indexVariable && loopContext.indexVariable.trim() !== '') {
         loopVars[loopContext.indexVariable] = '<number>';
       }
 
-      // Add array variable reference
       if (loopContext.arrayVariable) {
         loopVars[loopContext.arrayVariable] = '<array>';
       }
 
-      // For map/filter loops, add result variable if exists
       if ((loopContext.loopType === 'map' || loopContext.loopType === 'filter') && params.resultVariable) {
         loopVars[params.resultVariable] = '<array>';
       }

@@ -14,11 +14,13 @@ import {
   NodeHeader,
   BasicPropertiesSection,
   IfConditionEditor,
+  TernaryConditionEditor,
   ParameterSection,
   FunctionCallSection,
   ParameterConfigSection,
+  FetchDBSection,
 } from './components';
-import { useNodeValidation } from '../../../hooks/RuleBuilder/useNodeValidation';
+import { useNodeValidation, useTernaryConditions } from '../../../hooks/RuleBuilder';
 
 interface RightSidebarProps {
   selectedNode: Node | null;
@@ -232,7 +234,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
       event.preventDefault();
       let variablePath = event.dataTransfer.getData('variablePath');
       if (variablePath && selectedNode) {
-        // Strip all {{ }} wrapping to avoid double wrapping (global replace)
         variablePath = variablePath.replace(/\{\{\s*/g, '').replace(/\s*\}\}/g, '').trim();
         
         const inputElement = inputRefs.current[paramKey];
@@ -386,6 +387,35 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
     [conditions, selectedNode, onUpdateNode, validate]
   );
 
+  const handleTernaryParamChange = useCallback((key: string, value: string) => {
+    const updatedParams = { ...currentParamsRef.current, [key]: value };
+    setEditingParams(updatedParams);
+    
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current);
+    }
+    if (validationTimeoutRef.current) {
+      clearTimeout(validationTimeoutRef.current);
+    }
+    
+    if (selectedNode) {
+      updateTimeoutRef.current = setTimeout(() => {
+        onUpdateNode(selectedNode.id, { params: updatedParams });
+      }, 300);
+      
+      validationTimeoutRef.current = setTimeout(() => {
+        validate(updatedParams);
+      }, 500);
+    }
+  }, [selectedNode, onUpdateNode, validate]);
+
+  const {
+    ternaryTree,
+    handleTreeChange: handleTernaryTreeChange,
+    handleStoreResultChange: handleTernaryStoreResultChange,
+    handleResultVarChange: handleTernaryResultVarChange,
+  } = useTernaryConditions({ currentParams, onParamChange: handleTernaryParamChange });
+
   if (collapsed) {
     return (
       <SidebarContainer collapsed={true}>
@@ -486,6 +516,33 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
           onRemoveCondition={handleRemoveCondition}
           inputRefs={inputRefs}
           onDragOver={handleDragOver}
+          viewOnly={viewOnly}
+          allNodes={allNodes}
+          getFieldError={getFieldError}
+        />
+      ) : nodeData?.nodeType === 'Ternary' ? (
+        <TernaryConditionEditor
+          ternaryTree={ternaryTree}
+          storeResult={currentParams['storeResult'] !== 'false'}
+          resultVar={currentParams['resultVar'] || 'ternaryResult'}
+          onTreeChange={handleTernaryTreeChange}
+          onStoreResultChange={handleTernaryStoreResultChange}
+          onResultVarChange={handleTernaryResultVarChange}
+          inputRefs={inputRefs}
+          onDragOver={handleDragOver}
+          viewOnly={viewOnly}
+          allNodes={allNodes}
+          getFieldError={getFieldError}
+        />
+      ) : nodeData?.nodeType === 'FetchDB' ? (
+        <FetchDBSection
+          currentParams={currentParams}
+          onParamChange={handleParamChange}
+          onParamBlur={handleParamBlur}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          inputRefs={inputRefs}
+          isReadOnly={isReadOnly}
           viewOnly={viewOnly}
           allNodes={allNodes}
           getFieldError={getFieldError}

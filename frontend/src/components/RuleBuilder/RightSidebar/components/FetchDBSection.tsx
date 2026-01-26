@@ -181,6 +181,34 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
         )}
         <PropertyRow>
           <Typography variant="body2" color="text.secondary" gutterBottom>
+            Store Query In Variable
+          </Typography>
+          <TextField
+            fullWidth
+            value={currentParams.queryVar ?? 'query'}
+            onChange={onParamChange('queryVar')}
+            onBlur={onParamBlur}
+            disabled={isDisabled}
+            placeholder="Variable name (e.g., query)"
+            error={!!getFieldError?.('queryVar')}
+            helperText={getFieldError?.('queryVar') || '💡 Variable name to store the SQL query string'}
+            onDrop={onDrop('queryVar')}
+            onDragOver={onDragOver}
+            inputRef={(el: HTMLInputElement | null) => {
+              if (el) {
+                inputRefsRef.current['queryVar'] = el;
+              }
+            }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                fontFamily: 'monospace',
+                fontSize: '0.875rem',
+              },
+            }}
+          />
+        </PropertyRow>
+        <PropertyRow>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
             Store Result In
             <Typography component="span" sx={{ color: 'error.main', ml: 0.5 }}>
               *

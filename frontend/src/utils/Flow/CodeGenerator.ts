@@ -11,7 +11,16 @@ interface NestedCanvasData {
 
 const stripVariableIndicators = (text: string): string => {
   if (!text || typeof text !== 'string') return text;
-  return text.replace(/\{\{\s*(.+?)\s*\}\}/g, '$1');
+  const stripped = text.replace(/\{\{\s*(.+?)\s*\}\}/g, '$1');
+  return normalizeVariableNames(stripped);
+};
+
+const normalizeVariableNames = (text: string): string => {
+  if (!text || typeof text !== 'string') return text;
+  return text
+    .replace(/\bRuleRequest\b/g, 'req')
+    .replace(/\bruleRequest\b/g, 'req')
+    .replace(/\bRuleConfig\b/g, 'ruleConfig');
 };
 
 const processCodeTemplate = (
@@ -21,13 +30,11 @@ const processCodeTemplate = (
 ): string => {
   if (!template) return '';
 
-  // Strip {{ }} from all params first
   const cleanParams: Record<string, string> = {};
   Object.keys(params).forEach((key) => {
     cleanParams[key] = stripVariableIndicators(params[key] || '');
   });
 
-  // Replace ${params.key} with actual values
   let processedCode = template.replace(/\$\{params\.(\w+)\s*\|\|\s*['"]([^'"]*)['"  ]\}/g, (_match, key, defaultValue) => {
     return cleanParams[key] || defaultValue;
   });
@@ -36,10 +43,8 @@ const processCodeTemplate = (
     return cleanParams[key] || '';
   });
 
-  // Replace ${indent} if present
   processedCode = processedCode.replace(/\$\{indent\}/g, indent);
 
-  // Add indent to each line
   if (indent) {
     processedCode = processedCode
       .split('\n')
@@ -61,19 +66,15 @@ const generateFunctionCallCode = (
 
   if (!functionName) return '';
 
-  // Get function parameters from definition
   const functionParams = getFunctionParameters(functionName, allNodes);
   
-  // Generate arguments string (empty if no parameters)
   const args = functionParams && functionParams.length > 0 
     ? generateFunctionArgs(functionParams, params)
     : '';
 
-  // Check if user wants to store result in variable
-  const storeResult = params.storeResult !== 'false'; // Default to true
+  const storeResult = params.storeResult !== 'false';
   const resultVariable = params.resultVariable || 'result';
 
-  // Generate the function call
   let code = '';
   if (storeResult) {
     code = `const ${resultVariable} = ${functionName}(${args});`;
@@ -81,7 +82,6 @@ const generateFunctionCallCode = (
     code = `${functionName}(${args});`;
   }
 
-  // Add indent
   if (indent) {
     code = indent + code;
   }
@@ -95,7 +95,6 @@ const generateNodeCode = (node: Node, indent: string = '', allNodes?: Node[]): s
   const nodeType = nodeData.nodeType;
   const mode = nodeData.mode || nodeData.generation_type;
 
-  // Get the correct template based on node type and mode
   const template = getNodeTemplate(nodeType, mode);
 
   if (nodeType === 'If') {
@@ -126,6 +125,10 @@ const generateNodeCode = (node: Node, indent: string = '', allNodes?: Node[]): s
     return generateExitCode(params, indent);
   }
 
+  if (nodeType === 'Ternary') {
+    return generateTernaryCode(params, indent);
+  }
+
   if (nodeType === 'arrayOp') {
     return generateArrayOpCode(params, indent);
   }
@@ -142,7 +145,6 @@ const generateNodeCode = (node: Node, indent: string = '', allNodes?: Node[]): s
     return generateObjectOpCode(params, indent);
   }
 
-  // Handle function call nodes with dynamic parameters (call mode)
   if (mode === 'call' && (nodeData.function_name || params.function_name)) {
     const dynamicCode = generateFunctionCallCode(node, allNodes || [], indent);
     if (dynamicCode) {
@@ -150,17 +152,14 @@ const generateNodeCode = (node: Node, indent: string = '', allNodes?: Node[]): s
     }
   }
 
-  // Handle function nodes with call_template (call mode)
   if (template && template.call_template) {
     return processCodeTemplate(template.call_template as string, params, indent);
   }
 
-  // Handle regular nodes with code_template
   if (template && template.code_template) {
     return processCodeTemplate(template.code_template as string, params, indent);
   }
 
-  // Fallback: try to use API node definition
   const nodeDefinition = getApiNodes().find((n) => {
     const nodeJson = n.node_json as { node_type?: string };
     return nodeJson.node_type === nodeType;
@@ -173,7 +172,6 @@ const generateNodeCode = (node: Node, indent: string = '', allNodes?: Node[]): s
     }
   }
 
-  // Fallback for unknown nodes
   return `${indent}// ${nodeType} - ${nodeData.label}`;
 };
 
@@ -181,34 +179,37 @@ const generateSetVariableCode = (params: Record<string, string>, indent: string)
   const varName = params.name || params.variableName || 'variable';
   const declarationType = params.declarationType || 'var';
   const dataType = params.dataType || 'any';
-  let varValue = params.value || params.variableValue || '';
-  
-  // Strip {{ }} variable indicators from value
-  varValue = stripVariableIndicators(varValue);
-  
-  // Handle undefined or empty value case
+  const originalValue = params.value || params.variableValue || '';
+
+  const isVariableReference = /\{\{\s*.+?\s*\}\}/.test(originalValue);
+  const varValue = stripVariableIndicators(originalValue);
+
   if (!varValue || varValue.trim() === '' || dataType === 'undefined') {
     return `${indent}${declarationType} ${varName};`;
   }
-  
-  // Determine value string based on data type and content
+
   let valueStr: string;
-  const isNumber = !isNaN(Number(varValue)) && varValue.trim() !== '';
-  
-  if (dataType === 'number' && isNumber) {
+
+  if (isVariableReference) {
     valueStr = varValue;
-  } else if (dataType === 'boolean') {
-    valueStr = varValue.toLowerCase() === 'true' || varValue === '1' ? 'true' : 'false';
-  } else if (dataType === 'array') {
-    valueStr = varValue.trim().startsWith('[') ? varValue : `[${varValue}]`;
-  } else if (dataType === 'object') {
-    valueStr = varValue.trim().startsWith('{') ? varValue : `{${varValue}}`;
-  } else if (isNumber && dataType === 'any') {
-    valueStr = varValue;
-  } else if (varValue.includes('$')) {
-    valueStr = `\`${varValue.replace(/`/g, '\\`')}\``;
   } else {
-    valueStr = varValue.startsWith('"') || varValue.startsWith("'") ? varValue : `"${varValue}"`;
+    const isNumber = !isNaN(Number(varValue)) && varValue.trim() !== '';
+    
+    if (dataType === 'number' && isNumber) {
+      valueStr = varValue;
+    } else if (dataType === 'boolean') {
+      valueStr = varValue.toLowerCase() === 'true' || varValue === '1' ? 'true' : 'false';
+    } else if (dataType === 'array') {
+      valueStr = varValue.trim().startsWith('[') ? varValue : `[${varValue}]`;
+    } else if (dataType === 'object') {
+      valueStr = varValue.trim().startsWith('{') ? varValue : `{${varValue}}`;
+    } else if (isNumber && dataType === 'any') {
+      valueStr = varValue;
+    } else if (varValue.includes('$')) {
+      valueStr = `\`${varValue.replace(/`/g, '\\`')}\``;
+    } else {
+      valueStr = varValue.startsWith('"') || varValue.startsWith("'") ? varValue : `"${varValue}"`;
+    }
   }
   
   return `${indent}${declarationType} ${varName} = ${valueStr};`;
@@ -226,9 +227,9 @@ const generateLogCode = (params: Record<string, string>, indent: string): string
   } else if (hasVariables) {
     const onlyVariableMatch = message.match(/^\s*\{\{\s*([^}]+)\s*\}\}\s*$/);
     if (onlyVariableMatch) {
-      messageStr = onlyVariableMatch[1].trim();
+      messageStr = normalizeVariableNames(onlyVariableMatch[1].trim());
     } else {
-      const interpolatedMessage = message.replace(/\{\{\s*(.+?)\s*\}\}/g, '${$1}');
+      const interpolatedMessage = message.replace(/\{\{\s*(.+?)\s*\}\}/g, (_, varName) => `\${${normalizeVariableNames(varName)}}`);
       messageStr = `\`${interpolatedMessage.replace(/`/g, '\\`')}\``;
     }
   } else {
@@ -250,9 +251,9 @@ const generateThrowErrorCode = (params: Record<string, string>, indent: string):
   } else if (hasVariables) {
     const onlyVariableMatch = message.match(/^\s*\{\{\s*([^}]+)\s*\}\}\s*$/);
     if (onlyVariableMatch) {
-      messageStr = onlyVariableMatch[1].trim();
+      messageStr = normalizeVariableNames(onlyVariableMatch[1].trim());
     } else {
-      const interpolatedMessage = message.replace(/\{\{\s*(.+?)\s*\}\}/g, '${$1}');
+      const interpolatedMessage = message.replace(/\{\{\s*(.+?)\s*\}\}/g, (_, varName) => `\${${normalizeVariableNames(varName)}}`);
       messageStr = `\`${interpolatedMessage.replace(/`/g, '\\`')}\``;
     }
   } else {
@@ -269,7 +270,6 @@ const generateExitCode = (params: Record<string, string>, indent: string): strin
   if (exitType === 'return') {
     const returnValue = params.returnValue?.trim() || '';
     if (returnValue) {
-      // Strip {{ }} indicators from return value
       const cleanedValue = stripVariableIndicators(returnValue);
       return `${indent}return ${cleanedValue};`;
     }
@@ -278,6 +278,67 @@ const generateExitCode = (params: Record<string, string>, indent: string): strin
     return `${indent}continue;`;
   } else { // break
     return `${indent}break;`;
+  }
+};
+
+interface TernaryBranch {
+  type: 'value' | 'nested';
+  value?: string;
+  nested?: TernaryNode;
+}
+
+interface TernaryNode {
+  condition: string;
+  trueValue: TernaryBranch;
+  falseValue: TernaryBranch;
+}
+
+const generateTernaryCode = (params: Record<string, string>, indent: string): string => {
+  const storeResult = params.storeResult !== 'false';
+  const resultVar = params.resultVar || 'ternaryResult';
+  
+  try {
+    const treeStr = params.ternaryTree || 
+      '{"condition":"true","trueValue":{"type":"value","value":"\'yes\'"},"falseValue":{"type":"value","value":"\'no\'"}}';
+    const tree = JSON.parse(treeStr) as TernaryNode;
+
+    const buildTernaryExpression = (node: TernaryNode): string => {
+      const condition = stripVariableIndicators(node.condition || 'true');
+
+      let trueExpr: string;
+      if (node.trueValue.type === 'value') {
+        trueExpr = stripVariableIndicators(node.trueValue.value || 'null');
+      } else if (node.trueValue.nested) {
+        trueExpr = `(${buildTernaryExpression(node.trueValue.nested)})`;
+      } else {
+        trueExpr = 'null';
+      }
+
+      let falseExpr: string;
+      if (node.falseValue.type === 'value') {
+        falseExpr = stripVariableIndicators(node.falseValue.value || 'null');
+      } else if (node.falseValue.nested) {
+        falseExpr = `(${buildTernaryExpression(node.falseValue.nested)})`;
+      } else {
+        falseExpr = 'null';
+      }
+      
+      return `${condition} ? ${trueExpr} : ${falseExpr}`;
+    };
+    
+    const ternaryExpression = buildTernaryExpression(tree);
+    
+    if (storeResult) {
+      return `${indent}const ${resultVar} = ${ternaryExpression};`;
+    } else {
+      return `${indent}${ternaryExpression};`;
+    }
+  } catch (error) {
+    console.error('Error parsing ternary tree:', error);
+    const expression = "'error'";
+    return storeResult 
+      ? `${indent}const ${resultVar} = ${expression}; // Error parsing ternary tree`
+      : `${indent}${expression}; // Error parsing ternary tree`;
   }
 };
 
@@ -290,8 +351,7 @@ const generateArrayOpCode = (params: Record<string, string>, indent: string): st
   if (operation === 'length') {
     return `${indent}const ${resultVar} = ${array}.length;`;
   }
-  
-  // Only push and concat need a value parameter
+
   const needsValue = operation === 'push' || operation === 'concat' || operation === 'findIndex';
   const operationCall = needsValue && value ? `${operation}(${value})` : `${operation}()`;
   
@@ -303,8 +363,6 @@ const generateMathCode = (params: Record<string, string>, indent: string): strin
   const value = stripVariableIndicators(params.value || '0');
   const value2 = params.value2 ? stripVariableIndicators(params.value2) : '';
   const resultVar = params.resultVar || 'mathResult';
-  
-  // Only pow needs two arguments
   const methodArgs = method === 'pow' && value2 ? `${value}, ${value2}` : value;
   
   return `${indent}const ${resultVar} = Math.${method}(${methodArgs});`;
@@ -324,12 +382,9 @@ const generateStringFuncCode = (params: Record<string, string>, indent: string):
   
   let methodCall = '';
   
-  // Different string methods need different parameters
   if (method === 'split') {
-    // split needs a separator
     methodCall = separator ? `${method}(${separator})` : `${method}('')`;
   } else if (method === 'slice' || method === 'substring') {
-    // slice and substring need start and optionally end
     if (end) {
       methodCall = `${method}(${start}, ${end})`;
     } else if (start) {
@@ -338,7 +393,6 @@ const generateStringFuncCode = (params: Record<string, string>, indent: string):
       methodCall = `${method}(0)`;
     }
   } else {
-    // trim, toUpperCase, toLowerCase, toString don't need parameters
     methodCall = `${method}()`;
   }
   
@@ -370,6 +424,7 @@ const generateObjectOpCode = (params: Record<string, string>, indent: string): s
 
 const generateFetchDBCode = (params: Record<string, string>, indent: string): string => {
   const resultVar = params.resultVar || params.variable || 'dbResult';
+  const queryVar = params.queryVar || 'query';
   const query = params.query || 'SELECT * FROM table';
   
   const varPattern = /\{\{\s*(.+?)\s*\}\}/g;
@@ -380,24 +435,23 @@ const generateFetchDBCode = (params: Record<string, string>, indent: string): st
   if (matches.length > 0) {
     const uniqueVars = Array.from(new Set(matches.map(m => m[1])));
     uniqueVars.forEach((varPath, index) => {
-      globalVars.push(varPath);
+      const normalizedVarPath = normalizeVariableNames(varPath);
+      globalVars.push(normalizedVarPath);
       const placeholder = `$${index + 1}`;
       const escapedVar = varPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       parameterizedQuery = parameterizedQuery.replace(new RegExp(`\\{\\{\\s*${escapedVar}\\s*\\}\\}`, 'g'), placeholder);
     });
   }
   
-  const queryConstName = `query${resultVar.charAt(0).toUpperCase()}${resultVar.slice(1)}`;
-  
   const lines = [
     `${indent}// Define parameterized query`,
-    `${indent}const ${queryConstName} = \`${parameterizedQuery.replace(/`/g, '\\`')}\`;`,
+    `${indent}const ${queryVar} = \`${parameterizedQuery.replace(/`/g, '\\`')}\`;`,
     '',
   ];
   
   if (globalVars.length > 0) {
     lines.push(`${indent}// Execute query with parameters`);
-    lines.push(`${indent}const ${resultVar} = await databaseManager._eventHistory.query<{ [key: string]: unknown }>(${queryConstName}, [`);
+    lines.push(`${indent}const ${resultVar} = await databaseManager._eventHistory.query<{ [key: string]: unknown }>(${queryVar}, [`);
     globalVars.forEach((varPath, index) => {
       const comma = index < globalVars.length - 1 ? ',' : '';
       lines.push(`${indent}  ${varPath}${comma}`);
@@ -405,7 +459,7 @@ const generateFetchDBCode = (params: Record<string, string>, indent: string): st
     lines.push(`${indent}]);`);
   } else {
     lines.push(`${indent}// Execute query without parameters`);
-    lines.push(`${indent}const ${resultVar} = await databaseManager._eventHistory.query<{ [key: string]: unknown }>(${queryConstName});`);
+    lines.push(`${indent}const ${resultVar} = await databaseManager._eventHistory.query<{ [key: string]: unknown }>(${queryVar});`);
   }
   
   return lines.join('\n');
@@ -422,7 +476,7 @@ const generateIfNodeCode = (node: Node, indent: string): string => {
     let code = '';
     conditions.forEach((cond: { type: string; condition?: string }) => {
       const conditionText = cond.condition || 'true';
-      const cleanCondition = stripVariableIndicators(conditionText);
+      const cleanCondition = normalizeVariableNames(stripVariableIndicators(conditionText));
       
       const branchBody = `\n${indent}  // Add logic here`;
       
@@ -445,9 +499,10 @@ const generateLoopCode = (params: Record<string, string>, indent: string): strin
   const loopType = params.loopType || 'forEach';
   const arrayVariable = stripVariableIndicators(params.arrayVariable || 'items');
   const itemVariable = params.itemVariable || 'item';
-  const indexVariable = params.indexVariable || ''; // Empty by default
+  const indexVariable = params.indexVariable || '';
   const resultVariable = params.resultVariable || 'loopResult';
   const filterCondition = stripVariableIndicators(params.filterCondition || '');
+  const condition = stripVariableIndicators(params.condition || '');
   const loopBody = stripVariableIndicators(params.loopBody || '// Custom logic here');
   
   const lines: string[] = [];
@@ -456,10 +511,15 @@ const generateLoopCode = (params: Record<string, string>, indent: string): strin
   
   switch (loopType) {
     case 'forEach': {
-      // Only include index parameter if user specified an index variable
       const forEachParams = indexVariable ? `${itemVariable}, ${indexVariable}` : itemVariable;
       lines.push(`${indent}${arrayVariable}.forEach((${forEachParams}) => {`);
-      lines.push(`${indent}  ${loopBody}`);
+      if (condition) {
+        lines.push(`${indent}  if (${condition}) {`);
+        lines.push(`${indent}    ${loopBody}`);
+        lines.push(`${indent}  }`);
+      } else {
+        lines.push(`${indent}  ${loopBody}`);
+      }
       lines.push(`${indent}});`);
       break;
     }
@@ -471,11 +531,14 @@ const generateLoopCode = (params: Record<string, string>, indent: string): strin
       break;
       
     case 'map': {
-      // Only include index parameter if user specified an index variable
       const mapParams = indexVariable ? `${itemVariable}, ${indexVariable}` : itemVariable;
       lines.push(`${indent}const ${resultVariable} = ${arrayVariable}.map((${mapParams}) => {`);
       lines.push(`${indent}  ${loopBody}`);
-      lines.push(`${indent}  return ${itemVariable};`);
+      if (condition) {
+        lines.push(`${indent}  return ${condition};`);
+      } else {
+        lines.push(`${indent}  return ${itemVariable};`);
+      }
       lines.push(`${indent}});`);
       break;
     }
@@ -491,7 +554,6 @@ const generateLoopCode = (params: Record<string, string>, indent: string): strin
     }
       
     case 'filter': {
-      // Only include index parameter if user specified an index variable
       const filterParams = indexVariable ? `${itemVariable}, ${indexVariable}` : itemVariable;
       lines.push(`${indent}const ${resultVariable} = ${arrayVariable}.filter((${filterParams}) => {`);
       if (filterCondition) {
@@ -510,6 +572,170 @@ const generateLoopCode = (params: Record<string, string>, indent: string): strin
   return lines.join('\n');
 };
 
+const processExitEdge = (
+  nodeId: string,
+  nodes: Node[],
+  edges: Edge[],
+  indent: string,
+  processedNodes: Set<string>
+): string => {
+  const exitEdge = edges.find((e) => e.source === nodeId && e.sourceHandle === 'exit');
+  if (!exitEdge) return '';
+  
+  const exitNode = nodes.find((n) => n.id === exitEdge.target);
+  if (!exitNode || processedNodes.has(exitNode.id)) return '';
+  
+  processedNodes.add(exitNode.id);
+  const exitNodeData = exitNode.data as EditableNodeData;
+  
+  if (exitNodeData.nodeType === 'End') return '';
+  
+  return generateNodeCodeRecursive(exitNode, nodes, edges, indent, processedNodes);
+};
+
+const processNextNode = (
+  nodeId: string,
+  nodes: Node[],
+  edges: Edge[],
+  indent: string,
+  processedNodes: Set<string>
+): string => {
+  const nextEdge = edges.find((e) => e.source === nodeId);
+  if (!nextEdge) return '';
+  
+  const nextNode = nodes.find((n) => n.id === nextEdge.target);
+  if (!nextNode || processedNodes.has(nextNode.id)) return '';
+  
+  processedNodes.add(nextNode.id);
+  const nextNodeData = nextNode.data as EditableNodeData;
+  
+  if (nextNodeData.nodeType === 'End') return '';
+  
+  return generateNodeCodeRecursive(nextNode, nodes, edges, indent, processedNodes);
+};
+
+const generateLoopCodeWithBody = (
+  params: Record<string, string>,
+  innerCode: string,
+  indent: string
+): string => {
+  const loopType = params.loopType || 'forEach';
+  const arrayVariable = stripVariableIndicators(params.arrayVariable || 'items');
+  const itemVariable = params.itemVariable || 'item';
+  const indexVariable = params.indexVariable || '';
+  const resultVariable = params.resultVariable || 'loopResult';
+  const filterCondition = stripVariableIndicators(params.filterCondition || '');
+  const condition = stripVariableIndicators(params.condition || '');
+
+  let loopCode = `${indent}// Loop: ${loopType} over ${arrayVariable}\n`;
+  
+  const indentInnerCode = (code: string): string => {
+    return code.split('\n').map(line => line ? `${indent}  ${line.trimStart()}` : '').join('\n');
+  };
+  
+  switch (loopType) {
+    case 'forEach': {
+      const forEachParams = indexVariable ? `${itemVariable}, ${indexVariable}` : itemVariable;
+      loopCode += `${indent}${arrayVariable}.forEach((${forEachParams}) => {\n`;
+      if (condition && innerCode) {
+        loopCode += `${indent}  if (${condition}) {\n`;
+        loopCode += indentInnerCode(innerCode).split('\n').map(line => line ? `  ${line}` : '').join('\n') + '\n';
+        loopCode += `${indent}  }\n`;
+      } else if (innerCode) {
+        loopCode += indentInnerCode(innerCode) + '\n';
+      }
+      loopCode += `${indent}});`;
+      break;
+    }
+      
+    case 'for': {
+      const loopIndexVar = indexVariable || 'i';
+      const initialization = stripVariableIndicators(params.initialization || `${loopIndexVar} = 0`);
+      const loopCondition = stripVariableIndicators(params.loopCondition || `${loopIndexVar} < ${arrayVariable}.length`);
+      const incrementOp = params.incrementOperation || 'i++';
+      const customIncrement = stripVariableIndicators(params.customIncrement || '');
+      const incrementStatement = incrementOp === 'custom' ? customIncrement : incrementOp.replace('i', loopIndexVar);
+      
+      loopCode += `${indent}for (let ${initialization}; ${loopCondition}; ${incrementStatement}) {\n`;
+      if (innerCode) loopCode += indentInnerCode(innerCode) + '\n';
+      loopCode += `${indent}}`;
+      break;
+    }
+      
+    case 'while': {
+      const whileCustomCondition = stripVariableIndicators(params.loopCondition || '');
+      const loopIndexVar = indexVariable || 'i';
+      
+      if (whileCustomCondition) {
+        loopCode += `${indent}while (${whileCustomCondition}) {\n`;
+      } else {
+        loopCode += `${indent}let ${loopIndexVar} = 0;\n`;
+        const whileCondition = `${loopIndexVar} < ${arrayVariable}.length`;
+        loopCode += `${indent}while (${whileCondition}) {\n`;
+      }
+      
+      if (innerCode) loopCode += indentInnerCode(innerCode) + '\n';
+      if (!whileCustomCondition) loopCode += `${indent}  ${loopIndexVar}++;\n`;
+      loopCode += `${indent}}`;
+      break;
+    }
+      
+    case 'map': {
+      const mapParams = indexVariable ? `${itemVariable}, ${indexVariable}` : itemVariable;
+      loopCode += `${indent}const ${resultVariable} = ${arrayVariable}.map((${mapParams}) => {\n`;
+      if (innerCode) loopCode += indentInnerCode(innerCode) + '\n';
+      if (condition) {
+        loopCode += `${indent}  return ${condition};\n${indent}});`;
+      } else {
+        loopCode += `${indent}  return ${itemVariable};\n${indent}});`;
+      }
+      break;
+    }
+      
+    case 'filter': {
+      const filterParams = indexVariable ? `${itemVariable}, ${indexVariable}` : itemVariable;
+      loopCode += `${indent}const ${resultVariable} = ${arrayVariable}.filter((${filterParams}) => {\n`;
+      loopCode += `${indent}  return ${filterCondition || 'true'};\n${indent}});`;
+      break;
+    }
+
+    case 'every': {
+      const condition = stripVariableIndicators(params.condition || 'true');
+      const everyParams = indexVariable ? `${itemVariable}, ${indexVariable}` : itemVariable;
+      loopCode += `${indent}const ${resultVariable} = ${arrayVariable}.every((${everyParams}) => ${condition});`;
+      break;
+    }
+
+    case 'some': {
+      const condition = stripVariableIndicators(params.condition || 'true');
+      const someParams = indexVariable ? `${itemVariable}, ${indexVariable}` : itemVariable;
+      loopCode += `${indent}const ${resultVariable} = ${arrayVariable}.some((${someParams}) => ${condition});`;
+      break;
+    }
+
+    case 'find': {
+      const condition = stripVariableIndicators(params.condition || 'true');
+      const findParams = indexVariable ? `${itemVariable}, ${indexVariable}` : itemVariable;
+      loopCode += `${indent}const ${resultVariable} = ${arrayVariable}.find((${findParams}) => ${condition});`;
+      break;
+    }
+
+    case 'reduce': {
+      const reduceLogic = stripVariableIndicators(params.reduceLogic || 'return acc;');
+      const initialValue = stripVariableIndicators(params.initialValue || '0');
+      const reduceParams = indexVariable ? `acc, ${itemVariable}, ${indexVariable}` : `acc, ${itemVariable}`;
+      loopCode += `${indent}const ${resultVariable} = ${arrayVariable}.reduce((${reduceParams}) => {\n`;
+      loopCode += `${indent}  ${reduceLogic}\n${indent}}, ${initialValue});`;
+      break;
+    }
+      
+    default:
+      loopCode += `${indent}// Unknown loop type: ${loopType}`;
+  }
+  
+  return loopCode;
+};
+
 const generateNodeCodeRecursive = (
   node: Node,
   nodes: Node[],
@@ -518,58 +744,73 @@ const generateNodeCodeRecursive = (
   processedNodes: Set<string>
 ): string => {
   const nodeData = node.data as EditableNodeData;
-  
-  // Handle If nodes with branch traversal
+
   if (nodeData.nodeType === 'If') {
     try {
       const params = nodeData.params || {};
       const conditionsStr = params.conditions || JSON.stringify([{ type: 'if', condition: 'true' }]);
       const conditions = JSON.parse(conditionsStr);
       
+      const codeLines: string[] = [];
       let ifCode = '';
       
       for (let i = 0; i < conditions.length; i++) {
         const cond = conditions[i];
         const handleId = cond.type === 'else' ? 'else' : cond.type === 'if' ? 'if' : `elseif-${i}`;
-        
-        // Get nodes in this branch
+
         const branchNodes = getNodesInBranch(node.id, handleId, nodes, edges, new Set(processedNodes));
         branchNodes.forEach((n) => processedNodes.add(n.id));
-        
-        // Recursively generate code for branch nodes
+
         const branchCode = branchNodes
           .map((n) => generateNodeCodeRecursive(n, nodes, edges, indent + '  ', processedNodes))
           .filter(Boolean)
           .join('\n');
         
-        // Determine branch body
         const branchBody = branchCode || `${indent}  // Add logic here`;
         
         if (cond.type === 'if') {
-          const cleanCondition = stripVariableIndicators(cond.condition || 'true');
-          ifCode += `${indent}if (${cleanCondition}) {\n`;
-          ifCode += branchBody + '\n';
-          ifCode += `${indent}}`;
+          const cleanCondition = normalizeVariableNames(stripVariableIndicators(cond.condition || 'true'));
+          ifCode += `${indent}if (${cleanCondition}) {\n${branchBody}\n${indent}}`;
         } else if (cond.type === 'elseif') {
-          const cleanCondition = stripVariableIndicators(cond.condition || 'true');
-          ifCode += ` else if (${cleanCondition}) {\n`;
-          ifCode += branchBody + '\n';
-          ifCode += `${indent}}`;
+          const cleanCondition = normalizeVariableNames(stripVariableIndicators(cond.condition || 'true'));
+          ifCode += ` else if (${cleanCondition}) {\n${branchBody}\n${indent}}`;
         } else if (cond.type === 'else') {
-          ifCode += ` else {\n`;
-          ifCode += branchBody + '\n';
-          ifCode += `${indent}}`;
+          ifCode += ` else {\n${branchBody}\n${indent}}`;
         }
       }
       
-      return ifCode;
+      codeLines.push(ifCode);
+  
+      const exitCode = processExitEdge(node.id, nodes, edges, indent, processedNodes);
+      if (exitCode) codeLines.push(exitCode);
+      
+      return codeLines.filter(Boolean).join('\n');
     } catch {
       return `${indent}// Error parsing If node conditions`;
     }
   }
   
-  // For all other nodes, use standard code generation
-  return generateNodeCode(node, indent, nodes);
+  if (nodeData.nodeType === 'Loop') {
+    const params = nodeData.params || {};
+    const loopBodyNodes = getNodesInBranch(node.id, 'loopBody', nodes, edges, new Set(processedNodes));
+    loopBodyNodes.forEach((n) => processedNodes.add(n.id));
+
+    const innerCode = loopBodyNodes
+      .map((n) => generateNodeCodeRecursive(n, nodes, edges, indent + '  ', processedNodes))
+      .filter(Boolean)
+      .join('\n');
+
+    const loopCode = generateLoopCodeWithBody(params, innerCode, indent);
+    const exitCode = processExitEdge(node.id, nodes, edges, indent, processedNodes);
+    
+    return [loopCode, exitCode].filter(Boolean).join('\n');
+  }
+  
+  // For regular nodes
+  const nodeCode = generateNodeCode(node, indent, nodes);
+  const nextCode = processNextNode(node.id, nodes, edges, indent, processedNodes);
+  
+  return [nodeCode, nextCode].filter(Boolean).join('\n');
 };
 
 const generateNestedFlowCode = (
@@ -602,146 +843,18 @@ const generateNestedFlowCode = (
     if (nodeData.nodeType === 'Loop') {
       processedNodes.add(node.id);
       const params = nodeData.params || {};
-      const loopType = params.loopType || 'forEach';
-      const arrayVariable = stripVariableIndicators(params.arrayVariable || 'items');
-      const itemVariable = params.itemVariable || 'item';
-      const indexVariable = params.indexVariable || ''; // Empty by default
-      const resultVariable = params.resultVariable || 'loopResult';
-      const filterCondition = stripVariableIndicators(params.filterCondition || '');
-      
-      // Get nodes connected to loopBody edge (right side - loop body)
+
       const loopBodyNodes = getNodesInBranch(node.id, 'loopBody', nodes, edges, new Set(processedNodes));
       loopBodyNodes.forEach((n) => processedNodes.add(n.id));
-      
-      // Use recursive generation to handle nested If nodes with branches
+
       const innerCode = loopBodyNodes
         .map((n) => generateNodeCodeRecursive(n, allNodes, edges, indent + '  ', processedNodes))
         .filter(Boolean)
         .join('\n');
-      
-      // Generate loop wrapper based on type
-      let loopCode = `${indent}// Loop: ${loopType} over ${arrayVariable}\n`;
-      
-      switch (loopType) {
-        case 'forEach': {
-          // Only include index parameter if user specified an index variable
-          const forEachParams = indexVariable ? `${itemVariable}, ${indexVariable}` : itemVariable;
-          loopCode += `${indent}${arrayVariable}.forEach((${forEachParams}) => {\n`;
-          if (innerCode) {
-            const indentedInnerCode = innerCode.split('\n').map(line => line ? `${indent}  ${line.trimStart()}` : '').join('\n');
-            loopCode += indentedInnerCode + '\n';
-          }
-          loopCode += `${indent}});`;
-          break;
-        }
-          
-        case 'for': {
-          const loopIndexVar = indexVariable || 'i';
-          const initialization = stripVariableIndicators(params.initialization || `${loopIndexVar} = 0`);
-          const loopCondition = stripVariableIndicators(params.loopCondition || `${loopIndexVar} < ${arrayVariable}.length`);
-          const incrementOp = params.incrementOperation || 'i++';
-          const customIncrement = stripVariableIndicators(params.customIncrement || '');
-          const incrementStatement = incrementOp === 'custom' ? customIncrement : incrementOp.replace('i', loopIndexVar);
-          
-          loopCode += `${indent}for (let ${initialization}; ${loopCondition}; ${incrementStatement}) {\n`;
-          if (innerCode) {
-            const indentedInnerCode = innerCode.split('\n').map(line => line ? `${indent}  ${line.trimStart()}` : '').join('\n');
-            loopCode += indentedInnerCode + '\n';
-          }
-          loopCode += `${indent}}`;
-          break;
-        }
-          
-        case 'while': {
-          const whileCustomCondition = stripVariableIndicators(params.loopCondition || '');
-          const loopIndexVar = indexVariable || 'i';
-          
-          if (whileCustomCondition) {
-            // User provided custom while condition
-            loopCode += `${indent}while (${whileCustomCondition}) {\n`;
-          } else {
-            // Default: iterate over array
-            loopCode += `${indent}let ${loopIndexVar} = 0;\n`;
-            const whileCondition = `${loopIndexVar} < ${arrayVariable}.length`;
-            loopCode += `${indent}while (${whileCondition}) {\n`;
-          }
-          
-          if (innerCode) {
-            const indentedInnerCode = innerCode.split('\n').map(line => line ? `${indent}  ${line.trimStart()}` : '').join('\n');
-            loopCode += indentedInnerCode + '\n';
-          }
-          
-          if (!whileCustomCondition) {
-            loopCode += `${indent}  ${loopIndexVar}++;\n`;
-          }
-          loopCode += `${indent}}`;
-          break;
-        }
-          
-        case 'map': {
-          // Only include index parameter if user specified an index variable
-          const mapParams = indexVariable ? `${itemVariable}, ${indexVariable}` : itemVariable;
-          loopCode += `${indent}const ${resultVariable} = ${arrayVariable}.map((${mapParams}) => {\n`;
-          if (innerCode) {
-            const indentedInnerCode = innerCode.split('\n').map(line => line ? `${indent}  ${line.trimStart()}` : '').join('\n');
-            loopCode += indentedInnerCode + '\n';
-          }
-          loopCode += `${indent}  return ${itemVariable};\n`;
-          loopCode += `${indent}});`;
-          break;
-        }
-          
-        case 'filter': {
-          // Only include index parameter if user specified an index variable
-          const filterParams = indexVariable ? `${itemVariable}, ${indexVariable}` : itemVariable;
-          loopCode += `${indent}const ${resultVariable} = ${arrayVariable}.filter((${filterParams}) => {\n`;
-          if (filterCondition) {
-            loopCode += `${indent}  return ${filterCondition};\n`;
-          } else {
-            loopCode += `${indent}  return true;\n`;
-          }
-          loopCode += `${indent}});`;
-          break;
-        }
 
-        case 'every': {
-          const condition = stripVariableIndicators(params.condition || 'true');
-          const everyParams = indexVariable ? `${itemVariable}, ${indexVariable}` : itemVariable;
-          loopCode += `${indent}const ${resultVariable} = ${arrayVariable}.every((${everyParams}) => ${condition});`;
-          break;
-        }
-
-        case 'some': {
-          const condition = stripVariableIndicators(params.condition || 'true');
-          const someParams = indexVariable ? `${itemVariable}, ${indexVariable}` : itemVariable;
-          loopCode += `${indent}const ${resultVariable} = ${arrayVariable}.some((${someParams}) => ${condition});`;
-          break;
-        }
-
-        case 'find': {
-          const condition = stripVariableIndicators(params.condition || 'true');
-          const findParams = indexVariable ? `${itemVariable}, ${indexVariable}` : itemVariable;
-          loopCode += `${indent}const ${resultVariable} = ${arrayVariable}.find((${findParams}) => ${condition});`;
-          break;
-        }
-
-        case 'reduce': {
-          const reduceLogic = stripVariableIndicators(params.reduceLogic || 'return acc;');
-          const initialValue = stripVariableIndicators(params.initialValue || '0');
-          const reduceParams = indexVariable ? `acc, ${itemVariable}, ${indexVariable}` : `acc, ${itemVariable}`;
-          loopCode += `${indent}const ${resultVariable} = ${arrayVariable}.reduce((${reduceParams}) => {\n`;
-          loopCode += `${indent}  ${reduceLogic}\n`;
-          loopCode += `${indent}}, ${initialValue});`;
-          break;
-        }
-          
-        default:
-          loopCode += `${indent}// Unknown loop type: ${loopType}`;
-      }
-      
+      const loopCode = generateLoopCodeWithBody(params, innerCode, indent);
       codeLines.push(loopCode);
       
-      // Continue with exit edge
       const exitEdge = edges.find((e) => e.source === node.id && e.sourceHandle === 'exit');
       if (exitEdge) processNode(exitEdge.target);
       return;
@@ -763,20 +876,19 @@ const generateNestedFlowCode = (
           branchNodes.forEach((n) => processedNodes.add(n.id));
           
           const branchCode = branchNodes
-            .map((n) => generateNodeCode(n, indent + '  ', allNodes))
+            .map((n) => generateNodeCodeRecursive(n, nodes, edges, indent + '  ', processedNodes))
             .filter(Boolean)
             .join('\n');
           
-          // Determine branch body
           const branchBody = branchCode || `${indent}  // Add logic here`;
           
           if (cond.type === 'if') {
-            const cleanCondition = stripVariableIndicators(cond.condition || 'true');
+            const cleanCondition = normalizeVariableNames(stripVariableIndicators(cond.condition || 'true'));
             ifCode += `${indent}if (${cleanCondition}) {\n`;
             ifCode += branchBody + '\n';
             ifCode += `${indent}}`;
           } else if (cond.type === 'elseif') {
-            const cleanCondition = stripVariableIndicators(cond.condition || 'true');
+            const cleanCondition = normalizeVariableNames(stripVariableIndicators(cond.condition || 'true'));
             ifCode += ` else if (${cleanCondition}) {\n`;
             ifCode += branchBody + '\n';
             ifCode += `${indent}}`;
@@ -808,31 +920,24 @@ const generateNestedFlowCode = (
   return codeLines.join('\n');
 };
 
-/**
- * Helper function to generate function definition from a function node
- */
 const generateFunctionDefinition = (node: Node): string => {
   const nodeData = node.data as EditableNodeData;
   const params = nodeData.params || {};
   const mode = nodeData.mode || nodeData.generation_type || 'definition';
   const nodeType = nodeData.nodeType;
   const template = getNodeTemplate(nodeType, mode);
-  
-  // Handle CustomFunction with dynamic parameters
+
   if (nodeType === 'CustomFunction' && params.parameters) {
     try {
       const codeTemplate = params.code_template || '';
       
-      // If code_template already contains 'export const', it's a complete function - use as is
       if (codeTemplate.includes('export const') || codeTemplate.includes('export function')) {
         return codeTemplate;
       }
       
-      // Otherwise, wrap the code body with function signature
       const functionName = params.function_name || 'customFunction';
       const codeBody = codeTemplate || '// Add your code here';
-      
-      // Parse parameters from JSON
+
       const parameters = JSON.parse(params.parameters);
       
       const paramList = parameters
@@ -864,7 +969,6 @@ export const generateTypeScriptCode = (
   edges: Edge[],
   nestedCanvasData: Record<string, NestedCanvasData>
 ): string => {
-  // Check if there's a HandleTransaction node
   const handleTransactionNode = nodes.find((node) => node.data.nodeType === 'HandleTransaction');
   
   if (!handleTransactionNode || !nestedCanvasData[handleTransactionNode.id]) {
@@ -891,9 +995,8 @@ export const generateTypeScriptCode = (
     .filter(Boolean)
     .join('\n');
   
-  const baseImports = `import { aql, type DatabaseManagerInstance, type LoggerService, type ManagerConfig } from '@tazama-lf/frms-coe-lib';
-import type { OutcomeResult, RuleConfig, RuleRequest, RuleResult } from '@tazama-lf/frms-coe-lib/lib/interfaces';
-import { unwrap } from '@tazama-lf/frms-coe-lib/lib/helpers/unwrap';`;
+  const baseImports = `import type { DatabaseManagerInstance, LoggerService, ManagerConfig } from '@tazama-lf/frms-coe-lib';
+import type { RuleConfig, RuleRequest, RuleResult } from '@tazama-lf/frms-coe-lib/lib/interfaces';`;
   
   const allImports = customImportStatements 
     ? `${baseImports}\n${customImportStatements}` 
@@ -929,14 +1032,7 @@ export async function handleTransaction(
   databaseManager: DatabaseManagerInstance<RuleExecutorConfig>,
 ): Promise<RuleResult> {
   
-  const context = \`Rule-\${ruleConfig.id ? ruleConfig.id : '<unresolved>'} handleTransaction()\`;
-  const msgId = req.transaction.FIToFIPmtSts.GrpHdr.MsgId;
-  
-  loggerService.trace('Start - handle transaction', context, msgId);
-  
 ${nestedCode}
-  
-  loggerService.trace('End - handle transaction', context, msgId);
   
   return determineOutcome(count, ruleConfig, ruleRes);
 }`;

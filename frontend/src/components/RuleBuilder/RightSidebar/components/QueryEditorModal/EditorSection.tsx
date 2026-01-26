@@ -10,6 +10,8 @@ interface EditorSectionProps {
   onEditorMount: (editor: any, monaco?: any) => void;
   onDrop: (event: React.DragEvent<HTMLDivElement>) => void;
   onDragOver: (event: React.DragEvent<HTMLDivElement>) => void;
+  onDragEnter?: (event: React.DragEvent<HTMLDivElement>) => void;
+  onDragLeave?: (event: React.DragEvent<HTMLDivElement>) => void;
 }
 
 const EditorSection: React.FC<EditorSectionProps> = ({
@@ -19,6 +21,8 @@ const EditorSection: React.FC<EditorSectionProps> = ({
   onEditorMount,
   onDrop,
   onDragOver,
+  onDragEnter,
+  onDragLeave,
 }) => {
   return (
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
@@ -40,9 +44,14 @@ const EditorSection: React.FC<EditorSectionProps> = ({
       </Box>
 
       <Box 
-        sx={{ flex: 1, minHeight: 0 }}
+        sx={{ 
+          flex: 1, 
+          minHeight: 0,
+        }}
         onDrop={onDrop}
         onDragOver={onDragOver}
+        onDragEnter={onDragEnter}
+        onDragLeave={onDragLeave}
       >
         <Editor
           height="100%"
