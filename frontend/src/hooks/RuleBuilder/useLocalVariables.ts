@@ -125,6 +125,22 @@ export const useLocalVariables = ({
           localVars[resultVar] = '<number>';
         }
       }
+
+      if (nodeData?.nodeType === 'Loop') {
+        const loopType = params.loopType;
+        const resultVar = params.resultVariable;
+
+        // For loops that return a single value or a new array
+        if (resultVar && ['map', 'filter', 'reduce', 'find', 'every', 'some'].includes(loopType)) {
+          const varType = (loopType === 'map' || loopType === 'filter') ? '<array>' : '<any>';
+          localVars[resultVar] = varType;
+        }
+        
+        // For "for" loops, register array result variable
+        if (loopType === 'for' && params.arrayResultVariable) {
+          localVars[params.arrayResultVariable] = '<array>';
+        }
+      }
     });
 
     // Extract loop variables from parent loops (if node is in loop scope)
