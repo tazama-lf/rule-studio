@@ -1,6 +1,6 @@
 import { Box, Typography } from "@mui/material";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import ReactJson from "react-json-view";
+import ReactJson from "@microlink/react-json-view";
 import { useCallback } from "react";
 
 interface IFormattedJsonSection {
