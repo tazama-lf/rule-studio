@@ -96,7 +96,7 @@ const MuiButton = ({
         fontSize: "1rem",
         ...(outlined
           ? {
-            color: selected.contrastText,
+            color: selected.main,
             borderColor: selected.main,
           }
           : {
