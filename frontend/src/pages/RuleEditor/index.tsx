@@ -1,0 +1,53 @@
+import AccountTreeIcon from '@mui/icons-material/AccountTree';
+import CodeIcon from '@mui/icons-material/Code';
+import { Box } from "@mui/material";
+import Button from "../../components/Button";
+import SuspenseLoader from '../../components/SuspenseLoader';
+import Tabs from '../../components/Tabs';
+import { Text } from "../../components/Text";
+import BoxWrapper from "../../components/Wrappers/BoxWrapper";
+import { TabProvider } from '../../contexts/TabContext/TabProvider';
+import useRuleEditorController from './useRuleEditorController';
+import { useSearchParams } from 'react-router-dom';
+
+
+const RuleEditorContent = () => {
+
+    const { values, functions } = useRuleEditorController()
+
+    if (values?.isLoading) {
+        return <SuspenseLoader />
+    }
+
+    return (
+        <>
+            <Box display={'flex'} alignItems={'center'} justifyContent={'space-between'}>
+                <Box display={'flex'} alignItems={'center'} justifyContent={'space-between'} gap={1}>
+                    <CodeIcon sx={{ color: '#4789f6', fontSize: '30px' }} />
+                    <Text weight={'bold'} color="black" size={'header'}>Rule Editor</Text>
+                </Box>
+                <Button Icon={AccountTreeIcon} height="40px" type="secondary" size="md" text="Submit For Review" onClick={functions.handleSubmit} />
+            </Box>
+
+            <Tabs />
+
+            {functions.renderComponent()}
+        </>
+    )
+}
+
+const RuleEditor = () => {
+
+    const [searchParams] = useSearchParams();
+    const mode = searchParams.get('mode') ?? null
+
+    return (
+        <TabProvider mode={mode}>
+            <BoxWrapper>
+                <RuleEditorContent />
+            </BoxWrapper>
+        </TabProvider>
+    )
+}
+
+export default RuleEditor
