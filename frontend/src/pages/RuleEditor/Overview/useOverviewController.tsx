@@ -101,11 +101,15 @@ const useOverviewController = (props: IOverviewProps) => {
     const handleTxTp = (val: DropdownOption) => {
         setValue('txtp', val as { label: string, value: string })
         if (val?.value) {
-            getVersions({ type: val.value }).unwrap().then((res) => {
-                if (res) {
-                    setVersions(res)
-                }
-            })
+            getVersions({ type: val.value }).unwrap()
+                .then((res) => {
+                    if (res) {
+                        setVersions(res)
+                    }
+                })
+                .catch(() => {
+                    toast.error('Failed to load transaction type versions')
+                })
         }
     }
 
