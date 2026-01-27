@@ -615,7 +615,7 @@ export class RulesController {
     return await this.rulesService.updateRuleStatus(
       ruleId,
       body.status,
-      body.comment,
+      body.comment ?? '',
       user.token.tokenString,
     );
   }

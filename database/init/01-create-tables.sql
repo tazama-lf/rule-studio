@@ -1,5 +1,18 @@
 -- SPDX-License-Identifier: Apache-2.0
 
+CREATE TABLE trs_rule_flow (
+    id SERIAL PRIMARY KEY,
+    rule_id INT NOT NULL,
+    flow_json JSONB NOT NULL,
+    ts_file_base64 TEXT,
+    tenant_id VARCHAR(255) NOT NULL DEFAULT 'DEFAULT',
+    created_at DATE,
+    updated_at DATE
+);
+
+-- Index on rule_id for faster retrieval of flow by rule
+CREATE INDEX idx_trs_rule_flow_rule_id ON trs_rule_flow (rule_id);
+
 CREATE TABLE trs_rules (
     rule_id SERIAL,
     rule_name VARCHAR(100),
@@ -39,16 +52,3 @@ CREATE TABLE nodes (
 );
 
 CREATE INDEX idx_nodes_tenant_id ON nodes (tenant_id);
-
-CREATE TABLE trs_rule_flow (
-    id SERIAL PRIMARY KEY,
-    rule_id INT NOT NULL,
-    flow_json JSONB NOT NULL,
-    ts_file_base64 TEXT,
-    tenant_id VARCHAR(255) NOT NULL DEFAULT 'DEFAULT',
-    created_at DATE,
-    updated_at DATE
-);
-
--- Index on rule_id for faster retrieval of flow by rule
-CREATE INDEX idx_trs_rule_flow_rule_id ON trs_rule_flow (rule_id);

@@ -12,7 +12,7 @@ import { BASE_RULE_ID } from 'src/constants/constant';
 export class RulesService {
   private readonly logger = new Logger(RulesService.name);
 
-  constructor(private readonly adminServiceClient: AdminServiceClient) {}
+  constructor(private readonly adminServiceClient: AdminServiceClient) { }
   private async getRuleOrThrow(id: number, token: string): Promise<Rules> {
     try {
       return await this.adminServiceClient.getRulesById(id, token);
@@ -60,11 +60,16 @@ export class RulesService {
           baseFlow.flow as unknown as JSON,
           token,
         );
-        updatedRule = await this.adminServiceClient.updateRule(
-          rule.id,
-          { flow_id: newRuleFlow?.flow[0].id },
-          token,
-        );
+        const flowId = newRuleFlow?.flow?.[0]?.id;
+        if (flowId) {
+          updatedRule = await this.adminServiceClient.updateRule(
+            rule.id,
+            { flow_id: flowId },
+            token,
+          );
+        } else {
+          this.logger.warn(`No flow ID returned when creating rule flow for rule ${rule.id}`);
+        }
       }
 
       return updatedRule;

@@ -13,7 +13,7 @@ export class AuthService {
   constructor(
     private readonly httpService: HttpService,
     private readonly loggerService: LoggerService,
-  ) {}
+  ) { }
 
   async login(
     username: string,
@@ -50,6 +50,16 @@ export class AuthService {
             response.data?.access_token ??
             response.data?.jwt ??
             response.data?.user?.token);
+
+      if (!token) {
+        this.loggerService.error(
+          'Auth service response missing token',
+          AuthService.name,
+        );
+        throw new ServiceUnavailableException(
+          'Authentication service unavailable',
+        );
+      }
 
       const claimsToCheck = ['editor', 'approver', 'publisher'];
       const claimResult = validateTokenAndClaims(token, claimsToCheck);

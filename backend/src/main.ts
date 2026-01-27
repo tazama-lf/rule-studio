@@ -26,7 +26,9 @@ async function bootstrap(): Promise<void> {
     .map((origin) => origin.trim())
     .filter(Boolean);
 
-  const isDev = process.env.NODE_ENV === 'dev';
+  const isDev = ['dev', 'development'].includes(
+    (process.env.NODE_ENV ?? '').toLowerCase(),
+  );
 
   app.enableCors({
     origin: isDev ? true : allowedOrigins,

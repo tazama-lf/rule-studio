@@ -4,4 +4,6 @@ export interface GetNodesQuery {
   category?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  limit?: number;
+  offset?: number;
 }
