@@ -9,6 +9,7 @@ import {
   IconButton,
 } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import PauseIcon from '@mui/icons-material/Pause';
 import StopIcon from '@mui/icons-material/Stop';
 import CodeIcon from '@mui/icons-material/Code';
 import DataObjectIcon from '@mui/icons-material/DataObject';
@@ -22,7 +23,10 @@ import { useValidationContext } from '../../../validation/context';
 
 interface HeaderProps {
   isPlaying?: boolean;
+  isPaused?: boolean;
   onPlayClick: () => void;
+  onPauseClick?: () => void;
+  onResumeClick?: () => void;
   onStopClick: () => void;
   onDisplayJson: () => void;
   onGenerateCode: () => void;
@@ -35,7 +39,10 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({
   isPlaying = false,
+  isPaused = false,
   onPlayClick,
+  onPauseClick,
+  onResumeClick,
   onStopClick,
   onDisplayJson,
   onGenerateCode,
@@ -48,7 +55,6 @@ const Header: React.FC<HeaderProps> = ({
   const { hasErrors, getErrorCount } = useValidationContext();
   const navigate = useNavigate();
   
-  // Disable actions if there are validation errors
   const isDisabled = disabled || hasErrors;
   
   return (
@@ -94,19 +100,50 @@ const Header: React.FC<HeaderProps> = ({
               </span>
             </Tooltip>
           ) : (
-            <Tooltip title="Stop animation">
-              <ActionButton
-                variant="contained"
-                color="error"
-                startIcon={<StopIcon />}
-                onClick={onStopClick}
-                sx={{
-                  minWidth: '100px',
-                }}
-              >
-                Stop
-              </ActionButton>
-            </Tooltip>
+            <>
+              {isPaused ? (
+                <Tooltip title="Resume execution">
+                  <ActionButton
+                    variant="contained"
+                    color="success"
+                    startIcon={<PlayArrowIcon />}
+                    onClick={onResumeClick}
+                    sx={{
+                      minWidth: '100px',
+                    }}
+                  >
+                    Resume
+                  </ActionButton>
+                </Tooltip>
+              ) : (
+                <Tooltip title="Pause execution">
+                  <ActionButton
+                    variant="contained"
+                    color="warning"
+                    startIcon={<PauseIcon />}
+                    onClick={onPauseClick}
+                    sx={{
+                      minWidth: '100px',
+                    }}
+                  >
+                    Pause
+                  </ActionButton>
+                </Tooltip>
+              )}
+              <Tooltip title="Stop and reset">
+                <ActionButton
+                  variant="contained"
+                  color="error"
+                  startIcon={<StopIcon />}
+                  onClick={onStopClick}
+                  sx={{
+                    minWidth: '100px',
+                  }}
+                >
+                  Stop
+                </ActionButton>
+              </Tooltip>
+            </>
           )}
 
           <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />

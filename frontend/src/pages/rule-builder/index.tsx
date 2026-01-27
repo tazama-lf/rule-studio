@@ -51,7 +51,6 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
 
     if (!flowData?.flow || !apiNodesInitialized) return null;
     
-    // Handle new response structure: flow.flow_json
     const flowJson = flowData.flow.flow_json || flowData.flow;
     
     return transformApiFlowData(
@@ -88,21 +87,18 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
     };
   }, []);
   
-  const handleSetIsPlaying = (playing: boolean) => {
-    if (!playing) {
-      flowState.setDebugLogs([]);
-      flowState.setDebugVariables({});
-    }
-  };
+  const [isPaused, setIsPaused] = React.useState(false);
   
   const {
     playFlowAnimation,
     stopAnimation,
+    pauseAnimation,
+    resumeAnimation,
     updateFlowState,
     animationTimeoutRef,
   } = useFlowAnimation({
     isPlaying: Boolean(flowState.currentAnimationNode),
-    setIsPlaying: handleSetIsPlaying,
+    setIsPlaying: () => {},
     nestedCanvasData: nestedCanvasManager.nestedCanvasData,
     setDebugVariables: flowState.setDebugVariables,
     setDebugLogs: flowState.setDebugLogs,
@@ -121,8 +117,21 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
     }
   };
 
+  const handlePauseClick = () => {
+    setIsPaused(true);
+    pauseAnimation();
+  };
+
+  const handleResumeClick = () => {
+    setIsPaused(false);
+    resumeAnimation();
+  };
+
   const handleStopClick = () => {
+    setIsPaused(false);
     stopAnimation();
+    flowState.setDebugLogs([]);
+    flowState.setDebugVariables({});
   };
 
   const handleDisplayJson = () => {
@@ -146,17 +155,14 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
         return;
       }
 
-      // Generate TypeScript code
       const tsCode = window.generateFlowCode?.();
       if (!tsCode) {
         toast.error('Failed to generate TypeScript code');
         return;
       }
 
-      // Convert TypeScript code to base64
       const tsFileBase64 = btoa(unescape(encodeURIComponent(tsCode)));
 
-      // Prepare payload with new structure
       const payload = {
         flow_json: JSON.parse(flowJson),
         ts_file_base64: tsFileBase64,
@@ -223,7 +229,10 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       <Header
         isPlaying={Boolean(flowState.currentAnimationNode)}
+        isPaused={isPaused}
         onPlayClick={handlePlayClick}
+        onPauseClick={handlePauseClick}
+        onResumeClick={handleResumeClick}
         onStopClick={handleStopClick}
         onDisplayJson={handleDisplayJson}
         onGenerateCode={handleGenerateCode}
@@ -232,8 +241,6 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
         isSaving={isSaving}
         viewOnly={viewOnly}
       />
-      
-      {/* Show loader while BOTH APIs are being fetched OR nodes not initialized */}
       {isLoadingNodes || isLoadingFlow || !apiNodesInitialized ? (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, flexDirection: 'column', gap: 2 }}>
           <Typography variant="h6">

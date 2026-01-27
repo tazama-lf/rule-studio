@@ -91,6 +91,7 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = ({
       nodes: defaultFlow.mainCanvas.nodes as Node[],
       edges: defaultFlow.mainCanvas.edges as Edge[],
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(getInitialFlow.nodes);
@@ -206,7 +207,8 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = ({
       const dragData = event.dataTransfer.getData('application/reactflow');
       if (!dragData) return;
 
-      let [type, mode] = dragData.includes('::') ? dragData.split('::') : [dragData, undefined];
+      const [type, rawMode] = dragData.includes('::') ? dragData.split('::') : [dragData, undefined];
+      let mode = rawMode;
       
       if (mode === 'undefined' || mode === 'null' || mode === '') {
         mode = undefined;

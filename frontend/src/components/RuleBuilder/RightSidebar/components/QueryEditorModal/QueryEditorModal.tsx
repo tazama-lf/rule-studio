@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -15,9 +15,9 @@ import CloseIcon from '@mui/icons-material/Close';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import SaveIcon from '@mui/icons-material/Save';
 import type { Node, Edge } from '@xyflow/react';
-import EditorSection from './EditorSection';
+import EditorSection, { type EditorSectionHandle } from './EditorSection';
 import VariablesPanel from './VariablesPanel';
-import { useQueryValidation, useDragDropEditor, useVariableData } from '../../../../../hooks/RuleBuilder';
+import { useDragDropEditor, useVariableData } from '../../../../../hooks/RuleBuilder';
 
 interface QueryEditorModalProps {
   open: boolean;
@@ -46,46 +46,43 @@ const QueryEditorModal: React.FC<QueryEditorModalProps> = ({
   edges = [],
   selectedNodeId = null,
 }) => {
-  const [query, setQuery] = useState(initialValue);
-
-  const { validationError, validateAndSanitize, clearValidationError } = useQueryValidation(query);
-  const { handleEditorMount, handleDrop, handleDragOver, handleDragEnter, handleDragLeave } = useDragDropEditor();
+  const editorRef = useRef<EditorSectionHandle>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  
+  const { handleDrop, handleDragOver, handleDragEnter, handleDragLeave } = useDragDropEditor();
+  
   const variableData = useVariableData({ ruleId, allNodes, edges, selectedNodeId });
 
   const handleSave = useCallback(() => {
-    const result = validateAndSanitize();
-    if (result.isValid && result.sanitized) {
-      onSave(result.sanitized);
-      onClose();
+    const query = editorRef.current?.getValue() ?? '';
+    if (!query.trim()) {
+      setValidationError('Query cannot be empty');
+      return;
     }
-  }, [validateAndSanitize, onSave, onClose]);
+    setValidationError(null);
+    onSave(query);
+  }, [onSave]);
 
   const handleExecute = useCallback(() => {
-    const result = validateAndSanitize();
-    if (result.isValid && result.sanitized) {
-      onExecute(result.sanitized);
+    const query = editorRef.current?.getValue() ?? '';
+    if (!query.trim()) {
+      setValidationError('Query cannot be empty');
+      return;
     }
-  }, [validateAndSanitize, onExecute]);
+    setValidationError(null);
+    onExecute(query);
+  }, [onExecute]);
 
   const handleCancel = useCallback(() => {
-    setQuery(initialValue);
-    clearValidationError();
+    setValidationError(null);
     onClose();
-  }, [initialValue, clearValidationError, onClose]);
-
-  const handleEditorChange = useCallback((value: string | undefined) => {
-    setQuery(value ?? '');
-    if (validationError) {
-      clearValidationError();
-    }
-  }, [validationError, clearValidationError]);
+  }, [onClose]);
 
   const displayError = useMemo(() => validationError || executionError, [validationError, executionError]);
-  const hasQuery = useMemo(() => query.trim().length > 0, [query]);
 
   React.useEffect(() => {
-    if (open) {
-      setQuery(initialValue);
+    if (open && editorRef.current) {
+      editorRef.current.setValue(initialValue);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -120,10 +117,9 @@ const QueryEditorModal: React.FC<QueryEditorModalProps> = ({
 
       <DialogContent dividers sx={{ p: 0, display: 'flex', flexDirection: 'row', overflow: 'hidden' }}>
         <EditorSection
-          query={query}
+          ref={editorRef}
+          initialValue={initialValue}
           displayError={displayError}
-          onEditorChange={handleEditorChange}
-          onEditorMount={handleEditorMount}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onDragEnter={handleDragEnter}
@@ -142,7 +138,7 @@ const QueryEditorModal: React.FC<QueryEditorModalProps> = ({
             variant="outlined"
             color="success"
             startIcon={isExecuting ? <CircularProgress size={16} /> : <PlayArrowIcon />}
-            disabled={isExecuting || !hasQuery}
+            disabled={isExecuting}
           >
             {isExecuting ? 'Executing...' : 'Execute & Test'}
           </Button>
@@ -157,7 +153,6 @@ const QueryEditorModal: React.FC<QueryEditorModalProps> = ({
             variant="contained"
             color="primary"
             startIcon={<SaveIcon />}
-            disabled={!hasQuery}
           >
             Save Query
           </Button>
@@ -167,4 +162,4 @@ const QueryEditorModal: React.FC<QueryEditorModalProps> = ({
   );
 };
 
-export default QueryEditorModal;
+export default React.memo(QueryEditorModal);

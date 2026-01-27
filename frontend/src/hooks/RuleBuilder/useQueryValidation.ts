@@ -1,12 +1,12 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { validateSQLQuery, sanitizeQuery } from '../../utils/Common/queryValidation';
 
 export const useQueryValidation = (query: string) => {
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  const currentValidation = useMemo(() => validateSQLQuery(query), [query]);
-
   const validateAndSanitize = useCallback((): { isValid: boolean; sanitized: string | null; error: string | null } => {
+    const currentValidation = validateSQLQuery(query);
+    
     if (!currentValidation.isValid) {
       const error = currentValidation.error || 'Invalid query';
       setValidationError(error);
@@ -16,7 +16,7 @@ export const useQueryValidation = (query: string) => {
     setValidationError(null);
     const sanitized = sanitizeQuery(query);
     return { isValid: true, sanitized, error: null };
-  }, [currentValidation, query]);
+  }, [query]);
 
   const clearValidationError = useCallback(() => {
     setValidationError(null);

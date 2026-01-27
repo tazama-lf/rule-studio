@@ -1,29 +1,118 @@
-import React from 'react';
+import React, { useMemo, useRef, useImperativeHandle, forwardRef, useCallback } from 'react';
 import { Box, Alert, Typography } from '@mui/material';
 import Editor from '@monaco-editor/react';
+import type { Monaco } from '@monaco-editor/react';
+
+export interface EditorSectionHandle {
+  getValue: () => string;
+  setValue: (value: string) => void;
+}
 
 interface EditorSectionProps {
-  query: string;
+  initialValue: string;
   displayError: string | null;
-  onEditorChange: (value: string | undefined) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onEditorMount: (editor: any, monaco?: any) => void;
   onDrop: (event: React.DragEvent<HTMLDivElement>) => void;
   onDragOver: (event: React.DragEvent<HTMLDivElement>) => void;
   onDragEnter?: (event: React.DragEvent<HTMLDivElement>) => void;
   onDragLeave?: (event: React.DragEvent<HTMLDivElement>) => void;
 }
 
-const EditorSection: React.FC<EditorSectionProps> = ({
-  query,
+const EditorSection = forwardRef<EditorSectionHandle, EditorSectionProps>(({
+  initialValue,
   displayError,
-  onEditorChange,
-  onEditorMount,
   onDrop,
   onDragOver,
   onDragEnter,
   onDragLeave,
-}) => {
+}, ref) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const editorRef = useRef<any>(null);
+
+  useImperativeHandle(ref, () => ({
+    getValue: () => {
+      const value = editorRef.current?.getValue() ?? '';
+      return value;
+    },
+    setValue: (value: string) => {
+      editorRef.current?.setValue(value);
+    },
+  }), []);
+
+  const handleEditorMount = useCallback((editor: Parameters<NonNullable<React.ComponentProps<typeof Editor>['onMount']>>[0], monaco: Monaco) => {
+    editorRef.current = editor;
+    
+    // Disable suggestions and auto-completion for performance
+    editor.updateOptions({
+      quickSuggestions: false,
+      suggestOnTriggerCharacters: false,
+      acceptSuggestionOnCommitCharacter: false,
+      acceptSuggestionOnEnter: 'off',
+      tabCompletion: 'off',
+      wordBasedSuggestions: 'off',
+      parameterHints: { enabled: false },
+      formatOnType: false,
+      autoIndent: 'none',
+    });
+    
+    editor.addCommand(monaco.KeyCode.Space, () => {
+      const position = editor.getPosition();
+      if (position) {
+        editor.executeEdits('', [{
+          range: {
+            startLineNumber: position.lineNumber,
+            startColumn: position.column,
+            endLineNumber: position.lineNumber,
+            endColumn: position.column,
+          },
+          text: ' ',
+        }]);
+        editor.setPosition({
+          lineNumber: position.lineNumber,
+          column: position.column + 1,
+        });
+      }
+    });
+  }, []);
+
+  const editorOptions = useMemo(() => ({
+    minimap: { enabled: false },
+    fontSize: 14,
+    lineNumbers: 'on' as const,
+    scrollBeyondLastLine: false,
+    automaticLayout: true,
+    tabSize: 2,
+    wordWrap: 'on' as const,
+    scrollbar: {
+      vertical: 'auto' as const,
+      horizontal: 'auto' as const,
+      verticalScrollbarSize: 10,
+      horizontalScrollbarSize: 10,
+    },
+    formatOnPaste: false,
+    formatOnType: false,
+    autoIndent: 'none' as const,
+    quickSuggestions: false,
+    suggestOnTriggerCharacters: false,
+    acceptSuggestionOnCommitCharacter: false,
+    acceptSuggestionOnEnter: 'off' as const,
+    tabCompletion: 'off' as const,
+    wordBasedSuggestions: 'off' as const,
+    parameterHints: { enabled: false },
+    suggest: {
+      showWords: false,
+      showKeywords: false,
+    },
+    renderValidationDecorations: 'off' as const,
+    folding: false,
+    glyphMargin: false,
+    lineDecorationsWidth: 0,
+    lineNumbersMinChars: 3,
+    renderLineHighlight: 'none' as const,
+    overviewRulerBorder: false,
+    hideCursorInOverviewRuler: true,
+    overviewRulerLanes: 0,
+  }), []);
+
   return (
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
       {displayError && (
@@ -56,43 +145,16 @@ const EditorSection: React.FC<EditorSectionProps> = ({
         <Editor
           height="100%"
           language="sql"
-          value={query}
-          onChange={onEditorChange}
-          onMount={onEditorMount}
+          defaultValue={initialValue}
+          onMount={handleEditorMount}
           theme="vs-dark"
-          options={{
-            minimap: { enabled: true },
-            fontSize: 14,
-            lineNumbers: 'on',
-            scrollBeyondLastLine: false,
-            automaticLayout: true,
-            tabSize: 2,
-            wordWrap: 'on',
-            scrollbar: {
-              vertical: 'auto',
-              horizontal: 'auto',
-              verticalScrollbarSize: 12,
-              horizontalScrollbarSize: 12,
-            },
-            formatOnPaste: false,
-            formatOnType: false,
-            autoIndent: 'none',
-            quickSuggestions: false,
-            suggestOnTriggerCharacters: false,
-            acceptSuggestionOnCommitCharacter: false,
-            acceptSuggestionOnEnter: 'off',
-            tabCompletion: 'off',
-            wordBasedSuggestions: 'off',
-            parameterHints: { enabled: false },
-            suggest: {
-              showWords: false,
-              showKeywords: false,
-            },
-          }}
+          options={editorOptions}
         />
       </Box>
     </Box>
   );
-};
+});
 
-export default React.memo(EditorSection);
+EditorSection.displayName = 'EditorSection';
+
+export default EditorSection;
