@@ -74,9 +74,9 @@ describe('RulesService', () => {
 
       adminServiceClient.getRulesById.mockRejectedValue(error);
 
-      await expect(
-        service.getRulesById(1, 'tenant', 'token'),
-      ).rejects.toThrow(error);
+      await expect(service.getRulesById(1, 'tenant', 'token')).rejects.toThrow(
+        error,
+      );
     });
   });
 
@@ -100,9 +100,9 @@ describe('RulesService', () => {
 
       adminServiceClient.getRuleFlow.mockRejectedValue(error);
 
-      await expect(
-        service.getRuleFlow('rule1', 'token'),
-      ).rejects.toThrow(error);
+      await expect(service.getRuleFlow('rule1', 'token')).rejects.toThrow(
+        error,
+      );
     });
   });
 

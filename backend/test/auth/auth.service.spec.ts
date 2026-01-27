@@ -9,7 +9,6 @@ import {
 import { of, throwError } from 'rxjs';
 import { validateTokenAndClaims } from '@tazama-lf/auth-lib';
 
-
 jest.mock('@tazama-lf/auth-lib', () => ({
   validateTokenAndClaims: jest.fn(),
 }));
@@ -109,9 +108,7 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException when user lacks required claims', async () => {
       const token = 'no-claims-token';
 
-      (httpService.post as jest.Mock).mockReturnValue(
-        of({ data: { token } }),
-      );
+      (httpService.post as jest.Mock).mockReturnValue(of({ data: { token } }));
 
       (validateTokenAndClaims as jest.Mock).mockReturnValue({
         editor: false,
@@ -142,57 +139,57 @@ describe('AuthService', () => {
       );
     });
     describe('token extraction priority', () => {
-  const username = 'test@example.com';
-  const password = 'password123';
+      const username = 'test@example.com';
+      const password = 'password123';
 
-  beforeEach(() => {
-    // User must have valid claims for successful login
-    (validateTokenAndClaims as jest.Mock).mockReturnValue({
-      editor: true,
-      approver: false,
-      publisher: false,
-      exporter: false,
+      beforeEach(() => {
+        // User must have valid claims for successful login
+        (validateTokenAndClaims as jest.Mock).mockReturnValue({
+          editor: true,
+          approver: false,
+          publisher: false,
+          exporter: false,
+        });
+      });
+
+      it.each([
+        {
+          title: 'string response.data',
+          data: 'string-token',
+          expectedToken: 'string-token',
+        },
+        {
+          title: 'response.data.token',
+          data: { token: 'token-field' },
+          expectedToken: 'token-field',
+        },
+        {
+          title: 'response.data.access_token',
+          data: { access_token: 'access-token-field' },
+          expectedToken: 'access-token-field',
+        },
+        {
+          title: 'response.data.jwt',
+          data: { jwt: 'jwt-field' },
+          expectedToken: 'jwt-field',
+        },
+        {
+          title: 'response.data.user.token',
+          data: { user: { token: 'nested-user-token' } },
+          expectedToken: 'nested-user-token',
+        },
+      ])(
+        'should extract token from $title',
+        async ({ data, expectedToken }) => {
+          (httpService.post as jest.Mock).mockReturnValue(of({ data }) as any);
+
+          const result = await service.login(username, password);
+
+          expect(result.token).toBe(expectedToken);
+          expect(result.message).toBe('Login successful');
+        },
+      );
     });
-  });
-
-  it.each([
-    {
-      title: 'string response.data',
-      data: 'string-token',
-      expectedToken: 'string-token',
-    },
-    {
-      title: 'response.data.token',
-      data: { token: 'token-field' },
-      expectedToken: 'token-field',
-    },
-    {
-      title: 'response.data.access_token',
-      data: { access_token: 'access-token-field' },
-      expectedToken: 'access-token-field',
-    },
-    {
-      title: 'response.data.jwt',
-      data: { jwt: 'jwt-field' },
-      expectedToken: 'jwt-field',
-    },
-    {
-      title: 'response.data.user.token',
-      data: { user: { token: 'nested-user-token' } },
-      expectedToken: 'nested-user-token',
-    },
-  ])('should extract token from $title', async ({ data, expectedToken }) => {
-    (httpService.post as jest.Mock).mockReturnValue(
-      of({ data }) as any,
-    );
-
-    const result = await service.login(username, password);
-
-    expect(result.token).toBe(expectedToken);
-    expect(result.message).toBe('Login successful');
-  });
-});
-
 
     it('should throw UnauthorizedException for 401 error', async () => {
       const error = {
@@ -200,9 +197,7 @@ describe('AuthService', () => {
         message: 'Unauthorized',
       };
 
-      (httpService.post as jest.Mock).mockReturnValue(
-        throwError(() => error),
-      );
+      (httpService.post as jest.Mock).mockReturnValue(throwError(() => error));
 
       await expect(service.login(username, password)).rejects.toThrow(
         UnauthorizedException,
@@ -219,9 +214,7 @@ describe('AuthService', () => {
         message: 'Too Many Requests',
       };
 
-      (httpService.post as jest.Mock).mockReturnValue(
-        throwError(() => error),
-      );
+      (httpService.post as jest.Mock).mockReturnValue(throwError(() => error));
 
       await expect(service.login(username, password)).rejects.toThrow(
         UnauthorizedException,
@@ -235,9 +228,7 @@ describe('AuthService', () => {
     it('should throw ServiceUnavailableException for network errors', async () => {
       const error = new Error('Network error');
 
-      (httpService.post as jest.Mock).mockReturnValue(
-        throwError(() => error),
-      );
+      (httpService.post as jest.Mock).mockReturnValue(throwError(() => error));
 
       await expect(service.login(username, password)).rejects.toThrow(
         ServiceUnavailableException,
@@ -254,9 +245,7 @@ describe('AuthService', () => {
         message: 'Internal Server Error',
       };
 
-      (httpService.post as jest.Mock).mockReturnValue(
-        throwError(() => error),
-      );
+      (httpService.post as jest.Mock).mockReturnValue(throwError(() => error));
 
       await expect(service.login(username, password)).rejects.toThrow(
         ServiceUnavailableException,

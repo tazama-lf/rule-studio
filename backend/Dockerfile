@@ -34,4 +34,4 @@ COPY --from=builder /home/app/dist ./build
 COPY package.json ./
 
 # Execute watchdog command
-CMD ["build/main.js"]
+CMD ["node", "build/main.js"]

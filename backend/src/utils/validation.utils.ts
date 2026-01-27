@@ -5,7 +5,9 @@ import type { ErrorObject } from 'ajv';
  * @param errors Array of AJV error objects
  * @returns Array of formatted error messages
  */
-export function formatValidationErrors(errors: ErrorObject[] | null | undefined): string[] {
+export function formatValidationErrors(
+  errors: ErrorObject[] | null | undefined,
+): string[] {
   return (
     errors?.map((error) => {
       const path = error.instancePath || 'root';
@@ -36,7 +38,7 @@ export function formatValidationErrors(errors: ErrorObject[] | null | undefined)
       if (error.keyword === 'maxLength') {
         return `${path}: Should be no more than ${error.params.limit} characters`;
       }
-      
+
       return `${path}: ${message}`;
     }) ?? []
   );

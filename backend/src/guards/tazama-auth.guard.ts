@@ -14,7 +14,11 @@ import type {
   ClaimValidationResult,
   AuthenticatedUser,
 } from '../services/auth/auth.types';
-import { CLAIMS_KEY, IS_PUBLIC_KEY, ANY_CLAIMS_KEY } from '../decorators/auth.decorator';
+import {
+  CLAIMS_KEY,
+  IS_PUBLIC_KEY,
+  ANY_CLAIMS_KEY,
+} from '../decorators/auth.decorator';
 
 @Injectable()
 export class TazamaAuthGuard implements CanActivate {
@@ -43,14 +47,16 @@ export class TazamaAuthGuard implements CanActivate {
       ]);
     } catch (error) {
       const err = error as Error;
-      
+
       if (
         err.name === 'TokenExpiredError' ||
-        err.message?.toLowerCase().includes('token expired') ||
-        err.message?.toLowerCase().includes('jwt expired')
+        err.message.toLowerCase().includes('token expired') ||
+        err.message.toLowerCase().includes('jwt expired')
       ) {
         this.logger.warn('Token has expired', logContext);
-        throw new UnauthorizedException('Token has expired. Please log in again.');
+        throw new UnauthorizedException(
+          'Token has expired. Please log in again.',
+        );
       }
       this.logger.error(`Token validation failed: ${err.message}`, logContext);
       throw new UnauthorizedException('Token validation failed');
@@ -70,18 +76,24 @@ export class TazamaAuthGuard implements CanActivate {
     }
 
     const decoded = this.extractTokenPayload(token);
-    
+
     const innerDecoded = this.extractInnerToken(token);
     const allowedStatuses = innerDecoded?.status
-      ? (innerDecoded.status as string).split(',').map(s => s.trim()).filter(s => s.length > 0)
+      ? (innerDecoded.status as string)
+          .split(',')
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0)
       : undefined;
-    
+
     if (allowedStatuses) {
-      this.logger.log(`Extracted ${allowedStatuses.length} allowed statuses: ${allowedStatuses.join(', ')}`, logContext);
+      this.logger.log(
+        `Extracted ${allowedStatuses.length} allowed statuses: ${allowedStatuses.join(', ')}`,
+        logContext,
+      );
     } else {
       this.logger.warn('No status field found in token', logContext);
     }
-    
+
     const authenticatedUser: AuthenticatedUser = {
       token: { ...decoded, tokenString: token },
       validated,
@@ -140,7 +152,10 @@ export class TazamaAuthGuard implements CanActivate {
   ): { status: boolean; valid: string[]; invalid: string[] } {
     // If no claims specified on endpoint, allow authenticated users
     if (required.length === 0 && any.length === 0) {
-      this.logger.log('No claims required for this endpoint, allowing authenticated user', ctx);
+      this.logger.log(
+        'No claims required for this endpoint, allowing authenticated user',
+        ctx,
+      );
       return { status: true, valid: [], invalid: [] };
     }
 
@@ -188,15 +203,21 @@ export class TazamaAuthGuard implements CanActivate {
   private extractInnerToken(outerToken: string): any {
     try {
       const outerDecoded = jwt.decode(outerToken) as any;
-      this.logger.log(`Outer token keys: ${outerDecoded ? Object.keys(outerDecoded).join(', ') : 'null'}`);
-      
+      this.logger.log(
+        `Outer token keys: ${outerDecoded ? Object.keys(outerDecoded).join(', ') : 'null'}`,
+      );
+
       if (!outerDecoded?.tokenString) {
-        this.logger.warn('No tokenString field in outer token, returning outer token itself');
+        this.logger.warn(
+          'No tokenString field in outer token, returning outer token itself',
+        );
         return outerDecoded; // Return outer token if there's no inner token
       }
-      
+
       const innerDecoded = jwt.decode(outerDecoded.tokenString) as any;
-      this.logger.log(`Inner token keys: ${innerDecoded ? Object.keys(innerDecoded).join(', ') : 'null'}`);
+      this.logger.log(
+        `Inner token keys: ${innerDecoded ? Object.keys(innerDecoded).join(', ') : 'null'}`,
+      );
       return innerDecoded;
     } catch (error) {
       const err = error as Error;

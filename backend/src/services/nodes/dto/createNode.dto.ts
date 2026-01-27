@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsObject, IsOptional, IsString, IsNumber } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsNumber,
+  IsArray,
+} from 'class-validator';
 
 export class CreateNodeDto {
   @ApiProperty({
@@ -56,6 +63,6 @@ export class RequestQueryNodeDto {
     example: ['processor'],
   })
   @IsOptional()
-  @IsObject({ each: true })
+  @IsArray()
   params?: unknown[];
 }

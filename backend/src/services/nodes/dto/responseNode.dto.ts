@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsOptional, IsJSON, IsDate } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsJSON,
+  IsDate,
+} from 'class-validator';
 
 export class ResponseNodesDto {
   @ApiProperty({
@@ -71,7 +77,9 @@ export class ResponseQueryNodeDto {
 
   @ApiProperty({
     description: 'Result of the executed query',
-    example: [{ id: 'node-001', type: 'processor', name: 'Transaction Validator' }],
+    example: [
+      { id: 'node-001', type: 'processor', name: 'Transaction Validator' },
+    ],
   })
   @IsOptional()
   result?: unknown[];

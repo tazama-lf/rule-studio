@@ -40,7 +40,6 @@ export class ConfigService {
     token: string,
   ): Promise<string[]> {
     try {
-
       return await this.adminServiceClient.getVersionsOfTransactionType(
         transactionType,
         token,

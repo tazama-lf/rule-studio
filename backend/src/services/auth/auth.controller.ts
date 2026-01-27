@@ -43,13 +43,10 @@ export class AuthController {
 
   private handleLoginError(error: unknown, username: string): never {
     if (error instanceof UnauthorizedException) {
-      this.logger.warn(
-        `Authentication failed for user ${username}`,
-        AuthController.name,
-      );
+      this.logger.warn('Authentication failed', AuthController.name);
       throw error;
     }
-    
+
     if (error instanceof ServiceUnavailableException) {
       this.logger.error(
         'Auth service unavailable during login attempt',
@@ -57,7 +54,7 @@ export class AuthController {
       );
       throw error;
     }
-    
+
     const err = error as Error;
     this.logger.error(
       `Unexpected error during login: ${err.message}`,

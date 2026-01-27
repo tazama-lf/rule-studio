@@ -4,8 +4,8 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { LoggerService } from '@tazama-lf/frms-coe-lib';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
@@ -21,15 +21,24 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  const isDev = process.env.NODE_ENV === 'development';
+
   app.enableCors({
-    origin: true,
+    origin: isDev ? true : allowedOrigins,
     credentials: true,
   });
 
   // Swagger Configuration
   const config = new DocumentBuilder()
     .setTitle('Tazama Model Management API')
-    .setDescription('Complete API documentation for Tazama Model Management Backend organized by service modules')
+    .setDescription(
+      'Complete API documentation for Tazama Model Management Backend organized by service modules',
+    )
     .setVersion('1.0.0')
     .addServer('http://10.10.80.37:3005', 'Production Server')
     .addServer('http://localhost:3005', 'Local Development Server')
@@ -39,12 +48,16 @@ async function bootstrap(): Promise<void> {
         scheme: 'bearer',
         bearerFormat: 'JWT',
         name: 'JWT',
-        description: 'Enter JWT token (Login at: http://10.10.80.37:3005/auth/login)',
+        description:
+          'Enter JWT token (Login at: http://10.10.80.37:3005/auth/login)',
         in: 'header',
       },
       'JWT-auth',
     )
-    .addTag('Authentication', 'JWT token management - Login URL: http://10.10.80.37:3005/auth/login')
+    .addTag(
+      'Authentication',
+      'JWT token management - Login URL: http://10.10.80.37:3005/auth/login',
+    )
     .addTag('Configuration', 'System configuration and transaction types')
     .addTag('Nodes', 'Node management operations')
     .addTag('Parse & Extract', 'ISO 20022 message parsing and validation')
@@ -58,16 +71,24 @@ async function bootstrap(): Promise<void> {
     },
   });
 
-  // Save Swagger JSON to docs folder
-  const docsDir = path.join(__dirname, '..', 'docs');
-  if (!fs.existsSync(docsDir)) {
-    fs.mkdirSync(docsDir, { recursive: true });
+  // Save Swagger JSON to docs folder, only if enabled and possible
+  if (process.env.WRITE_SWAGGER_JSON === 'true') {
+    try {
+      const docsDir = path.join(__dirname, '..', 'docs');
+      if (!fs.existsSync(docsDir)) {
+        fs.mkdirSync(docsDir, { recursive: true });
+      }
+      fs.writeFileSync(
+        path.join(docsDir, 'swagger.json'),
+        JSON.stringify(document, null, 2),
+      );
+    } catch (err) {
+      logger.warn(`Swagger JSON write skipped: ${String(err)}`);
+    }
   }
-  fs.writeFileSync(path.join(docsDir, 'swagger.json'), JSON.stringify(document, null, 2));
-
   const port = process.env.PORT ?? 3005;
   await app.listen(port);
-  
+
   logger.log(
     `🚀 Application started on port ${port} (env=${process.env.NODE_ENV})`,
   );
