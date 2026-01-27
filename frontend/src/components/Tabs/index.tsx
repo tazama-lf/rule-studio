@@ -16,8 +16,7 @@ export interface TabsProps {
 
 const Tabs = ({ tabs: propTabs, selected: propSelected, setSelected: propSetSelected }: TabsProps = {}) => {
     const context = useTab()
-    
-    // Use context values, fallback to props for backward compatibility
+
     const tabs = propTabs ?? context.tabs
     const selected = propSelected ?? context.selectedTab
     const setSelected = propSetSelected ?? context.setSelectedTab
