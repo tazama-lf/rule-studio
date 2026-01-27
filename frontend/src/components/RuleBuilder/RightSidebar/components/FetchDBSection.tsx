@@ -13,7 +13,7 @@ import { extractErrorMessage } from '../../../../types/queryExecution';
 interface FetchDBSectionProps {
   currentParams: Record<string, string>;
   onParamChange: (paramKey: string) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
-  onParamBlur?: () => void;
+  onParamBlur?: (shouldForceSave?: boolean, overrideParams?: Record<string, string>) => void;
   onDrop: (paramKey: string) => (event: React.DragEvent<HTMLDivElement>) => void;
   onDragOver: (event: React.DragEvent<HTMLDivElement>) => void;
   inputRefs: React.MutableRefObject<Record<string, HTMLInputElement | HTMLTextAreaElement>>;
@@ -63,12 +63,22 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
   }, []);
 
   const handleSaveQuery = useCallback((query: string) => {
+    console.log('📝 handleSaveQuery received:', query);
     const syntheticEvent = {
       target: { value: query }
     } as React.ChangeEvent<HTMLInputElement>;
     onParamChange('query')(syntheticEvent);
-    onParamBlur?.();
-  }, [onParamChange, onParamBlur]);
+    console.log('📝 Called onParamChange with query');
+    
+    // Pass updated params to onParamBlur so code generation uses new query immediately
+    const updatedParams = { ...currentParams, query };
+    console.log('📝 Calling onParamBlur with updatedParams:', updatedParams.query);
+    onParamBlur?.(true, updatedParams);
+    console.log('📝 Called onParamBlur - code generation should trigger now');
+    
+    // Close modal after triggering code generation
+    handleCloseQueryEditor();
+  }, [onParamChange, onParamBlur, currentParams, handleCloseQueryEditor]);
 
   const handleExecuteQuery = useCallback(async (query: string) => {
     try {
@@ -187,7 +197,7 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
             fullWidth
             value={currentParams.queryVar ?? 'query'}
             onChange={onParamChange('queryVar')}
-            onBlur={onParamBlur}
+            onBlur={() => onParamBlur?.()}
             disabled={isDisabled}
             placeholder="Variable name (e.g., query)"
             error={!!getFieldError?.('queryVar')}
@@ -218,7 +228,7 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
             fullWidth
             value={currentParams.resultVar ?? currentParams.variable ?? ''}
             onChange={onParamChange('resultVar')}
-            onBlur={onParamBlur}
+            onBlur={() => onParamBlur?.()}
             disabled={isDisabled}
             placeholder="Variable name (e.g., dbResult)"
             error={!!getFieldError?.('resultVar')}

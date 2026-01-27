@@ -5,12 +5,9 @@ export interface ExecutionResult {
   newVariables: Record<string, unknown>;
   logMessage: string | null;
   error: string | null;
-  branchHandle?: string | null; // For If nodes, which branch to take
+  branchHandle?: string | null;
 }
 
-/**
- * Simulates the execution logic of a node and tracks variable state
- */
 export const simulateNodeExecution = (
   node: Node,
   currentVariables: Record<string, unknown>
@@ -21,12 +18,8 @@ export const simulateNodeExecution = (
   const newVariables = { ...currentVariables };
   let logMessage: string | null = null;
   let error: string | null = null;
-  let branchHandle: string | null = null; // Track which branch to take for If nodes
+  let branchHandle: string | null = null;
 
-  /**
-   * Helper: Resolve global variable paths to actual values
-   * Example: "RuleRequest.TenantId" -> "123"
-   */
   const resolveGlobalVariable = (path: string): unknown => {
     if (!path || typeof path !== 'string') return path;
     if (!path.startsWith('RuleRequest.') && !path.startsWith('RuleConfig.')) {
@@ -51,10 +44,6 @@ export const simulateNodeExecution = (
     return current;
   };
 
-  /**
-   * Helper: Replace global variable paths in text with their values
-   * Supports expressions like: "RuleRequest.amount > 100" -> "50 > 100"
-   */
   const replaceGlobalVariables = (text: string): string => {
     if (!text || typeof text !== 'string') return text;
     
@@ -67,31 +56,23 @@ export const simulateNodeExecution = (
     });
   };
 
-  /**
-   * Helper: Resolve a value (number or variable reference)
-   */
   const resolve = (val: unknown): number => {
     if (val === undefined || val === null || val === '') return 0;
 
-    // Check if it's a number
     const strVal = String(val);
     if (!isNaN(Number(strVal)) && strVal.trim() !== '') {
       return parseFloat(strVal);
     }
 
-    // Check if it's a variable name
     const key = strVal.trim();
     if (currentVariables[key] !== undefined) {
       const varVal = currentVariables[key];
       return typeof varVal === 'number' ? varVal : Number(varVal) || 0;
     }
 
-    return 0; // Default fallback
+    return 0;
   };
 
-  /**
-   * Helper: Safe parameter lookup with fallback keys
-   */
   const getParam = (keys: string[]): string | null => {
     for (const key of keys) {
       if (params[key] !== undefined && params[key] !== '') {
@@ -103,7 +84,6 @@ export const simulateNodeExecution = (
 
   try {
     switch (type) {
-      // BASIC NODES
       case 'Start':
         logMessage = '🚀 Process Started';
         break;
@@ -119,7 +99,6 @@ export const simulateNodeExecution = (
         const dataType = getParam(['dataType']) || 'any';
 
         if (varName) {
-          // Check if variable already exists (duplicate variable warning)
           if (currentVariables[varName] !== undefined) {
             error = `Variable "${varName}" is already declared. Overwriting existing value.`;
             logMessage = `⚠️ WARNING: ${error}`;
@@ -128,20 +107,16 @@ export const simulateNodeExecution = (
           
           let finalValue: unknown;
 
-          // Handle undefined or empty value case
           if (!varValueRaw || varValueRaw.trim() === '' || dataType === 'undefined') {
             finalValue = undefined;
           } else {
-            // First check if it's a global variable path
             const globalVarValue = resolveGlobalVariable(varValueRaw);
             if (globalVarValue !== varValueRaw) {
               finalValue = globalVarValue;
             }
-            // If value is a variable reference, resolve it
             else if (currentVariables[varValueRaw] !== undefined) {
               finalValue = currentVariables[varValueRaw];
             }
-            // Handle based on data type
             else if (dataType === 'number' && !isNaN(Number(varValueRaw))) {
               finalValue = parseFloat(varValueRaw);
             } else if (dataType === 'boolean') {
@@ -159,17 +134,14 @@ export const simulateNodeExecution = (
                 finalValue = { value: varValueRaw };
               }
             } else if (!isNaN(Number(varValueRaw))) {
-              // Auto-detect number for 'any' type
               finalValue = parseFloat(varValueRaw);
             } else {
-              // String or default
               finalValue = varValueRaw;
             }
           }
 
           newVariables[varName] = finalValue;
           
-          // Update log message with type info
           const typeInfo = dataType !== 'any' ? ` (${dataType})` : '';
           const declInfo = declarationType !== 'var' ? `[${declarationType}] ` : '';
           
@@ -186,16 +158,13 @@ export const simulateNodeExecution = (
       case 'Log': {
         let msg = getParam(['text', 'message']) || '';
 
-        // First resolve any global variables in the message
         msg = replaceGlobalVariables(msg);
 
-        // Replace {{ variable }} placeholders with local variables (with optional spaces)
         Object.keys(currentVariables).forEach((key) => {
           const regex = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g');
           msg = msg.replace(regex, String(currentVariables[key]));
         });
 
-        // Check if message is just a local variable name
         if (msg && currentVariables[msg] !== undefined) {
           msg = `${msg}: ${currentVariables[msg]}`;
         }
@@ -208,34 +177,30 @@ export const simulateNodeExecution = (
         const conditionsStr = getParam(['conditions']);
         let conditionText = 'unknown';
         let evaluationResult = false;
-        let selectedHandle = 'else'; // Default to else
+        let selectedHandle = 'exit';
+        let hasElseBranch = false;
         
         try {
           if (conditionsStr) {
             const conditions = JSON.parse(conditionsStr);
-            
-            // Evaluate conditions in order: if, then else if, then else
+
+            hasElseBranch = conditions.some((cond: { type: string }) => cond.type === 'else');
             for (let i = 0; i < conditions.length; i++) {
               const cond = conditions[i];
               
               if (cond.type === 'if') {
                 conditionText = cond.condition || 'true';
-                
-                // Strip {{ }} indicators first
+          
                 let evalExpression = conditionText.replace(/\{\{\s*/g, '').replace(/\s*\}\}/g, '');
-                
-                // First resolve global variables
+
                 evalExpression = replaceGlobalVariables(evalExpression);
-                
-                // Then replace local variable names with their values for evaluation
                 Object.keys(currentVariables).forEach((key) => {
                   const regex = new RegExp(`\\b${key}\\b`, 'g');
                   const value = currentVariables[key];
                   const valueStr = typeof value === 'string' ? `"${value}"` : String(value);
                   evalExpression = evalExpression.replace(regex, valueStr);
                 });
-                
-                // Evaluate the condition
+
                 try {
                   evaluationResult = eval(evalExpression);
                   if (evaluationResult) {
@@ -247,22 +212,17 @@ export const simulateNodeExecution = (
                 }
               } else if (cond.type === 'elseif') {
                 const elseIfCondition = cond.condition || 'true';
-                
-                // Strip {{ }} indicators first
+
                 let evalExpression = elseIfCondition.replace(/\{\{\s*/g, '').replace(/\s*\}\}/g, '');
-                
-                // First resolve global variables
+
                 evalExpression = replaceGlobalVariables(evalExpression);
-                
-                // Then replace local variable names with their values for evaluation
+
                 Object.keys(currentVariables).forEach((key) => {
                   const regex = new RegExp(`\\b${key}\\b`, 'g');
                   const value = currentVariables[key];
                   const valueStr = typeof value === 'string' ? `"${value}"` : String(value);
                   evalExpression = evalExpression.replace(regex, valueStr);
                 });
-                
-                // Evaluate the condition
                 try {
                   const result = eval(evalExpression);
                   if (result) {
@@ -275,9 +235,13 @@ export const simulateNodeExecution = (
                   console.warn('Failed to evaluate else if condition:', evalExpression, evalError);
                 }
               } else if (cond.type === 'else') {
-                selectedHandle = 'else';
-                // Else is the fallback, keep evaluationResult as false
+                if (selectedHandle === 'exit') {
+                  selectedHandle = 'else';
+                }
               }
+            }
+            if (!evaluationResult && !hasElseBranch) {
+              selectedHandle = 'exit';
             }
           }
         } catch (parseError) {
@@ -289,7 +253,6 @@ export const simulateNodeExecution = (
         break;
       }
 
-      // FUNCTION NODES
       case 'addTwoNumbers': {
         const val1 = resolve(getParam(['param1', 'a']));
         const val2 = resolve(getParam(['param2', 'b']));
@@ -347,8 +310,7 @@ export const simulateNodeExecution = (
         const query = replaceGlobalVariables(getParam(['query']) || 'SELECT * FROM table');
         const dbVar = getParam(['resultVar', 'variable']) || 'dbResult';
         const connection = getParam(['connection']) || 'default';
-        
-        // Simulate database fetch with mock data
+
         const mockResult = {
           success: true,
           rowCount: 3,
@@ -370,7 +332,6 @@ export const simulateNodeExecution = (
 
       case 'ThrowError': {
         const rawError = getParam(['text', 'message']) || 'Error Occurred';
-        // Resolve variables in error message
         error = replaceGlobalVariables(rawError);
         logMessage = `❌ ERROR: ${error}`;
         break;
