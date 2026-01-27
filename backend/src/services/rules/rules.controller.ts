@@ -38,6 +38,8 @@ import {
   UpdateRuleDto,
   UpdateRuleStatusDto,
   RequestSaveFlow,
+  CreateRuleDto,
+  RequestFlow,
 } from './dto/rules.dto';
 
 @ApiTags('Rules')
@@ -90,13 +92,13 @@ export class RulesController {
   @ApiQuery({
     name: 'offset',
     required: true,
-    type: String,
+    type: Number,
     description: 'Starting position (0-based index)',
   })
   @ApiQuery({
     name: 'limit',
     required: true,
-    type: String,
+    type: Number,
     description: 'Number of records per page',
   })
   @ApiBody({
@@ -119,10 +121,10 @@ export class RulesController {
     description: 'Forbidden - Insufficient permissions',
   })
   async getAllRules(
-    @Query('offset') offset: string,
-    @Query('limit') limit: string,
+    @Query('offset', ParseIntPipe) offset: number,
+    @Query('limit', ParseIntPipe) limit: number,
     @User() user: AuthenticatedUser,
-    @Body() filters?: Record<string, unknown>,
+    @Body() filters?: RuleFiltersDto,
   ): Promise<Rules[]> {
     const updatedFilters = filters ?? {};
 
@@ -140,8 +142,8 @@ export class RulesController {
     }
 
     return await this.rulesService.getAllRules(
-      parseInt(offset, 10),
-      parseInt(limit, 10),
+      offset,
+      limit,
       updatedFilters,
       user.token.tokenString,
     );
@@ -174,7 +176,6 @@ export class RulesController {
   async getRuleIds(
     @User() user: AuthenticatedUser,
   ): Promise<RuleIdResponseDto[]> {
-    console.log('Fetching rule IDs for user:', user.validated);
     return await this.rulesService.getRuleIds(user.token.tokenString);
   }
 
@@ -208,11 +209,9 @@ export class RulesController {
     description: 'Forbidden - Editor permissions required',
   })
   async createRule(
-    @Body() ruleData: Rules,
+    @Body() ruleData: CreateRuleDto,
     @User() user: AuthenticatedUser,
   ): Promise<Rules> {
-    console.log('Creating rule with data:', ruleData);
-    console.log('User info:', user.validated);
     return await this.rulesService.createRule(ruleData, user.token.tokenString);
   }
 
@@ -338,7 +337,6 @@ export class RulesController {
     @Param('id', ParseIntPipe) id: number,
     @User() user: AuthenticatedUser,
   ): Promise<Rules> {
-    console.log(`Fetching rule with ID: ${id} for user:`, user.validated);
     return await this.rulesService.getRulesById(
       id,
       user.tenantId,
@@ -408,12 +406,12 @@ export class RulesController {
   })
   async createRuleFlow(
     @Param('ruleId') ruleId: string,
-    @Body() flowData: JSON,
+    @Body() body: RequestFlow,
     @User() user: AuthenticatedUser,
   ): Promise<ResponseRuleFlowDto> {
     return await this.rulesService.createRuleFlow(
       ruleId,
-      flowData,
+      body,
       user.token.tokenString,
     );
   }
@@ -566,8 +564,6 @@ export class RulesController {
     @Param('ruleId') ruleId: string,
     @User() user: AuthenticatedUser, // ismei se i can take out tenantId
   ): Promise<Rules> {
-    console.log('Cloning rule with ID:', ruleId);
-    console.log('User info:', user.validated);
     return await this.rulesService.cloneRule(ruleId, user.token.tokenString);
   }
 

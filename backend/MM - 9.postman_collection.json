@@ -47,13 +47,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://10.10.80.37:3000/auth/login",
+							"raw": "{{baseUrl}}/auth/login",
 							"protocol": "http",
 							"host": [
-								"10",
-								"10",
-								"80",
-								"37"
+								"{{baseUrl}}"
 							],
 							"port": "3000",
 							"path": [
@@ -869,7 +866,7 @@
 					"",
 					"// Validate auth token exists for protected endpoints",
 					"const authToken = pm.environment.get('authToken');",
-					"if (!authToken && pm.info.requestName !== 'Login with Keycloak') {",
+					"if (!authToken && pm.info.requestName !== 'Login') {",
 					"    console.warn('No auth token found. Please login first.');",
 					"}"
 				],

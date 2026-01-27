@@ -5,6 +5,8 @@ import {
   Rules,
   GlobalVariableDto,
   RequestSaveFlow,
+  RuleFiltersDto,
+  RequestFlow,
 } from './dto/rules.dto';
 import { BASE_RULE_ID } from 'src/constants/constant';
 
@@ -26,7 +28,7 @@ export class RulesService {
   async getAllRules(
     offset: number,
     limit: number,
-    filters: Record<string, unknown>,
+    filters: RuleFiltersDto,
     token: string,
   ): Promise<Rules[]> {
     return await this.adminServiceClient.getAllRulesWithFilters(
@@ -57,7 +59,7 @@ export class RulesService {
         );
         const newRuleFlow = await this.adminServiceClient.createRuleFlow(
           rule.id,
-          baseFlow.flow as unknown as JSON,
+          baseFlow.flow as unknown as Record<string, unknown>,
           token,
         );
         const flowId = newRuleFlow?.flow?.[0]?.id;
@@ -147,13 +149,13 @@ export class RulesService {
 
   async createRuleFlow(
     ruleId: string,
-    flowData: JSON,
+    body: RequestFlow,
     token: string,
   ): Promise<ResponseRuleFlowDto> {
     try {
       return await this.adminServiceClient.createRuleFlow(
         ruleId,
-        flowData,
+        body.flowData,
         token,
       );
     } catch (error) {
