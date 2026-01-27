@@ -66,7 +66,17 @@ export class AuthService {
       }
 
       const claimsToCheck = ['editor', 'approver', 'publisher'];
-      const claimResult = validateTokenAndClaims(token, claimsToCheck);
+      let claimResult;
+      try {
+        claimResult = validateTokenAndClaims(token, claimsToCheck);
+      } catch (err) {
+        const e = err as Error;
+        this.loggerService.warn(
+          `Token validation failed: ${e.message}`,
+          AuthService.name,
+        );
+        throw new UnauthorizedException('Token validation failed');
+      }
 
       const hasRequiredClaim =
         claimResult.editor || claimResult.approver || claimResult.publisher;
