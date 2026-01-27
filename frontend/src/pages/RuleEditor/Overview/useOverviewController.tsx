@@ -77,13 +77,15 @@ const useOverviewController = (props: IOverviewProps) => {
             rule_type: values?.rule_type?.value,
             txtpVersion: values?.txtpVersion?.value,
         }
-        submit(payload).then((res) => {
-            if (res) {
+        submit(payload).unwrap()
+            .then((res) => {
                 insertData(res, 'trs_rule', LocalStorage, true)
                 toast.success('Rule Successfully Created')
                 enableNextTab()
-            }
-        })
+            })
+            .catch((error) => {
+                toast.error(error?.data?.message || 'Failed to create rule')
+            })
     }
 
     const handleNext = () => {
