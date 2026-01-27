@@ -15,7 +15,7 @@ const successLogger: Middleware = () => next => action => {
     const meta = action.meta as { baseQueryMeta?: BaseQueryMeta } | undefined
     const payload = action.payload as SuccessPayload | undefined
 
-    const showSuccess = meta?.baseQueryMeta?.show_success
+    const showSuccess = meta?.baseQueryMeta?.show_success ?? true
     const message =
       meta?.baseQueryMeta?.message || payload?.message
 

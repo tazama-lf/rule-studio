@@ -90,7 +90,7 @@ const Input = forwardRef(function Input(
             <StyledTextField
                 inputRef={ref}
                 multiline={isTextarea}
-                rows={isTextarea ?? rows}
+                rows={rows}
                 placeholder={placeholder ?? (label ? `Enter ${label}` : '')}
                 value={value}
                 onChange={onChange}

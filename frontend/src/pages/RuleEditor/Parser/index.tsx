@@ -85,26 +85,25 @@ const Parser = (props: IParseProps) => {
                     </Grid>
                     : null}
 
-                {values?.ruleRequest ?
+                {values?.ruleRequest &&
                     <Grid size={{ xs: 12, md: 12 }} border={1} borderColor={'static.border'} mt={0.4} p={2} overflow={'auto'} borderRadius={1} height={310}>
                         <FormattedJsonSection value={JSON.stringify(values?.ruleRequest)} />
-                    </Grid> :
-                    null
+                    </Grid>
                 }
             </Section >
             <Grid container display={'flex'} justifyContent={'center'} width={'100%'} size={{ xs: 12, md: 12, sm: 12 }}>
                 {
-                    values?.result ?
-                        <Grid size={{ xs: 12, md: 12, sm: 12 }} display={'flex'} justifyContent={'center'}>
-                            <SimulationResultCard result={values?.result} />
-                        </Grid>
-                        : null}
+                    values?.result &&
+                    <Grid size={{ xs: 12, md: 12, sm: 12 }} display={'flex'} justifyContent={'center'}>
+                        <SimulationResultCard result={values?.result} />
+                    </Grid>
+                }
             </Grid>
-            {values?.result?.success || values?.isEdit || values?.isView ?
+            {(values?.result?.success || values?.isEdit || values?.isView) &&
                 <Box mt={2} width={'100%'} display={'flex'} justifyContent={'flex-end'}>
                     <Button height="40px" type="secondary" size="md" text="Next" onClick={functions.handleNext} />
                 </Box>
-                : null}
+            }
         </Grid >
     )
 }
