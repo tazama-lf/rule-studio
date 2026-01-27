@@ -78,7 +78,7 @@ const MuiButton = ({
       onClick={onPress}
       disabled={disabled || loading}
       variant={outlined ? "outlined" : "contained"}
-      startIcon={!loading && Icon ? <Icon /> : undefined}
+      startIcon={(!loading && Icon) && <Icon />}
       sx={{
         height,
         borderRadius: "6px",
