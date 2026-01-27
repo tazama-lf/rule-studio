@@ -42,7 +42,7 @@ const useOverviewController = (props: IOverviewProps) => {
     const [getVersions] = useLazyGetTxtpVersionsQuery()
 
     const { open } = useModal()
-    const user = extractData('user')
+    const user = extractData('user') || {}
 
     const initial: RuleFormValues = {
         rule_name: (data?.rule_name as string) ?? '',
@@ -93,7 +93,8 @@ const useOverviewController = (props: IOverviewProps) => {
     const handleRuleValue = (val: DropdownOption) => {
         setValue('rule_config_id', val as { label: string, value: string })
         const rule_no = val?.value?.toString().split('@')
-        setValue('rule_name', `${user.tenantId}-rule-${rule_no?.[0]}`)
+        const tenantId = user?.tenantId ?? ''
+        setValue('rule_name', `${tenantId}-rule-${rule_no?.[0]}`)
     }
 
     const handleTxTp = (val: DropdownOption) => {
