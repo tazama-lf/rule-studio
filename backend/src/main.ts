@@ -7,6 +7,13 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
+/**
+ * Bootstraps, configures, and starts the NestJS application.
+ *
+ * Configures global validation, CORS (based on NODE_ENV and ALLOWED_ORIGINS), integrates a LoggerService,
+ * sets up Swagger UI and OpenAPI document generation, optionally writes the Swagger JSON to ./docs/swagger.json
+ * when WRITE_SWAGGER_JSON is "true", and begins listening on the PORT (default 3005) while logging startup info.
+ */
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
