@@ -20,7 +20,7 @@
 								"exec": [
 									"if (pm.response.code === 200) {",
 									"    var jsonData = pm.response.json();",
-									"    pm.environment.set('token', jsonData.token);",
+									"    pm.environment.set('authToken', jsonData.token);",
 									"}"
 								],
 								"type": "text/javascript",
@@ -153,7 +153,7 @@
 							"script": {
 								"exec": [
 									"// Validate that ID is provided",
-									"const ruleId = pm.request.url.path[3]; // rules/api/:id",
+									"const ruleId = pm.request.url.path[2]; // rules/api/:id",
 									"if (!ruleId || ruleId === ':id') {",
 									"    throw new Error('Rule ID is required in the URL path');",
 									"}",
@@ -239,12 +239,12 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n//   \"rule_id\": \"{{generatedRuleId}}\",\n  \"rule_name\": \"High Value Payment Fraud Detection\",\n  \"description\": \"Detects potentially fraudulent high-value payment transfers by analyzing transaction amounts, frequency, and recipient patterns. Triggers alerts for transactions exceeding $10,000 or multiple high-value transactions within 5 minutes.\",\n  \"txtp\": \"pain.001.001.11\",\n  \"version\": \"1.0.0\",\n  \"rule_type\": \"fraud_detection\",\n  \"rule_config_id\": \"CFG-001-V1\"\n//   \"status\": \"ACTIVE\",\n//   \"publishing_status\": \"DRAFT\"\n}"
+							"raw": "{\n  \"rule_id\": \"{{generatedRuleId}}\",\n  \"rule_name\": \"High Value Payment Fraud Detection\",\n  \"description\": \"Detects potentially fraudulent high-value payment transfers by analyzing transaction amounts, frequency, and recipient patterns. Triggers alerts for transactions exceeding $10,000 or multiple high-value transactions within 5 minutes.\",\n  \"txtp\": \"pain.001.001.11\",\n  \"version\": \"1.0.0\",\n  \"rule_type\": \"fraud_detection\",\n  \"rule_config_id\": \"CFG-001-V1\"\n}"
 						},
 						"url": {
-							"raw": "{{serverURL}}/rules/api/create",
+							"raw": "{{baseUrl}}/rules/api/create",
 							"host": [
-								"{{serverURL}}"
+								"{{baseUrl}}"
 							],
 							"path": [
 								"rules",
@@ -606,9 +606,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{serverURL}}/config/api/payload/:transactionType",
+							"raw": "{{baseUrl}}/config/api/payload/:transactionType",
 							"host": [
-								"{{serverURL}}"
+								"{{baseUrl}}"
 							],
 							"path": [
 								"config",
@@ -719,9 +719,9 @@
 							}
 						},
 						"url": {
-							"raw": "{{serverURL}}/parse/api/validatePayload",
+							"raw": "{{baseUrl}}/parse/api/validatePayload",
 							"host": [
-								"{{serverURL}}"
+								"{{baseUrl}}"
 							],
 							"path": [
 								"parse",

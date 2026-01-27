@@ -172,9 +172,9 @@ export class AdminServiceClient {
 
         const message =
           data &&
-          typeof data === 'object' &&
-          'message' in data &&
-          typeof data.message === 'string'
+            typeof data === 'object' &&
+            'message' in data &&
+            typeof data.message === 'string'
             ? data.message
             : typeof data === 'string'
               ? data
@@ -211,9 +211,9 @@ export class AdminServiceClient {
 
       const message =
         data &&
-        typeof data === 'object' &&
-        'message' in data &&
-        typeof data.message === 'string'
+          typeof data === 'object' &&
+          'message' in data &&
+          typeof data.message === 'string'
           ? data.message
           : 'Admin service returned an error response';
 
@@ -573,7 +573,7 @@ export class AdminServiceClient {
       this.logger.error(
         `Error fetching schema from DB for ${transactionType}: ${err.message}`,
       );
-      return this.handleError(error, 'getSchemaByTxTp');
+      return this.handleError(error, 'getConfigRowByTxTp');
     }
   }
 
@@ -635,38 +635,43 @@ export class AdminServiceClient {
     token: string,
     query: GetNodesQuery,
   ): Promise<ResponseNodesDto[]> {
-    const queryParams = new URLSearchParams();
-    if (query.tenantId) {
-      queryParams.append('tenantId', query.tenantId);
-    }
-    if (query.type) {
-      queryParams.append('type', query.type);
-    }
-    if (query.category) {
-      queryParams.append('category', query.category);
-    }
-    if (query.sortBy) {
-      queryParams.append('sortBy', query.sortBy);
-    }
-    if (query.sortOrder) {
-      queryParams.append('sortOrder', query.sortOrder);
-    }
-    const path = `/v1/admin/nodes?${queryParams.toString()}`;
-    const response = await firstValueFrom(
-      this.httpService.get(`${this.adminServiceUrl}${path}`, {
-        headers: {
-          Authorization: token.startsWith('Bearer ')
-            ? token
-            : `Bearer ${token}`,
-        },
-      }),
-    );
+    try {
 
-    if (!response.data?.nodes) {
-      this.logger.warn('No nodes found in admin-service response');
-      return [];
+      const queryParams = new URLSearchParams();
+      if (query.tenantId) {
+        queryParams.append('tenantId', query.tenantId);
+      }
+      if (query.type) {
+        queryParams.append('type', query.type);
+      }
+      if (query.category) {
+        queryParams.append('category', query.category);
+      }
+      if (query.sortBy) {
+        queryParams.append('sortBy', query.sortBy);
+      }
+      if (query.sortOrder) {
+        queryParams.append('sortOrder', query.sortOrder);
+      }
+      const path = `/v1/admin/nodes?${queryParams.toString()}`;
+      const response = await firstValueFrom(
+        this.httpService.get(`${this.adminServiceUrl}${path}`, {
+          headers: {
+            Authorization: token.startsWith('Bearer ')
+              ? token
+              : `Bearer ${token}`,
+          },
+        }),
+      );
+
+      if (!response.data?.nodes) {
+        this.logger.warn('No nodes found in admin-service response');
+        return [];
+      }
+      return response.data.nodes;
+    } catch (error) {
+      return this.handleError(error, 'getAllNodes');
     }
-    return response.data.nodes;
   }
 
   async deleteNodeByNodeId(
@@ -705,30 +710,35 @@ export class AdminServiceClient {
     flowData: JSON,
     token: string,
   ): Promise<ResponseRuleFlowDto> {
-    const response = await firstValueFrom(
-      this.httpService.post(
-        `${this.adminServiceUrl}/v1/admin/trs/rule-flow/${ruleId}`,
-        flowData,
-        {
-          headers: {
-            Authorization: token.startsWith('Bearer ')
-              ? token
-              : `Bearer ${token}`,
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${this.adminServiceUrl}/v1/admin/trs/rule-flow/${ruleId}`,
+          flowData,
+          {
+            headers: {
+              Authorization: token.startsWith('Bearer ')
+                ? token
+                : `Bearer ${token}`,
+            },
           },
-        },
-      ),
-    );
-    if (!response.data) {
-      this.logger.error(
-        `No response data after creating flow for rule ${ruleId}`,
+        ),
       );
-      throw new HttpException(
-        `Failed to create flow for rule ${ruleId}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      if (!response.data) {
+        this.logger.error(
+          `No response data after creating flow for rule ${ruleId}`,
+        );
+        throw new HttpException(
+          `Failed to create flow for rule ${ruleId}`,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      return response.data;
+    } catch (error) {
+      return this.handleError(error, 'createRuleFlow');
     }
-    return response.data;
   }
+
   async getRuleFlow(
     ruleId: string,
     token: string,

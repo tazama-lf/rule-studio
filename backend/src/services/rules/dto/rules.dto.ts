@@ -90,8 +90,8 @@ export class Rules {
   rule_config_id?: string;
 
   @ApiPropertyOptional({
-    description: 'User who last updated the rule',
-    example: 'user123',
+    description: 'Flow identifier',
+    example: '123',
   })
   @IsOptional()
   @IsString()
@@ -482,7 +482,7 @@ export class UpdateRuleStatusDto {
   })
   @IsString()
   @IsOptional()
-  comment: string;
+  comment?: string;
 }
 export class RequestSaveFlow {
   @ApiProperty({
