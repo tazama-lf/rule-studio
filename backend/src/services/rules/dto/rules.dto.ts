@@ -10,19 +10,14 @@ import {
   Matches,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import type {
   RuleConfig,
   RuleRequest,
   RuleResult,
 } from '@tazama-lf/frms-coe-lib/lib/interfaces';
 
-export class Rules {
-  @ApiPropertyOptional({ description: 'Rule database ID', example: '1' })
-  @IsOptional()
-  @IsString()
-  id?: string;
-
+export class RuleBaseDto {
   @ApiProperty({
     description: 'Rule description',
     example: 'Detects transactions above threshold',
@@ -88,6 +83,13 @@ export class Rules {
   @IsOptional()
   @IsString()
   rule_config_id?: string;
+}
+
+export class Rules extends RuleBaseDto {
+  @ApiPropertyOptional({ description: 'Rule database ID', example: '1' })
+  @IsOptional()
+  @IsString()
+  id?: string;
 
   @ApiPropertyOptional({
     description: 'Flow identifier',
@@ -114,63 +116,7 @@ export class Rules {
   created_at?: Date;
 }
 
-export class CreateRuleDto {
-  @ApiProperty({
-    description: 'Unique rule identifier',
-    example: 'high-value-transfer-001',
-  })
-  @IsString()
-  @IsNotEmpty()
-  rule_id: string;
-
-  @ApiProperty({
-    description: 'Rule description',
-    example: 'Detects payment transfers exceeding $10,000 for fraud prevention',
-  })
-  @IsString()
-  @IsNotEmpty()
-  description: string;
-
-  @ApiProperty({ description: 'Transaction type', example: 'pain.001.001.11' })
-  @IsString()
-  @IsNotEmpty()
-  txtp: string;
-
-  @ApiProperty({ description: 'Rule version', example: '1.0.0' })
-  @IsString()
-  @IsNotEmpty()
-  @Matches(/^\d+\.\d+\.\d+$/, {
-    message:
-      'Version must be in semantic versioning format (major.minor.patch), e.g., 1.0.0',
-  })
-  version: string;
-
-  @ApiPropertyOptional({
-    description: 'Transaction type version',
-    example: '11',
-  })
-  @IsOptional()
-  @IsString()
-  txtpVersion?: string;
-
-  @ApiPropertyOptional({
-    description: 'Rule status',
-    example: 'ACTIVE',
-    enum: ['ACTIVE', 'INACTIVE', 'TESTING'],
-  })
-  @IsOptional()
-  @IsString()
-  status?: string;
-
-  @ApiPropertyOptional({
-    description: 'Publishing status',
-    example: 'DRAFT',
-    enum: ['DRAFT', 'SUBMITTED', 'APPROVED', 'PUBLISHED'],
-  })
-  @IsOptional()
-  @IsString()
-  publishing_status?: string;
-
+export class CreateRuleDto extends RuleBaseDto {
   @ApiProperty({
     description: 'User who last updated the rule',
     example: 'user123',
@@ -178,94 +124,9 @@ export class CreateRuleDto {
   @IsString()
   @IsNotEmpty()
   updated_by: string;
-
-  @ApiProperty({
-    description: 'Rule type classification',
-    example: 'fraud_detection',
-    enum: ['fraud_detection', 'aml', 'security', 'compliance'],
-  })
-  @IsString()
-  @IsNotEmpty()
-  rule_type: string;
-
-  @ApiPropertyOptional({
-    description: 'Configuration identifier',
-    example: '0062@1.0.0',
-  })
-  @IsOptional()
-  @IsString()
-  rule_config_id?: string;
 }
 
-export class UpdateRuleDto {
-  @ApiPropertyOptional({
-    description: 'Rule description',
-    example: 'Updated: Detects transactions above threshold',
-  })
-  @IsOptional()
-  @IsString()
-  description?: string;
-
-  @ApiPropertyOptional({
-    description: 'Transaction type',
-    example: 'pain.001.001.11',
-  })
-  @IsOptional()
-  @IsString()
-  txtp?: string;
-
-  @ApiPropertyOptional({ description: 'Rule version', example: '1.1.0' })
-  @IsOptional()
-  @IsString()
-  @Matches(/^\d+\.\d+\.\d+$/, {
-    message:
-      'Version must be in semantic versioning format (major.minor.patch), e.g., 1.0.0',
-  })
-  version?: string;
-
-  @ApiPropertyOptional({
-    description: 'Transaction type version',
-    example: '11',
-  })
-  @IsOptional()
-  @IsString()
-  txtpVersion?: string;
-
-  @ApiPropertyOptional({
-    description: 'Rule status',
-    example: 'ACTIVE',
-    enum: ['ACTIVE', 'INACTIVE', 'TESTING'],
-  })
-  @IsOptional()
-  @IsString()
-  status?: string;
-
-  @ApiPropertyOptional({
-    description: 'Publishing status',
-    example: 'PUBLISHED',
-    enum: ['DRAFT', 'SUBMITTED', 'APPROVED', 'PUBLISHED'],
-  })
-  @IsOptional()
-  @IsString()
-  publishing_status?: string;
-
-  @ApiPropertyOptional({
-    description: 'Rule type classification',
-    example: 'fraud_detection',
-    enum: ['fraud_detection', 'aml', 'security', 'compliance'],
-  })
-  @IsOptional()
-  @IsString()
-  rule_type?: string;
-
-  @ApiPropertyOptional({
-    description: 'Configuration identifier',
-    example: 'CFG001',
-  })
-  @IsOptional()
-  @IsString()
-  rule_config_id?: string;
-}
+export class UpdateRuleDto extends PartialType(CreateRuleDto) {}
 
 export class RuleIdDto {
   @IsString()
@@ -498,4 +359,13 @@ export class RequestSaveFlow {
   })
   @IsObject()
   flow_json: Record<string, unknown>;
+}
+
+export class RequestFlow {
+  @ApiProperty({
+    description: 'Json of the flow',
+    example: '{"edges": {}, "nodes": {} }',
+  })
+  @IsObject()
+  flowData: Record<string, unknown>;
 }

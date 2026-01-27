@@ -30,7 +30,11 @@ export class AuthService {
     }
     try {
       const response = await firstValueFrom(
-        this.httpService.post(`${authUrl}/login`, { username, password }),
+        this.httpService.post(
+          `${authUrl}/login`,
+          { username, password },
+          { timeout: 5000 },
+        ),
       );
       if (!response.data) {
         this.loggerService.error(
@@ -82,7 +86,12 @@ export class AuthService {
       return {
         message: 'Login successful',
         token,
-        expiresIn: response.data?.expires_in ?? response.data?.expiresIn,
+        expiresIn:
+          response.data?.expires_in != null
+            ? Number(response.data.expires_in)
+            : response.data?.expiresIn != null
+              ? Number(response.data.expiresIn)
+              : null,
       };
     } catch (error) {
       if (error instanceof UnauthorizedException) {

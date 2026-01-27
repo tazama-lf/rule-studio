@@ -11,6 +11,7 @@ import {
   Rules,
   GlobalVariableDto,
   RequestSaveFlow,
+  RuleFiltersDto,
 } from '../services/rules/dto/rules.dto';
 import { firstValueFrom } from 'rxjs';
 import {
@@ -238,7 +239,7 @@ export class AdminServiceClient {
   async getAllRulesWithFilters(
     offset: number,
     limit: number,
-    filters: Record<string, unknown>,
+    filters: RuleFiltersDto,
     token: string,
   ): Promise<Rules[]> {
     return await this.executeHttpRequest<Rules[]>(
@@ -707,7 +708,7 @@ export class AdminServiceClient {
 
   async createRuleFlow(
     ruleId: string,
-    flowData: JSON,
+    flowData: Record<string, unknown>,
     token: string,
   ): Promise<ResponseRuleFlowDto> {
     try {
@@ -806,7 +807,7 @@ export class AdminServiceClient {
 
       return response.data.rule;
     } catch (error) {
-      return this.handleError(error, 'updateRule');
+      return this.handleError(error, 'updateRuleStatus');
     }
   }
 
