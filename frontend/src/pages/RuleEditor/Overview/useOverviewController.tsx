@@ -68,8 +68,6 @@ const useOverviewController = (props: IOverviewProps) => {
         resolver: shouldValidate ? yupResolver(createRuleSchema) : undefined,
     })
 
-    const rule_config_id = getValues('rule_config_id')
-
     const onSubmit = (values: RuleFormValues) => {
         const payload = {
             description: values?.description,
@@ -114,7 +112,8 @@ const useOverviewController = (props: IOverviewProps) => {
     }
 
     const handleRuleConfig = () => {
-        open(`${mode === 'view' ? 'View' : 'Select'} Rule Config`, <RuleConfig mode={mode} ruleConfigId={rule_config_id?.value} handleRuleValue={handleRuleValue} />, null, { maxWidth: 'md' })
+        const currentRuleConfigId = getValues('rule_config_id')
+        open(`${mode === 'view' ? 'View' : 'Select'} Rule Config`, <RuleConfig mode={mode} ruleConfigId={currentRuleConfigId?.value} handleRuleValue={handleRuleValue} />, null, { maxWidth: 'md' })
     }
 
     const handleNetworkMap = () => {
@@ -128,7 +127,7 @@ const useOverviewController = (props: IOverviewProps) => {
             isEdit: mode === 'edit' || mode == 'view',
             errors,
             isLoading,
-            rule_config_id,
+            rule_config_id: getValues('rule_config_id'),
             createLoading,
             transactions: types?.map((item: string) => ({ label: item, value: item })) || [],
             txtpVersions: versions?.map((item: string) => ({ label: item, value: item })) || [],
