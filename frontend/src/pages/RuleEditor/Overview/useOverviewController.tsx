@@ -62,14 +62,13 @@ const useOverviewController = (props: IOverviewProps) => {
         formState: { errors },
         control,
         setValue,
-        watch,
+        getValues
     } = useForm<RuleFormValues>({
         defaultValues: initial,
         resolver: shouldValidate ? yupResolver(createRuleSchema) : undefined,
     })
 
-    // eslint-disable-next-line react-hooks/incompatible-library
-    const rule_config_id = watch('rule_config_id')
+    const rule_config_id = getValues('rule_config_id')
 
     const onSubmit = (values: RuleFormValues) => {
         const payload = {
