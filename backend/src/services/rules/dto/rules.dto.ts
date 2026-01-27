@@ -105,7 +105,7 @@ export class Rules extends RuleBaseDto {
   })
   @IsOptional()
   @IsDateString()
-  updated_at?: Date;
+  updated_at?: string;
 
   @ApiPropertyOptional({
     description: 'Creation timestamp',
@@ -113,11 +113,14 @@ export class Rules extends RuleBaseDto {
   })
   @IsOptional()
   @IsDateString()
-  created_at?: Date;
+  created_at?: string;
 }
 
 export class CreateRuleDto extends RuleBaseDto {
-  @ApiProperty({
+}
+
+export class UpdateRuleDto extends RuleBaseDto {
+    @ApiProperty({
     description: 'User who last updated the rule',
     example: 'user123',
   })
@@ -125,8 +128,6 @@ export class CreateRuleDto extends RuleBaseDto {
   @IsNotEmpty()
   updated_by: string;
 }
-
-export class UpdateRuleDto extends PartialType(CreateRuleDto) {}
 
 export class RuleIdDto {
   @IsString()

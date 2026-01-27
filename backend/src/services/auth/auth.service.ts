@@ -86,12 +86,11 @@ export class AuthService {
       return {
         message: 'Login successful',
         token,
-        expiresIn:
-          response.data?.expires_in != null
-            ? Number(response.data.expires_in)
-            : response.data?.expiresIn != null
-              ? Number(response.data.expiresIn)
-              : null,
+        expiresIn: (() => {
+          const raw = response.data?.expires_in ?? response.data?.expiresIn;
+          const parsed = raw != null ? Number(raw) : NaN;
+          return Number.isFinite(parsed) ? parsed : null;
+        })(),
       };
     } catch (error) {
       if (error instanceof UnauthorizedException) {
