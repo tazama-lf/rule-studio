@@ -26,7 +26,7 @@ async function bootstrap(): Promise<void> {
     .map((origin) => origin.trim())
     .filter(Boolean);
 
-  const isDev = process.env.NODE_ENV === 'development';
+  const isDev = process.env.NODE_ENV === 'dev';
 
   app.enableCors({
     origin: isDev ? true : allowedOrigins,
