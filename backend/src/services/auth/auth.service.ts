@@ -54,17 +54,14 @@ export class AuthService {
       const claimsToCheck = ['editor', 'approver', 'publisher'];
       const claimResult = validateTokenAndClaims(token, claimsToCheck);
 
-      
-
-      const hasRequiredClaim = claimResult.editor || claimResult.approver || claimResult.publisher;
+      const hasRequiredClaim =
+        claimResult.editor || claimResult.approver || claimResult.publisher;
       if (!hasRequiredClaim) {
         this.loggerService.warn(
           `User ${username} does not have required claims (editor, approver, or publisher).`,
           AuthService.name,
         );
-        throw new UnauthorizedException(
-          'Invalid credentials',
-        );
+        throw new UnauthorizedException('Invalid credentials');
       }
 
       this.loggerService.log(
@@ -81,7 +78,7 @@ export class AuthService {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      
+
       this.handleLoginError(error);
     }
   }
@@ -106,8 +103,6 @@ export class AuthService {
     this.loggerService.error(
       `Auth service error during login: ${error.message}`,
     );
-    throw new ServiceUnavailableException(
-      'Authentication service unavailable',
-    );
+    throw new ServiceUnavailableException('Authentication service unavailable');
   }
 }

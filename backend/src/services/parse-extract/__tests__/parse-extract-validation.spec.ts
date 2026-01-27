@@ -34,6 +34,7 @@ describe('ParseExtractService - AJV Validation', () => {
   beforeEach(async () => {
     const mockAdminService = {
       getSchemaByTxTp: jest.fn(),
+      getConfigRowByTxTp: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -62,16 +63,18 @@ describe('ParseExtractService - AJV Validation', () => {
       mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockSchema);
 
       const result = await service.processTransactionalMessage(
-        { 
-          TxTp: 'pacs.008.001.10', 
-          FIToFICstmrCdtTrf: validPayload.FIToFICstmrCdtTrf 
+        {
+          TxTp: 'pacs.008.001.10',
+          FIToFICstmrCdtTrf: validPayload.FIToFICstmrCdtTrf,
         },
         'Bearer token',
       );
 
       expect(result.success).toBe(true);
       expect(result.validationErrors).toBeUndefined();
-      expect(result.validatedPayload).toEqual({ FIToFICstmrCdtTrf: validPayload.FIToFICstmrCdtTrf });
+      expect(result.validatedPayload).toEqual({
+        FIToFICstmrCdtTrf: validPayload.FIToFICstmrCdtTrf,
+      });
     });
 
     it('should handle invalid payload with missing required fields', async () => {
@@ -111,9 +114,9 @@ describe('ParseExtractService - AJV Validation', () => {
       mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockSchema);
 
       const result = await service.processTransactionalMessage(
-        { 
-          TxTp: 'pacs.008.001.10', 
-          FIToFICstmrCdtTrf: invalidPayload.FIToFICstmrCdtTrf 
+        {
+          TxTp: 'pacs.008.001.10',
+          FIToFICstmrCdtTrf: invalidPayload.FIToFICstmrCdtTrf,
         },
         'Bearer token',
       );
@@ -182,25 +185,25 @@ describe('ParseExtractService - AJV Validation', () => {
       mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockSchema);
 
       const result = await service.processTransactionalMessage(
-        { 
-          TxTp: 'pacs.008.001.10', 
-          FIToFICstmrCdtTrf: validPayload.FIToFICstmrCdtTrf 
+        {
+          TxTp: 'pacs.008.001.10',
+          FIToFICstmrCdtTrf: validPayload.FIToFICstmrCdtTrf,
         },
         'Bearer token',
       );
 
       expect(result.success).toBe(true);
       expect(result.ruleRequest).toBeDefined();
-      
+
       const ruleRequest: RuleRequest = result.ruleRequest!;
-      
+
       // Verify RuleRequest structure
       expect(ruleRequest.transaction).toBeDefined();
       expect(ruleRequest.transaction).toEqual(validPayload.FIToFICstmrCdtTrf);
       expect(ruleRequest.networkMap).toEqual({});
       expect(ruleRequest.DataCache).toEqual({});
       expect(ruleRequest.metaData).toBeDefined();
-      
+
       // Verify metadata
       expect(ruleRequest.metaData?.correlationId).toBeDefined();
       expect(ruleRequest.metaData?.timestamp).toBeDefined();

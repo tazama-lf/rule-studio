@@ -1,7 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AdminServiceClient } from '../admin-service-client';
-import { ResponseRuleFlowDto, Rules, GlobalVariableDto, RequestSaveFlow } from './dto/rules.dto';
-import * as jwt from 'jsonwebtoken';
+import {
+  ResponseRuleFlowDto,
+  Rules,
+  GlobalVariableDto,
+  RequestSaveFlow,
+} from './dto/rules.dto';
+import { BASE_RULE_ID } from 'src/constants/constant';
 
 @Injectable()
 export class RulesService {
@@ -24,8 +29,6 @@ export class RulesService {
     filters: Record<string, unknown>,
     token: string,
   ): Promise<Rules[]> {
-
-    
     return await this.adminServiceClient.getAllRulesWithFilters(
       offset,
       limit,
@@ -33,7 +36,6 @@ export class RulesService {
       token,
     );
   }
-
 
   async getRulesById(
     id: number,
@@ -44,17 +46,28 @@ export class RulesService {
     return rules;
   }
 
-  async createRule(
-    ruleData: Partial<Rules>, // fix this 
-    token: string,
-  ): Promise<Rules> {
+  async createRule(ruleData: Partial<Rules>, token: string): Promise<Rules> {
     try {
       const rule = await this.adminServiceClient.createRule(ruleData, token);
+      let updatedRule = rule;
       if (rule.id) {
-        const ruleFlow21 = await this.adminServiceClient.getRuleFlow('21', token);
-        await this.adminServiceClient.createRuleFlow(rule.id, ruleFlow21.flow as unknown as JSON, token); 
+        const baseFlow = await this.adminServiceClient.getRuleFlow(
+          BASE_RULE_ID,
+          token,
+        );
+        const newRuleFlow = await this.adminServiceClient.createRuleFlow(
+          rule.id,
+          baseFlow.flow as unknown as JSON,
+          token,
+        );
+        updatedRule = await this.adminServiceClient.updateRule(
+          rule.id,
+          { flow_id: newRuleFlow?.flow[0].id },
+          token,
+        );
       }
-      return rule;
+
+      return updatedRule;
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Error creating rule: ${err.message}`);
@@ -77,7 +90,9 @@ export class RulesService {
       return await this.adminServiceClient.getRuleConfiguration(ruleId, token);
     } catch (error) {
       const err = error as Error;
-      this.logger.error(`Error fetching configuration for rule ${ruleId}: ${err.message}`);
+      this.logger.error(
+        `Error fetching configuration for rule ${ruleId}: ${err.message}`,
+      );
       throw error;
     }
   }
@@ -88,7 +103,11 @@ export class RulesService {
     token: string,
   ): Promise<Rules> {
     try {
-      return await this.adminServiceClient.updateRule(ruleId, updateData, token);
+      return await this.adminServiceClient.updateRule(
+        ruleId,
+        updateData,
+        token,
+      );
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Error updating rule ${ruleId}: ${err.message}`);
@@ -106,32 +125,57 @@ export class RulesService {
     }
   }
 
-  async getRuleFlow(ruleId: string, token: string): Promise<ResponseRuleFlowDto> {
+  async getRuleFlow(
+    ruleId: string,
+    token: string,
+  ): Promise<ResponseRuleFlowDto> {
     try {
       return await this.adminServiceClient.getRuleFlow(ruleId, token);
     } catch (error) {
       const err = error as Error;
-      this.logger.error(`Error fetching configuration for rule ${ruleId}: ${err.message}`);
+      this.logger.error(
+        `Error fetching configuration for rule ${ruleId}: ${err.message}`,
+      );
       throw error;
     }
   }
 
-  async createRuleFlow(ruleId: string, flowData: JSON, token: string): Promise<ResponseRuleFlowDto> {
+  async createRuleFlow(
+    ruleId: string,
+    flowData: JSON,
+    token: string,
+  ): Promise<ResponseRuleFlowDto> {
     try {
-      return await this.adminServiceClient.createRuleFlow(ruleId, flowData, token);
+      return await this.adminServiceClient.createRuleFlow(
+        ruleId,
+        flowData,
+        token,
+      );
     } catch (error) {
       const err = error as Error;
-      this.logger.error(`Error creating flow for rule ${ruleId}: ${err.message}`);
+      this.logger.error(
+        `Error creating flow for rule ${ruleId}: ${err.message}`,
+      );
       throw error;
     }
   }
 
-  async updateRuleFlow(ruleId: string, payload: RequestSaveFlow, token: string): Promise<ResponseRuleFlowDto> {
+  async updateRuleFlow(
+    ruleId: string,
+    payload: RequestSaveFlow,
+    token: string,
+  ): Promise<ResponseRuleFlowDto> {
     try {
-      return await this.adminServiceClient.updateRuleFlow(ruleId, payload, token);
+      return await this.adminServiceClient.updateRuleFlow(
+        ruleId,
+        payload,
+        token,
+      );
     } catch (error) {
       const err = error as Error;
-      this.logger.error(`Error updating flow for rule ${ruleId}: ${err.message}`);
+      this.logger.error(
+        `Error updating flow for rule ${ruleId}: ${err.message}`,
+      );
       throw error;
     }
   }
@@ -140,13 +184,23 @@ export class RulesService {
     return user.allowedStatuses ?? [];
   }
 
-  async getGlobalVariables(ruleId: string, tenantId: string, token: string): Promise<GlobalVariableDto> {
+  async getGlobalVariables(
+    ruleId: string,
+    tenantId: string,
+    token: string,
+  ): Promise<GlobalVariableDto> {
     try {
-      const ruleData = await this.adminServiceClient.getGlobalVariables(ruleId, tenantId, token);
+      const ruleData = await this.adminServiceClient.getGlobalVariables(
+        ruleId,
+        tenantId,
+        token,
+      );
       return ruleData;
     } catch (error) {
       const err = error as Error;
-      this.logger.error(`Error fetching global variables for rule ${ruleId}: ${err.message}`);
+      this.logger.error(
+        `Error fetching global variables for rule ${ruleId}: ${err.message}`,
+      );
       throw error;
     }
   }
@@ -161,12 +215,24 @@ export class RulesService {
     }
   }
 
-  async updateRuleStatus(ruleId: string, status: string, reason: string, token: string): Promise<Rules> {
+  async updateRuleStatus(
+    ruleId: string,
+    status: string,
+    reason: string,
+    token: string,
+  ): Promise<Rules> {
     try {
-      return await this.adminServiceClient.updateRuleStatus(ruleId, status, reason, token);
+      return await this.adminServiceClient.updateRuleStatus(
+        ruleId,
+        status,
+        reason,
+        token,
+      );
     } catch (error) {
       const err = error as Error;
-      this.logger.error(`Error updating status for rule ${ruleId}: ${err.message}`);
+      this.logger.error(
+        `Error updating status for rule ${ruleId}: ${err.message}`,
+      );
       throw error;
     }
   }

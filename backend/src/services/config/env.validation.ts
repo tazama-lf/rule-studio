@@ -33,7 +33,7 @@ export const validate = (
     enableImplicitConversion: true,
   });
   const errors = validateSync(validatedConfig, {
-    skipMissingProperties: true,
+    skipMissingProperties: false,
   });
   if (errors.length > 0) {
     throw new Error(errors.toString());

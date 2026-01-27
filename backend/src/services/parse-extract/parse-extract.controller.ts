@@ -7,13 +7,25 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiBody,
+} from '@nestjs/swagger';
 import { TazamaAuthGuard } from '../../guards/tazama-auth.guard';
 import { User } from '../../decorators/user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
-import { TazamaClaims, RequireAnyClaims } from '../../decorators/auth.decorator';
+import {
+  TazamaClaims,
+  RequireAnyClaims,
+} from '../../decorators/auth.decorator';
 import { ParseExtractService } from './parse-extract.service';
-import type { TransactionalMessage, ParseExtractResponse } from './dto/message.dto';
+import type {
+  TransactionalMessage,
+  ParseExtractResponse,
+} from './dto/message.dto';
 
 @ApiTags('Parse & Extract')
 @ApiBearerAuth('JWT-auth')
@@ -21,8 +33,8 @@ import type { TransactionalMessage, ParseExtractResponse } from './dto/message.d
 @UseGuards(TazamaAuthGuard)
 export class ParseExtractController {
   private readonly logger = new Logger(ParseExtractController.name);
-  
-  constructor(private readonly parseExtractService: ParseExtractService) {}
+
+  constructor(private readonly parseExtractService: ParseExtractService) { }
 
   @Post('/api/validatePayload')
   @RequireAnyClaims(
@@ -31,19 +43,20 @@ export class ParseExtractController {
     TazamaClaims.PUBLISHER,
   )
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ 
-    summary: 'Validate ISO 20022 payload', 
-    description: 'Validates and processes ISO 20022 transactional message payloads for structure and content compliance' 
+  @ApiOperation({
+    summary: 'Validate ISO 20022 payload',
+    description:
+      'Validates and processes ISO 20022 transactional message payloads for structure and content compliance',
   })
-  @ApiBody({ 
+  @ApiBody({
     description: 'ISO 20022 transactional message',
     schema: {
       type: 'object',
       properties: {
-        TxTp: { 
-          type: 'string', 
+        TxTp: {
+          type: 'string',
           description: 'Transaction type',
-          example: 'pain.001.001.11' 
+          example: 'pain.001.001.11',
         },
         FIToFICstmrCdtTrf: {
           type: 'object',
@@ -54,36 +67,42 @@ export class ParseExtractController {
               properties: {
                 MsgId: { type: 'string', example: 'MSG-001' },
                 CreDtTm: { type: 'string', example: '2024-01-16T10:30:00Z' },
-                NbOfTxs: { type: 'string', example: '1' }
-              }
-            }
-          }
-        }
+                NbOfTxs: { type: 'string', example: '1' },
+              },
+            },
+          },
+        },
       },
-      required: ['TxTp']
-    }
+      required: ['TxTp'],
+    },
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Payload validated successfully',
     schema: {
       type: 'object',
       properties: {
         isValid: { type: 'boolean', example: true },
         errors: { type: 'array', items: { type: 'string' } },
-        parsedData: { type: 'object' }
-      }
-    }
+        parsedData: { type: 'object' },
+      },
+    },
   })
   @ApiResponse({ status: 400, description: 'Invalid payload structure' })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Insufficient permissions',
+  })
   async processTransactionalMessage(
     @Body() request: TransactionalMessage,
     @User() user: AuthenticatedUser,
   ): Promise<ParseExtractResponse> {
-    this.logger.log(`Processing transaction type: ${request.TxTp} for user: ${user.validated}`);
-    
+    this.logger.log(`Processing transaction type: ${request.TxTp}`);
+
     return await this.parseExtractService.processTransactionalMessage(
       request,
       user.token.tokenString,

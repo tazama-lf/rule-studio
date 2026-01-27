@@ -6,11 +6,27 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { ResponseRuleFlowDto, Rules, GlobalVariableDto, RequestSaveFlow } from '../services/rules/dto/rules.dto';
+import {
+  ResponseRuleFlowDto,
+  Rules,
+  GlobalVariableDto,
+  RequestSaveFlow,
+} from '../services/rules/dto/rules.dto';
 import { firstValueFrom } from 'rxjs';
-import { CreateNodeDto, RequestQueryNodeDto, ResponseNodesDto } from './nodes/dto';
+import {
+  CreateNodeDto,
+  RequestQueryNodeDto,
+  ResponseNodesDto,
+} from './nodes/dto';
 import { GetNodesQuery } from './nodes/interfaces/node.interface';
-import { BASE_URL, GLOBAL_VARIABLES, NODES, RULE_FLOW, RULES_WITH_FILTERS, RULES_WITH_ID } from '../constants/constant';
+import {
+  BASE_URL,
+  GLOBAL_VARIABLES,
+  NODES,
+  RULE_FLOW,
+  RULES_WITH_FILTERS,
+  RULES_WITH_ID,
+} from '../constants/constant';
 import { ResponseQueryNodeDto } from './nodes/dto/responseNode.dto';
 
 @Injectable()
@@ -23,7 +39,6 @@ export class AdminServiceClient {
       process.env.ADMIN_SERVICE_URL ?? 'http://localhost:3100';
     this.logger.log(`Admin Service URL configured as: ${this.adminServiceUrl}`);
   }
-
 
   private getAuthHeaders(token: string): Record<string, string> {
     return {
@@ -42,31 +57,45 @@ export class AdminServiceClient {
 
     this.logger.log(`Making ${method} request to: ${url}`);
     if (body) {
-      this.logger.debug(`Request body: ${JSON.stringify(body).substring(0, 200)}...`);
+      this.logger.debug(
+        `Request body: ${JSON.stringify(body).substring(0, 200)}...`,
+      );
     }
 
     try {
       let response;
       switch (method) {
         case 'GET':
-          response = await firstValueFrom(this.httpService.get(url, { headers }));
+          response = await firstValueFrom(
+            this.httpService.get(url, { headers }),
+          );
           break;
         case 'POST':
-          response = await firstValueFrom(this.httpService.post(url, body, { headers }));
+          response = await firstValueFrom(
+            this.httpService.post(url, body, { headers }),
+          );
           break;
         case 'PUT':
-          response = await firstValueFrom(this.httpService.put(url, body, { headers }));
+          response = await firstValueFrom(
+            this.httpService.put(url, body, { headers }),
+          );
           break;
         case 'DELETE':
-          response = await firstValueFrom(this.httpService.delete(url, { headers, data: body }));
+          response = await firstValueFrom(
+            this.httpService.delete(url, { headers, data: body }),
+          );
           break;
         case 'PATCH':
-          response = await firstValueFrom(this.httpService.patch(url, body, { headers }));
+          response = await firstValueFrom(
+            this.httpService.patch(url, body, { headers }),
+          );
           break;
       }
 
       this.logger.log(`${method} ${path} - Success (${response.status})`);
-      this.logger.debug(`Response data: ${JSON.stringify(response.data).substring(0, 200)}...`);
+      this.logger.debug(
+        `Response data: ${JSON.stringify(response.data).substring(0, 200)}...`,
+      );
 
       return response.data as T;
     } catch (error) {
@@ -95,19 +124,29 @@ export class AdminServiceClient {
       let response;
       switch (method) {
         case 'GET':
-          response = await firstValueFrom(this.httpService.get(url, { headers }));
+          response = await firstValueFrom(
+            this.httpService.get(url, { headers }),
+          );
           break;
         case 'POST':
-          response = await firstValueFrom(this.httpService.post(url, body, { headers }));
+          response = await firstValueFrom(
+            this.httpService.post(url, body, { headers }),
+          );
           break;
         case 'PUT':
-          response = await firstValueFrom(this.httpService.put(url, body, { headers }));
+          response = await firstValueFrom(
+            this.httpService.put(url, body, { headers }),
+          );
           break;
         case 'DELETE':
-          response = await firstValueFrom(this.httpService.delete(url, { headers, data: body }));
+          response = await firstValueFrom(
+            this.httpService.delete(url, { headers, data: body }),
+          );
           break;
         case 'PATCH':
-          response = await firstValueFrom(this.httpService.patch(url, body, { headers }));
+          response = await firstValueFrom(
+            this.httpService.patch(url, body, { headers }),
+          );
           break;
       }
 
@@ -133,9 +172,9 @@ export class AdminServiceClient {
 
         const message =
           data &&
-            typeof data === 'object' &&
-            'message' in data &&
-            typeof data.message === 'string'
+          typeof data === 'object' &&
+          'message' in data &&
+          typeof data.message === 'string'
             ? data.message
             : typeof data === 'string'
               ? data
@@ -172,9 +211,9 @@ export class AdminServiceClient {
 
       const message =
         data &&
-          typeof data === 'object' &&
-          'message' in data &&
-          typeof data.message === 'string'
+        typeof data === 'object' &&
+        'message' in data &&
+        typeof data.message === 'string'
           ? data.message
           : 'Admin service returned an error response';
 
@@ -202,7 +241,7 @@ export class AdminServiceClient {
     filters: Record<string, unknown>,
     token: string,
   ): Promise<Rules[]> {
-    return this.executeHttpRequest<Rules[]>(
+    return await this.executeHttpRequest<Rules[]>(
       'POST',
       `${RULES_WITH_FILTERS}/${offset}/${limit}`,
       token,
@@ -210,14 +249,17 @@ export class AdminServiceClient {
     );
   }
   async getRulesById(id: number, token: string): Promise<Rules> {
-    return this.executeHttpRequest<Rules>(
+    return await this.executeHttpRequest<Rules>(
       'GET',
       `${RULES_WITH_ID}/${id}`,
       token,
     );
   }
 
-  async getVersionsOfTransactionType(transactionType: string, token: string): Promise<string[]> {
+  async getVersionsOfTransactionType(
+    transactionType: string,
+    token: string,
+  ): Promise<string[]> {
     try {
       const response = await firstValueFrom(
         this.httpService.get(
@@ -233,7 +275,9 @@ export class AdminServiceClient {
       );
 
       if (!response.data?.versions) {
-        this.logger.warn(`No versions found for transaction type ${transactionType} in admin-service response`);
+        this.logger.warn(
+          `No versions found for transaction type ${transactionType} in admin-service response`,
+        );
         return [];
       }
 
@@ -249,9 +293,9 @@ export class AdminServiceClient {
     token: string,
     ruleRequest: any,
   ): Promise<any> {
-    return this.forwardRequest(
+    return await this.forwardRequest(
       'POST',
-      `/v1/admin/trs/saveRuleRequest`,
+      '/v1/admin/trs/saveRuleRequest',
       { txTp, tenantId, ruleRequest },
       {
         Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`,
@@ -267,7 +311,7 @@ export class AdminServiceClient {
       ruleData,
     );
 
-    if (!response || !response.rule) {
+    if (!response?.rule) {
       this.logger.error('Invalid response from admin-service createRule');
       throw new HttpException(
         'Invalid response from admin service',
@@ -281,16 +325,13 @@ export class AdminServiceClient {
   async getRuleIds(token: string): Promise<any[]> {
     try {
       const response = await firstValueFrom(
-        this.httpService.get(
-          `${this.adminServiceUrl}/v1/admin/trs/rule-ids`,
-          {
-            headers: {
-              Authorization: token.startsWith('Bearer ')
-                ? token
-                : `Bearer ${token}`,
-            },
+        this.httpService.get(`${this.adminServiceUrl}/v1/admin/trs/rule-ids`, {
+          headers: {
+            Authorization: token.startsWith('Bearer ')
+              ? token
+              : `Bearer ${token}`,
           },
-        ),
+        }),
       );
 
       if (!response.data?.ruleIds) {
@@ -349,7 +390,9 @@ export class AdminServiceClient {
       );
 
       if (!response.data?.transactionTypes) {
-        this.logger.warn('No transaction types found in admin-service response');
+        this.logger.warn(
+          'No transaction types found in admin-service response',
+        );
         return [];
       }
 
@@ -359,7 +402,10 @@ export class AdminServiceClient {
     }
   }
 
-  async getPayloadByTransactionType(transactionType: string, token: string): Promise<any> {
+  async getPayloadByTransactionType(
+    transactionType: string,
+    token: string,
+  ): Promise<any> {
     try {
       const response = await firstValueFrom(
         this.httpService.get(
@@ -386,7 +432,11 @@ export class AdminServiceClient {
     }
   }
 
-  async updateRule(ruleId: string, updateData: Partial<Rules>, token: string): Promise<Rules> {
+  async updateRule(
+    ruleId: string,
+    updateData: Partial<Rules>,
+    token: string,
+  ): Promise<Rules> {
     try {
       const response = await firstValueFrom(
         this.httpService.put(
@@ -432,7 +482,9 @@ export class AdminServiceClient {
       );
 
       if (!response.data?.networkMap) {
-        this.logger.warn('No active network map found in admin-service response');
+        this.logger.warn(
+          'No active network map found in admin-service response',
+        );
         return null;
       }
 
@@ -442,36 +494,54 @@ export class AdminServiceClient {
     }
   }
 
-  async getConfigPayloadByTxTp(transactionType: string, token: string): Promise<any> {
+  async getConfigPayloadByTxTp(
+    transactionType: string,
+    token: string,
+  ): Promise<any> {
     try {
-      this.logger.log(`Fetching config payload for transaction type: ${transactionType}`);
+      this.logger.log(
+        `Fetching config payload for transaction type: ${transactionType}`,
+      );
 
       const response = await this.forwardRequest(
         'GET',
         `/v1/admin/config/payload/${encodeURIComponent(transactionType)}`,
         undefined,
         {
-          Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`,
+          Authorization: token.startsWith('Bearer ')
+            ? token
+            : `Bearer ${token}`,
         },
       );
 
       if (!response) {
-        this.logger.warn(`No config payload found for transaction type: ${transactionType}`);
+        this.logger.warn(
+          `No config payload found for transaction type: ${transactionType}`,
+        );
         return null;
       }
 
-      this.logger.log(`Successfully retrieved config payload for: ${transactionType}`);
+      this.logger.log(
+        `Successfully retrieved config payload for: ${transactionType}`,
+      );
       return response;
     } catch (error) {
       const err = error as Error;
-      this.logger.error(`Error fetching config payload for ${transactionType}: ${err.message}`);
+      this.logger.error(
+        `Error fetching config payload for ${transactionType}: ${err.message}`,
+      );
       return this.handleError(error, 'getConfigPayloadByTxTp');
     }
   }
 
-  async getConfigRowByTxTp(transactionType: string, token: string): Promise<any> {
+  async getConfigRowByTxTp(
+    transactionType: string,
+    token: string,
+  ): Promise<any> {
     try {
-      this.logger.log(`Fetching full config for transaction type: ${transactionType} in MMGMT`);
+      this.logger.log(
+        `Fetching full config for transaction type: ${transactionType} in MMGMT`,
+      );
 
       // go here and find out whats wrong
       const response = await this.forwardRequest(
@@ -479,22 +549,30 @@ export class AdminServiceClient {
         `/v1/admin/config/${encodeURIComponent(transactionType)}`,
         undefined,
         {
-          Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`,
+          Authorization: token.startsWith('Bearer ')
+            ? token
+            : `Bearer ${token}`,
         },
       );
 
-      console.log("the response from get config row by tx tp is", response);
+      console.log('the response from get config row by tx tp is', response);
 
       if (!response) {
-        this.logger.warn(`No config found for transaction type: ${transactionType}`);
+        this.logger.warn(
+          `No config found for transaction type: ${transactionType}`,
+        );
         return null;
       }
 
-      this.logger.log(`Successfully retrieved full config for: ${transactionType}`);
+      this.logger.log(
+        `Successfully retrieved full config for: ${transactionType}`,
+      );
       return response;
     } catch (error) {
       const err = error as Error;
-      this.logger.error(`Error fetching schema from DB for ${transactionType}: ${err.message}`);
+      this.logger.error(
+        `Error fetching schema from DB for ${transactionType}: ${err.message}`,
+      );
       return this.handleError(error, 'getSchemaByTxTp');
     }
   }
@@ -506,7 +584,9 @@ export class AdminServiceClient {
         `/v1/admin/trs/clone/${ruleId}`,
         null,
         {
-          Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`,
+          Authorization: token.startsWith('Bearer ')
+            ? token
+            : `Bearer ${token}`,
         },
       );
 
@@ -526,29 +606,35 @@ export class AdminServiceClient {
 
   // Nodes API
   /**
-   * 
+   *
    * @param token
    * @param createNodeDto list of nodes
    * @returns return a list of created nodes
    */
-  async createNode(token: string, createNodeDto: CreateNodeDto[]): Promise<ResponseNodesDto[]> {
-    return await this.forwardRequest(
+  async createNode(
+    token: string,
+    createNodeDto: CreateNodeDto[],
+  ): Promise<ResponseNodesDto[]> {
+    return (await this.forwardRequest(
       'POST',
       '/v1/admin/nodes/create',
       createNodeDto,
       {
         Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`,
       },
-    ) as ResponseNodesDto[];
+    )) as ResponseNodesDto[];
   }
 
   /**
-   * 
+   *
    * @param token
    * @param query query parameters for filtering nodes (tenantId, type, category)
    * @returns return a list of nodes
    */
-  async getAllNodes(token: string, query: GetNodesQuery): Promise<ResponseNodesDto[]> {
+  async getAllNodes(
+    token: string,
+    query: GetNodesQuery,
+  ): Promise<ResponseNodesDto[]> {
     const queryParams = new URLSearchParams();
     if (query.tenantId) {
       queryParams.append('tenantId', query.tenantId);
@@ -567,16 +653,13 @@ export class AdminServiceClient {
     }
     const path = `/v1/admin/nodes?${queryParams.toString()}`;
     const response = await firstValueFrom(
-      this.httpService.get(
-        `${this.adminServiceUrl}${path}`,
-        {
-          headers: {
-            Authorization: token.startsWith('Bearer ')
-              ? token
-              : `Bearer ${token}`,
-          },
+      this.httpService.get(`${this.adminServiceUrl}${path}`, {
+        headers: {
+          Authorization: token.startsWith('Bearer ')
+            ? token
+            : `Bearer ${token}`,
         },
-      ),
+      }),
     );
 
     if (!response.data?.nodes) {
@@ -586,7 +669,10 @@ export class AdminServiceClient {
     return response.data.nodes;
   }
 
-  async deleteNodeByNodeId(nodeId: string, token: string): Promise<{ success: boolean; message: string }> {
+  async deleteNodeByNodeId(
+    nodeId: string,
+    token: string,
+  ): Promise<{ success: boolean; message: string }> {
     try {
       const response = await firstValueFrom(
         this.httpService.delete(
@@ -614,7 +700,11 @@ export class AdminServiceClient {
     }
   }
 
-  async createRuleFlow(ruleId: string, flowData: JSON, token: string): Promise<ResponseRuleFlowDto> {
+  async createRuleFlow(
+    ruleId: string,
+    flowData: JSON,
+    token: string,
+  ): Promise<ResponseRuleFlowDto> {
     const response = await firstValueFrom(
       this.httpService.post(
         `${this.adminServiceUrl}/v1/admin/trs/rule-flow/${ruleId}`,
@@ -629,20 +719,21 @@ export class AdminServiceClient {
       ),
     );
     if (!response.data) {
-      this.logger.error(`No response data after creating flow for rule ${ruleId}`);
+      this.logger.error(
+        `No response data after creating flow for rule ${ruleId}`,
+      );
       throw new HttpException(
         `Failed to create flow for rule ${ruleId}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
     return response.data;
-
   }
   async getRuleFlow(
     ruleId: string,
     token: string,
   ): Promise<ResponseRuleFlowDto> {
-    return this.executeHttpRequest<ResponseRuleFlowDto>(
+    return await this.executeHttpRequest<ResponseRuleFlowDto>(
       'GET',
       `${RULE_FLOW}/${ruleId}`,
       token,
@@ -654,7 +745,7 @@ export class AdminServiceClient {
     payload: RequestSaveFlow,
     token: string,
   ): Promise<ResponseRuleFlowDto> {
-    return this.executeHttpRequest<ResponseRuleFlowDto>(
+    return await this.executeHttpRequest<ResponseRuleFlowDto>(
       'PUT',
       `${RULE_FLOW}/${ruleId}`,
       token,
@@ -667,14 +758,19 @@ export class AdminServiceClient {
     tenantId: string,
     token: string,
   ): Promise<GlobalVariableDto> {
-    return this.executeHttpRequest<GlobalVariableDto>(
+    return await this.executeHttpRequest<GlobalVariableDto>(
       'GET',
       `${GLOBAL_VARIABLES}/${ruleId}/${tenantId}`,
       token,
     );
   }
 
-  async updateRuleStatus(ruleId: string, status: string, reason: string, token: string): Promise<Rules> {
+  async updateRuleStatus(
+    ruleId: string,
+    status: string,
+    reason: string,
+    token: string,
+  ): Promise<Rules> {
     try {
       const response = await firstValueFrom(
         this.httpService.put(
@@ -704,13 +800,16 @@ export class AdminServiceClient {
     }
   }
 
-  async executeQueryNode(token: string, data: RequestQueryNodeDto): Promise<ResponseQueryNodeDto> {
+  async executeQueryNode(
+    token: string,
+    data: RequestQueryNodeDto,
+  ): Promise<ResponseQueryNodeDto> {
     const response = await this.executeHttpRequest(
       'POST',
       `${NODES}/query`,
       token,
       { query: data.query, params: data.params },
-    )
+    );
 
     return response as ResponseQueryNodeDto;
   }

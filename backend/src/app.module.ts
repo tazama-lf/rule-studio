@@ -9,7 +9,14 @@ import { NodesModule } from './services/nodes/nodes.module';
 import { ParseExtractModule } from './services/parse-extract/parse-extract.module';
 
 @Module({
-  imports: [AuthModule, LoggerModule, RulesModule, ConfigModule, NodesModule, ParseExtractModule],
+  imports: [
+    AuthModule,
+    LoggerModule,
+    RulesModule,
+    ConfigModule,
+    NodesModule,
+    ParseExtractModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

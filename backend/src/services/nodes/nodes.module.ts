@@ -5,9 +5,9 @@ import { NodesController } from './nodes.controller';
 import { NodesService } from './nodes.service';
 
 @Module({
-    imports: [HttpModule],
-    controllers: [NodesController],
-    providers: [NodesService, AdminServiceClient],
-    exports: [NodesService],
+  imports: [HttpModule],
+  controllers: [NodesController],
+  providers: [NodesService, AdminServiceClient],
+  exports: [NodesService],
 })
-export class NodesModule { }
+export class NodesModule {}

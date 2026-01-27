@@ -24,15 +24,9 @@ export interface ConfigEntity {
   payload?: any; // JSONB - This is what we need
 }
 
-export interface NetworkMap {
-  // Empty for now, will be populated later
-  [key: string]: any;
-}
+export type NetworkMap = Record<string, any>;
 
-export interface DataCache {
-  // Empty for now, will be populated later
-  [key: string]: any;
-}
+export type DataCache = Record<string, any>;
 
 export interface MetaData {
   correlationId?: string;
