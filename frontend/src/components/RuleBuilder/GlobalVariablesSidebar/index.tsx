@@ -46,22 +46,20 @@ const GlobalVariablesSidebar: React.FC<GlobalVariablesSidebarProps> = ({ collaps
     return items;
   };
 
-  // Flatten RuleRequest variables
   const ruleRequestVars: VariableItem[] = flattenObject(
     globalVariables.RuleRequest,
     'RuleRequest',
     'RuleRequest',
     [],
-    '#60a5fa' // Blue
+    '#60a5fa'
   );
 
-  // Flatten RuleConfig variables
   const ruleConfigVars: VariableItem[] = flattenObject(
     globalVariables.RuleConfig,
     'RuleConfig',
     'RuleConfig',
     [],
-    '#8b5cf6' // Purple
+    '#8b5cf6'
   );
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number): void => {
@@ -80,7 +78,6 @@ const GlobalVariablesSidebar: React.FC<GlobalVariablesSidebarProps> = ({ collaps
 
   const variablesToShow = getVariablesToShow();
 
-  // Get nested value from global variables
   const getNestedValue = (path: string): unknown => {
     const keys = path.split('.');
     let value: unknown = globalVariables;

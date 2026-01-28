@@ -45,7 +45,6 @@ const IfConditionEditor: React.FC<IfConditionEditorProps> = ({
                   e.preventDefault();
                   let variablePath = e.dataTransfer.getData('variablePath');
                   if (variablePath) {
-                    // Strip all {{ }} wrapping to avoid double wrapping (global replace)
                     variablePath = variablePath.replace(/\{\{\s*/g, '').replace(/\s*\}\}/g, '').trim();
                     
                     const inputElement = inputRefsRef.current[`condition_${index}`];
@@ -58,7 +57,6 @@ const IfConditionEditor: React.FC<IfConditionEditorProps> = ({
                       const end = inputElement.selectionEnd || 0;
                       const textBefore = currentValue.substring(0, start);
                       const textAfter = currentValue.substring(end);
-                      // Wrap variable with {{ }} for UI indication
                       newValue = textBefore + `{{ ${variablePath} }}` + textAfter;
 
                       setTimeout(() => {
@@ -67,11 +65,9 @@ const IfConditionEditor: React.FC<IfConditionEditorProps> = ({
                         inputElement.focus();
                       }, 0);
                     } else {
-                      // Wrap variable with {{ }} for UI indication
                       const wrappedVariable = `{{ ${variablePath} }}`;
                       newValue = currentValue ? `${currentValue} ${wrappedVariable}` : wrappedVariable;
                     }
-
                     onConditionChange(index, newValue);
                   }
                 }
@@ -126,7 +122,6 @@ const IfConditionEditor: React.FC<IfConditionEditorProps> = ({
               </Box>
             </PropertyRow>
           ))}
-
           {!viewOnly && (
             <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
               <Button

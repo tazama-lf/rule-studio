@@ -85,7 +85,6 @@ const ParameterConfigSection: React.FC<ParameterConfigSectionProps> = ({
     };
   }, []);
 
-  // Check if code_template is a default/placeholder value
   const isDefaultCodeTemplate = useMemo(() => {
     if (!codeTemplate) return true;
     const placeholderPatterns = [
@@ -195,18 +194,14 @@ const ParameterConfigSection: React.FC<ParameterConfigSectionProps> = ({
 
   const handleSaveCode = useCallback(
     (code: string) => {
-      // If onDirectUpdate is available, use it for immediate update
       if (onDirectUpdate) {
         const updatedParams = { ...currentParams, code_template: code };
         onDirectUpdate(updatedParams);
       } else {
-        // Fallback to the old method
         const syntheticEvent = {
           target: { value: code },
         } as React.ChangeEvent<HTMLInputElement>;
         onParamChange('code_template')(syntheticEvent);
-        
-        // Force immediate blur after a short delay to ensure state is updated
         setTimeout(() => {
           if (onParamBlur) {
             onParamBlur();
@@ -217,7 +212,6 @@ const ParameterConfigSection: React.FC<ParameterConfigSectionProps> = ({
     [onParamChange, onParamBlur, onDirectUpdate, currentParams]
   );
 
-  // Generate function signature preview
   const functionSignature = useMemo(() => {
     if (!functionName) {
       return 'export const [functionName] = (...params) => { ... }';
@@ -239,7 +233,6 @@ const ParameterConfigSection: React.FC<ParameterConfigSectionProps> = ({
       <SectionContainer>
         <SectionTitle>Custom Function Configuration</SectionTitle>
 
-        {/* Function Name */}
         <PropertyRow>
           <TextField
             fullWidth
@@ -255,8 +248,6 @@ const ParameterConfigSection: React.FC<ParameterConfigSectionProps> = ({
             required
           />
         </PropertyRow>
-
-        {/* Parameters Section */}
         <Box sx={{ mt: 2 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
             <Typography variant="subtitle2" fontWeight={600}>
@@ -303,8 +294,6 @@ const ParameterConfigSection: React.FC<ParameterConfigSectionProps> = ({
                         placeholder="paramName"
                         sx={{ flex: 1 }}
                       />
-
-                      {/* Parameter Type */}
                       <FormControl size="small" sx={{ minWidth: 120 }}>
                         <InputLabel>Type</InputLabel>
                         <Select
@@ -320,8 +309,6 @@ const ParameterConfigSection: React.FC<ParameterConfigSectionProps> = ({
                           ))}
                         </Select>
                       </FormControl>
-
-                      {/* Delete Button */}
                       <IconButton
                         size="small"
                         onClick={() => handleRemoveParameter(index)}
@@ -333,7 +320,6 @@ const ParameterConfigSection: React.FC<ParameterConfigSectionProps> = ({
                     </Box>
 
                     <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                      {/* Parameter Label */}
                       <TextField
                         size="small"
                         label="Display Label"
@@ -343,8 +329,6 @@ const ParameterConfigSection: React.FC<ParameterConfigSectionProps> = ({
                         placeholder="Parameter Label"
                         sx={{ flex: 1 }}
                       />
-
-                      {/* Required Checkbox */}
                       <FormControlLabel
                         control={
                           <Checkbox
@@ -364,8 +348,6 @@ const ParameterConfigSection: React.FC<ParameterConfigSectionProps> = ({
             </Box>
           )}
         </Box>
-
-        {/* Function Signature Preview */}
         <Box sx={{ mt: 2 }}>
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
             Function Signature:
@@ -384,8 +366,6 @@ const ParameterConfigSection: React.FC<ParameterConfigSectionProps> = ({
             {functionSignature}
           </Paper>
         </Box>
-
-        {/* Code Editor Button */}
         <PropertyRow sx={{ mt: 2 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%' }}>
             <Typography variant="body2" fontWeight={500}>
@@ -429,8 +409,6 @@ const ParameterConfigSection: React.FC<ParameterConfigSectionProps> = ({
           </Box>
         </PropertyRow>
       </SectionContainer>
-
-      {/* Code Editor Modal */}
       <CodeEditorModal
         open={codeModalOpen}
         onClose={handleCloseCodeModal}

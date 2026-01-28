@@ -34,9 +34,6 @@ export interface ApiNode {
   updated_at: string;
 }
 
-/**
- * Maps API node response to NodeTemplate format used by the frontend
- */
 export const mapApiNodeToTemplate = (apiNode: ApiNode): NodeTemplate => {
   const { node_json } = apiNode;
   return {
@@ -64,9 +61,6 @@ export const mapApiNodeToTemplate = (apiNode: ApiNode): NodeTemplate => {
   };
 };
 
-/**
- * Converts hex color to Tailwind-style background class
- */
 const getBgColorFromHex = (hexColor: string): string => {
   const colorMap: Record<string, string> = {
     '#4CAF50': 'bg-green-50 border-green-400',
@@ -85,13 +79,9 @@ const getBgColorFromHex = (hexColor: string): string => {
   return colorMap[hexColor] || 'bg-gray-50 border-gray-400';
 };
 
-/**
- * Converts array of API nodes to map of NodeTemplates by type
- */
 export const mapApiNodesToTemplates = (
   apiNodes: ApiNode[]
 ): Record<string, NodeTemplate> => {
-  // Deduplicate by node_type, keeping the latest entry
   const uniqueNodes = Array.from(
     apiNodes
       .reduce((map, node) => {
@@ -105,7 +95,6 @@ export const mapApiNodesToTemplates = (
       .values()
   );
 
-  // Convert to template map
   return uniqueNodes.reduce(
     (acc, node) => {
       acc[node.node_json.node_type] = mapApiNodeToTemplate(node);
@@ -115,11 +104,7 @@ export const mapApiNodesToTemplates = (
   );
 };
 
-/**
- * Converts array of API nodes to array of NodeTemplates for palette
- */
 export const mapApiNodesToArray = (apiNodes: ApiNode[]): NodeTemplate[] => {
-  // Deduplicate by node_type, keeping the latest entry
   const uniqueNodes = Array.from(
     apiNodes
       .reduce((map, node) => {

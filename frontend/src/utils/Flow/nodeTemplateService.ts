@@ -41,7 +41,6 @@ let expandedNodesStore: NodeTemplate[] = [];
 
 export const setApiNodes = (apiNodes: unknown[]): void => {
   apiNodesStore = apiNodes as ApiNode[];
-  // Expand nodes with modes into separate palette entries
   expandedNodesStore = expandFunctionNodes(apiNodesStore);
 };
 

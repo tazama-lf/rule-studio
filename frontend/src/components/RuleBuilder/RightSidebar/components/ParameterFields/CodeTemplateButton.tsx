@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, Box, Typography } from '@mui/material';
 import CodeIcon from '@mui/icons-material/Code';
-import type { NodeInput } from '../../../../../utils/Templates/customFuncTemplate';
+import type { NodeInput } from '../../../../../types/nodeInput';
 import { PropertyRow } from '../../styles';
 
 interface CodeTemplateButtonProps {

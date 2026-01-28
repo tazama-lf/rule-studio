@@ -1,6 +1,6 @@
 import React from 'react';
 import { Select, MenuItem, FormControl, InputLabel, FormHelperText, Typography } from '@mui/material';
-import type { NodeInput } from '../../../../../utils/Templates/customFuncTemplate';
+import type { NodeInput } from '../../../../../types/nodeInput';
 import { PropertyRow } from '../../styles';
 
 interface DropdownFieldProps {

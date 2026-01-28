@@ -40,10 +40,6 @@ interface ApiNode {
   updated_at: string;
 }
 
-/**
- * Expands function nodes with modes into separate palette entries
- * Handles both simple function nodes and dual-mode function nodes
- */
 export const expandFunctionNodes = (apiNodes: ApiNode[]): NodeTemplate[] => {
   const expanded: NodeTemplate[] = [];
 
@@ -119,9 +115,6 @@ export const expandFunctionNodes = (apiNodes: ApiNode[]): NodeTemplate[] => {
   return expanded;
 };
 
-/**
- * Converts hex color to Tailwind-style background class
- */
 const getBgColorFromHex = (hexColor: string): string => {
   const colorMap: Record<string, string> = {
     '#4CAF50': 'bg-green-50 border-green-400',

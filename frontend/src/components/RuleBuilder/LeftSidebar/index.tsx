@@ -95,8 +95,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
       event.preventDefault();
       return;
     }
-    // Store both type and mode in data transfer
-    // Only include mode if it's a truthy value (not undefined, null, or empty string)
+
     const dragData = mode && mode !== 'undefined' ? `${nodeType}::${mode}` : nodeType;
     event.dataTransfer.setData('application/reactflow', dragData);
     event.dataTransfer.effectAllowed = 'move';
@@ -110,7 +109,6 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
       <SidebarContainer mode={mode} collapsed={collapsed} activeTab={activeTab}>
         {!collapsed && (
           <>
-            {/* Header Section */}
             {mode === 'main' && (
               <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper' }}>
                 <Typography variant="h6" component="h2" fontWeight={600}>
@@ -129,8 +127,6 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 </Typography>
               </Box>
             )}
-
-            {/* Tabs Section */}
             {!hideCustomFunctions && !showGlobalVariables && (
               <Tabs
                 value={activeTab}
@@ -182,7 +178,6 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
               </Tabs>
             )}
 
-            {/* Mode Info */}
             {hideCustomFunctions && !showGlobalVariables && mode === 'main' && (
               <Box sx={{ p: 1.5, bgcolor: 'info.lighter', borderBottom: 1, borderColor: 'divider' }}>
                 <Typography variant="caption" color="info.main" fontWeight={500}>
@@ -190,10 +185,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 </Typography>
               </Box>
             )}
-
-            {/* Content Section */}
             <ScrollableList>
-              {/* Node Cards or Variables */}
               {showGlobalVariables && activeTab === 2 ? (
                 <VariableTree
                   localVarsTree={localVarsTree}
@@ -214,8 +206,6 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   onDragStart={onDragStart}
                 />
               )}
-
-              {/* Empty States */}
               {showVariablesEmptyState && (
                 <Box textAlign="center" py={6} color="text.secondary">
                   <InfoOutlinedIcon sx={{ fontSize: 48, color: 'grey.300', mb: 2 }} />

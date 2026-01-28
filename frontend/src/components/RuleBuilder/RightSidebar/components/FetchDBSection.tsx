@@ -68,15 +68,10 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
       target: { value: query }
     } as React.ChangeEvent<HTMLInputElement>;
     onParamChange('query')(syntheticEvent);
-    console.log('📝 Called onParamChange with query');
-    
-    // Pass updated params to onParamBlur so code generation uses new query immediately
+  
     const updatedParams = { ...currentParams, query };
-    console.log('📝 Calling onParamBlur with updatedParams:', updatedParams.query);
     onParamBlur?.(true, updatedParams);
-    console.log('📝 Called onParamBlur - code generation should trigger now');
-    
-    // Close modal after triggering code generation
+
     handleCloseQueryEditor();
   }, [onParamChange, onParamBlur, currentParams, handleCloseQueryEditor]);
 

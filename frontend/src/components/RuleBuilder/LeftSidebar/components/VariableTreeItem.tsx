@@ -68,7 +68,6 @@ const VariableTreeItem: React.FC<VariableTreeItemProps> = ({ node, level }) => {
         onDragStart={handleDragStart}
         onClick={() => hasChildren && setExpanded(!expanded)}
       >
-        {/* Expand/Collapse Icon - Fixed width for alignment */}
         <Box sx={{ width: 20, height: 20, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {hasChildren ? (
             <IconButton size="small" sx={{ p: 0, width: 20, height: 20 }}>
@@ -76,13 +75,9 @@ const VariableTreeItem: React.FC<VariableTreeItemProps> = ({ node, level }) => {
             </IconButton>
           ) : null}
         </Box>
-
-        {/* Drag Icon for draggable items - Fixed width for alignment */}
         <Box sx={{ width: 18, height: 18, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {node.isDraggable && <DragIndicatorIcon sx={{ fontSize: 14, color: 'primary.main' }} />}
         </Box>
-
-        {/* Key Name */}
         <Typography
           variant="body2"
           sx={{
@@ -95,8 +90,6 @@ const VariableTreeItem: React.FC<VariableTreeItemProps> = ({ node, level }) => {
         >
           {node.key}
         </Typography>
-
-        {/* Type Label */}
         <Typography
           variant="caption"
           sx={{
@@ -109,8 +102,6 @@ const VariableTreeItem: React.FC<VariableTreeItemProps> = ({ node, level }) => {
         >
           {getTypeLabel(node.type)}
         </Typography>
-
-        {/* Value for primitive types */}
         {node.isDraggable && node.type !== 'null' && (
           <Typography
             variant="caption"
@@ -125,8 +116,6 @@ const VariableTreeItem: React.FC<VariableTreeItemProps> = ({ node, level }) => {
           </Typography>
         )}
       </Box>
-
-      {/* Children */}
       {hasChildren && (
         <Collapse in={expanded} timeout="auto" unmountOnExit>
           {node.children!.map((child, index) => (

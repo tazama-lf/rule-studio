@@ -16,7 +16,7 @@ import { Box, Paper, Typography, IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import EditableNode from '../EditableNode';
 import DebuggerPanel, { type DebugLog } from '../DebuggerPanel';
-import { getDefaultFlow, extractCountersFromFlow } from '../../../utils/Flow/FlowDefaults';
+import { extractCountersFromFlow } from '../../../utils/Flow/FlowDefaults';
 import {
   useCanvasNodeOperations,
   useCanvasEdgeOperations,
@@ -75,22 +75,14 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = ({
   const initialDataRef = useRef({ nodes: initialNodes, edges: initialEdges });
   
   const getInitialFlow = React.useMemo(() => {
-    if (initialDataRef.current.nodes && initialDataRef.current.edges) {
-      const nodes = initialDataRef.current.nodes as Node[];
-      const edges = initialDataRef.current.edges as Edge[];
-      
+    const nodes = (initialDataRef.current.nodes as Node[]) || [];
+    const edges = (initialDataRef.current.edges as Edge[]) || [];
+    
+    if (nodes.length > 0 || edges.length > 0) {
       extractCountersFromFlow(nodes, edges, nestedCanvasData || {});
-      
-      return {
-        nodes,
-        edges,
-      };
     }
-    const defaultFlow = getDefaultFlow();
-    return {
-      nodes: defaultFlow.mainCanvas.nodes as Node[],
-      edges: defaultFlow.mainCanvas.edges as Edge[],
-    };
+    
+    return { nodes, edges };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -276,8 +268,6 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = ({
           </Panel>
         </ReactFlow>
       </Box>
-
-      {/* Resize Handle - Only show when debugger is visible */}
       {isDebuggerOpen && (
         <Box
           onMouseDown={handleMouseDown}
@@ -312,8 +302,6 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = ({
           />
         </Box>
       )}
-
-      {/* Debugger Panel - Visible when opened, stays open after animation */}
       {isDebuggerOpen && (
         <Paper
           sx={{
@@ -327,7 +315,6 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = ({
             zIndex: 1100,
           }}
         >
-        {/* Debugger Panel Header */}
         <Box
           sx={{
             display: 'flex',
@@ -351,8 +338,6 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = ({
             <CloseIcon fontSize="small" />
           </IconButton>
         </Box>
-
-        {/* Debugger Content */}
         <Box sx={{ flex: 1, overflow: 'hidden' }}>
           <DebuggerPanel
             variables={debugVariables}

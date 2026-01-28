@@ -49,7 +49,6 @@ const NodeContainer = styled(Box)<{
 const EditableNode = ({ data, selected, id }: NodeProps) => {
   const nodeData = data as EditableNodeData;
   
-  // Get validation state
   const { hasError } = useNodeValidation(id, nodeData.nodeType, nodeData.label);
   
   const {
@@ -63,10 +62,9 @@ const EditableNode = ({ data, selected, id }: NodeProps) => {
     sourceHandles,
   } = useNodeRenderer(nodeData);
 
-  // Check if this is a CustomFunction node
   const isCustomFunction = nodeData.nodeType === 'CustomFunction';
   const mode = nodeData.mode || nodeData.generation_type;
-  // Get function name from localParams (preferred) or nodeData
+
   const functionName = localParams?.function_name || nodeData.params?.function_name || nodeData.function_name || '';
 
   return (
@@ -85,8 +83,6 @@ const EditableNode = ({ data, selected, id }: NodeProps) => {
           displayName={template?.displayName}
           nodeType={nodeData.nodeType}
         />
-        
-        {/* Show function name for CustomFunction nodes */}
         {isCustomFunction && (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 0.5, alignItems: 'center' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>

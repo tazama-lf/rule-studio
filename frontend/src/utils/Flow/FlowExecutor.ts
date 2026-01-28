@@ -8,6 +8,18 @@ export interface ExecutionResult {
   branchHandle?: string | null;
 }
 
+const safeEvaluateExpression = (expression: string, variables: Record<string, unknown>): boolean => {
+  try {
+    const varNames = Object.keys(variables);
+    const varValues = varNames.map(name => variables[name]);
+    const fn = new Function(...varNames, `"use strict"; return (${expression});`);
+    return Boolean(fn(...varValues));
+  } catch (error) {
+    console.warn('Failed to evaluate expression:', expression, error);
+    return false;
+  }
+};
+
 export const simulateNodeExecution = (
   node: Node,
   currentVariables: Record<string, unknown>
@@ -22,9 +34,7 @@ export const simulateNodeExecution = (
 
   const resolveGlobalVariable = (path: string): unknown => {
     if (!path || typeof path !== 'string') return path;
-    if (!path.startsWith('RuleRequest.') && !path.startsWith('RuleConfig.')) {
-      return path;
-    }
+    if (!path.startsWith('RuleRequest.') && !path.startsWith('RuleConfig.')) return path;
     
     const parts = path.split('.');
     let current: unknown = globalVariables;
@@ -37,7 +47,6 @@ export const simulateNodeExecution = (
       } else {
         current = (current as Record<string, unknown>)?.[part];
       }
-      
       if (current === undefined) return path;
     }
     
@@ -46,40 +55,32 @@ export const simulateNodeExecution = (
 
   const replaceGlobalVariables = (text: string): string => {
     if (!text || typeof text !== 'string') return text;
-    
-    const variablePattern = /(RuleRequest|RuleConfig)\.[[\w.\]]+/g;
-    
-    return text.replace(variablePattern, (match) => {
+    return text.replace(/(RuleRequest|RuleConfig)\.[[\w.\]]+/g, (match) => {
       const value = resolveGlobalVariable(match);
-      if (value === match) return match;
-      return String(value);
+      return value === match ? match : String(value);
     });
   };
 
   const resolve = (val: unknown): number => {
     if (val === undefined || val === null || val === '') return 0;
-
     const strVal = String(val);
-    if (!isNaN(Number(strVal)) && strVal.trim() !== '') {
-      return parseFloat(strVal);
-    }
-
-    const key = strVal.trim();
-    if (currentVariables[key] !== undefined) {
-      const varVal = currentVariables[key];
-      return typeof varVal === 'number' ? varVal : Number(varVal) || 0;
-    }
-
+    if (!isNaN(Number(strVal)) && strVal.trim() !== '') return parseFloat(strVal);
+    const varVal = currentVariables[strVal.trim()];
+    if (varVal !== undefined) return typeof varVal === 'number' ? varVal : Number(varVal) || 0;
     return 0;
   };
 
   const getParam = (keys: string[]): string | null => {
     for (const key of keys) {
-      if (params[key] !== undefined && params[key] !== '') {
-        return params[key];
-      }
+      if (params[key] !== undefined && params[key] !== '') return params[key];
     }
     return null;
+  };
+
+  const evaluateCondition = (condition: string): boolean => {
+    let evalExpression = condition.replace(/\{\{\s*/g, '').replace(/\s*\}\}/g, '');
+    evalExpression = replaceGlobalVariables(evalExpression);
+    return safeEvaluateExpression(evalExpression, { ...currentVariables });
   };
 
   try {
@@ -183,66 +184,28 @@ export const simulateNodeExecution = (
         try {
           if (conditionsStr) {
             const conditions = JSON.parse(conditionsStr);
-
             hasElseBranch = conditions.some((cond: { type: string }) => cond.type === 'else');
+            
             for (let i = 0; i < conditions.length; i++) {
               const cond = conditions[i];
               
-              if (cond.type === 'if') {
-                conditionText = cond.condition || 'true';
-          
-                let evalExpression = conditionText.replace(/\{\{\s*/g, '').replace(/\s*\}\}/g, '');
-
-                evalExpression = replaceGlobalVariables(evalExpression);
-                Object.keys(currentVariables).forEach((key) => {
-                  const regex = new RegExp(`\\b${key}\\b`, 'g');
-                  const value = currentVariables[key];
-                  const valueStr = typeof value === 'string' ? `"${value}"` : String(value);
-                  evalExpression = evalExpression.replace(regex, valueStr);
-                });
-
-                try {
-                  evaluationResult = eval(evalExpression);
-                  if (evaluationResult) {
-                    selectedHandle = 'if';
-                    break;
-                  }
-                } catch (evalError) {
-                  console.warn('Failed to evaluate condition:', evalExpression, evalError);
+              if (cond.type === 'if' || cond.type === 'elseif') {
+                const condition = cond.condition || 'true';
+                const result = evaluateCondition(condition);
+                
+                if (result) {
+                  selectedHandle = cond.type === 'if' ? 'if' : `elseif-${i}`;
+                  evaluationResult = true;
+                  conditionText = condition;
+                  break;
                 }
-              } else if (cond.type === 'elseif') {
-                const elseIfCondition = cond.condition || 'true';
-
-                let evalExpression = elseIfCondition.replace(/\{\{\s*/g, '').replace(/\s*\}\}/g, '');
-
-                evalExpression = replaceGlobalVariables(evalExpression);
-
-                Object.keys(currentVariables).forEach((key) => {
-                  const regex = new RegExp(`\\b${key}\\b`, 'g');
-                  const value = currentVariables[key];
-                  const valueStr = typeof value === 'string' ? `"${value}"` : String(value);
-                  evalExpression = evalExpression.replace(regex, valueStr);
-                });
-                try {
-                  const result = eval(evalExpression);
-                  if (result) {
-                    selectedHandle = `elseif-${i}`;
-                    evaluationResult = true;
-                    conditionText = elseIfCondition;
-                    break;
-                  }
-                } catch (evalError) {
-                  console.warn('Failed to evaluate else if condition:', evalExpression, evalError);
-                }
-              } else if (cond.type === 'else') {
-                if (selectedHandle === 'exit') {
-                  selectedHandle = 'else';
-                }
+                if (cond.type === 'if') conditionText = condition;
+              } else if (cond.type === 'else' && selectedHandle === 'exit') {
+                selectedHandle = 'else';
               }
             }
-            if (!evaluationResult && !hasElseBranch) {
-              selectedHandle = 'exit';
-            }
+            
+            if (!evaluationResult && !hasElseBranch) selectedHandle = 'exit';
           }
         } catch (parseError) {
           console.warn('Failed to parse conditions:', conditionsStr, parseError);

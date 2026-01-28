@@ -23,7 +23,6 @@ const CodeEditorModal: React.FC<CodeEditorModalProps> = ({
 }) => {
   const [code, setCode] = useState(initialValue);
 
-  // Update local state when initial value changes
   React.useEffect(() => {
     if (open) {
       setCode(initialValue);
@@ -36,7 +35,7 @@ const CodeEditorModal: React.FC<CodeEditorModalProps> = ({
   };
 
   const handleCancel = () => {
-    setCode(initialValue); // Reset to initial value
+    setCode(initialValue);
     onClose();
   };
 
@@ -47,19 +46,21 @@ const CodeEditorModal: React.FC<CodeEditorModalProps> = ({
   const handleEditorMount = (editor: Parameters<NonNullable<React.ComponentProps<typeof Editor>['onMount']>>[0], monaco: Monaco) => {
     editor.addCommand(monaco.KeyCode.Space, () => {
       const position = editor.getPosition();
-      editor.executeEdits('', [{
-        range: {
-          startLineNumber: position.lineNumber,
-          startColumn: position.column,
-          endLineNumber: position.lineNumber,
-          endColumn: position.column,
-        },
-        text: ' ',
-      }]);
-      editor.setPosition({
-        lineNumber: position.lineNumber,
-        column: position.column + 1,
-      });
+      if (position) {
+        editor.executeEdits('', [{
+          range: {
+            startLineNumber: position.lineNumber,
+            startColumn: position.column,
+            endLineNumber: position.lineNumber,
+            endColumn: position.column,
+          },
+          text: ' ',
+        }]);
+        editor.setPosition({
+          lineNumber: position.lineNumber,
+          column: position.column + 1,
+        });
+      }
     });
   };
 
@@ -121,11 +122,10 @@ const CodeEditorModal: React.FC<CodeEditorModalProps> = ({
               acceptSuggestionOnEnter: 'off',
               quickSuggestions: false,
               suggestOnTriggerCharacters: false,
-              wordBasedSuggestions: false,
+              wordBasedSuggestions: 'off',
               parameterHints: { enabled: false },
               snippetSuggestions: 'none',
-              occurrencesHighlight: false,
-              semanticHighlighting: { enabled: false },
+              occurrencesHighlight: 'off',
             }}
           />
         </Box>
