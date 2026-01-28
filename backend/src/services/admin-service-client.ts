@@ -21,7 +21,6 @@ import {
 } from './nodes/dto';
 import { GetNodesQuery } from './nodes/interfaces/node.interface';
 import {
-  BASE_URL,
   GLOBAL_VARIABLES,
   NODES,
   RULE_FLOW,
