@@ -173,9 +173,9 @@ export class AdminServiceClient {
 
         const message =
           data &&
-            typeof data === 'object' &&
-            'message' in data &&
-            typeof data.message === 'string'
+          typeof data === 'object' &&
+          'message' in data &&
+          typeof data.message === 'string'
             ? data.message
             : typeof data === 'string'
               ? data
@@ -212,9 +212,9 @@ export class AdminServiceClient {
 
       const message =
         data &&
-          typeof data === 'object' &&
-          'message' in data &&
-          typeof data.message === 'string'
+        typeof data === 'object' &&
+        'message' in data &&
+        typeof data.message === 'string'
           ? data.message
           : 'Admin service returned an error response';
 
@@ -637,7 +637,6 @@ export class AdminServiceClient {
     query: GetNodesQuery,
   ): Promise<ResponseNodesDto[]> {
     try {
-
       const queryParams = new URLSearchParams();
       if (query.tenantId) {
         queryParams.append('tenantId', query.tenantId);

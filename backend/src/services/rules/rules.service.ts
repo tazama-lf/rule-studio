@@ -9,12 +9,13 @@ import {
   RequestFlow,
 } from './dto/rules.dto';
 import { BASE_RULE_ID } from '../../constants/constant';
+import { AuthenticatedUser } from '../auth/auth.types';
 
 @Injectable()
 export class RulesService {
   private readonly logger = new Logger(RulesService.name);
 
-  constructor(private readonly adminServiceClient: AdminServiceClient) { }
+  constructor(private readonly adminServiceClient: AdminServiceClient) {}
   private async getRuleOrThrow(id: number, token: string): Promise<Rules> {
     try {
       return await this.adminServiceClient.getRulesById(id, token);
@@ -70,7 +71,9 @@ export class RulesService {
             token,
           );
         } else {
-          this.logger.warn(`No flow ID returned when creating rule flow for rule ${rule.id}`);
+          this.logger.warn(
+            `No flow ID returned when creating rule flow for rule ${rule.id}`,
+          );
         }
       }
 
@@ -187,7 +190,7 @@ export class RulesService {
     }
   }
 
-  async getRulesStatusbyRole(user: any): Promise<string[]> {
+  getRulesStatusbyRole(user: AuthenticatedUser): string[] {
     return user.allowedStatuses ?? [];
   }
 

@@ -74,7 +74,7 @@ export class RulesController {
     description: 'Forbidden - Insufficient permissions',
   })
   async getRulesStatus(@User() user: AuthenticatedUser): Promise<string[]> {
-    return await this.rulesService.getRulesStatusbyRole(user);
+    return this.rulesService.getRulesStatusbyRole(user);
   }
 
   @Post('/api/all')

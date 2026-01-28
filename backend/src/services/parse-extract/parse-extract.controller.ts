@@ -34,7 +34,7 @@ import type {
 export class ParseExtractController {
   private readonly logger = new Logger(ParseExtractController.name);
 
-  constructor(private readonly parseExtractService: ParseExtractService) { }
+  constructor(private readonly parseExtractService: ParseExtractService) {}
 
   @Post('/api/validatePayload')
   @RequireAnyClaims(

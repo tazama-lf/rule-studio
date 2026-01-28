@@ -13,16 +13,17 @@ export class AuthService {
   constructor(
     private readonly httpService: HttpService,
     private readonly loggerService: LoggerService,
-  ) { }
+  ) {}
 
   async login(
     username: string,
     password: string,
-  ): Promise<{ message: string; token: string;}> {
+  ): Promise<{ message: string; token: string }> {
     const authUrl = process.env.TAZAMA_AUTH_URL;
     if (!authUrl) {
       this.loggerService.error(
-        'TAZAMA_AUTH_URL is not set in environment variables', AuthService.name
+        'TAZAMA_AUTH_URL is not set in environment variables',
+        AuthService.name,
       );
       throw new ServiceUnavailableException(
         'Authentication service unavailable',
@@ -79,7 +80,7 @@ export class AuthService {
       }
 
       const hasRequiredClaim =
-        claimResult.editor || claimResult.approver || claimResult.publisher;
+        claimResult.editor ?? claimResult.approver ?? claimResult.publisher;
       if (!hasRequiredClaim) {
         this.loggerService.warn(
           `User ${username} does not have required claims (editor, approver, or publisher).`,
@@ -96,7 +97,6 @@ export class AuthService {
       return {
         message: 'Login successful',
         token,
-        
       };
     } catch (error) {
       if (error instanceof UnauthorizedException) {
@@ -107,25 +107,39 @@ export class AuthService {
     }
   }
 
-  private handleLoginError(error: any): never {
-    if (error.response?.status === 429) {
+  private handleLoginError(error: unknown): never {
+    const axiosError = error as {
+      response?: {
+        status?: number;
+        data?: { message?: string; error?: string };
+      };
+      message?: string;
+    };
+    if (axiosError.response?.status === 429) {
       const errorMessage =
-        error.response.data?.message ??
-        error.response.data?.error ??
+        axiosError.response.data?.message ??
+        axiosError.response.data?.error ??
         'Account temporarily locked due to too many failed login attempts.';
-      this.loggerService.warn(`Account locked (429): ${errorMessage}`, AuthService.name);
+      this.loggerService.warn(
+        `Account locked (429): ${errorMessage}`,
+        AuthService.name,
+      );
       throw new UnauthorizedException(errorMessage);
     }
-    if (error.response?.status === 401) {
+    if (axiosError.response?.status === 401) {
       const errorMessage =
-        error.response.data?.message ??
-        error.response.data?.error ??
+        axiosError.response.data?.message ??
+        axiosError.response.data?.error ??
         'Invalid credentials';
-      this.loggerService.warn(`Authentication failed: ${errorMessage}`, AuthService.name);
+      this.loggerService.warn(
+        `Authentication failed: ${errorMessage}`,
+        AuthService.name,
+      );
       throw new UnauthorizedException(errorMessage);
     }
     this.loggerService.error(
-      `Auth service error during login: ${error.message}`, AuthService.name
+      `Auth service error during login: ${axiosError.message ?? 'Unknown error'}`,
+      AuthService.name,
     );
     throw new ServiceUnavailableException('Authentication service unavailable');
   }

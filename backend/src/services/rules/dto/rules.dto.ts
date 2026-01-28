@@ -116,11 +116,10 @@ export class Rules extends RuleBaseDto {
   created_at?: string;
 }
 
-export class CreateRuleDto extends RuleBaseDto {
-}
+export class CreateRuleDto extends RuleBaseDto {}
 
 export class UpdateRuleDto extends RuleBaseDto {
-    @ApiProperty({
+  @ApiProperty({
     description: 'User who last updated the rule',
     example: 'user123',
   })
