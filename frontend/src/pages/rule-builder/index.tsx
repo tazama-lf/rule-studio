@@ -294,7 +294,6 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
             onJsonGenerate={flowState.handleJsonGenerate}
             onCodeGenerate={flowState.handleCodeGenerate}
             onNodeSelect={handleNodeSelect}
-            onNodeUpdate={handleNodeUpdate}
             onNodeUpdateHandlerReady={handleNodeUpdateHandlerReady}
             debugVariables={flowState.debugVariables}
             debugLogs={flowState.debugLogs}

@@ -51,7 +51,6 @@ interface CanvasProps {
   onJsonGenerate?: (json: string) => void;
   onCodeGenerate?: (code: string) => void;
   onNodeSelect?: (node: Node | null) => void;
-  onNodeUpdate?: (nodeId: string, updates: Record<string, unknown>) => void;
   onNodeUpdateHandlerReady?: (handler: (nodeId: string, updates: Record<string, unknown>) => void) => void;
   debugVariables?: Record<string, unknown>;
   debugLogs?: DebugLog[];
@@ -76,7 +75,6 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = ({
   onJsonGenerate, 
   onCodeGenerate,
   onNodeSelect,
-  onNodeUpdate,
   onNodeUpdateHandlerReady,
   nestedCanvasData = {},
   debugVariables = {},
