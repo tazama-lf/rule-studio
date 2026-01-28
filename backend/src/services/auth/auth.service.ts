@@ -22,7 +22,7 @@ export class AuthService {
     const authUrl = process.env.TAZAMA_AUTH_URL;
     if (!authUrl) {
       this.loggerService.error(
-        'TAZAMA_AUTH_URL is not set in environment variables',
+        'TAZAMA_AUTH_URL is not set in environment variables', AuthService.name
       );
       throw new ServiceUnavailableException(
         'Authentication service unavailable',
@@ -117,7 +117,7 @@ export class AuthService {
         error.response.data?.message ??
         error.response.data?.error ??
         'Account temporarily locked due to too many failed login attempts.';
-      this.loggerService.warn(`Account locked (429): ${errorMessage}`);
+      this.loggerService.warn(`Account locked (429): ${errorMessage}`, AuthService.name);
       throw new UnauthorizedException(errorMessage);
     }
     if (error.response?.status === 401) {
@@ -125,11 +125,11 @@ export class AuthService {
         error.response.data?.message ??
         error.response.data?.error ??
         'Invalid credentials';
-      this.loggerService.warn(`Authentication failed: ${errorMessage}`);
+      this.loggerService.warn(`Authentication failed: ${errorMessage}`, AuthService.name);
       throw new UnauthorizedException(errorMessage);
     }
     this.loggerService.error(
-      `Auth service error during login: ${error.message}`,
+      `Auth service error during login: ${error.message}`, AuthService.name
     );
     throw new ServiceUnavailableException('Authentication service unavailable');
   }
