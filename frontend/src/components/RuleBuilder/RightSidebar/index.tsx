@@ -122,6 +122,17 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
     if (selectedNode && nodeData?.nodeType && nodeData?.params) {
       validate(nodeData.params);
     }
+
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+        updateTimeoutRef.current = null;
+      }
+      if (validationTimeoutRef.current) {
+        clearTimeout(validationTimeoutRef.current);
+        validationTimeoutRef.current = null;
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedNode?.id]);
 
@@ -436,20 +447,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         <EmptyState>
           <InfoOutlinedIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
           <Typography color="text.secondary">Select a node to view properties</Typography>
-        </EmptyState>
-      </SidebarContainer>
-    );
-  }
-
-  if (!selectedNode) {
-    return (
-      <SidebarContainer collapsed={false}>
-        <CloseButton size="small" onClick={onClose} aria-label="Close properties panel">
-          <CloseIcon fontSize="small" />
-        </CloseButton>
-        <EmptyState>
-          <InfoOutlinedIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-          <Typography color="text.secondary">No node selected</Typography>
         </EmptyState>
       </SidebarContainer>
     );

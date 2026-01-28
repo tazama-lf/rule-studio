@@ -62,7 +62,7 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
   mainCanvasNodes = [],
 }) => {
   const [initialNodesEdges] = useState(() => {
-    if (providedInitialNodes && providedInitialEdges) {
+    if (providedInitialNodes) {
       const maxNestedNodeId = providedInitialNodes.reduce((max, node) => {
         const match = node.id.match(/^nested-node-(\d+)$/);
         if (match) {
@@ -75,7 +75,7 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
         setCounters(0, 0, maxNestedNodeId);
       }
       
-      return { nodes: providedInitialNodes, edges: providedInitialEdges };
+      return { nodes: providedInitialNodes, edges: providedInitialEdges || [] };
     }
 
     const startNodeId = generateNestedNodeId();
@@ -473,6 +473,8 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
           onUpdateNode={handleNodeUpdate}
           allNodes={allNodes}
           viewOnly={viewOnly}
+          ruleId={ruleId}
+          edges={edges}
           updateNodeInternals={handleUpdateNodeInternals}
         />
       </Box>
