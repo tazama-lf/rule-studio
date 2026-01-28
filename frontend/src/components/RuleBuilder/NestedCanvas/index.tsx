@@ -8,6 +8,7 @@ import {
   useNodesState,
   useEdgesState,
   addEdge,
+  useUpdateNodeInternals,
   type ReactFlowInstance,
   type Connection,
 } from '@xyflow/react';
@@ -25,6 +26,17 @@ import { useValidationContext } from '../../../validation/context';
 
 const nodeTypes = {
   editableNode: EditableNode,
+};
+
+// Internal component to expose updateNodeInternals from within ReactFlow context
+const UpdateNodeInternalsExposer: React.FC<{ onReady: (updateFn: (nodeId: string) => void) => void }> = ({ onReady }) => {
+  const updateNodeInternals = useUpdateNodeInternals();
+  
+  useEffect(() => {
+    onReady(updateNodeInternals);
+  }, [onReady, updateNodeInternals]);
+  
+  return null;
 };
 
 interface NestedCanvasProps {
@@ -113,6 +125,7 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
+  const updateNodeInternalsRef = useRef<((nodeId: string) => void) | null>(null);
   const { clearNodeErrors } = useValidationContext();
   
   const nodesRef = useRef(nodes);
@@ -375,6 +388,14 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
     updateNode(nodeId, updates, shouldForceSave);
   };
 
+  const handleUpdateNodeInternalsReady = useCallback((updateFn: (nodeId: string) => void) => {
+    updateNodeInternalsRef.current = updateFn;
+  }, []);
+
+  const handleUpdateNodeInternals = useCallback((nodeId: string) => {
+    updateNodeInternalsRef.current?.(nodeId);
+  }, []);
+
   const handleBack = useCallback(() => {
     onSave(nodesRef.current, edgesRef.current);
     onBack();
@@ -439,6 +460,7 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
             elementsSelectable={!viewOnly}
             deleteKeyCode={null}
           >
+            <UpdateNodeInternalsExposer onReady={handleUpdateNodeInternalsReady} />
             <Background />
             <Controls />
             <MiniMap />
@@ -451,6 +473,7 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
           onUpdateNode={handleNodeUpdate}
           allNodes={allNodes}
           viewOnly={viewOnly}
+          updateNodeInternals={handleUpdateNodeInternals}
         />
       </Box>
     </Box>

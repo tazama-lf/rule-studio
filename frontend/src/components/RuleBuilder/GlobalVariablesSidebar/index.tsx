@@ -31,16 +31,22 @@ const GlobalVariablesSidebar: React.FC<GlobalVariablesSidebarProps> = ({ collaps
 
     const entries = Object.entries(obj);
 
-    entries.forEach(([key]) => {
+    entries.forEach(([key, value]) => {
       const currentPath = parentPath ? `${parentPath}.${key}` : key;
       const currentLabel = parentLabel ? `${parentLabel}.${key}` : key;
 
-      items.push({
-        path: currentPath,
-        label: key,
-        description: currentLabel,
-        color,
-      });
+      // Recurse if value is an object (not null)
+      if (typeof value === 'object' && value !== null) {
+        flattenObject(value, currentPath, currentLabel, items, color);
+      } else {
+        // Only add leaf nodes
+        items.push({
+          path: currentPath,
+          label: key,
+          description: currentLabel,
+          color,
+        });
+      }
     });
 
     return items;
@@ -68,7 +74,7 @@ const GlobalVariablesSidebar: React.FC<GlobalVariablesSidebarProps> = ({ collaps
 
   const onDragStart = (event: React.DragEvent<HTMLDivElement>, variablePath: string, value: unknown): void => {
     event.dataTransfer.setData('variablePath', variablePath);
-    event.dataTransfer.setData('variableValue', JSON.stringify(value));
+    event.dataTransfer.setData('variableValue', JSON.stringify(value ?? null));
     event.dataTransfer.effectAllowed = 'copy';
   };
 

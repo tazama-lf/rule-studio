@@ -30,6 +30,7 @@ interface RightSidebarProps {
   viewOnly?: boolean;
   ruleId?: string;
   edges?: import('@xyflow/react').Edge[];
+  updateNodeInternals?: (nodeId: string) => void;
 }
 
 interface NodeData {
@@ -55,6 +56,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
   viewOnly = false,
   ruleId,
   edges = [],
+  updateNodeInternals,
 }) => {
   const collapsed = !selectedNode;
 
@@ -321,13 +323,17 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
     if (selectedNode) {
       updateTimeoutRef.current = setTimeout(() => {
         onUpdateNode(selectedNode.id, { params: updatedParams });
+        // Notify React Flow that handles have changed
+        if (updateNodeInternals) {
+          updateNodeInternals(selectedNode.id);
+        }
       }, 300);
       
       validationTimeoutRef.current = setTimeout(() => {
         validate(updatedParams);
       }, 500);
     }
-  }, [conditions, selectedNode, onUpdateNode, validate]);
+  }, [conditions, selectedNode, onUpdateNode, validate, updateNodeInternals]);
 
   const handleAddElse = useCallback(() => {
     const newConditions = [...conditions];
@@ -348,6 +354,10 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
       if (selectedNode) {
         updateTimeoutRef.current = setTimeout(() => {
           onUpdateNode(selectedNode.id, { params: updatedParams });
+          // Notify React Flow that handles have changed
+          if (updateNodeInternals) {
+            updateNodeInternals(selectedNode.id);
+          }
         }, 300);
         
         validationTimeoutRef.current = setTimeout(() => {
@@ -355,7 +365,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         }, 500);
       }
     }
-  }, [conditions, selectedNode, onUpdateNode, validate]);
+  }, [conditions, selectedNode, onUpdateNode, validate, updateNodeInternals]);
 
   const handleRemoveCondition = useCallback(
     (index: number) => {
@@ -376,6 +386,10 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         if (selectedNode) {
           updateTimeoutRef.current = setTimeout(() => {
             onUpdateNode(selectedNode.id, { params: updatedParams });
+            // Notify React Flow that handles have changed
+            if (updateNodeInternals) {
+              updateNodeInternals(selectedNode.id);
+            }
           }, 300);
           
           validationTimeoutRef.current = setTimeout(() => {
@@ -384,7 +398,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         }
       }
     },
-    [conditions, selectedNode, onUpdateNode, validate]
+    [conditions, selectedNode, onUpdateNode, validate, updateNodeInternals]
   );
 
   const handleTernaryParamChange = useCallback((key: string, value: string) => {

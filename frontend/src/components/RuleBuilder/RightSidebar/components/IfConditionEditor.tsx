@@ -41,8 +41,8 @@ const IfConditionEditor: React.FC<IfConditionEditorProps> = ({
             <PropertyRow
               key={index}
               onDrop={(e) => {
+                e.preventDefault();
                 if (cond.type !== 'else' && !viewOnly) {
-                  e.preventDefault();
                   let variablePath = e.dataTransfer.getData('variablePath');
                   if (variablePath) {
                     variablePath = variablePath.replace(/\{\{\s*/g, '').replace(/\s*\}\}/g, '').trim();
@@ -115,7 +115,13 @@ const IfConditionEditor: React.FC<IfConditionEditorProps> = ({
                   }}
                 />
                 {index > 0 && !viewOnly && (
-                  <IconButton size="small" color="error" onClick={() => onRemoveCondition(index)} sx={{ mt: 0.5 }}>
+                  <IconButton 
+                    size="small" 
+                    color="error" 
+                    onClick={() => onRemoveCondition(index)} 
+                    sx={{ mt: 0.5 }}
+                    aria-label="Delete condition"
+                  >
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 )}

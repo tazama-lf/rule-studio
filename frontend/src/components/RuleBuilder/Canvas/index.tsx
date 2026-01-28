@@ -7,6 +7,7 @@ import {
   MiniMap,
   useNodesState,
   useEdgesState,
+  useUpdateNodeInternals,
   Panel,
   type ReactFlowInstance,
 } from '@xyflow/react';
@@ -29,6 +30,17 @@ const nodeTypes = {
   editableNode: EditableNode,
 };
 
+// Internal component to expose updateNodeInternals from within ReactFlow context
+const UpdateNodeInternalsExposer: React.FC<{ onReady: (updateFn: (nodeId: string) => void) => void }> = ({ onReady }) => {
+  const updateNodeInternals = useUpdateNodeInternals();
+  
+  useEffect(() => {
+    onReady(updateNodeInternals);
+  }, [onReady, updateNodeInternals]);
+  
+  return null;
+};
+
 interface NestedCanvasData {
   nodes: Node[];
   edges: Edge[];
@@ -40,6 +52,7 @@ interface CanvasProps {
   onCodeGenerate?: (code: string) => void;
   onNodeSelect?: (node: Node | null) => void;
   onNodeUpdate?: (nodeId: string, updates: Record<string, unknown>) => void;
+  onNodeUpdateHandlerReady?: (handler: (nodeId: string, updates: Record<string, unknown>) => void) => void;
   debugVariables?: Record<string, unknown>;
   debugLogs?: DebugLog[];
   currentNodeId?: string;
@@ -53,6 +66,7 @@ interface CanvasProps {
   viewOnly?: boolean;
   initialNodes?: Node[];
   initialEdges?: Edge[];
+  onUpdateNodeInternalsReady?: (updateFn: (nodeId: string) => void) => void;
 }
 
 
@@ -63,6 +77,7 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = ({
   onCodeGenerate,
   onNodeSelect,
   onNodeUpdate,
+  onNodeUpdateHandlerReady,
   nestedCanvasData = {},
   debugVariables = {},
   debugLogs = [],
@@ -71,18 +86,22 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = ({
   viewOnly = false,
   initialNodes,
   initialEdges,
+  onUpdateNodeInternalsReady,
 }) => {
   const initialDataRef = useRef({ nodes: initialNodes, edges: initialEdges });
   
   const getInitialFlow = React.useMemo(() => {
     const nodes = (initialDataRef.current.nodes as Node[]) || [];
     const edges = (initialDataRef.current.edges as Edge[]) || [];
-    
+    return { nodes, edges };
+  }, []);
+  
+  // Extract counters on mount (side effect separated from memo)
+  useEffect(() => {
+    const { nodes, edges } = getInitialFlow;
     if (nodes.length > 0 || edges.length > 0) {
       extractCountersFromFlow(nodes, edges, nestedCanvasData || {});
     }
-    
-    return { nodes, edges };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -173,10 +192,10 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = ({
   );
 
   React.useEffect(() => {
-    if (onNodeUpdate) {
-      onNodeUpdate('_handler', handleNodeUpdate as unknown as Record<string, unknown>);
+    if (onNodeUpdateHandlerReady) {
+      onNodeUpdateHandlerReady(handleNodeUpdate);
     }
-  }, [onNodeUpdate, handleNodeUpdate]);
+  }, [onNodeUpdateHandlerReady, handleNodeUpdate]);
 
   React.useEffect(() => {
     if (onFlowStateUpdateRef.current) {
@@ -250,6 +269,7 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = ({
           elementsSelectable={!isPlaying && !viewOnly}
           deleteKeyCode={null}
         >
+          {onUpdateNodeInternalsReady && <UpdateNodeInternalsExposer onReady={onUpdateNodeInternalsReady} />}
           <Background />
           <Controls />
           <MiniMap />

@@ -101,7 +101,12 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
     event.dataTransfer.effectAllowed = 'move';
   };
 
-  const showVariablesEmptyState = showGlobalVariables && activeTab === 2 && ruleRequestTree.length === 0 && ruleConfigTree.length === 0;
+  const showVariablesEmptyState = showGlobalVariables && activeTab === 2 && 
+    ruleRequestTree.length === 0 && 
+    ruleConfigTree.length === 0 && 
+    localVarsTree.length === 0 && 
+    loopVarsTree.length === 0 && 
+    ruleResultTree.length === 0;
   const showFunctionsEmptyState = activeTab === 1 && functionNodes.length === 0;
 
   return (

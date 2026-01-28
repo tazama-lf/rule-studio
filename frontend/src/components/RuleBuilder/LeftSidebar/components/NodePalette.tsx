@@ -27,7 +27,7 @@ const NodePalette: React.FC<NodePaletteProps> = ({ nodes, onDragStart }) => {
         <NodeCard
           key={`${nodeType}-${node.mode || 'default'}`}
           elevation={1}
-          nodecolor={node.color || '#gray'}
+          nodecolor={node.color || '#808080'}
           draggable={!nonDraggable}
           onDragStart={(e) => onDragStart(e, nodeType, node.mode)}
           sx={{
