@@ -122,6 +122,7 @@ const EditorSection = forwardRef<EditorSectionHandle, EditorSectionProps>(({
         onDragLeave={onDragLeave}
       >
         <Editor
+          key={initialValue}
           height="100%"
           language="sql"
           defaultValue={initialValue}
