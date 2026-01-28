@@ -87,6 +87,7 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = ({
   onUpdateNodeInternalsReady,
 }) => {
   const initialDataRef = useRef({ nodes: initialNodes, edges: initialEdges });
+  const extractedNestedCountersRef = useRef(false);
   
   const getInitialFlow = React.useMemo(() => {
     const nodes = (initialDataRef.current.nodes as Node[]) || [];
@@ -94,14 +95,24 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = ({
     return { nodes, edges };
   }, []);
   
-  // Extract counters on mount (side effect separated from memo)
+  // Stable derived value for nested data availability
+  const hasNestedFlows = React.useMemo(() => {
+    return nestedCanvasData ? Object.keys(nestedCanvasData).length > 0 : false;
+  }, [nestedCanvasData]);
+  
+  // Extract counters on mount and when nested flows first become available
   useEffect(() => {
     const { nodes, edges } = getInitialFlow;
-    if (nodes.length > 0 || edges.length > 0) {
+    
+    if ((nodes.length > 0 || edges.length > 0) && hasNestedFlows && !extractedNestedCountersRef.current) {
       extractCountersFromFlow(nodes, edges, nestedCanvasData || {});
+      extractedNestedCountersRef.current = true;
+    } else if ((nodes.length > 0 || edges.length > 0) && !hasNestedFlows && !extractedNestedCountersRef.current) {
+      extractCountersFromFlow(nodes, edges, {});
+      extractedNestedCountersRef.current = true;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [hasNestedFlows]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(getInitialFlow.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(getInitialFlow.edges);
