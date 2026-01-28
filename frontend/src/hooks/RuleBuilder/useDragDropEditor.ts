@@ -22,19 +22,21 @@ export const useDragDropEditor = () => {
     });
     editor.addCommand(monaco.KeyCode.Space, () => {
       const position = editor.getPosition();
-      editor.executeEdits('', [{
-        range: {
-          startLineNumber: position.lineNumber,
-          startColumn: position.column,
-          endLineNumber: position.lineNumber,
-          endColumn: position.column,
-        },
-        text: ' ',
-      }]);
-      editor.setPosition({
-        lineNumber: position.lineNumber,
-        column: position.column + 1,
-      });
+      if (position) {
+        editor.executeEdits('', [{
+          range: {
+            startLineNumber: position.lineNumber,
+            startColumn: position.column,
+            endLineNumber: position.lineNumber,
+            endColumn: position.column,
+          },
+          text: ' ',
+        }]);
+        editor.setPosition({
+          lineNumber: position.lineNumber,
+          column: position.column + 1,
+        });
+      }
     });
   }, []);
 

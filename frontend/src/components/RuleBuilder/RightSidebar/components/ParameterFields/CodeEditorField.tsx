@@ -1,5 +1,5 @@
 import React from 'react';
-import type { NodeInput } from '../../../../../utils/Templates/customFuncTemplate';
+import type { NodeInput } from '../../../../../types/nodeInput';
 import { PropertyRow } from '../../styles';
 import CodeEditor from '../CodeEditor';
 

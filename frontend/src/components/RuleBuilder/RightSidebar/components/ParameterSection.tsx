@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { Divider } from '@mui/material';
 import type { Node } from '@xyflow/react';
-import type { NodeInput } from '../../../../utils/Templates/customFuncTemplate';
+import type { NodeInput } from '../../../../types/nodeInput';
 import { SectionContainer, SectionTitle } from '../styles';
 import CodeEditorModal from './CodeEditorModal';
 import QueryEditorModal from './QueryEditorModal/QueryEditorModal';

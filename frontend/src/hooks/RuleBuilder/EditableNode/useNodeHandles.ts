@@ -24,7 +24,6 @@ export const useNodeHandles = (
       sourceHandles: [],
     };
 
-    // Target handle (top)
     if (hasTargetHandle) {
       result.targetHandle = {
         id: 'target',
@@ -39,9 +38,7 @@ export const useNodeHandles = (
       };
     }
 
-    // Source handles - special handling for If nodes
     if (hasSourceHandle && nodeType === 'If') {
-      // Right-side handles for if/else if/else branches
       const totalConditions = conditions.length;
       const spacing = 80 / (totalConditions + 1);
 
@@ -63,7 +60,6 @@ export const useNodeHandles = (
         });
       });
 
-      // Bottom handle for continuation after if block
       result.sourceHandles.push({
         id: 'exit',
         type: 'source',
@@ -76,7 +72,6 @@ export const useNodeHandles = (
         },
       });
     } else if (hasSourceHandle && nodeType === 'Loop') {
-      // Right-side handle for loop body
       result.sourceHandles.push({
         id: 'loopBody',
         type: 'source',
@@ -90,7 +85,6 @@ export const useNodeHandles = (
         },
       });
 
-      // Bottom handle for continuation after loop
       result.sourceHandles.push({
         id: 'exit',
         type: 'source',
@@ -103,7 +97,6 @@ export const useNodeHandles = (
         },
       });
     } else if (hasSourceHandle) {
-      // Single output handle for other nodes
       result.sourceHandles.push({
         id: 'source',
         type: 'source',

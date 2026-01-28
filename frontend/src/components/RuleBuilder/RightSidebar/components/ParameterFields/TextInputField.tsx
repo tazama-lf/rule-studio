@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import { TextField, Typography } from '@mui/material';
-import type { NodeInput } from '../../../../../utils/Templates/customFuncTemplate';
+import type { NodeInput } from '../../../../../types/nodeInput';
 import { PropertyRow } from '../../styles';
 
 interface TextInputFieldProps {

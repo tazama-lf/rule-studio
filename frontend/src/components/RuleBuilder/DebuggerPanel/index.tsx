@@ -35,7 +35,6 @@ const DebuggerPanel: React.FC<DebuggerPanelProps> = ({
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll logs when new log is added
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -51,7 +50,6 @@ const DebuggerPanel: React.FC<DebuggerPanelProps> = ({
 
   return (
     <DebugContainer>
-      {/* Header */}
       <Header>
         <Box display="flex" alignItems="center" gap={1}>
           {isPlaying ? (
@@ -80,8 +78,6 @@ const DebuggerPanel: React.FC<DebuggerPanelProps> = ({
           />
         )}
       </Header>
-
-      {/* Variables Table */}
       <VariablesSection>
         <SectionHeader>Variables Scope</SectionHeader>
         {Object.keys(variables).length === 0 ? (
@@ -105,8 +101,6 @@ const DebuggerPanel: React.FC<DebuggerPanelProps> = ({
           </Box>
         )}
       </VariablesSection>
-
-      {/* Console Logs */}
       <ConsoleSection>
         <SectionHeader sx={{ borderTop: '1px solid #475569' }}>
           Console Output

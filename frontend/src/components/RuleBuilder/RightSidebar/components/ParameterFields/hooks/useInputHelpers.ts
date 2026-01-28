@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import type { NodeInput } from '../../../../../../utils/Templates/customFuncTemplate';
+import type { NodeInput } from '../../../../../../types/nodeInput';
 
 interface UseInputHelpersProps {
   currentParams: Record<string, string>;

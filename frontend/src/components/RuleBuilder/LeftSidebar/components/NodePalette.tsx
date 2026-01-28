@@ -11,7 +11,6 @@ interface NodePaletteProps {
 }
 
 const NodePalette: React.FC<NodePaletteProps> = ({ nodes, onDragStart }) => {
-  // Check if node is a Start or End node (already present in canvas)
   const isNonDraggable = (nodeType: string): boolean => {
     return nodeType === 'Start' || nodeType === 'End';
   };
@@ -19,9 +18,7 @@ const NodePalette: React.FC<NodePaletteProps> = ({ nodes, onDragStart }) => {
   return (
     <>
       {nodes.map((node) => {
-        // Use nodeType or type, but ensure we don't include mode in it
         let nodeType = node.nodeType || node.type || '';
-        // If nodeType accidentally includes ::mode, split it
         if (nodeType.includes('::')) {
           [nodeType] = nodeType.split('::');
         }

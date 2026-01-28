@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useImperativeHandle, forwardRef, useCallback } 
 import { Box, Alert, Typography } from '@mui/material';
 import Editor from '@monaco-editor/react';
 import type { Monaco } from '@monaco-editor/react';
+import type { editor } from 'monaco-editor';
 
 export interface EditorSectionHandle {
   getValue: () => string;
@@ -25,8 +26,7 @@ const EditorSection = forwardRef<EditorSectionHandle, EditorSectionProps>(({
   onDragEnter,
   onDragLeave,
 }, ref) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const editorRef = useRef<any>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
   useImperativeHandle(ref, () => ({
     getValue: () => {
@@ -40,8 +40,7 @@ const EditorSection = forwardRef<EditorSectionHandle, EditorSectionProps>(({
 
   const handleEditorMount = useCallback((editor: Parameters<NonNullable<React.ComponentProps<typeof Editor>['onMount']>>[0], monaco: Monaco) => {
     editorRef.current = editor;
-    
-    // Disable suggestions and auto-completion for performance
+
     editor.updateOptions({
       quickSuggestions: false,
       suggestOnTriggerCharacters: false,

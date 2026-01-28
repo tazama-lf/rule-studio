@@ -30,7 +30,6 @@ const VariableTree: React.FC<VariableTreeProps> = ({
   return (
     <Box sx={{ p: 1.5, overflowX: 'auto', minWidth: 0 }}>
       <Box sx={{ minWidth: 300 }}>
-        {/* Loop Variables Section - Only show when in loop scope */}
         {loopContext.isInLoopScope && (
           <VariableTreeSection
             title={
@@ -57,8 +56,6 @@ const VariableTree: React.FC<VariableTreeProps> = ({
             showDivider={true}
           />
         )}
-
-        {/* Local Variables Section */}
         <VariableTreeSection
           title="Local Variables"
           icon={<StorageIcon sx={{ fontSize: 18 }} />}
@@ -67,8 +64,6 @@ const VariableTree: React.FC<VariableTreeProps> = ({
           emptyMessage="No local variables defined yet. Use SetVariable or FetchDB nodes to create variables."
           showDivider={loopContext.isInLoopScope || localVarsTree.length > 0}
         />
-
-        {/* Global Variables - RuleRequest */}
         <VariableTreeSection
           title="Global Variables (RuleRequest)"
           icon={<InfoOutlinedIcon sx={{ fontSize: 18 }} />}
@@ -76,8 +71,6 @@ const VariableTree: React.FC<VariableTreeProps> = ({
           nodes={ruleRequestTree}
           showDivider={true}
         />
-
-        {/* Global Variables - RuleConfig */}
         <VariableTreeSection
           title="Global Variables (RuleConfig)"
           icon={<CodeIcon sx={{ fontSize: 18 }} />}
@@ -85,8 +78,6 @@ const VariableTree: React.FC<VariableTreeProps> = ({
           nodes={ruleConfigTree}
           showDivider={true}
         />
-
-        {/* Global Variables - RuleResult */}
         <VariableTreeSection
           title="Global Variables (RuleResult)"
           icon={<CodeIcon sx={{ fontSize: 18 }} />}
