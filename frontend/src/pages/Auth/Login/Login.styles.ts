@@ -4,9 +4,7 @@ import { Box, Typography, AppBar, Toolbar } from '@mui/material';
 export const themeColor = '#51BE99';
 
 export const Root = styled(Box)({
-  // minHeight: '100vh',
-  // width: '100vw',
-  position: 'relative',
+   position: 'relative',
   overflow: 'hidden',
 });
 

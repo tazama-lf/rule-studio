@@ -42,7 +42,7 @@ const useOverviewController = (props: IOverviewProps) => {
     const [getVersions] = useLazyGetTxtpVersionsQuery()
 
     const { open } = useModal()
-    const user = extractData('user')
+    const user = extractData('user') || {}
 
     const initial: RuleFormValues = {
         rule_name: (data?.rule_name as string) ?? '',
@@ -62,14 +62,11 @@ const useOverviewController = (props: IOverviewProps) => {
         formState: { errors },
         control,
         setValue,
-        watch,
+        getValues
     } = useForm<RuleFormValues>({
         defaultValues: initial,
         resolver: shouldValidate ? yupResolver(createRuleSchema) : undefined,
     })
-
-    // eslint-disable-next-line react-hooks/incompatible-library
-    const rule_config_id = watch('rule_config_id')
 
     const onSubmit = (values: RuleFormValues) => {
         const payload = {
@@ -80,13 +77,15 @@ const useOverviewController = (props: IOverviewProps) => {
             rule_type: values?.rule_type?.value,
             txtpVersion: values?.txtpVersion?.value,
         }
-        submit(payload).then((res) => {
-            if (res) {
+        submit(payload).unwrap()
+            .then((res) => {
                 insertData(res, 'trs_rule', LocalStorage, true)
                 toast.success('Rule Successfully Created')
                 enableNextTab()
-            }
-        })
+            })
+            .catch((error) => {
+                toast.error(error?.data?.message || 'Failed to create rule')
+            })
     }
 
     const handleNext = () => {
@@ -96,22 +95,28 @@ const useOverviewController = (props: IOverviewProps) => {
     const handleRuleValue = (val: DropdownOption) => {
         setValue('rule_config_id', val as { label: string, value: string })
         const rule_no = val?.value?.toString().split('@')
-        setValue('rule_name', `${user.tenantId}-rule-${rule_no?.[0]}`)
+        const tenantId = user?.tenantId ?? ''
+        setValue('rule_name', `${tenantId}-rule-${rule_no?.[0]}`)
     }
 
     const handleTxTp = (val: DropdownOption) => {
         setValue('txtp', val as { label: string, value: string })
         if (val?.value) {
-            getVersions({ type: val.value }).unwrap().then((res) => {
-                if (res) {
-                    setVersions(res)
-                }
-            })
+            getVersions({ type: val.value }).unwrap()
+                .then((res) => {
+                    if (res) {
+                        setVersions(res)
+                    }
+                })
+                .catch(() => {
+                    toast.error('Failed to load transaction type versions')
+                })
         }
     }
 
     const handleRuleConfig = () => {
-        open(`${mode === 'view' ? 'View' : 'Select'} Rule Config`, <RuleConfig mode={mode} ruleConfigId={rule_config_id?.value} handleRuleValue={handleRuleValue} />, null, { maxWidth: 'md' })
+        const currentRuleConfigId = getValues('rule_config_id')
+        open(`${mode === 'view' ? 'View' : 'Select'} Rule Config`, <RuleConfig mode={mode} ruleConfigId={currentRuleConfigId?.value} handleRuleValue={handleRuleValue} />, null, { maxWidth: 'md' })
     }
 
     const handleNetworkMap = () => {
@@ -125,7 +130,7 @@ const useOverviewController = (props: IOverviewProps) => {
             isEdit: mode === 'edit' || mode == 'view',
             errors,
             isLoading,
-            rule_config_id,
+            rule_config_id: getValues('rule_config_id'),
             createLoading,
             transactions: types?.map((item: string) => ({ label: item, value: item })) || [],
             txtpVersions: versions?.map((item: string) => ({ label: item, value: item })) || [],

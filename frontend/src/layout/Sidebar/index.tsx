@@ -12,7 +12,6 @@ import { resetData } from '../../utils/Common/storage';
 
 const menuItems: { icon: React.ReactElement, label: string, route: string, color: string }[] = [
     { icon: <HomeOutlinedIcon />, label: "Rules Home", route: "home", color: "#8f57ee" },
-    // { icon: <CodeIcon />, label: "Rule Editor", route: "editor", color: "#4789f6" },
     { icon: <StorageRoundedIcon />, label: "Datasets", route: "datasets", color: "#2bc08f" },
     { icon: <SettingsOutlinedIcon />, label: "Settings", route: "settings", color: "#f5a319" },
     { icon: <HelpOutlineOutlinedIcon />, label: "Help", route: "help", color: "#8f57ee" },

@@ -79,7 +79,7 @@ const Input = forwardRef(function Input(
     }: InputProps,
     ref: ForwardedRef<HTMLInputElement | HTMLTextAreaElement>
 ) {
-    const [showPassword, setShowPassword] = useState(false);
+    const [showPassword, setShowPassword] = useState<boolean>(false);
 
     const isTextarea = type === 'textarea';
     const isPassword = type === 'password';
@@ -90,7 +90,7 @@ const Input = forwardRef(function Input(
             <StyledTextField
                 inputRef={ref}
                 multiline={isTextarea}
-                rows={isTextarea ? rows : undefined}
+                rows={rows}
                 placeholder={placeholder ?? (label ? `Enter ${label}` : '')}
                 value={value}
                 onChange={onChange}
