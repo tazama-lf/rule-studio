@@ -46,9 +46,10 @@ export const updateFieldAtPath = (
 
   for (let i = 1; i < parts.length - 1; i++) {
     const branch = parts[i] === 'true' ? current.trueValue : current.falseValue;
-    if (branch.type === 'nested' && branch.nested) {
-      current = branch.nested;
+    if (branch.type !== 'nested' || !branch.nested) {
+      throw new Error(`Invalid path: cannot navigate to '${path}' - branch at '${parts.slice(0, i + 1).join('.')}' is not nested`);
     }
+    current = branch.nested;
   }
 
   const lastPart = parts[parts.length - 1];

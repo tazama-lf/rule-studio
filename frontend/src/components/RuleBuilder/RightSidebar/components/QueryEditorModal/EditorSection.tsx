@@ -52,25 +52,6 @@ const EditorSection = forwardRef<EditorSectionHandle, EditorSectionProps>(({
       formatOnType: false,
       autoIndent: 'none',
     });
-    
-    editor.addCommand(monaco.KeyCode.Space, () => {
-      const position = editor.getPosition();
-      if (position) {
-        editor.executeEdits('', [{
-          range: {
-            startLineNumber: position.lineNumber,
-            startColumn: position.column,
-            endLineNumber: position.lineNumber,
-            endColumn: position.column,
-          },
-          text: ' ',
-        }]);
-        editor.setPosition({
-          lineNumber: position.lineNumber,
-          column: position.column + 1,
-        });
-      }
-    });
   }, []);
 
   const editorOptions = useMemo(() => ({

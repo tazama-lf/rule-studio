@@ -48,7 +48,7 @@ export const mapApiNodeToTemplate = (apiNode: ApiNode): NodeTemplate => {
     inputs: node_json.inputs?.map((input) => ({
       key: input.key,
       label: input.label,
-      defaultValue: String(input.defaultValue || ''),
+      defaultValue: input.defaultValue != null ? String(input.defaultValue) : '',
       type: input.type,
       required: input.required || false,
       placeholder: input.placeholder,
