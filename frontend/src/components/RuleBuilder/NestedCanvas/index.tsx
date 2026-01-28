@@ -274,6 +274,11 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
   );
   const onKeyDown = useCallback(
     (event: KeyboardEvent) => {
+      // No-op in view-only mode
+      if (viewOnly) {
+        return;
+      }
+
       if (event.key === 'Delete' || event.key === 'Backspace') {
         const target = event.target as HTMLElement;
         if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
@@ -306,7 +311,7 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
         setSelectedNode(null);
       }
     },
-    [edges, setNodes, setEdges, deleteSelectedNodes, deleteSelectedEdges]
+    [viewOnly, edges, setNodes, setEdges, deleteSelectedNodes, deleteSelectedEdges]
   );
   useEffect(() => {
     window.addEventListener('keydown', onKeyDown);

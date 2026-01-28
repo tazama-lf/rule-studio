@@ -251,7 +251,16 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
         isSaving={isSaving}
         viewOnly={viewOnly}
       />
-      {isLoadingNodes || isLoadingFlow || !apiNodesInitialized ? (
+      {nodesError || flowError ? (
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, flexDirection: 'column', gap: 2 }}>
+          <Typography variant="h6" color="error">
+            Error loading rule builder
+          </Typography>
+          <Typography variant="body2">
+            {nodesError ? 'Failed to load node templates' : 'Failed to load rule flow'}
+          </Typography>
+        </Box>
+      ) : isLoadingNodes || isLoadingFlow || !apiNodesInitialized ? (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, flexDirection: 'column', gap: 2 }}>
           <Typography variant="h6">
             {isLoadingNodes ? 'Loading node templates...' : isLoadingFlow ? 'Loading rule flow...' : 'Initializing...'}
@@ -260,15 +269,6 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
             {isLoadingNodes && 'Fetching available nodes from server'}
             {isLoadingFlow && !isLoadingNodes && 'Fetching rule configuration'}
             {!isLoadingNodes && !isLoadingFlow && !apiNodesInitialized && 'Setting up canvas...'}
-          </Typography>
-        </Box>
-      ) : nodesError || flowError ? (
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, flexDirection: 'column', gap: 2 }}>
-          <Typography variant="h6" color="error">
-            Error loading rule builder
-          </Typography>
-          <Typography variant="body2">
-            {nodesError ? 'Failed to load node templates' : 'Failed to load rule flow'}
           </Typography>
         </Box>
       ) : !transformedFlowData ? (
