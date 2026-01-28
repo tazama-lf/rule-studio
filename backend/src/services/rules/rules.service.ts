@@ -8,7 +8,7 @@ import {
   RuleFiltersDto,
   RequestFlow,
 } from './dto/rules.dto';
-import { BASE_RULE_ID } from 'src/constants/constant';
+import { BASE_RULE_ID } from '../../constants/constant';
 
 @Injectable()
 export class RulesService {
