@@ -164,10 +164,19 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
         return;
       }
 
+      let parsedFlowJson;
+      try {
+        parsedFlowJson = JSON.parse(flowJson);
+      } catch (parseError) {
+        toast.error('Failed to parse flow data: Invalid JSON format');
+        console.error('JSON parse error:', parseError);
+        return;
+      }
+
       const tsFileBase64 = btoa(unescape(encodeURIComponent(tsCode)));
 
       const payload = {
-        flow_json: JSON.parse(flowJson),
+        flow_json: parsedFlowJson,
         ts_file_base64: tsFileBase64,
       };
 
