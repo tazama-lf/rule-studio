@@ -46,7 +46,7 @@ export class AuthService {
         );
       }
       this.loggerService.log('Auth service responded', AuthService.name);
-console.log('Auth service response data:=====>', response.data);
+
       const token =
         typeof response.data === 'string'
           ? response.data
