@@ -24,7 +24,7 @@ export class AuthController {
   async login(
     @Body(new ValidationPipe({ whitelist: true, transform: true }))
     body: LoginDto,
-  ): Promise<{ message: string; token: string; expiresIn?: number }> {
+  ): Promise<{ message: string; token: string }> {
     try {
       const result = await this.authService.login(body.username, body.password);
 
@@ -32,9 +32,7 @@ export class AuthController {
         message: 'Login successful',
         token: result.token,
       };
-      if (result.expiresIn) {
-        response.expiresIn = result.expiresIn;
-      }
+
       return response;
     } catch (error) {
       this.handleLoginError(error, body.username);

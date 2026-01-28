@@ -18,7 +18,7 @@ export class AuthService {
   async login(
     username: string,
     password: string,
-  ): Promise<{ message: string; token: string; expiresIn: number | null }> {
+  ): Promise<{ message: string; token: string;}> {
     const authUrl = process.env.TAZAMA_AUTH_URL;
     if (!authUrl) {
       this.loggerService.error(
@@ -46,7 +46,7 @@ export class AuthService {
         );
       }
       this.loggerService.log('Auth service responded', AuthService.name);
-
+console.log('Auth service response data:=====>', response.data);
       const token =
         typeof response.data === 'string'
           ? response.data
@@ -96,11 +96,7 @@ export class AuthService {
       return {
         message: 'Login successful',
         token,
-        expiresIn: (() => {
-          const raw = response.data?.expires_in ?? response.data?.expiresIn;
-          const parsed = raw != null ? Number(raw) : NaN;
-          return Number.isFinite(parsed) ? parsed : null;
-        })(),
+        
       };
     } catch (error) {
       if (error instanceof UnauthorizedException) {
