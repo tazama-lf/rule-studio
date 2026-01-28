@@ -38,6 +38,9 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
   const flowState = useFlowState();
   const nestedCanvasManager = useNestedCanvasManager();
   
+  // Store reference to updateNodeInternals from Canvas for dynamic handle updates
+  const updateNodeInternalsRef = React.useRef<((nodeId: string) => void) | null>(null);
+  
   const [apiNodesInitialized, setApiNodesInitialized] = React.useState(false);
   
   useEffect(() => {
@@ -199,6 +202,15 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
     nodeUpdateHandlerRef.current?.(nodeId, updates);
   }, []);
 
+  const handleUpdateNodeInternalsReady = useCallback((updateFn: (nodeId: string) => void) => {
+    updateNodeInternalsRef.current = updateFn;
+  }, []);
+
+  // Wrapper function to call updateNodeInternals from RightSidebar
+  const handleUpdateNodeInternals = useCallback((nodeId: string) => {
+    updateNodeInternalsRef.current?.(nodeId);
+  }, []);
+
   const handleFlowStateUpdate = ((
     nodes: Node[], 
     edges: Edge[], 
@@ -293,6 +305,7 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
             onFlowStateUpdate={handleFlowStateUpdate}
             initialNodes={transformedFlowData?.nodes}
             initialEdges={transformedFlowData?.edges}
+            onUpdateNodeInternalsReady={handleUpdateNodeInternalsReady}
           />
           <RightSidebar
             key={flowState.selectedNode?.id || 'no-selection'}
@@ -303,6 +316,7 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
             viewOnly={viewOnly}
             ruleId={ruleId}
             edges={flowState.edges}
+            updateNodeInternals={handleUpdateNodeInternals}
           />
 
           {nestedCanvasManager.activeNestedCanvas && (

@@ -7,6 +7,7 @@ import {
   MiniMap,
   useNodesState,
   useEdgesState,
+  useUpdateNodeInternals,
   Panel,
   type ReactFlowInstance,
 } from '@xyflow/react';
@@ -27,6 +28,17 @@ import {
 
 const nodeTypes = {
   editableNode: EditableNode,
+};
+
+// Internal component to expose updateNodeInternals from within ReactFlow context
+const UpdateNodeInternalsExposer: React.FC<{ onReady: (updateFn: (nodeId: string) => void) => void }> = ({ onReady }) => {
+  const updateNodeInternals = useUpdateNodeInternals();
+  
+  useEffect(() => {
+    onReady(updateNodeInternals);
+  }, [onReady, updateNodeInternals]);
+  
+  return null;
 };
 
 interface NestedCanvasData {
@@ -53,6 +65,7 @@ interface CanvasProps {
   viewOnly?: boolean;
   initialNodes?: Node[];
   initialEdges?: Edge[];
+  onUpdateNodeInternalsReady?: (updateFn: (nodeId: string) => void) => void;
 }
 
 
@@ -71,6 +84,7 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = ({
   viewOnly = false,
   initialNodes,
   initialEdges,
+  onUpdateNodeInternalsReady,
 }) => {
   const initialDataRef = useRef({ nodes: initialNodes, edges: initialEdges });
   
@@ -258,6 +272,7 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = ({
           elementsSelectable={!isPlaying && !viewOnly}
           deleteKeyCode={null}
         >
+          {onUpdateNodeInternalsReady && <UpdateNodeInternalsExposer onReady={onUpdateNodeInternalsReady} />}
           <Background />
           <Controls />
           <MiniMap />
