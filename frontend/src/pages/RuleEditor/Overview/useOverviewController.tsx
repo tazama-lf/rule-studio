@@ -1,12 +1,12 @@
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import type { DropdownOption } from "../../../components/DropDown";
 import { useModal } from "../../../contexts/ModalContext";
 import { useTab } from "../../../contexts/TabContext/useTab";
 import { useGetTypesQuery, useLazyGetTxtpVersionsQuery } from "../../../redux/Api/Config";
-import { useCreateRuleMutation } from "../../../redux/Api/Rules";
+import { useCloneRuleMutation, useCreateRuleMutation } from "../../../redux/Api/Rules";
 import { LocalStorage } from "../../../utils/Common/enums";
 import { toDropdown } from "../../../utils/Common/helpers";
 import { extractData, insertData } from "../../../utils/Common/storage";
@@ -39,6 +39,7 @@ const useOverviewController = (props: IOverviewProps) => {
 
     const { data: types, isLoading } = useGetTypesQuery({})
     const [submit, { isLoading: createLoading }] = useCreateRuleMutation()
+    const [clone, { isLoading: cloneLoading }] = useCloneRuleMutation()
     const [getVersions] = useLazyGetTxtpVersionsQuery()
 
     const { open } = useModal()
@@ -55,7 +56,7 @@ const useOverviewController = (props: IOverviewProps) => {
     };
 
 
-    const shouldValidate = mode === "clone" || mode === null
+    const shouldValidate = mode === "clone" || !mode
 
     const {
         handleSubmit,
@@ -77,15 +78,28 @@ const useOverviewController = (props: IOverviewProps) => {
             rule_type: values?.rule_type?.value,
             txtpVersion: values?.txtpVersion?.value,
         }
-        submit(payload).unwrap()
-            .then((res) => {
-                insertData(res, 'trs_rule', LocalStorage, true)
-                toast.success('Rule Successfully Created')
-                enableNextTab()
-            })
-            .catch((error) => {
-                toast.error(error?.data?.message || 'Failed to create rule')
-            })
+
+        if (mode === 'clone') {
+            clone({ id: data?.id, body: payload }).unwrap()
+                .then((res) => {
+                    insertData(res, 'trs_rule', LocalStorage, true)
+                    toast.success('Rule Successfully Cloned')
+                    enableNextTab()
+                })
+                .catch((error) => {
+                    toast.error(error?.data?.message || 'Failed to clone rule')
+                })
+        } else {
+            submit(payload).unwrap()
+                .then((res) => {
+                    insertData(res, 'trs_rule', LocalStorage, true)
+                    toast.success('Rule Successfully Created')
+                    enableNextTab()
+                })
+                .catch((error) => {
+                    toast.error(error?.data?.message || 'Failed to create rule')
+                })
+        }
     }
 
     const handleNext = () => {
@@ -99,18 +113,30 @@ const useOverviewController = (props: IOverviewProps) => {
         setValue('rule_name', `${tenantId}-rule-${rule_no?.[0]}`)
     }
 
+    const getTxtpVersions = useCallback((type: string | number) => {
+        getVersions({ type }).unwrap()
+            .then((res) => {
+                if (res) {
+                    setVersions(res)
+                }
+            })
+            .catch(() => {
+                toast.error('Failed to load transaction type versions')
+            })
+    }, [])
+
+
+    useEffect(() => {
+        if (mode === 'clone' && data?.txtp_version) {
+            getTxtpVersions(data?.txtp)
+        }
+    }, [mode, data?.txtp_version])
+
     const handleTxTp = (val: DropdownOption) => {
         setValue('txtp', val as { label: string, value: string })
+        setValue('txtpVersion', null)
         if (val?.value) {
-            getVersions({ type: val.value }).unwrap()
-                .then((res) => {
-                    if (res) {
-                        setVersions(res)
-                    }
-                })
-                .catch(() => {
-                    toast.error('Failed to load transaction type versions')
-                })
+            getTxtpVersions(val?.value)
         }
     }
 
