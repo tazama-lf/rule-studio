@@ -1,7 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NodesService } from '../../src/services/nodes/nodes.service';
 import { AdminServiceClient } from '../../src/services/admin-service-client';
-import { CreateNodeDto, RequestQueryNodeDto } from '../../src/services/nodes/dto';
+import {
+  CreateNodeDto,
+  RequestQueryNodeDto,
+} from '../../src/services/nodes/dto';
 import { GetNodesQuery } from '../../src/services/nodes/interfaces/node.interface';
 
 // Mock AdminServiceClient
@@ -42,12 +45,14 @@ describe('NodesService', () => {
   describe('createNode', () => {
     it('should successfully create a node', async () => {
       const token = 'test-token';
-      const createNodeDto: CreateNodeDto[] = [{
-        node_json: { name: 'test' },
-        tenant_id: 'test-tenant',
-        created_by: 'test-user',
-        order: 1
-      }];
+      const createNodeDto: CreateNodeDto[] = [
+        {
+          node_json: { name: 'test' },
+          tenant_id: 'test-tenant',
+          created_by: 'test-user',
+          order: 1,
+        },
+      ];
       const expectedResult = [{ id: '1', ...createNodeDto[0] }];
 
       mockAdminServiceClient.createNode.mockResolvedValue(expectedResult);
@@ -55,7 +60,10 @@ describe('NodesService', () => {
       const result = await service.createNode(token, createNodeDto);
 
       expect(result).toEqual(expectedResult);
-      expect(adminServiceClient.createNode).toHaveBeenCalledWith(token, createNodeDto);
+      expect(adminServiceClient.createNode).toHaveBeenCalledWith(
+        token,
+        createNodeDto,
+      );
     });
 
     it('should throw an error if adminServiceClient fails', async () => {
@@ -65,7 +73,9 @@ describe('NodesService', () => {
 
       mockAdminServiceClient.createNode.mockRejectedValue(error);
 
-      await expect(service.createNode(token, createNodeDto)).rejects.toThrow(error);
+      await expect(service.createNode(token, createNodeDto)).rejects.toThrow(
+        error,
+      );
     });
   });
 
@@ -84,14 +94,14 @@ describe('NodesService', () => {
     });
 
     it('should throw an error if adminServiceClient fails', async () => {
-        const token = 'test-token';
-        const query: GetNodesQuery = { tenantId: 'test-tenant' };
-        const error = new Error('Failed to get nodes');
-  
-        mockAdminServiceClient.getAllNodes.mockRejectedValue(error);
-  
-        await expect(service.getAllNodes(token, query)).rejects.toThrow(error);
-      });
+      const token = 'test-token';
+      const query: GetNodesQuery = { tenantId: 'test-tenant' };
+      const error = new Error('Failed to get nodes');
+
+      mockAdminServiceClient.getAllNodes.mockRejectedValue(error);
+
+      await expect(service.getAllNodes(token, query)).rejects.toThrow(error);
+    });
   });
 
   describe('deleteNodeById', () => {
@@ -100,23 +110,30 @@ describe('NodesService', () => {
       const token = 'test-token';
       const expectedResult = { success: true, message: 'Node deleted' };
 
-      mockAdminServiceClient.deleteNodeByNodeId.mockResolvedValue(expectedResult);
+      mockAdminServiceClient.deleteNodeByNodeId.mockResolvedValue(
+        expectedResult,
+      );
 
       const result = await service.deleteNodeById(nodeId, token);
 
       expect(result).toEqual(expectedResult);
-      expect(adminServiceClient.deleteNodeByNodeId).toHaveBeenCalledWith(nodeId, token);
+      expect(adminServiceClient.deleteNodeByNodeId).toHaveBeenCalledWith(
+        nodeId,
+        token,
+      );
     });
 
     it('should throw an error if adminServiceClient fails', async () => {
-        const nodeId = 'node-1';
-        const token = 'test-token';
-        const error = new Error('Failed to delete node');
-  
-        mockAdminServiceClient.deleteNodeByNodeId.mockRejectedValue(error);
-  
-        await expect(service.deleteNodeById(nodeId, token)).rejects.toThrow(error);
-      });
+      const nodeId = 'node-1';
+      const token = 'test-token';
+      const error = new Error('Failed to delete node');
+
+      mockAdminServiceClient.deleteNodeByNodeId.mockRejectedValue(error);
+
+      await expect(service.deleteNodeById(nodeId, token)).rejects.toThrow(
+        error,
+      );
+    });
   });
 
   describe('executeQueryNode', () => {
@@ -130,17 +147,22 @@ describe('NodesService', () => {
       const result = await service.executeQueryNode(token, data);
 
       expect(result).toEqual(expectedResult);
-      expect(adminServiceClient.executeQueryNode).toHaveBeenCalledWith(token, data);
+      expect(adminServiceClient.executeQueryNode).toHaveBeenCalledWith(
+        token,
+        data,
+      );
     });
 
     it('should throw an error if adminServiceClient fails', async () => {
-        const token = 'test-token';
-        const data: RequestQueryNodeDto = { query: 'SELECT * FROM users' };
-        const error = new Error('Failed to execute query');
-  
-        mockAdminServiceClient.executeQueryNode.mockRejectedValue(error);
-  
-        await expect(service.executeQueryNode(token, data)).rejects.toThrow(error);
-      });
+      const token = 'test-token';
+      const data: RequestQueryNodeDto = { query: 'SELECT * FROM users' };
+      const error = new Error('Failed to execute query');
+
+      mockAdminServiceClient.executeQueryNode.mockRejectedValue(error);
+
+      await expect(service.executeQueryNode(token, data)).rejects.toThrow(
+        error,
+      );
+    });
   });
 });

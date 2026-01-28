@@ -200,9 +200,14 @@ export class TazamaAuthGuard implements CanActivate {
     return decoded;
   }
 
-  private extractInnerToken(outerToken: string): any {
+  private extractInnerToken(
+    outerToken: string,
+  ): Record<string, unknown> | null {
     try {
-      const outerDecoded = jwt.decode(outerToken) as any;
+      const outerDecoded = jwt.decode(outerToken) as Record<
+        string,
+        unknown
+      > | null;
       this.logger.log(
         `Outer token keys: ${outerDecoded ? Object.keys(outerDecoded).join(', ') : 'null'}`,
       );
@@ -214,7 +219,9 @@ export class TazamaAuthGuard implements CanActivate {
         return outerDecoded; // Return outer token if there's no inner token
       }
 
-      const innerDecoded = jwt.decode(outerDecoded.tokenString) as any;
+      const innerDecoded = jwt.decode(
+        outerDecoded.tokenString as string,
+      ) as Record<string, unknown> | null;
       this.logger.log(
         `Inner token keys: ${innerDecoded ? Object.keys(innerDecoded).join(', ') : 'null'}`,
       );
