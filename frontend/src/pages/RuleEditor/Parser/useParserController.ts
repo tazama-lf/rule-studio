@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { useParsePayloadMutation } from "../../../redux/Api/Parse";
 import { useLazyGetSamplePayloadQuery } from "../../../redux/Api/Config";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { IResult } from "../../../utils/Common/types";
 import { extractData } from "../../../utils/Common/storage";
 import { LocalStorage } from "../../../utils/Common/enums";
@@ -51,24 +51,24 @@ const useParserController = (props: IParseProps) => {
         }
     }, [isSuccess, parseBody])
 
-    const getData = () => {
+    const getData = useCallback(() => {
         getPayload({ type: data?.txtp }).unwrap().then((res) => {
             if (res) {
                 setValue('payload', JSON.stringify(res, null, 4))
             }
         })
-    }
+    }, [])
 
     useEffect(() => {
         if (isView || isEdit) {
             getData()
         }
-    }, [isView, isEdit])
+    }, [isView, isEdit, getData])
 
     const fetchJson = () => {
         getData()
     }
-    
+
     return {
         values: {
             control,

@@ -63,7 +63,7 @@ const Dropdown = ({
     onClick,
     height = 'md'
 }: DropdownProps) => {
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState<boolean>(false);
     const [search, debouncedSearch, setSearch] = useDebouncedSearch();
     const ref = useRef<HTMLDivElement | null>(null);
 

@@ -4,7 +4,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 
 
 type ButtonProps = {
-  onClick: () => void;
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
   Icon?: React.ElementType;
   disabled?: boolean;
   text: string;
@@ -14,6 +14,8 @@ type ButtonProps = {
   size?: "sm" | "md" | "lg" | "";
   height?: string
   width?: string
+  buttonType?: "button" | "submit" | "reset";
+  preventDefault?: boolean;
 };
 
 const MuiButton = ({
@@ -27,6 +29,8 @@ const MuiButton = ({
   size = "md",
   height = '50px',
   width,
+  buttonType = "button",
+  preventDefault = false,
 }: ButtonProps) => {
   const colors = {
     primary: {
@@ -69,16 +73,21 @@ const MuiButton = ({
   const selected = colors[type] || colors.default;
 
   const onPress = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    onClick?.();
+    if (preventDefault) {
+      e.preventDefault();
+    }
+    onClick?.(e);
   };
 
   return (
     <Button
       onClick={onPress}
+      type={buttonType}
       disabled={disabled || loading}
       variant={outlined ? "outlined" : "contained"}
-      startIcon={!loading && Icon ? <Icon /> : undefined}
+      startIcon={(!loading && Icon) && <Icon />}
+      aria-label={text}
+      aria-busy={loading}
       sx={{
         height,
         borderRadius: "6px",
@@ -87,7 +96,7 @@ const MuiButton = ({
         fontSize: "1rem",
         ...(outlined
           ? {
-            color: selected.contrastText,
+            color: selected.main,
             borderColor: selected.main,
           }
           : {
