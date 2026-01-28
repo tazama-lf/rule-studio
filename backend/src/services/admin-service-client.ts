@@ -582,7 +582,7 @@ export class AdminServiceClient {
     try {
       const response = await this.forwardRequest(
         'POST',
-        `/v1/admin/trs/clone/${ruleId}`,
+        `/v1/admin/trs/rule/clone/${ruleId}`,
         null,
         {
           Authorization: token.startsWith('Bearer ')
