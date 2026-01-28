@@ -1,7 +1,6 @@
 import React, { useMemo, useRef, useImperativeHandle, forwardRef, useCallback } from 'react';
 import { Box, Alert, Typography } from '@mui/material';
 import Editor from '@monaco-editor/react';
-import type { Monaco } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 
 export interface EditorSectionHandle {
@@ -38,7 +37,7 @@ const EditorSection = forwardRef<EditorSectionHandle, EditorSectionProps>(({
     },
   }), []);
 
-  const handleEditorMount = useCallback((editor: Parameters<NonNullable<React.ComponentProps<typeof Editor>['onMount']>>[0], monaco: Monaco) => {
+  const handleEditorMount = useCallback((editor: Parameters<NonNullable<React.ComponentProps<typeof Editor>['onMount']>>[0]) => {
     editorRef.current = editor;
 
     editor.updateOptions({

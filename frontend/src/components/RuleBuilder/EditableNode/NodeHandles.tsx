@@ -1,10 +1,10 @@
 import React from 'react';
-import { Handle } from '@xyflow/react';
+import { Handle, Position } from '@xyflow/react';
 
 interface HandleConfig {
   id: string;
   type: 'source' | 'target';
-  position: 'top' | 'bottom' | 'left' | 'right';
+  position: Position;
   style: React.CSSProperties;
 }
 
