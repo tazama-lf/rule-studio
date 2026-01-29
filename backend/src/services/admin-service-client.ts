@@ -119,9 +119,9 @@ export class AdminServiceClient {
 
       const message =
         data &&
-        typeof data === 'object' &&
-        'message' in data &&
-        typeof data.message === 'string'
+          typeof data === 'object' &&
+          'message' in data &&
+          typeof data.message === 'string'
           ? data.message
           : 'Admin service returned an error response';
 
@@ -143,7 +143,7 @@ export class AdminServiceClient {
     }
   }
 
- async getAllRulesWithFilters(
+  async getAllRulesWithFilters(
     offset: number,
     limit: number,
     filters: RuleFiltersDto,
@@ -158,6 +158,7 @@ export class AdminServiceClient {
   }
 
   async getRulesById(id: number, token: string): Promise<Rules> {
+    return await this.executeHttpRequest<Rules>('GET', `${RULES_WITH_ID}/${id}`, token);
     return await this.executeHttpRequest<Rules>('GET', `${RULES_WITH_ID}/${id}`, token);
   }
 
@@ -207,7 +208,7 @@ export class AdminServiceClient {
     return response.ruleIds;
   }
 
-  async getRuleConfiguration(ruleId: string, token: string): Promise<Record<string, unknown>> {
+  async getRuleConfiguration(ruleId: string, token: string): Promise<{}> {
     const response = await this.executeHttpRequest<{ configuration: Record<string, unknown> }>(
       'GET',
       `${RULE_CONFIGURATION}/${ruleId}`,
@@ -313,13 +314,21 @@ export class AdminServiceClient {
     );
   }
 
-  async getAllNodes(
+async getAllNodes(
     token: string,
     query: GetNodesQuery,
   ): Promise<ResponseNodesDto[]> {
+    const params: Record<string, string> = {};
+    if (query.tenantId) params.tenantId = query.tenantId;
+    if (query.type) params.type = query.type;
+    if (query.category) params.category = query.category;
+    if (query.sortBy) params.sortBy = query.sortBy;
+    if (query.sortOrder) params.sortOrder = query.sortOrder;
+    if (query.limit !== undefined) params.limit = String(query.limit);
+    if (query.offset !== undefined) params.offset = String(query.offset);
     const response = await this.executeHttpRequest<{
       nodes: ResponseNodesDto[];
-    }>('GET', NODES, token, undefined, query as Record<string, string>);
+    }>('GET', NODES, token, undefined, params);
     return response.nodes;
   }
 
