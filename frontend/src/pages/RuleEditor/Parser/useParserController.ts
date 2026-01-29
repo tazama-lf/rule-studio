@@ -57,7 +57,7 @@ const useParserController = (props: IParseProps) => {
 
     return {
         values: {
-            payload: JSON.stringify(samplePayload, null, 2),
+            payload,
             sampleLoader,
             txtp: data?.txtp,
             isEdit,

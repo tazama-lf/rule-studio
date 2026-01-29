@@ -50,7 +50,7 @@ const useOverviewController = (props: IOverviewProps) => {
     const user = extractData('user') || {}
 
     const initial: RuleFormValues = {
-        rule_name: (data?.rule_name as string) ?? '',
+        rule_name: '',
         description: (data?.description as string) ?? '',
         txtp: toDropdown(data?.txtp as string) as { label: string, value: string } | null,
         txtpVersion: toDropdown(data?.txtp_version as string) as { label: string, value: string } | null,
@@ -58,7 +58,6 @@ const useOverviewController = (props: IOverviewProps) => {
         rule_config_id: toDropdown(data?.rule_config_id as string) as { label: string, value: string } | null,
         rule_type: toDropdown(data?.rule_type as string) as { label: string, value: string } | null,
     };
-
 
     const shouldValidate = mode === "clone" || !mode
 
@@ -111,11 +110,17 @@ const useOverviewController = (props: IOverviewProps) => {
     }
 
 
+
+    const getRuleName = (id: string) => {
+        const rule_no = id?.toString().split('@')
+        const tenantId = user?.tenantId ?? ''
+        return `${tenantId}-rule-${rule_no?.[0]}`
+    }
+
     const handleRuleValue = (val: DropdownOption) => {
         setValue('rule_config_id', val as { label: string, value: string })
-        const rule_no = val?.value?.toString().split('@')
-        const tenantId = user?.tenantId ?? ''
-        setValue('rule_name', `${tenantId}-rule-${rule_no?.[0]}`)
+        const name = getRuleName(val?.value as string)
+        setValue('rule_name', name)
     }
 
     const getTxtpVersions = useCallback((type: string | number) => {
@@ -137,6 +142,13 @@ const useOverviewController = (props: IOverviewProps) => {
         }
     }, [mode, data?.txtp_version])
 
+    useEffect(() => {
+        if (data) {
+            const name = getRuleName(data?.rule_config_id)
+            setValue('rule_name', name)
+        }
+    }, [data])
+
     const handleTxTp = (val: DropdownOption) => {
         setValue('txtp', val as { label: string, value: string })
         setValue('txtpVersion', null)
@@ -157,7 +169,7 @@ const useOverviewController = (props: IOverviewProps) => {
     return {
         values: {
             control,
-            isEdit: mode === 'edit' || mode == 'view' || data,
+            isEdit: mode === 'edit' || mode == 'view',
             errors,
             isLoading,
             rule_config_id: getValues('rule_config_id'),
