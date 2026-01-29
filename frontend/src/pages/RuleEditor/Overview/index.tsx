@@ -174,12 +174,13 @@ const Overview = (props: IOverviewProps) => {
 
             </Section>
 
-            {!values?.isEdit &&
-                <Box mt={2} width={'100%'} display={'flex'} justifyContent={'flex-end'}>
+            <Box mt={2} width={'100%'} display={'flex'} justifyContent={'flex-end'}>
+                {!values?.isEdit ?
                     <Button loading={values?.createLoading} height="40px" type="secondary" size="md" text="Save & Next" onClick={functions.handleSubmit} />
-                </Box>
-            }
-
+                    :
+                    <Button height="40px" type="secondary" size="md" text="Next" onClick={functions.handleNext} />
+                }
+            </Box>
         </Grid>
     )
 }

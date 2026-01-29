@@ -106,6 +106,10 @@ const useOverviewController = (props: IOverviewProps) => {
         }
     }
 
+    const handleNext = () => {
+        enableNextTab()
+    }
+
 
     const handleRuleValue = (val: DropdownOption) => {
         setValue('rule_config_id', val as { label: string, value: string })
@@ -150,11 +154,10 @@ const useOverviewController = (props: IOverviewProps) => {
         open('View Network Map', <ViewNetworkMap />, null, { maxWidth: 'md' })
     }
 
-
     return {
         values: {
             control,
-            isEdit: mode === 'edit' || mode == 'view',
+            isEdit: mode === 'edit' || mode == 'view' || data,
             errors,
             isLoading,
             rule_config_id: getValues('rule_config_id'),
@@ -168,6 +171,7 @@ const useOverviewController = (props: IOverviewProps) => {
             handleRuleConfig,
             handleNetworkMap,
             handleTxTp,
+            handleNext
         }
     }
 }
