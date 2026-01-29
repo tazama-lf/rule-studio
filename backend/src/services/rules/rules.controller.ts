@@ -231,35 +231,6 @@ export class RulesController {
     TazamaClaims.APPROVER,
     TazamaClaims.PUBLISHER,
   )
-  @ApiOperation({
-    summary: 'Get active network map',
-    description:
-      'Retrieves the active network map configuration showing rule relationships and processing flow',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Active network map retrieved successfully',
-  })
-  @ApiResponse({ status: 404, description: 'No active network map found' })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Insufficient permissions',
-  })
-  async getActiveNetworkMap(@User() user: AuthenticatedUser): Promise<any> {
-    return await this.rulesService.getActiveNetworkMap(user.token.tokenString);
-  }
-
-  // get active network map
-  @Get('/api/network-map/active')
-  @RequireAnyClaims(
-    TazamaClaims.EDITOR,
-    TazamaClaims.APPROVER,
-    TazamaClaims.PUBLISHER,
-  )
   @ApiParam({
     name: 'id',
     description: 'Numeric rule ID (integer)',
