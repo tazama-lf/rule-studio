@@ -161,6 +161,7 @@ export class AdminServiceClient {
 
   async getRulesById(id: number, token: string): Promise<Rules> {
     return await this.executeHttpRequest<Rules>('GET', `${RULES_WITH_ID}/${id}`, token);
+    return await this.executeHttpRequest<Rules>('GET', `${RULES_WITH_ID}/${id}`, token);
   }
 
   async getVersionsOfTransactionType(
