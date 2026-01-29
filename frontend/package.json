@@ -27,7 +27,7 @@
     "react-dom": "^19.2.0",
     "react-hook-form": "^7.69.0",
     "react-hot-toast": "^2.6.0",
-    "react-json-view": "^1.21.3",
+    "@microlink/react-json-view": "^1.23.1",
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.11.0",
     "reactflow": "^11.11.4",

@@ -1,6 +1,5 @@
 import { lazy } from "react";
 import { Navigate } from "react-router-dom";
-import RuleBuilder from "../pages/rule-builder";
 
 const Components = lazy(() => import("../components"));
 const Login = lazy(() => import("../pages/Auth/Login"));
@@ -44,18 +43,6 @@ export const ROUTES = [
         element: <RuleEditor />,
         private: true,
         layout: true,
-    },
-    {
-        path: '/rule-builder/:id',
-        element: <RuleBuilder />,
-        private: true,
-        layout: false
-    },
-    {
-        path: '/rule-builder/view/:id',
-        element: <RuleBuilder viewOnly />,
-        private: true,
-        layout: false
     },
     {
         path: "/datasets",

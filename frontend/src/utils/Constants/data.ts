@@ -1,31 +1,3 @@
-export const rules = [
-    {
-        name: 'High Value Transaction Detection',
-        rule_id: 'HVT-001',
-        status: 'In-Progress',
-        owner: 'John Doe',
-        updated_at: '2024-07-01',
-        version: '1.0.0'
-    },
-    {
-        name: 'High Value Transaction Detection',
-        rule_id: 'HVT-001',
-        status: 'In-Progress',
-        owner: 'John Doe',
-        updated_at: '2024-07-01',
-        version: '1.0.0'
-    },
-    {
-        name: 'High Value Transaction Detection',
-        rule_id: 'HVT-001',
-        status: 'In-Progress',
-        owner: 'John Doe',
-        updated_at: '2024-07-01',
-        version: '1.0.0'
-    },
-]
-
-
 export const Status = {
     STATUS_01_IN_PROGRESS: 'STATUS_01_IN_PROGRESS',
     STATUS_02_ON_HOLD: 'STATUS_02_ON_HOLD',
@@ -35,6 +7,45 @@ export const Status = {
     STATUS_07_READY_FOR_DEPLOYMENT: 'STATUS_07_READY_FOR_DEPLOYMENT',
     STATUS_08_DEPLOYED: 'STATUS_08_DEPLOYED',
     STATUS_09_ARCHIVED: 'STATUS_09_ARCHIVED',
+}
+
+export const samplePayload = {
+    "CstmrCdtTrfInitn": {
+        "GrpHdr": {
+            "MsgId": "17fa-afea-48d6-b147-05c8463ea494",
+            "CreDtTm": "2023-02-03T07:03:17.438Z",
+            "NbOfTxs": 1,
+            "InitgPty": {
+                "Id": {
+                    "PrvtId": {
+                        "Othr": [
+                            {
+                                "Id": "+36-432226947",
+                                "SchmeNm": {
+                                    "Prtry": "MSISDN"
+                                }
+                            }
+                        ],
+                        "DtAndPlcOfBirth": {
+                            "BirthDt": "1968-02-01",
+                            "CityOfBirth": "Unknown",
+                            "CtryOfBirth": "ZZ"
+                        }
+                    }
+                },
+                "Nm": "April Blake Grant",
+                "CtctDtls": {
+                    "MobNb": "+36-432226947"
+                }
+            }
+        },
+        "PmtInf": {
+            "PmtMtd": "TRA",
+            "PmtInfId": "23730c89dd57490a9a79f9b3747e3c08"
+        }
+    },
+    "TxTp": "pain.001.001.11",
+    "TenantId": "cbe"
 }
 
 export const publishingStatus = {
@@ -49,8 +60,8 @@ export const Tabs = [
         enabled: false
     },
     {
-        label: 'Parser',
-        value: 'parser',
+        label: 'Rule Request',
+        value: 'rule_request',
         enabled: false
     },
     {

@@ -66,7 +66,7 @@ const TableActions = ({
 
             {onClone && (
                 <Tooltip title="Clone">
-                    <IconButton size="small" sx={{ color: '#21a0c1' }} onClick={onEdit}>
+                    <IconButton size="small" sx={{ color: '#21a0c1' }} onClick={onClone}>
                         <ContentCopyIcon fontSize="small" />
                     </IconButton>
                 </Tooltip>

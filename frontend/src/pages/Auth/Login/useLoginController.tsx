@@ -1,11 +1,11 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useForm } from "react-hook-form";
-import { loginValidation } from "../../../utils/Common/validators";
 import { useLoginMutation } from '../../../redux/Api/Auth';
 import { useEffect } from 'react';
 import { insertData } from '../../../utils/Common/storage';
 import { useNavigate } from 'react-router-dom';
 import { decodeToken } from '../../../utils/Common/helpers';
+import { loginValidation } from '../../../validation/schemas/authSchema';
 
 const initial = {
     username: '',

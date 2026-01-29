@@ -16,7 +16,7 @@ const Header = ({ expanded, setExpanded }: { expanded: boolean; setExpanded: (v:
         },
     };
 
-    const user = extractData('user')
+    const user = extractData('user') || {}
 
     return (
         <Box
@@ -26,7 +26,7 @@ const Header = ({ expanded, setExpanded }: { expanded: boolean; setExpanded: (v:
         >
             <Box display="flex" alignItems="center" width="100vw">
                 <Box flex={1} display={'flex'} alignItems={'center'}>
-                    <IconButton onClick={() => setExpanded(!expanded)}>
+                    <IconButton onClick={() => setExpanded(!expanded)} aria-label={expanded ? "Close sidebar" : "Open sidebar"}>
                         {expanded ? (
                             <CloseIcon fontSize="small" sx={iconButtonStyle} />
                         ) : (
@@ -50,14 +50,14 @@ const Header = ({ expanded, setExpanded }: { expanded: boolean; setExpanded: (v:
                 </Box>
 
                 {
-                    user.claims && user.username ?
+                    user?.claims && user?.username ?
 
                         <Stack direction="row" spacing={1}>
                             <Text color="text.black" weight={600} size="body">
-                                {user.username}
+                                {user?.username}
                             </Text>
                             <Text color="static.ternary" size="body">
-                                - {capitalize(user.claims)}
+                                - {capitalize(user?.claims || '')}
                             </Text>
                         </Stack>
                         : null}
