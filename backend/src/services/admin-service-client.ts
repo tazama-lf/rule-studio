@@ -141,19 +141,18 @@ export class AdminServiceClient {
     }
   }
 
-  async getAllRulesWithFilters(
+ async getAllRulesWithFilters(
     offset: number,
     limit: number,
     filters: RuleFiltersDto,
     token: string,
   ): Promise<Rules[]> {
-    const response = await this.executeHttpRequest<{ rules: Rules[] }>(
+    return await this.executeHttpRequest<Rules[]>(
       'POST',
       `${RULES_WITH_ID}/${offset}/${limit}`,
       token,
       filters,
     );
-    return response.rules;
   }
 
   async getRulesById(id: number, token: string): Promise<Rules> {
