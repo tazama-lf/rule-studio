@@ -375,7 +375,7 @@ export class RuleFiltersDto {
   })
   @IsOptional()
   @IsString()
-  publishing_status?: string;
+  publishingStatus?: string;
 
   @ApiPropertyOptional({
     description: 'Filter by rule ID',
@@ -383,7 +383,7 @@ export class RuleFiltersDto {
   })
   @IsOptional()
   @IsString()
-  rule_id?: string;
+  ruleId?: string;
 
   @ApiPropertyOptional({
     description: 'Filter by rule name',
@@ -391,7 +391,7 @@ export class RuleFiltersDto {
   })
   @IsOptional()
   @IsString()
-  rule_name?: string;
+  ruleName?: string;
 }
 
 export class UpdateRuleStatusDto {
