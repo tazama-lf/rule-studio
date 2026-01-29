@@ -281,14 +281,40 @@ export class AdminServiceClient {
   }
 
   async cloneRule(ruleId: string, token: string): Promise<Rules> {
-    const response = await this.executeHttpRequest<{ rule: Rules }>(
-      'POST',
-      `${CLONE_RULE}/${ruleId}`,
-      token,
-    );
-    return response.rule;
+    try {
+      const response = await this.forwardRequest(
+        'POST',
+        `/v1/admin/trs/rule/clone/${ruleId}`,
+        {},
+        {
+          Authorization: token.startsWith('Bearer ')
+            ? token
+            : `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (!response || typeof response !== 'object' || !('rule' in response)) {
+        this.logger.error('Invalid response from admin-service cloneRule');
+        throw new HttpException(
+          'Invalid response from admin service',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      return (response as { rule: Rules }).rule;
+    } catch (error) {
+      return this.handleError(error, 'cloneRule');
+    }
   }
 
+  // Nodes API
+  /**
+   *
+   * @param token
+   * @param createNodeDto list of nodes
+   * @returns return a list of created nodes
+   */
   async createNode(
     token: string,
     createNodeDto: CreateNodeDto[],
