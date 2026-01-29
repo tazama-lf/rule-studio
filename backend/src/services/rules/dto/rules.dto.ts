@@ -135,6 +135,10 @@ export class UpdateRuleDto {
   @IsString()
   txtp?: string;
 
+  @ApiPropertyOptional({
+    description: 'Rule version',
+    example: '1.0.0',
+  })
   @IsOptional()
   @IsString()
   @Matches(/^\d+\.\d+\.\d+$/, {
