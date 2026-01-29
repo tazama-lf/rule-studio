@@ -31,6 +31,14 @@ export const rulesApi = createApi({
             }),
             invalidatesTags: ['rule']
         }),
+        cloneRule: builder.mutation({
+            query: ({ id, body }) => ({
+                url: `clone/${id}`,
+                method: "POST",
+                body
+            }),
+            invalidatesTags: ['rule']
+        }),
         updateRule: builder.mutation({
             query: ({ id, body }) => ({
                 url: `${id}`,
@@ -89,5 +97,6 @@ export const {
     useCreateRuleMutation,
     useGetStatusQuery,
     useUpdateRuleMutation,
-    useUpdateStatusMutation
+    useUpdateStatusMutation,
+    useCloneRuleMutation
 } = rulesApi

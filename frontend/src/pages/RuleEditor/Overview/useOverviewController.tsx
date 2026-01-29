@@ -1,5 +1,5 @@
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import type { DropdownOption } from "../../../components/DropDown";
@@ -32,7 +32,11 @@ export interface IOverviewProps {
 
 const useOverviewController = (props: IOverviewProps) => {
 
-    const data = extractData('trs_rule', LocalStorage, true) ?? props?.data
+    const data = useMemo(
+        () => extractData('trs_rule', LocalStorage, true) ?? props?.data,
+        [props?.data]
+    )
+
     const { enableNextTab } = useTab()
     const { mode } = props
     const [versions, setVersions] = useState<string[]>([])
@@ -102,9 +106,6 @@ const useOverviewController = (props: IOverviewProps) => {
         }
     }
 
-    const handleNext = () => {
-        enableNextTab()
-    }
 
     const handleRuleValue = (val: DropdownOption) => {
         setValue('rule_config_id', val as { label: string, value: string })
@@ -167,7 +168,6 @@ const useOverviewController = (props: IOverviewProps) => {
             handleRuleConfig,
             handleNetworkMap,
             handleTxTp,
-            handleNext
         }
     }
 }

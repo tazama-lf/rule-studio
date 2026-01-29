@@ -14,9 +14,11 @@ const Simulation = (props: ISimulation) => {
             container
             py={3}
             display={'flex'}
-            justifyContent={'center'}
+            justifyContent={'space-between'}
+            alignItems={'center'}
+            gap={2}
+            height={'70vh'}
         >
-
             <Box mt={2} width={'100%'} gap={2} display={'flex'} justifyContent={'flex-end'}>
                 {values?.claim === claims.approver && values?.status === Status.STATUS_03_UNDER_REVIEW ?
                     <>
@@ -49,6 +51,24 @@ const Simulation = (props: ISimulation) => {
                         />
                         : null
                 }
+            </Box>
+            <Box width={'100%'} display={'flex'} justifyContent={'space-between'} alignSelf={'flex-end'}>
+                <Button
+                    height="40px"
+                    width="170px"
+                    type="secondary"
+                    size="md"
+                    text="Back"
+                    onClick={functions.handleBack}
+                />
+                <Button
+                    height="40px"
+                    width="170px"
+                    type="secondary"
+                    size="md"
+                    text="Next"
+                    onClick={functions.handleNext}
+                />
             </Box>
         </Grid>
     )

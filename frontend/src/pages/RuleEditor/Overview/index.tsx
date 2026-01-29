@@ -87,6 +87,13 @@ const Overview = (props: IOverviewProps) => {
                                     label="Rule Version"
                                     {...field}
                                     error={error?.message}
+                                    onChange={(e) => {
+                                        const value = e.target.value.replace(/[^0-9.]/g, '');
+                                        field.onChange?.({
+                                            ...e,
+                                            target: { ...e.target, value },
+                                        });
+                                    }}
                                 />
                             )}
                         />
@@ -167,13 +174,9 @@ const Overview = (props: IOverviewProps) => {
 
             </Section>
 
-            {!values?.isEdit ?
+            {!values?.isEdit &&
                 <Box mt={2} width={'100%'} display={'flex'} justifyContent={'flex-end'}>
                     <Button loading={values?.createLoading} height="40px" type="secondary" size="md" text="Save & Next" onClick={functions.handleSubmit} />
-                </Box>
-                :
-                <Box mt={2} width={'100%'} display={'flex'} justifyContent={'flex-end'}>
-                    <Button height="40px" type="secondary" size="md" text="Next" onClick={functions.handleNext} />
                 </Box>
             }
 

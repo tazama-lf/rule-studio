@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { extractData } from "../../../utils/Common/storage";
 import { LocalStorage } from "../../../utils/Common/enums";
 import { useTab } from "../../../contexts/TabContext/useTab";
+import { useMemo } from "react";
 
 export interface IRuleBuilder {
     data?: Record<string, unknown> | undefined
@@ -9,8 +10,12 @@ export interface IRuleBuilder {
 
 const useRuleBuilderController = (props: IRuleBuilder) => {
 
-    const data = extractData('trs_rule', LocalStorage, true) ?? props?.data
-    const { enableNextTab } = useTab()
+    const data = useMemo(
+        () => extractData('trs_rule', LocalStorage, true) ?? props?.data,
+        [props?.data]
+    )
+
+    const { enableNextTab, enablePreviousTab } = useTab()
 
     const navigate = useNavigate()
 
@@ -21,12 +26,16 @@ const useRuleBuilderController = (props: IRuleBuilder) => {
     const handleNext = () => {
         enableNextTab()
     }
+    const handleBack = () => {
+        enablePreviousTab()
+    }
 
     return {
         values: {},
         functions: {
             handleBuilder,
-            handleNext
+            handleNext,
+            handleBack
         }
     }
 }

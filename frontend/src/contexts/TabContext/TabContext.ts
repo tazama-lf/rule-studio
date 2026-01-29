@@ -8,6 +8,7 @@ export interface TabContextType {
     setSelectedTab: (tab: string) => void
     enableNextTab: () => void
     enableAllTabs: () => void
+    enablePreviousTab: () => void
 }
 
 export const TabContext = createContext<TabContextType | undefined>(undefined)
