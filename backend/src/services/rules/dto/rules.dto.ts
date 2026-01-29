@@ -392,6 +392,13 @@ export class RuleFiltersDto {
   @IsOptional()
   @IsString()
   ruleName?: string;
+  @ApiPropertyOptional({
+    description: 'Filter by rule type',
+    example: 'FRAUD',
+  })
+  @IsOptional()
+  @IsString()
+  ruleType?: string;
 }
 
 export class UpdateRuleStatusDto {
