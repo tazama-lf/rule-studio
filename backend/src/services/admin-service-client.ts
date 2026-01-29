@@ -212,7 +212,7 @@ export class AdminServiceClient {
       token,
     );
 
-    return response;
+    return response.configuration;
   }
 
   async getTransactionTypes(token: string): Promise<string[]> {
