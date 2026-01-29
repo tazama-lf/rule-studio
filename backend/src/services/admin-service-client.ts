@@ -65,6 +65,8 @@ export class AdminServiceClient {
     params?: Record<string, string>,
   ): Promise<T> {
     const url = new URL(`${this.adminServiceUrl}${path}`);
+    // console.log('Admin Service Request URL:', url.toString());
+
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         url.searchParams.append(key, value);
@@ -156,7 +158,7 @@ export class AdminServiceClient {
   }
 
   async getRulesById(id: number, token: string): Promise<Rules> {
-    return await this.executeHttpRequest<Rules>('GET', `${RULES_WITH_ID}${id}`, token);
+    return await this.executeHttpRequest<Rules>('GET', `${RULES_WITH_ID}/${id}`, token);
   }
 
   async getVersionsOfTransactionType(
@@ -281,6 +283,7 @@ export class AdminServiceClient {
   }
 
   async cloneRule(ruleId: string, token: string): Promise<Rules> {
+    // console.log('Cloning rule with ID:', ruleId);
     const response = await this.executeHttpRequest<{ rule: Rules }>(
       'POST',
       `/v1/admin/trs/rule/clone/${ruleId}`,
