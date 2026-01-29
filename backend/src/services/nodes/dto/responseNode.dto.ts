@@ -1,7 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsString,
-  IsNotEmpty,
   IsOptional,
   IsJSON,
   IsDate,
@@ -33,7 +32,7 @@ export class ResponseNodesDto {
     },
   })
   @IsJSON()
-  node_json: any;
+  node_json: unknown;
 
   @ApiProperty({
     description: 'Order of the node',

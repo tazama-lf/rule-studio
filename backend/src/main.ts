@@ -28,7 +28,7 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
-  const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? '')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);

@@ -8,7 +8,6 @@ import {
   Get,
   Query,
   Put,
-  
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -32,7 +31,6 @@ import {
   Rules,
   ResponseRuleFlowDto,
   GlobalVariableDto,
-  RuleStatusArrayDto,
   RuleIdResponseDto,
   RuleFiltersDto,
   UpdateRuleDto,
@@ -74,7 +72,8 @@ export class RulesController {
     description: 'Forbidden - Insufficient permissions',
   })
   async getRulesStatus(@User() user: AuthenticatedUser): Promise<string[]> {
-    return this.rulesService.getRulesStatusbyRole(user);
+    const allowedStatuses = this.rulesService.getRulesStatusbyRole(user);
+    return allowedStatuses;
   }
 
   @Post('/api/all')
@@ -134,8 +133,7 @@ export class RulesController {
       (Array.isArray(updatedFilters.status) &&
         updatedFilters.status.length === 0)
     ) {
-      const allowedStatuses =
-        await this.rulesService.getRulesStatusbyRole(user);
+      const allowedStatuses =  await this.rulesService.getRulesStatusbyRole(user);
       if (allowedStatuses.length > 0) {
         updatedFilters.status = allowedStatuses.join(',');
       }

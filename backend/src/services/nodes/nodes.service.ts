@@ -21,7 +21,6 @@ export class NodesService {
       return await this.adminServiceClient.createNode(token, createNodeDto);
     } catch (error) {
       const err = error as Error;
-      console.log('Error creating node:', err);
       this.logger.error(`Error creating node: ${err.message}`);
       throw error;
     }

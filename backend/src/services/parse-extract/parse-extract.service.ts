@@ -103,7 +103,7 @@ export class ParseExtractService {
       payloadToValidate.TenantId = TenantId;
       const mappingResult = processMappings(
         payloadToValidate,
-        adminServiceResponse.config.mapping || [],
+        adminServiceResponse.config.mapping ?? [],
         request.TxTp,
       );
 
@@ -111,7 +111,7 @@ export class ParseExtractService {
       const activeNetworkMap =
         await this.adminServiceClient.getActiveNetworkMap(token);
 
-      const networkMap: NetworkMap = activeNetworkMap || {};
+      const networkMap: NetworkMap = activeNetworkMap ?? {};
 
       this.logger.log(
         `Processed mappings for ${request.TxTp}: extracted ${Object.keys(mappingResult.dataCache).length} data cache entries`,
@@ -136,23 +136,6 @@ export class ParseExtractService {
         validatedPayload: payloadToValidate,
         ruleRequest,
       };
-
-      // now we need to store ruleRequest in db table (with the help of tenant_id and txTp)
-      const saveRuleRequestResponse =
-        await this.adminServiceClient.saveRuleRequest(
-          TxTp, // needs to be sent for saving ruleRequest in db table
-          TenantId,
-          token,
-          ruleRequest,
-        );
-
-      console.log(
-        'saveRuleRequestResponse txtp =  ,',
-        TxTp,
-        ' tenantId = ',
-        TenantId,
-      );
-      console.log('save rule request response is ', saveRuleRequestResponse);
 
       this.logger.log(
         `Message processing completed successfully for type: ${request.TxTp} [${correlationId}]`,
@@ -257,10 +240,10 @@ export class ParseExtractService {
     extractedNetworkMap?: NetworkMap,
   ): RuleRequest {
     // Use extracted networkMap or create empty one
-    const networkMap: NetworkMap = extractedNetworkMap || {};
+    const networkMap: NetworkMap = extractedNetworkMap ?? {};
 
     // Use extracted dataCache from mappings or create empty one
-    const dataCache: DataCache = extractedDataCache || {};
+    const dataCache: DataCache = extractedDataCache ?? {};
 
     // Create metadata with context information
     const metaData: MetaData = {
