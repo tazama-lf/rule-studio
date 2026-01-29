@@ -339,6 +339,7 @@ export class RuleStatusArrayDto {
     type: [String],
     example: ['ACTIVE', 'INACTIVE', 'TESTING'],
   })
+  @IsArray()
   statuses: string[];
 }
 

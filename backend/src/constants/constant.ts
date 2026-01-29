@@ -7,7 +7,7 @@ export const RULES_WITH_ID = `${RULES_BASE_URL}/rules`;
 export const RULE_FLOW = `${RULES_BASE_URL}/rule-flow`;
 export const GLOBAL_VARIABLES = `${RULES_BASE_URL}/global-variables`;
 export const RULE_CONFIGURATION = `${RULES_BASE_URL}/rule-configuration`;
-export const CLONE_RULE = `${RULES_BASE_URL}/clone`;
+export const CLONE_RULE = `${RULE}/clone`;
 export const UPDATE_RULE_STATUS = `${RULES_BASE_URL}/rule/updateStatus`;
 export const SAVE_RULE_REQUEST = `${RULES_BASE_URL}/saveRuleRequest`;
 
