@@ -63,7 +63,7 @@ export class RulesService {
           baseFlow.flow as unknown as Record<string, unknown>,
           token,
         );
-        const flowId = newRuleFlow?.flow?.[0]?.id;
+        const flowId = newRuleFlow.flow[0].id;
         if (flowId) {
           updatedRule = await this.adminServiceClient.updateRule(
             rule.id,

@@ -15,6 +15,55 @@ export class AuthService {
     private readonly loggerService: LoggerService,
   ) {}
 
+  private extractToken(data): string {
+    const token =
+      typeof data === 'string'
+        ? data
+        : data?.token ??
+          data?.access_token ??
+          data?.jwt ??
+          data?.user?.token;
+
+    if (!token) {
+      this.loggerService.error(
+        'Auth service response missing token',
+        AuthService.name,
+      );
+      throw new ServiceUnavailableException(
+        'Authentication service unavailable',
+      );
+    }
+    return token;
+  }
+
+  private validateUserToken(token: string, username: string): void {
+    const claimsToCheck = ['editor', 'approver', 'publisher'];
+    let claimResult;
+    try {
+      claimResult = validateTokenAndClaims(token, claimsToCheck);
+    } catch (err) {
+      const e = err as Error;
+      this.loggerService.warn(
+        `Token validation failed: ${e.message}`,
+        AuthService.name,
+      );
+      throw new UnauthorizedException('Token validation failed');
+    }
+
+    const hasRequiredClaim = [
+      claimResult.editor,
+      claimResult.approver,
+      claimResult.publisher,
+    ].some((claim) => !!claim);
+    if (!hasRequiredClaim) {
+      this.loggerService.warn(
+        `User ${username} does not have required claims (editor, approver, or publisher).`,
+        AuthService.name,
+      );
+      throw new UnauthorizedException('Invalid credentials');
+    }
+  }
+
   async login(
     username: string,
     password: string,
@@ -48,46 +97,8 @@ export class AuthService {
       }
       this.loggerService.log('Auth service responded', AuthService.name);
 
-      const token =
-        typeof response.data === 'string'
-          ? response.data
-          : (response.data?.token ??
-            response.data?.access_token ??
-            response.data?.jwt ??
-            response.data?.user?.token);
-
-      if (!token) {
-        this.loggerService.error(
-          'Auth service response missing token',
-          AuthService.name,
-        );
-        throw new ServiceUnavailableException(
-          'Authentication service unavailable',
-        );
-      }
-
-      const claimsToCheck = ['editor', 'approver', 'publisher'];
-      let claimResult;
-      try {
-        claimResult = validateTokenAndClaims(token, claimsToCheck);
-      } catch (err) {
-        const e = err as Error;
-        this.loggerService.warn(
-          `Token validation failed: ${e.message}`,
-          AuthService.name,
-        );
-        throw new UnauthorizedException('Token validation failed');
-      }
-
-      const hasRequiredClaim =
-        claimResult.editor ?? claimResult.approver ?? claimResult.publisher;
-      if (!hasRequiredClaim) {
-        this.loggerService.warn(
-          `User ${username} does not have required claims (editor, approver, or publisher).`,
-          AuthService.name,
-        );
-        throw new UnauthorizedException('Invalid credentials');
-      }
+      const token = this.extractToken(response.data);
+      this.validateUserToken(token, username);
 
       this.loggerService.log(
         `User ${username} authenticated successfully`,

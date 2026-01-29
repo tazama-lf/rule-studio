@@ -118,14 +118,74 @@ export class Rules extends RuleBaseDto {
 
 export class CreateRuleDto extends RuleBaseDto {}
 
-export class UpdateRuleDto extends RuleBaseDto {
-  @ApiProperty({
-    description: 'User who last updated the rule',
-    example: 'user123',
+export class UpdateRuleDto {
+  @ApiPropertyOptional({
+    description: 'Rule description',
+    example: 'Updated: Detects transactions above threshold',
   })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  updated_by: string;
+  description?: string;
+
+  @ApiPropertyOptional({
+    description: 'Transaction type',
+    example: 'pain.001.001.11',
+  })
+  @IsOptional()
+  @IsString()
+  txtp?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d+\.\d+\.\d+$/, {
+    message:
+      'Version must be in semantic versioning format (major.minor.patch), e.g., 1.0.0',
+  })
+  version?: string;
+
+  @ApiPropertyOptional({ description: 'Transaction type version', example: '11' })
+  @ApiPropertyOptional({
+    description: 'Transaction type version',
+    example: '11',
+  })
+  @IsOptional()
+  @IsString()
+  txtpVersion?: string;
+
+  @ApiPropertyOptional({
+    description: 'Rule status',
+    example: 'ACTIVE',
+    enum: ['ACTIVE', 'INACTIVE', 'TESTING'],
+  })
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @ApiPropertyOptional({
+    description: 'Publishing status',
+    example: 'PUBLISHED',
+    enum: ['DRAFT', 'SUBMITTED', 'APPROVED', 'PUBLISHED'],
+  })
+  @IsOptional()
+  @IsString()
+  publishing_status?: string;
+
+  @ApiPropertyOptional({
+    description: 'Rule type classification',
+    example: 'fraud_detection',
+    enum: ['fraud_detection', 'aml', 'security', 'compliance'],
+  })
+  @IsOptional()
+  @IsString()
+  rule_type?: string;
+
+  @ApiPropertyOptional({
+    description: 'Configuration identifier',
+    example: 'CFG001',
+  })
+  @IsOptional()
+  @IsString()
+  rule_config_id?: string;
 }
 
 export class RuleIdDto {
@@ -162,7 +222,7 @@ export class PositionDto {
 }
 
 export class NodeParamsDto {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export class FlowEdgeDto {

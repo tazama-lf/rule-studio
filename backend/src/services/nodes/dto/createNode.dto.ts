@@ -21,7 +21,7 @@ export class CreateNodeDto {
   })
   @IsObject()
   @IsNotEmpty()
-  node_json: Record<string, any>;
+  node_json: Record<string, unknown>;
 
   @ApiProperty({
     description: 'Tenant identifier',

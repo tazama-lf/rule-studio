@@ -94,10 +94,6 @@ export class ConfigController {
     @Param('transactionType') transactionType: string,
     @User() user: AuthenticatedUser,
   ): Promise<string[]> {
-    console.log(
-      'Controller --> Fetching versions for transaction type:',
-      transactionType,
-    );
     return await this.configService.getVersionsOfTransactionType(
       transactionType,
       user.token.tokenString,
