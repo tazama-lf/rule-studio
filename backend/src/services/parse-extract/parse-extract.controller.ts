@@ -22,9 +22,11 @@ import {
   RequireAnyClaims,
 } from '../../decorators/auth.decorator';
 import { ParseExtractService } from './parse-extract.service';
-import type {
-  TransactionalMessage,
-  ParseExtractResponse,
+import {
+  type TransactionalMessage,
+  type ParseExtractResponse,
+  TransactionalMessageDto,
+  ParseExtractResponseDto,
 } from './dto/message.dto';
 
 @ApiTags('Parse & Extract')
@@ -50,43 +52,12 @@ export class ParseExtractController {
   })
   @ApiBody({
     description: 'ISO 20022 transactional message',
-    schema: {
-      type: 'object',
-      properties: {
-        TxTp: {
-          type: 'string',
-          description: 'Transaction type',
-          example: 'pain.001.001.11',
-        },
-        FIToFICstmrCdtTrf: {
-          type: 'object',
-          description: 'ISO 20022 message payload',
-          properties: {
-            GrpHdr: {
-              type: 'object',
-              properties: {
-                MsgId: { type: 'string', example: 'MSG-001' },
-                CreDtTm: { type: 'string', example: '2024-01-16T10:30:00Z' },
-                NbOfTxs: { type: 'string', example: '1' },
-              },
-            },
-          },
-        },
-      },
-      required: ['TxTp'],
-    },
+    type: TransactionalMessageDto,
   })
   @ApiResponse({
     status: 200,
     description: 'Payload validated successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        isValid: { type: 'boolean', example: true },
-        errors: { type: 'array', items: { type: 'string' } },
-        parsedData: { type: 'object' },
-      },
-    },
+    type: ParseExtractResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Invalid payload structure' })
   @ApiResponse({

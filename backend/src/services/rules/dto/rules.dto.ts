@@ -143,7 +143,6 @@ export class UpdateRuleDto {
   })
   version?: string;
 
-  @ApiPropertyOptional({ description: 'Transaction type version', example: '11' })
   @ApiPropertyOptional({
     description: 'Transaction type version',
     example: '11',
@@ -279,7 +278,7 @@ export class ResponseRuleFlowDto {
   @ApiProperty({
     description: 'Base64 encoded TypeScript file representing the flow',
     example:
-      'data:application/typescript;base64,ZXhwb3J0IGNsYXNzIE15Q2xhc3MgeyB9',
+      'data:application/typescript;base64,ZXhwb3J0IGNvbnN0Li4u',
   })
   @IsString()
   ts_file_base64: string;

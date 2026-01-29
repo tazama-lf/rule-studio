@@ -384,7 +384,7 @@ export class RulesController {
   )
   @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: '001' })
   @ApiBody({
-    type: RequestSaveFlow,
+    type: RequestFlow,
     description: 'Flow configuration with nodes and edges',
   })
   @ApiResponse({
@@ -560,7 +560,7 @@ export class RulesController {
   })
   async cloneRule(
     @Param('ruleId') ruleId: string,
-    @User() user: AuthenticatedUser, // ismei se i can take out tenantId
+    @User() user: AuthenticatedUser,
   ): Promise<Rules> {
     return await this.rulesService.cloneRule(ruleId, user.token.tokenString);
   }
