@@ -282,13 +282,13 @@ export class AdminServiceClient {
     );
   }
 
-  async cloneRule(ruleId: string, token: string): Promise<Rules> {
+  async cloneRule(ruleId: string, token: string, payload: any): Promise<Rules> {
     // console.log('Cloning rule with ID:', ruleId);
     const response = await this.executeHttpRequest<{ rule: Rules }>(
       'POST',
       `/v1/admin/trs/rule/clone/${ruleId}`,
       token,
-      {},
+      payload,
     );
 
     return response.rule;
