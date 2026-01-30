@@ -1,12 +1,10 @@
-import { useForm } from "react-hook-form";
-import { useParsePayloadMutation } from "../../../redux/Api/Parse";
-import { useLazyGetSamplePayloadQuery } from "../../../redux/Api/Config";
-import { useCallback, useEffect, useState } from "react";
-import type { IResult } from "../../../utils/Common/types";
-import { extractData } from "../../../utils/Common/storage";
-import { LocalStorage } from "../../../utils/Common/enums";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTab } from "../../../contexts/TabContext/useTab";
+import { useLazyGetSamplePayloadQuery } from "../../../redux/Api/Config";
 import { useGetGlobalVariablesQuery } from "../../../redux/Api/Rule-builder";
+import { LocalStorage } from "../../../utils/Common/enums";
+import { extractData } from "../../../utils/Common/storage";
+import { samplePayload } from "../../../utils/Constants/data";
 
 
 export interface IParseProps {
@@ -16,54 +14,42 @@ export interface IParseProps {
 
 const useParserController = (props: IParseProps) => {
 
-    const data = extractData('trs_rule', LocalStorage, true) ?? props?.data
-    const { enableNextTab } = useTab()
+    const data = useMemo(
+        () => extractData('trs_rule', LocalStorage, true) ?? props?.data,
+        [props?.data]
+    )
+
+    const { enableNextTab, enablePreviousTab } = useTab()
 
     const { mode } = props
 
     const isEdit = mode === 'edit'
     const isView = mode === 'view'
 
-    const [submit, { data: parseBody, isLoading, isSuccess }] = useParsePayloadMutation()
     const [getPayload, { isFetching: sampleLoader }] = useLazyGetSamplePayloadQuery()
-    const { data: globalVariables } = useGetGlobalVariablesQuery(data?.id, { refetchOnMountOrArgChange: true, skip: !(isView || isEdit) })
-    const [result, setResult] = useState<IResult | null>(null)
-
-    const initial = {
-        payload: (data?.payload as string) || "",
-    }
-
-    const { handleSubmit, control, watch, setValue } = useForm({ defaultValues: initial })
-    // eslint-disable-next-line react-hooks/incompatible-library
-    const json = watch('payload')
-
-    const onSubmit = () => {
-        submit(JSON.parse(json)).unwrap()
-    }
+    const { data: globalVariables } = useGetGlobalVariablesQuery(data?.id, { refetchOnMountOrArgChange: true })
+    const [payload, setPayload] = useState<string | null>(null)
 
     const handleNext = () => {
         enableNextTab()
     }
 
-    useEffect(() => {
-        if (isSuccess) {
-            setResult(parseBody)
-        }
-    }, [isSuccess, parseBody])
+    const handlePrevious = () => {
+        enablePreviousTab()
+    }
 
     const getData = useCallback(() => {
-        getPayload({ type: data?.txtp }).unwrap().then((res) => {
-            if (res) {
-                setValue('payload', JSON.stringify(res, null, 4))
-            }
-        })
-    }, [])
+        getPayload({ type: data.txtp })
+            .unwrap()
+            .then((res) => {
+                setPayload(JSON.stringify(res, null, 4))
+            })
+    }, [data?.txtp, getPayload])
 
     useEffect(() => {
-        if (isView || isEdit) {
-            getData()
-        }
-    }, [isView, isEdit, getData])
+        if (!data?.txtp) return
+        getData()
+    }, [data?.txtp])
 
     const fetchJson = () => {
         getData()
@@ -71,10 +57,7 @@ const useParserController = (props: IParseProps) => {
 
     return {
         values: {
-            control,
-            json,
-            result,
-            isLoading,
+            payload,
             sampleLoader,
             txtp: data?.txtp,
             isEdit,
@@ -82,9 +65,9 @@ const useParserController = (props: IParseProps) => {
             ruleRequest: globalVariables?.RuleRequest
         },
         functions: {
-            handleSubmit: handleSubmit(onSubmit),
             fetchJson,
-            handleNext
+            handleNext,
+            handlePrevious
         }
     }
 }

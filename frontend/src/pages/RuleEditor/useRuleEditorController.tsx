@@ -16,12 +16,9 @@ const useRuleEditorController = () => {
     const [searchParams] = useSearchParams();
     const mode = searchParams.get('mode') ?? null
 
-    const { data, isLoading, isSuccess } = useGetRuleByIdQuery({ id }, { skip: !id, refetchOnMountOrArgChange: true })
+    const { data, isFetching: isLoading, isSuccess } = useGetRuleByIdQuery({ id }, { skip: !id, refetchOnMountOrArgChange: true })
     const { selectedTab } = useTab()
 
-    const handleSubmit = () => {
-
-    }
 
     useEffect(() => {
         if (isSuccess && data?.rules) {
@@ -33,7 +30,7 @@ const useRuleEditorController = () => {
         switch (selectedTab) {
             case 'overview':
                 return <Overview mode={mode} data={data?.rules} />
-            case 'parser':
+            case 'rule_request':
                 return <Parser mode={mode} data={data?.rules} />
             case 'rule_builder':
                 return <RuleBuilder data={data?.rules} />
@@ -52,7 +49,6 @@ const useRuleEditorController = () => {
             mode
         },
         functions: {
-            handleSubmit,
             renderComponent
         }
     }

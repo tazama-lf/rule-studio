@@ -26,7 +26,7 @@ const useRuleConfigController = ({ handleRuleValue, ruleConfigId, mode }: RuleCo
     if (ruleId) {
       submit({ id: ruleId.value }).then((res) => {
         if (res?.data) {
-          setJson(res?.data?.configuration)
+          setJson(res?.data)
         }
       })
     }

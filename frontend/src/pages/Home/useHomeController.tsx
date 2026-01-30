@@ -102,6 +102,9 @@ const useHomeController = () => {
         navigate(`/editor/${row?.id}?mode=view`);
     }
 
+    const handleClone = (row: Record<string, string>) => {
+        navigate(`/editor/${row?.id}?mode=clone`)
+    }
 
     const columns: TableColumn[] = [
         { label: "Rule Name", key: "rule_name" },
@@ -127,7 +130,7 @@ const useHomeController = () => {
                             onEdit: () => handleCreateEdit(row as Record<string, string>),
                             onHold: () => handleHold(row as Record<string, string>),
                         } : {}),
-                        onClone: () => onView(row as Record<string, string>)
+                        onClone: () => handleClone(row as Record<string, string>)
                     })}
                 />
             )
