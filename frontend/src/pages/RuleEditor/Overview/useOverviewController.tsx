@@ -43,7 +43,7 @@ const useOverviewController = (props: IOverviewProps) => {
 
     const { data: types, isLoading } = useGetTypesQuery({})
     const [submit, { isLoading: createLoading }] = useCreateRuleMutation()
-    const [clone, { isLoading: cloneLoading }] = useCloneRuleMutation()
+    const [clone] = useCloneRuleMutation()
     const [getVersions] = useLazyGetTxtpVersionsQuery()
 
     const { open } = useModal()

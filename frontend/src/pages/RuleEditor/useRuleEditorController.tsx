@@ -16,7 +16,7 @@ const useRuleEditorController = () => {
     const [searchParams] = useSearchParams();
     const mode = searchParams.get('mode') ?? null
 
-    const { data, isLoading, isSuccess } = useGetRuleByIdQuery({ id }, { skip: !id, refetchOnMountOrArgChange: true })
+    const { data, isFetching: isLoading, isSuccess } = useGetRuleByIdQuery({ id }, { skip: !id, refetchOnMountOrArgChange: true })
     const { selectedTab } = useTab()
 
 
