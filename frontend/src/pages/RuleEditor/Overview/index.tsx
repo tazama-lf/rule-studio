@@ -88,11 +88,13 @@ const Overview = (props: IOverviewProps) => {
                                     {...field}
                                     error={error?.message}
                                     onChange={(e) => {
-                                        const value = e.target.value.replace(/[^0-9.]/g, '');
-                                        field.onChange?.({
-                                            ...e,
-                                            target: { ...e.target, value },
-                                        });
+                                        const value = e.target.value;
+                                        if (!/\.\./.test(value) && (/^\d+\.?\d*\.?\d*$/.test(value) || value === '')) {
+                                            const dotCount = (value.match(/\./g) || []).length;
+                                            if (dotCount <= 2) {
+                                                field.onChange?.(e);
+                                            }
+                                        }
                                     }}
                                 />
                             )}
@@ -129,6 +131,7 @@ const Overview = (props: IOverviewProps) => {
                             type='textarea'
                             label="Description"
                             {...field}
+                            maxLength={255}
                             error={values.errors.description?.message}
                         />
                     )}
