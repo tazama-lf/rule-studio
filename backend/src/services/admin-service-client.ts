@@ -65,6 +65,8 @@ export class AdminServiceClient {
     params?: Record<string, string>,
   ): Promise<T> {
     const url = new URL(`${this.adminServiceUrl}${path}`);
+    // console.log('Admin Service Request URL:', url.toString());
+
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         url.searchParams.append(key, value);
@@ -212,7 +214,7 @@ export class AdminServiceClient {
       token,
     );
 
-    return response;
+    return response.configuration;
   }
 
   async getTransactionTypes(token: string): Promise<string[]> {
@@ -280,21 +282,15 @@ export class AdminServiceClient {
     );
   }
 
-  async cloneRule(ruleId: string, token: string): Promise<Rules> {
+  async cloneRule(ruleId: string, token: string, payload: any): Promise<Rules> {
+    // console.log('Cloning rule with ID:', ruleId);
     const response = await this.executeHttpRequest<{ rule: Rules }>(
       'POST',
-      `${CLONE_RULE}/${ruleId}`,
+      `/v1/admin/trs/rule/clone/${ruleId}`,
       token,
-      {}
+      payload,
     );
 
-    if (!response || typeof response !== 'object' || !('rule' in response)) {
-      this.logger.error('Invalid response from admin-service cloneRule');
-      throw new HttpException(
-        'Invalid response from admin service',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
     return response.rule;
   }
 

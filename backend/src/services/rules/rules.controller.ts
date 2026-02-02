@@ -539,6 +539,10 @@ export class RulesController {
     description: 'Source rule identifier to clone',
     example: 'high-value-transfer-001',
   })
+  @ApiBody({
+    description: 'Payload data for rule cloning',
+    required: false,
+  })
   @ApiResponse({
     status: 201,
     description: 'Rule cloned successfully',
@@ -555,9 +559,10 @@ export class RulesController {
   })
   async cloneRule(
     @Param('ruleId') ruleId: string,
+    @Body() payload: any,
     @User() user: AuthenticatedUser,
   ): Promise<Rules> {
-    return await this.rulesService.cloneRule(ruleId, user.token.tokenString);
+    return await this.rulesService.cloneRule(ruleId, user.token.tokenString, payload);
   }
 
   // update the status of a rule based on rule ID
