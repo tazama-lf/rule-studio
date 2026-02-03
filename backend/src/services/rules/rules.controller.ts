@@ -37,6 +37,7 @@ import {
   RequestSaveFlow,
   CreateRuleDto,
   RequestFlow,
+  RuleFlowFilterDto,
 } from './dto/rules.dto';
 
 @ApiTags('Rules')
@@ -350,11 +351,13 @@ export class RulesController {
   })
   async getRuleFlow(
     @Param('ruleId') ruleId: string,
+    @Query() query: RuleFlowFilterDto,
     @User() user: AuthenticatedUser,
   ): Promise<ResponseRuleFlowDto> {
     const result = await this.rulesService.getRuleFlow(
       ruleId,
       user.token.tokenString,
+      query
     );
     return result;
   }

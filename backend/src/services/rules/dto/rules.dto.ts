@@ -282,11 +282,12 @@ export class ResponseRuleFlowDto {
   @IsString()
   @IsNotEmpty()
   rule_id: string;
+  
 
   @ApiProperty({ description: 'Flow structure of the rule', type: FlowDto })
   @IsObject()
   @IsNotEmpty()
-  flow: FlowDto;
+  flow: Record<string, unknown>;
 
   @ApiProperty({
     description: 'Base64 encoded TypeScript file representing the flow',
@@ -443,9 +444,27 @@ export class RequestSaveFlow {
 
 export class RequestFlow {
   @ApiProperty({
+    description: 'Category of the flow',
+    example: 'rule_builder',
+  })
+  @IsString()
+  @IsNotEmpty()
+  category: string;
+
+  @ApiProperty({
     description: 'Json of the flow',
     example: '{"edges": {}, "nodes": {} }',
   })
   @IsObject()
-  flowData: Record<string, unknown>;
+  flow_json: Record<string, unknown>;
+}
+
+export class RuleFlowFilterDto {
+  @ApiPropertyOptional({
+    description: 'Category filter for the rule flow',
+    example: 'rule_builder',
+  })
+  @IsOptional()
+  @IsString()
+  category?: string;
 }
