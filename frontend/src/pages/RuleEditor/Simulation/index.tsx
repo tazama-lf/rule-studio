@@ -110,24 +110,6 @@ const Simulation = (props: ISimulation) => {
                 </Box>
 
             </Box>
-            <Box width={'100%'} display={'flex'} justifyContent={'space-between'} alignSelf={'flex-end'}>
-                <Button
-                    height="40px"
-                    width="170px"
-                    type="secondary"
-                    size="md"
-                    text="Back"
-                    onClick={functions.handleBack}
-                />
-                <Button
-                    height="40px"
-                    width="170px"
-                    type="secondary"
-                    size="md"
-                    text="Next"
-                    onClick={functions.handleNext}
-                />
-            </Box>
         </Grid>
     )
 }
