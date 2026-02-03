@@ -76,7 +76,7 @@ const useOverviewController = (props: IOverviewProps) => {
 
     const onSubmit = async (values: RuleFormValues) => {
         const payload = {
-            // ruleName: values?.rule_name,
+            ruleName: values?.rule_name,
             description: values?.description,
             version: values?.version,
             txtp: values?.txtp?.value,
