@@ -7,6 +7,7 @@ import {
   RequestSaveFlow,
   RuleFiltersDto,
   RequestFlow,
+  RuleFlowFilterDto,
 } from './dto/rules.dto';
 import { BASE_RULE_ID } from '../../constants/constant';
 import { AuthenticatedUser } from '../auth/auth.types';
@@ -54,20 +55,36 @@ export class RulesService {
       const rule = await this.adminServiceClient.createRule(ruleData, token);
       let updatedRule = rule;
       if (rule.id) {
-        const baseFlow = await this.adminServiceClient.getRuleFlow(
+        const baseRuleBuilderFlow = await this.adminServiceClient.getRuleFlow(
           BASE_RULE_ID,
           token,
+          { category: 'rule_builder' },
         );
-        const newRuleFlow = await this.adminServiceClient.createRuleFlow(
+        const baseTestCaseFlow = await this.adminServiceClient.getRuleFlow(
+          BASE_RULE_ID,
+          token,
+          { category: 'test_case' },
+        );
+        const newRuleBuilderFlow = await this.adminServiceClient.createRuleFlow(
           rule.id,
-          baseFlow.flow as unknown as Record<string, unknown>,
+          { 
+            category: 'rule_builder',
+            flow_json: baseRuleBuilderFlow.flow,
+          },
           token,
         );
-        const flowId = newRuleFlow.flow[0].id;
-        if (flowId) {
+        const newTestCaseFlow = await this.adminServiceClient.createRuleFlow(
+          rule.id,
+          { 
+            category: 'test_case',
+            flow_json: baseTestCaseFlow.flow,
+          },
+          token,
+        );
+        if (newRuleBuilderFlow) {
           updatedRule = await this.adminServiceClient.updateRule(
             rule.id,
-            { flow_id: flowId },
+            { flow_id: newRuleBuilderFlow.id },
             token,
           );
         } else {
@@ -138,13 +155,14 @@ export class RulesService {
   async getRuleFlow(
     ruleId: string,
     token: string,
+    filters: RuleFlowFilterDto,
   ): Promise<ResponseRuleFlowDto> {
     try {
-      return await this.adminServiceClient.getRuleFlow(ruleId, token);
+      return await this.adminServiceClient.getRuleFlow(ruleId, token, filters);
     } catch (error) {
       const err = error as Error;
       this.logger.error(
-        `Error fetching configuration for rule ${ruleId}: ${err.message}`,
+        `Error fetching flow for rule ${ruleId}: ${err.message}`,
       );
       throw error;
     }
@@ -158,7 +176,7 @@ export class RulesService {
     try {
       return await this.adminServiceClient.createRuleFlow(
         ruleId,
-        body.flowData,
+        body,
         token,
       );
     } catch (error) {
@@ -183,6 +201,7 @@ export class RulesService {
       );
     } catch (error) {
       const err = error as Error;
+      console.log(error);
       this.logger.error(
         `Error updating flow for rule ${ruleId}: ${err.message}`,
       );

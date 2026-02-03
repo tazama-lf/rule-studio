@@ -11,6 +11,8 @@ import {
   GlobalVariableDto,
   RequestSaveFlow,
   RuleFiltersDto,
+  RequestFlow,
+  RuleFlowFilterDto,
 } from '../services/rules/dto/rules.dto';
 import { firstValueFrom } from 'rxjs';
 import {
@@ -344,24 +346,25 @@ async getAllNodes(
 
   async createRuleFlow(
     ruleId: string,
-    flowData: Record<string, unknown>,
+    payload: RequestFlow,
     token: string,
   ): Promise<ResponseRuleFlowDto> {
     return await this.executeHttpRequest<ResponseRuleFlowDto>(
       'POST',
       `${RULE_FLOW}/${ruleId}`,
       token,
-      flowData,
+      payload,
     );
   }
 
   async getRuleFlow(
     ruleId: string,
     token: string,
+    filters: RuleFlowFilterDto,
   ): Promise<ResponseRuleFlowDto> {
     return await this.executeHttpRequest<ResponseRuleFlowDto>(
       'GET',
-      `${RULE_FLOW}/${ruleId}`,
+      `${RULE_FLOW}/${ruleId}${Object.keys(filters).length ? '?' + new URLSearchParams(filters as Record<string, string>).toString() : ''}`,
       token,
     );
   }
