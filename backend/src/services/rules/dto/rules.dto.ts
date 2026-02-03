@@ -20,6 +20,15 @@ import type {
 import { RuleCategory } from 'src/utils/enums/rule.enum';
 
 export class RuleBaseDto {
+
+  @ApiProperty({
+    description: 'Rule name',
+    example: 'cbe-rule-061',
+  })
+  @IsString()
+  @IsNotEmpty()
+  ruleName: string;
+
   @ApiProperty({
     description: 'Rule description',
     example: 'Detects transactions above threshold',
