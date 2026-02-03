@@ -8,6 +8,7 @@ import {
   IsObject,
   ValidateNested,
   Matches,
+  IsEnum,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -16,6 +17,7 @@ import type {
   RuleRequest,
   RuleResult,
 } from '@tazama-lf/frms-coe-lib/lib/interfaces';
+import { RuleCategory } from 'src/utils/enums/rule.enum';
 
 export class RuleBaseDto {
 
@@ -282,7 +284,7 @@ export class ResponseRuleFlowDto {
   @IsString()
   @IsNotEmpty()
   rule_id: string;
-  
+
 
   @ApiProperty({ description: 'Flow structure of the rule', type: FlowDto })
   @IsObject()
@@ -440,16 +442,24 @@ export class RequestSaveFlow {
   })
   @IsObject()
   flow_json: Record<string, unknown>;
+
+  @ApiProperty({
+    description: 'Category of the flow',
+    example: RuleCategory.RULE_BUILDER,
+  })
+  @IsEnum(RuleCategory)
+  @IsNotEmpty()
+  category: RuleCategory;
 }
 
 export class RequestFlow {
   @ApiProperty({
     description: 'Category of the flow',
-    example: 'rule_builder',
+    example: RuleCategory.RULE_BUILDER,
   })
-  @IsString()
+  @IsEnum(RuleCategory)
   @IsNotEmpty()
-  category: string;
+  category: RuleCategory;
 
   @ApiProperty({
     description: 'Json of the flow',
@@ -462,9 +472,9 @@ export class RequestFlow {
 export class RuleFlowFilterDto {
   @ApiPropertyOptional({
     description: 'Category filter for the rule flow',
-    example: 'rule_builder',
+    example: RuleCategory.RULE_BUILDER,
   })
   @IsOptional()
-  @IsString()
-  category?: string;
+  @IsEnum(RuleCategory)
+  category?: RuleCategory;
 }
