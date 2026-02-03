@@ -65,6 +65,16 @@ export const Tabs = [
         enabled: false
     },
     {
+        label: 'Rule Builder',
+        value: 'rule_builder',
+        enabled: false
+    },
+    {
+        label: 'Generate Test Cases',
+        value: 'test_cases',
+        enabled: false
+    },
+    {
         label: 'Simulation',
         value: 'simulation',
         enabled: false

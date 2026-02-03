@@ -1,10 +1,10 @@
 import { Box, Grid } from "@mui/material";
 import Button from "../../../components/Button";
-import useTestCasesController from "./useTestCasesController";
+import useTestCasesController, { type ITestCases } from "./useTestCasesController";
 
-const TestCases = () => {
+const TestCases = (props: ITestCases) => {
 
-    const { functions } = useTestCasesController();
+    const { functions } = useTestCasesController(props);
 
     return (
         <Grid

@@ -1,6 +1,7 @@
 import { Box, Grid } from "@mui/material"
 import Button from "../../../components/Button"
 import useRuleBuilderController, { type IRuleBuilder } from "./useRuleBuilderController"
+import { Text } from "../../../components/Text";
 
 const RuleBuilder = (props: IRuleBuilder) => {
 
@@ -10,12 +11,16 @@ const RuleBuilder = (props: IRuleBuilder) => {
         <Grid
             container
             py={3}
-            display={'flex'}
-            justifyContent={'space-between'}
-            alignItems={'center'}
-            gap={2}
-            height={'70vh'}
+            height={'60vh'}
         >
+            <Box>
+                <Grid size={12} >
+                    <Text weight={'bold'} color="black" size={'header'}>Rule Builder</Text>
+                </Grid>
+                <Grid size={12} >
+                    <Text color="text.ternary" size={'body'}>Create Your Rule</Text>
+                </Grid>
+            </Box>
             <Box width={'100%'} display={'flex'} justifyContent={'center'}>
                 <Button
                     height="40px"
