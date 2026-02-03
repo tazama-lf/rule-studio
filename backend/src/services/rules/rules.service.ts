@@ -11,6 +11,7 @@ import {
 } from './dto/rules.dto';
 import { BASE_RULE_ID } from '../../constants/constant';
 import { AuthenticatedUser } from '../auth/auth.types';
+import { RuleCategory } from 'src/utils/enums/rule.enum';
 
 @Injectable()
 export class RulesService {
@@ -58,29 +59,29 @@ export class RulesService {
         const baseRuleBuilderFlow = await this.adminServiceClient.getRuleFlow(
           BASE_RULE_ID,
           token,
-          { category: 'rule_builder' },
+          { category: RuleCategory.RULE_BUILDER },
         );
-        const baseTestCaseFlow = await this.adminServiceClient.getRuleFlow(
-          BASE_RULE_ID,
-          token,
-          { category: 'test_case' },
-        );
+        // const baseTestCaseFlow = await this.adminServiceClient.getRuleFlow(
+        //   BASE_RULE_ID,
+        //   token,
+        //   { category: RuleCategory.TEST_CASE },
+        // );
         const newRuleBuilderFlow = await this.adminServiceClient.createRuleFlow(
           rule.id,
           { 
-            category: 'rule_builder',
+            category: RuleCategory.RULE_BUILDER,
             flow_json: baseRuleBuilderFlow.flow,
           },
           token,
         );
-        const newTestCaseFlow = await this.adminServiceClient.createRuleFlow(
-          rule.id,
-          { 
-            category: 'test_case',
-            flow_json: baseTestCaseFlow.flow,
-          },
-          token,
-        );
+        // const newTestCaseFlow = await this.adminServiceClient.createRuleFlow(
+        //   rule.id,
+        //   { 
+        //     category: RuleCategory.TEST_CASE,
+        //     flow_json: baseTestCaseFlow.flow,
+        //   },
+        //   token,
+        // );
         if (newRuleBuilderFlow) {
           updatedRule = await this.adminServiceClient.updateRule(
             rule.id,
