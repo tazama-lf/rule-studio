@@ -246,9 +246,7 @@ export class RulesController {
       CommonResponses.NOT_FOUND_404('Rule not found')
     )
   })
-  async getActiveNetworkMap(@User() user: AuthenticatedUser): Promise<any> {
-    return await this.rulesService.getActiveNetworkMap(user.token.tokenString);
-  }
+
 
   // get rule by ID
   @Get('/api/:id')
