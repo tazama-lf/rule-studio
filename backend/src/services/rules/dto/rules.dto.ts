@@ -284,7 +284,7 @@ export class ResponseRuleFlowDto {
   @IsString()
   @IsNotEmpty()
   rule_id: string;
-  
+
 
   @ApiProperty({ description: 'Flow structure of the rule', type: FlowDto })
   @IsObject()
