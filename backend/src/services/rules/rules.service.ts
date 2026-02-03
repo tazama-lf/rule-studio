@@ -9,6 +9,8 @@ import {
   RequestFlow,
   RuleFlowFilterDto,
 } from './dto/rules.dto';
+import { ParseExtractService } from '../parse-extract/parse-extract.service';
+import { TransactionalMessage } from '../parse-extract/dto/message.dto';
 import { BASE_RULE_ID } from '../../constants/constant';
 import { AuthenticatedUser } from '../auth/auth.types';
 import { RuleCategory } from 'src/utils/enums/rule.enum';
@@ -17,7 +19,10 @@ import { RuleCategory } from 'src/utils/enums/rule.enum';
 export class RulesService {
   private readonly logger = new Logger(RulesService.name);
 
-  constructor(private readonly adminServiceClient: AdminServiceClient) {}
+  constructor(
+    private readonly adminServiceClient: AdminServiceClient,
+    private readonly parseExtractService: ParseExtractService,
+  ) {}
   private async getRuleOrThrow(id: number, token: string): Promise<Rules> {
     try {
       return await this.adminServiceClient.getRulesById(id, token);
@@ -51,9 +56,52 @@ export class RulesService {
     return rules;
   }
 
-  async createRule(ruleData: Partial<Rules>, token: string): Promise<Rules> {
+  async createRule(
+    ruleData: Partial<Rules> & { transactionalMessage?: TransactionalMessage },
+    token: string,
+  ): Promise<Rules> {
     try {
-      const rule = await this.adminServiceClient.createRule(ruleData, token);
+      // If transactional message is provided, process it to enrich rule data
+      if (ruleData.transactionalMessage) {
+        this.logger.log(
+          `Processing transactional message for rule creation: ${ruleData.transactionalMessage.TxTp}`,
+        );
+
+        const parseResult = await this.parseExtractService.processForRuleCreation(
+          ruleData.transactionalMessage,
+          token,
+        );
+
+        if (!parseResult.success) {
+          this.logger.error(
+            `Failed to process transactional message: ${parseResult.message}`,
+          );
+          throw new Error(
+            `Transaction processing failed: ${parseResult.message}`,
+          );
+        }
+
+        // Enrich rule data with processed transaction information
+        const processedData = {
+          processedTransaction: parseResult.ruleRequest?.transaction,
+          dataCache: parseResult.ruleRequest?.DataCache,
+          networkMap: parseResult.ruleRequest?.networkMap,
+          validatedPayload: parseResult.validatedPayload,
+          correlationId: parseResult.correlationId,
+        };
+
+        // Store processed data in rule description or notes
+        ruleData.description = `${ruleData.description || ''} [Processed Transaction Data Available - Correlation ID: ${parseResult.correlationId}]`.trim();
+
+        this.logger.log(
+          `Successfully processed transaction data for rule creation [${parseResult.correlationId}]`,
+        );
+      }
+
+      // Remove transactionalMessage from ruleData before sending to admin service
+      const { transactionalMessage, ...cleanRuleData } = ruleData;
+
+      const rule = await this.adminServiceClient.createRule(cleanRuleData, token);
       let updatedRule = rule;
       if (rule.id) {
         const baseRuleBuilderFlow = await this.adminServiceClient.getRuleFlow(
