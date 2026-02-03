@@ -18,6 +18,15 @@ import type {
 } from '@tazama-lf/frms-coe-lib/lib/interfaces';
 
 export class RuleBaseDto {
+
+  @ApiProperty({
+    description: 'Rule name',
+    example: 'cbe-rule-061',
+  })
+  @IsString()
+  @IsNotEmpty()
+  ruleName: string;
+
   @ApiProperty({
     description: 'Rule description',
     example: 'Detects transactions above threshold',

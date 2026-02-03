@@ -11,13 +11,12 @@ import {
 } from '@nestjs/common';
 import {
   ApiTags,
-  ApiOperation,
-  ApiResponse,
   ApiBearerAuth,
   ApiQuery,
   ApiParam,
   ApiBody,
 } from '@nestjs/swagger';
+import { ApiSwagger, CommonResponses, mergeResponses } from '../../decorators/swagger.decorator';
 import { TazamaAuthGuard } from '../../guards/tazama-auth.guard';
 // import { StatusValidationGuard } from '../../guards/status-validation.guard';
 import { User } from '../../decorators/user.decorator';
@@ -53,23 +52,10 @@ export class RulesController {
     TazamaClaims.APPROVER,
     TazamaClaims.PUBLISHER,
   )
-  @ApiOperation({
+  @ApiSwagger({
     summary: 'Get available rule statuses',
-    description:
-      'Retrieves available rule statuses based on user role and permissions',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Rule statuses retrieved successfully',
-    type: [String],
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Insufficient permissions',
+    description: 'Retrieves available rule statuses based on user role and permissions',
+    responses: CommonResponses.SUCCESS_200([String], 'Rule statuses retrieved successfully')
   })
   async getRulesStatus(@User() user: AuthenticatedUser): Promise<string[]> {
     const allowedStatuses = this.rulesService.getRulesStatusbyRole(user);
@@ -83,11 +69,6 @@ export class RulesController {
     TazamaClaims.APPROVER,
     TazamaClaims.PUBLISHER,
   )
-  @ApiOperation({
-    summary: 'Get all rules (paginated)',
-    description:
-      'Retrieves paginated list of rules with optional filters for status, transaction type, etc.',
-  })
   @ApiQuery({
     name: 'offset',
     required: true,
@@ -105,19 +86,13 @@ export class RulesController {
     required: false,
     description: 'Optional filters for rule search',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Rules retrieved successfully',
-    type: [Rules],
-  })
-  @ApiResponse({ status: 400, description: 'Invalid pagination parameters' })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Insufficient permissions',
+  @ApiSwagger({
+    summary: 'Get all rules (paginated)',
+    description: 'Retrieves paginated list of rules with optional filters for status, transaction type, etc.',
+    responses: mergeResponses(
+      CommonResponses.SUCCESS_200([Rules], 'Rules retrieved successfully'),
+      CommonResponses.BAD_REQUEST_400('Invalid pagination parameters')
+    )
   })
   async getAllRules(
     @Query('offset', ParseIntPipe) offset: number,
@@ -149,22 +124,10 @@ export class RulesController {
     TazamaClaims.APPROVER,
     TazamaClaims.PUBLISHER,
   )
-  @ApiOperation({
+  @ApiSwagger({
     summary: 'Get rule IDs',
     description: 'Retrieves all available rule IDs for the authenticated user',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Rule IDs retrieved successfully',
-    type: [RuleIdResponseDto],
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Insufficient permissions',
+    responses: CommonResponses.SUCCESS_200([RuleIdResponseDto], 'Rule IDs retrieved successfully')
   })
   async getRuleIds(
     @User() user: AuthenticatedUser,
@@ -175,37 +138,27 @@ export class RulesController {
   // create a new rule
   @Post('/api/create')
   @RequireAnyClaims(TazamaClaims.EDITOR)
-  @ApiOperation({
-    summary: 'Create new rule',
-    description:
-      'Creates a new transaction rule for fraud detection, AML, or compliance monitoring',
-  })
   @ApiBody({
     type: Rules,
     description: 'Rule data for creation',
   })
-  @ApiResponse({
-    status: 201,
-    description: 'Rule created successfully',
-    type: Rules,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid input data or rule already exists',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Editor permissions required',
+  @ApiSwagger({
+    summary: 'Create new rule',
+    description: 'Creates a new transaction rule for fraud detection, AML, or compliance monitoring',
+    responses: mergeResponses(
+      CommonResponses.CREATED_201(Rules, 'Rule created successfully'),
+      CommonResponses.BAD_REQUEST_400('Invalid input data or rule already exists')
+    )
   })
   async createRule(
     @Body() ruleData: CreateRuleDto,
     @User() user: AuthenticatedUser,
   ): Promise<Rules> {
-    return await this.rulesService.createRule(ruleData, user.token.tokenString);
+    const ruleDataWithUser = {
+      ...ruleData,
+      userID: user.userId
+    };
+    return await this.rulesService.createRule(ruleDataWithUser, user.token.tokenString);
   }
 
   // get rule configuration by rule ID
@@ -215,28 +168,18 @@ export class RulesController {
     TazamaClaims.APPROVER,
     TazamaClaims.PUBLISHER,
   )
-  @ApiOperation({
-    summary: 'Get rule configuration',
-    description:
-      'Retrieves configuration details for a specific rule by rule ID',
-  })
   @ApiParam({
     name: 'ruleId',
     description: 'Rule identifier',
     example: 'high-value-transfer-001',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Rule configuration retrieved successfully',
-  })
-  @ApiResponse({ status: 404, description: 'Rule configuration not found' })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Insufficient permissions',
+  @ApiSwagger({
+    summary: 'Get rule configuration',
+    description: 'Retrieves configuration details for a specific rule by rule ID',
+    responses: mergeResponses(
+      CommonResponses.SUCCESS_200(undefined, 'Rule configuration retrieved successfully'),
+      CommonResponses.NOT_FOUND_404('Rule configuration not found')
+    )
   })
   async getRuleConfiguration(
     @Param('ruleId') ruleId: string,
@@ -251,11 +194,6 @@ export class RulesController {
   // update an existing rule
   @Put('/api/:ruleId')
   @RequireAnyClaims(TazamaClaims.EDITOR)
-  @ApiOperation({
-    summary: 'Update existing rule',
-    description:
-      'Updates an existing rule with partial data (only provided fields will be updated)',
-  })
   @ApiParam({
     name: 'ruleId',
     description: 'Rule identifier to update',
@@ -265,19 +203,13 @@ export class RulesController {
     type: UpdateRuleDto,
     description: 'Partial rule data for update',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Rule updated successfully',
-    type: Rules,
-  })
-  @ApiResponse({ status: 404, description: 'Rule not found' })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Editor permissions required',
+  @ApiSwagger({
+    summary: 'Update existing rule',
+    description: 'Updates an existing rule with partial data (only provided fields will be updated)',
+    responses: mergeResponses(
+      CommonResponses.SUCCESS_200(Rules, 'Rule updated successfully'),
+      CommonResponses.NOT_FOUND_404('Rule not found')
+    )
   })
   async updateRule(
     @Param('ruleId') ruleId: string,
@@ -298,33 +230,20 @@ export class RulesController {
     TazamaClaims.APPROVER,
     TazamaClaims.PUBLISHER,
   )
-  @ApiOperation({
-    summary: 'Get rule by numeric ID',
-    description: 'Retrieves a specific rule by its numeric database ID',
-  })
   @ApiParam({
     name: 'id',
     description: 'Numeric rule ID (integer)',
     example: 1,
     type: 'number',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Rule retrieved successfully',
-    type: Rules,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid ID format (must be numeric)',
-  })
-  @ApiResponse({ status: 404, description: 'Rule not found' })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Insufficient permissions',
+  @ApiSwagger({
+    summary: 'Get rule by numeric ID',
+    description: 'Retrieves a specific rule by its numeric database ID',
+    responses: mergeResponses(
+      CommonResponses.SUCCESS_200(Rules, 'Rule retrieved successfully'),
+      CommonResponses.BAD_REQUEST_400('Invalid ID format (must be numeric)'),
+      CommonResponses.NOT_FOUND_404('Rule not found')
+    )
   })
   async getRulesById(
     @Param('id', ParseIntPipe) id: number,
@@ -344,33 +263,18 @@ export class RulesController {
     TazamaClaims.APPROVER,
     TazamaClaims.PUBLISHER,
   )
-  @ApiOperation({
+  @ApiSwagger({
     summary: 'Get active network map',
-    description:
-      'Retrieves the active network map configuration showing rule relationships and processing flow',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Active network map retrieved successfully',
-  })
-  @ApiResponse({ status: 404, description: 'No active network map found' })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Insufficient permissions',
+    description: 'Retrieves the active network map configuration showing rule relationships and processing flow',
+    responses: mergeResponses(
+      CommonResponses.SUCCESS_200(undefined, 'Active network map retrieved successfully'),
+      CommonResponses.NOT_FOUND_404('No active network map found')
+    )
   })
   async getActiveNetworkMap(@User() user: AuthenticatedUser): Promise<any> {
     return await this.rulesService.getActiveNetworkMap(user.token.tokenString);
   }
 
-  @ApiOperation({
-    summary: 'Create rule flow',
-    description:
-      'Creates a new flow configuration for a specific rule with nodes and connections',
-  })
   @Post('/api/:ruleId/flow')
   @RequireAnyClaims(
     TazamaClaims.EDITOR,
@@ -382,20 +286,14 @@ export class RulesController {
     type: RequestFlow,
     description: 'Flow configuration with nodes and edges',
   })
-  @ApiResponse({
-    status: 201,
-    description: 'Rule flow created successfully',
-    type: ResponseRuleFlowDto,
-  })
-  @ApiResponse({ status: 400, description: 'Invalid flow configuration' })
-  @ApiResponse({ status: 404, description: 'Rule not found' })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Insufficient permissions',
+  @ApiSwagger({
+    summary: 'Create rule flow',
+    description: 'Creates a new flow configuration for a specific rule with nodes and connections',
+    responses: mergeResponses(
+      CommonResponses.CREATED_201(ResponseRuleFlowDto, 'Rule flow created successfully'),
+      CommonResponses.BAD_REQUEST_400('Invalid flow configuration'),
+      CommonResponses.NOT_FOUND_404('Rule not found')
+    )
   })
   async createRuleFlow(
     @Param('ruleId') ruleId: string,
@@ -409,11 +307,6 @@ export class RulesController {
     );
   }
 
-  @ApiOperation({
-    summary: 'Get rule flow',
-    description:
-      'Retrieves the flow configuration for a specific rule showing nodes and connections',
-  })
   @Get('/api/:ruleId/flow')
   @RequireAnyClaims(
     TazamaClaims.EDITOR,
@@ -421,19 +314,13 @@ export class RulesController {
     TazamaClaims.PUBLISHER,
   )
   @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: '001' })
-  @ApiResponse({
-    status: 200,
-    description: 'Rule flow retrieved successfully',
-    type: ResponseRuleFlowDto,
-  })
-  @ApiResponse({ status: 404, description: 'Rule flow not found' })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Insufficient permissions',
+  @ApiSwagger({
+    summary: 'Get rule flow',
+    description: 'Retrieves the flow configuration for a specific rule showing nodes and connections',
+    responses: mergeResponses(
+      CommonResponses.SUCCESS_200(ResponseRuleFlowDto, 'Rule flow retrieved successfully'),
+      CommonResponses.NOT_FOUND_404('Rule flow not found')
+    )
   })
   async getRuleFlow(
     @Param('ruleId') ruleId: string,
@@ -446,11 +333,6 @@ export class RulesController {
     return result;
   }
 
-  @ApiOperation({
-    summary: 'Update rule flow',
-    description:
-      'Updates the flow configuration for a specific rule with new nodes and connections',
-  })
   @Put('/api/:ruleId/flow')
   @RequireAnyClaims(TazamaClaims.EDITOR)
   @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: '001' })
@@ -458,20 +340,14 @@ export class RulesController {
     type: RequestSaveFlow,
     description: 'Updated flow configuration',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Rule flow updated successfully',
-    type: ResponseRuleFlowDto,
-  })
-  @ApiResponse({ status: 400, description: 'Invalid flow configuration' })
-  @ApiResponse({ status: 404, description: 'Rule flow not found' })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Editor permissions required',
+  @ApiSwagger({
+    summary: 'Update rule flow',
+    description: 'Updates the flow configuration for a specific rule with new nodes and connections',
+    responses: mergeResponses(
+      CommonResponses.SUCCESS_200(ResponseRuleFlowDto, 'Rule flow updated successfully'),
+      CommonResponses.BAD_REQUEST_400('Invalid flow configuration'),
+      CommonResponses.NOT_FOUND_404('Rule flow not found')
+    )
   })
   async updateRuleFlow(
     @Param('ruleId') ruleId: string,
@@ -491,29 +367,18 @@ export class RulesController {
     TazamaClaims.APPROVER,
     TazamaClaims.PUBLISHER,
   )
-  @ApiOperation({
-    summary: 'Get global variables for rule',
-    description:
-      'Retrieves global variables available for a specific rule configuration',
-  })
   @ApiParam({
     name: 'ruleId',
     description: 'Rule identifier',
     example: 'high-value-transfer-001',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Global variables retrieved successfully',
-    type: GlobalVariableDto,
-  })
-  @ApiResponse({ status: 404, description: 'Rule not found' })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Insufficient permissions',
+  @ApiSwagger({
+    summary: 'Get global variables for rule',
+    description: 'Retrieves global variables available for a specific rule configuration',
+    responses: mergeResponses(
+      CommonResponses.SUCCESS_200(GlobalVariableDto, 'Global variables retrieved successfully'),
+      CommonResponses.NOT_FOUND_404('Rule not found')
+    )
   })
   async getGlobalVariables(
     @Param('ruleId') ruleId: string,
@@ -529,11 +394,6 @@ export class RulesController {
   // Creating a new API for cloning an exising rule
   @Post('/api/clone/:ruleId')
   @RequireAnyClaims(TazamaClaims.EDITOR)
-  @ApiOperation({
-    summary: 'Clone existing rule',
-    description:
-      'Creates a copy of an existing rule for modification and customization',
-  })
   @ApiParam({
     name: 'ruleId',
     description: 'Source rule identifier to clone',
@@ -543,23 +403,17 @@ export class RulesController {
     description: 'Payload data for rule cloning',
     required: false,
   })
-  @ApiResponse({
-    status: 201,
-    description: 'Rule cloned successfully',
-    type: Rules,
-  })
-  @ApiResponse({ status: 404, description: 'Source rule not found' })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Editor permissions required',
+  @ApiSwagger({
+    summary: 'Clone existing rule',
+    description: 'Creates a copy of an existing rule for modification and customization',
+    responses: mergeResponses(
+      CommonResponses.CREATED_201(Rules, 'Rule cloned successfully'),
+      CommonResponses.NOT_FOUND_404('Source rule not found')
+    )
   })
   async cloneRule(
     @Param('ruleId') ruleId: string,
-    @Body() payload: any,
+    @Body() payload: any, // add type here 
     @User() user: AuthenticatedUser,
   ): Promise<Rules> {
     return await this.rulesService.cloneRule(ruleId, user.token.tokenString, payload);
@@ -572,11 +426,6 @@ export class RulesController {
     TazamaClaims.APPROVER,
     TazamaClaims.PUBLISHER,
   )
-  @ApiOperation({
-    summary: 'Update rule status',
-    description:
-      'Updates the activation status of a specific rule with reason for change',
-  })
   @ApiParam({
     name: 'ruleId',
     description: 'Rule identifier',
@@ -586,20 +435,14 @@ export class RulesController {
     type: UpdateRuleStatusDto,
     description: 'Status update with reason',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Rule status updated successfully',
-    type: Rules,
-  })
-  @ApiResponse({ status: 400, description: 'Invalid status or missing reason' })
-  @ApiResponse({ status: 404, description: 'Rule not found' })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Multiple role permissions required',
+  @ApiSwagger({
+    summary: 'Update rule status',
+    description: 'Updates the activation status of a specific rule with reason for change',
+    responses: mergeResponses(
+      CommonResponses.SUCCESS_200(Rules, 'Rule status updated successfully'),
+      CommonResponses.BAD_REQUEST_400('Invalid status or missing reason'),
+      CommonResponses.NOT_FOUND_404('Rule not found')
+    )
   })
   async updateRuleStatus(
     @Param('ruleId') ruleId: string,
