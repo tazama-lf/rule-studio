@@ -46,14 +46,14 @@ const Overview = (props: IOverviewProps) => {
                             )}
                         />
                     </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
+                    {/* <Grid size={{ xs: 12, md: 6 }}>
                         <DropDown
                             value={null}
                             label="Network Map"
                             onClick={functions.handleNetworkMap}
                             placeholder="View Network Map"
                         />
-                    </Grid>
+                    </Grid> */}
                 </Grid>
             </Section>
             <Section header={'General Information'}>

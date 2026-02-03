@@ -14,6 +14,7 @@ import { ruleTypes } from "../../../utils/Constants/data";
 import { createRuleSchema } from "../../../validation/schemas";
 import RuleConfig from "../Modals/RuleConfig";
 import ViewNetworkMap from "../Modals/ViewNetworkMap";
+import { useCreateRepoMutation } from '../../../redux/Api/Simulation';
 
 interface RuleFormValues {
     rule_name: string;
@@ -43,6 +44,7 @@ const useOverviewController = (props: IOverviewProps) => {
 
     const { data: types, isLoading } = useGetTypesQuery({})
     const [submit, { isLoading: createLoading }] = useCreateRuleMutation()
+    const [createRepo, { isLoading: repoLoading }] = useCreateRepoMutation()
     const [clone] = useCloneRuleMutation()
     const [getVersions] = useLazyGetTxtpVersionsQuery()
 
@@ -50,7 +52,7 @@ const useOverviewController = (props: IOverviewProps) => {
     const user = extractData('user') || {}
 
     const initial: RuleFormValues = {
-        rule_name: '',
+        rule_name: (data?.ruleName as string) ?? '',
         description: (data?.description as string) ?? '',
         txtp: toDropdown(data?.txtp as string) as { label: string, value: string } | null,
         txtpVersion: toDropdown(data?.txtp_version as string) as { label: string, value: string } | null,
@@ -72,8 +74,9 @@ const useOverviewController = (props: IOverviewProps) => {
         resolver: shouldValidate ? yupResolver(createRuleSchema) : undefined,
     })
 
-    const onSubmit = (values: RuleFormValues) => {
+    const onSubmit = async (values: RuleFormValues) => {
         const payload = {
+            // ruleName: values?.rule_name,
             description: values?.description,
             version: values?.version,
             txtp: values?.txtp?.value,
@@ -82,34 +85,44 @@ const useOverviewController = (props: IOverviewProps) => {
             txtpVersion: values?.txtpVersion?.value,
         }
 
-        if (mode === 'clone') {
-            clone({ id: data?.id, body: payload }).unwrap()
-                .then((res) => {
-                    insertData(res, 'trs_rule', LocalStorage, true)
-                    toast.success('Rule Successfully Cloned')
-                    enableNextTab()
-                })
-                .catch((error) => {
-                    toast.error(error?.data?.message || 'Failed to clone rule')
-                })
-        } else {
-            submit(payload).unwrap()
-                .then((res) => {
-                    insertData(res, 'trs_rule', LocalStorage, true)
-                    toast.success('Rule Successfully Created')
-                    enableNextTab()
-                })
-                .catch((error) => {
-                    toast.error(error?.data?.message || 'Failed to create rule')
-                })
+        try {
+            const res =
+                mode === 'clone'
+                    ? await clone({ id: data?.id, body: payload }).unwrap()
+                    : await submit(payload).unwrap()
+
+            insertData(res, 'trs_rule', LocalStorage, true)
+
+            toast.success(
+                mode === 'clone'
+                    ? 'Rule Successfully Cloned'
+                    : 'Rule Successfully Created'
+            )
+
+            // const repoBody = {
+            //     ruleId: res?.id,
+            //     ruleVersion: values?.version,
+            //     organization: 'psl-copilot',
+            // }
+
+            // const repoRes = await createRepo(repoBody)
+
+            if (true) {
+                enableNextTab()
+            }
+        } catch (error: unknown) {
+            const errorMessage =
+                (error as { data?: { message?: string } })?.data?.message ||
+                (mode === 'clone'
+                    ? 'Failed to clone rule'
+                    : 'Failed to create rule')
+            toast.error(errorMessage)
         }
     }
 
     const handleNext = () => {
         enableNextTab()
     }
-
-
 
     const getRuleName = (id: string) => {
         const rule_no = id?.toString().split('@')
@@ -173,7 +186,7 @@ const useOverviewController = (props: IOverviewProps) => {
             errors,
             isLoading,
             rule_config_id: getValues('rule_config_id'),
-            createLoading,
+            createLoading: createLoading || repoLoading,
             transactions: types?.map((item: string) => ({ label: item, value: item })) || [],
             txtpVersions: versions?.map((item: string) => ({ label: item, value: item })) || [],
             ruleTypes: ruleTypes.map(({ display, value }) => { return { label: display, value } }),

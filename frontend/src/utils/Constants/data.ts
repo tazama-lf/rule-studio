@@ -9,45 +9,6 @@ export const Status = {
     STATUS_09_ARCHIVED: 'STATUS_09_ARCHIVED',
 }
 
-export const samplePayload = {
-    "CstmrCdtTrfInitn": {
-        "GrpHdr": {
-            "MsgId": "17fa-afea-48d6-b147-05c8463ea494",
-            "CreDtTm": "2023-02-03T07:03:17.438Z",
-            "NbOfTxs": 1,
-            "InitgPty": {
-                "Id": {
-                    "PrvtId": {
-                        "Othr": [
-                            {
-                                "Id": "+36-432226947",
-                                "SchmeNm": {
-                                    "Prtry": "MSISDN"
-                                }
-                            }
-                        ],
-                        "DtAndPlcOfBirth": {
-                            "BirthDt": "1968-02-01",
-                            "CityOfBirth": "Unknown",
-                            "CtryOfBirth": "ZZ"
-                        }
-                    }
-                },
-                "Nm": "April Blake Grant",
-                "CtctDtls": {
-                    "MobNb": "+36-432226947"
-                }
-            }
-        },
-        "PmtInf": {
-            "PmtMtd": "TRA",
-            "PmtInfId": "23730c89dd57490a9a79f9b3747e3c08"
-        }
-    },
-    "TxTp": "pain.001.001.11",
-    "TenantId": "cbe"
-}
-
 export const publishingStatus = {
     Active: 'ACTIVE',
     Inactive: 'INACTIVE'
@@ -65,23 +26,8 @@ export const Tabs = [
         enabled: false
     },
     {
-        label: 'Rule Builder',
-        value: 'rule_builder',
-        enabled: false
-    },
-    {
-        label: 'Generate Test Cases',
-        value: 'test_cases',
-        enabled: false
-    },
-    {
         label: 'Simulation',
         value: 'simulation',
-        enabled: false
-    },
-    {
-        label: 'Documentation',
-        value: 'documentation',
         enabled: false
     },
     {
