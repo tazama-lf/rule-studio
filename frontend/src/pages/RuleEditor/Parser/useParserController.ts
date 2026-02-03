@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTab } from "../../../contexts/TabContext/useTab";
 import { useLazyGetSamplePayloadQuery } from "../../../redux/Api/Config";
 import { useGetGlobalVariablesQuery } from "../../../redux/Api/Rule-builder";
 import { LocalStorage } from "../../../utils/Common/enums";
 import { extractData } from "../../../utils/Common/storage";
-import { samplePayload } from "../../../utils/Constants/data";
 
 
 export interface IParseProps {
@@ -19,7 +19,8 @@ const useParserController = (props: IParseProps) => {
         [props?.data]
     )
 
-    const { enableNextTab, enablePreviousTab } = useTab()
+    const { enablePreviousTab, enableNextTab } = useTab()
+    const navigate = useNavigate()
 
     const { mode } = props
 
@@ -31,6 +32,7 @@ const useParserController = (props: IParseProps) => {
     const [payload, setPayload] = useState<string | null>(null)
 
     const handleNext = () => {
+        // navigate(`/rule-builder/${data?.id}`)
         enableNextTab()
     }
 
