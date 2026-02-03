@@ -38,6 +38,7 @@ import {
   RequestSaveFlow,
   CreateRuleDto,
   RequestFlow,
+  RuleFlowFilterDto,
 } from './dto/rules.dto';
 
 @ApiTags('Rules')
@@ -421,6 +422,13 @@ export class RulesController {
     TazamaClaims.PUBLISHER,
   )
   @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: '001' })
+  @ApiQuery({
+    name: 'category',
+    required: false,
+    type: String,
+    description: 'Optional category filter for the rule flow',
+    example: 'rule_builder',
+  })
   @ApiResponse({
     status: 200,
     description: 'Rule flow retrieved successfully',
@@ -437,11 +445,13 @@ export class RulesController {
   })
   async getRuleFlow(
     @Param('ruleId') ruleId: string,
+    @Query() query: RuleFlowFilterDto,
     @User() user: AuthenticatedUser,
   ): Promise<ResponseRuleFlowDto> {
     const result = await this.rulesService.getRuleFlow(
       ruleId,
       user.token.tokenString,
+      query
     );
     return result;
   }
