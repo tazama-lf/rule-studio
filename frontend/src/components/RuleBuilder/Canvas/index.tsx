@@ -66,6 +66,7 @@ interface CanvasProps {
   initialNodes?: Node[];
   initialEdges?: Edge[];
   onUpdateNodeInternalsReady?: (updateFn: (nodeId: string) => void) => void;
+  mode?: 'rule-builder' | 'test-case-generate'; 
 }
 
 
@@ -85,6 +86,7 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = ({
   initialNodes,
   initialEdges,
   onUpdateNodeInternalsReady,
+  mode = 'rule-builder',
 }) => {
   const initialDataRef = useRef({ nodes: initialNodes, edges: initialEdges });
   const extractedNestedCountersRef = useRef(false);
@@ -94,13 +96,11 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = ({
     const edges = (initialDataRef.current.edges as Edge[]) || [];
     return { nodes, edges };
   }, []);
-  
-  // Stable derived value for nested data availability
+
   const hasNestedFlows = React.useMemo(() => {
     return nestedCanvasData ? Object.keys(nestedCanvasData).length > 0 : false;
   }, [nestedCanvasData]);
   
-  // Extract counters on mount and when nested flows first become available
   useEffect(() => {
     const { nodes, edges } = getInitialFlow;
     
@@ -169,6 +169,7 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = ({
     onJsonGenerate,
     onCodeGenerate,
     reactFlowInstance: reactFlowInstance as Record<string, unknown> | undefined,
+    mode,
   });
 
   const {
