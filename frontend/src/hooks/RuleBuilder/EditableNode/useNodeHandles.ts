@@ -96,6 +96,31 @@ export const useNodeHandles = (
           border: '2px solid white',
         },
       });
+    } else if (hasSourceHandle && nodeType === 'Describe') {
+      result.sourceHandles.push({
+        id: 'body',
+        type: 'source',
+        position: Position.Right,
+        style: {
+          background: '#9c27b0',
+          width: '10px',
+          height: '10px',
+          border: '2px solid white',
+          top: '50%',
+        },
+      });
+
+      result.sourceHandles.push({
+        id: 'exit',
+        type: 'source',
+        position: Position.Bottom,
+        style: {
+          background: '#000000',
+          width: '10px',
+          height: '10px',
+          border: '2px solid white',
+        },
+      });
     } else if (hasSourceHandle) {
       result.sourceHandles.push({
         id: 'source',

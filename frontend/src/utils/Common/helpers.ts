@@ -68,16 +68,18 @@ export const getLabelForHandle = (handleId: string): string => {
   if (handleId === 'else') return 'else';
   if (handleId === 'exit') return 'exit';
   if (handleId === 'loopBody') return 'loop body';
+  if (handleId === 'body') return 'body';
   if (handleId.startsWith('elseif')) return 'else if';
   return '';
 };
 
 export const getColorForHandle = (handleId: string): string => {
-  if (handleId === 'if') return '#4caf50'; // green
-  if (handleId === 'else') return '#4caf50'; // green
-  if (handleId === 'exit') return '#000000'; // black for continuation
-  if (handleId === 'loopBody') return '#2196F3'; // blue for loop body
-  if (handleId.startsWith('elseif')) return '#4caf50'; // green
+  if (handleId === 'if') return '#4caf50';
+  if (handleId === 'else') return '#4caf50';
+  if (handleId === 'exit') return '#000000';
+  if (handleId === 'loopBody') return '#2196F3';
+  if (handleId === 'body') return '#9c27b0';
+  if (handleId.startsWith('elseif')) return '#4caf50';
   return '#555';
 };
 
@@ -105,7 +107,9 @@ export const getNodesInBranch = <T extends NodeWithId, E extends EdgeWithSourceT
     visitedNodes.add(targetNode.id);
     branchNodes.push(targetNode);
 
-    if (nodeData?.nodeType !== 'If') {
+    // Don't recursively collect nodes from block structures (If, Loop, Describe)
+    // They handle their own branching logic
+    if (nodeData?.nodeType !== 'If' && nodeData?.nodeType !== 'Loop' && nodeData?.nodeType !== 'Describe') {
       const childNodes = getNodesInBranch(targetNode.id, null, nodes, edges, visitedNodes);
       branchNodes.push(...childNodes);
     }

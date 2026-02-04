@@ -1,7 +1,8 @@
 import React, { useCallback, useState, useMemo } from 'react';
-import { Typography } from '@mui/material';
+import { Typography, Button } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import EditIcon from '@mui/icons-material/Edit';
 import type { Node } from '@xyflow/react';
 import {
   SidebarContainer,
@@ -10,6 +11,7 @@ import {
 } from './styles';
 import { getNodeTemplate } from '../../../utils/Flow/nodeTemplateService';
 import { usesDynamicParameters } from '../../../utils/Flow/functionParameterUtils';
+import { transformRuleRequestToCode } from '../../../utils/Flow/transformRuleRequest';
 import {
   NodeHeader,
   BasicPropertiesSection,
@@ -20,6 +22,8 @@ import {
   ParameterConfigSection,
   FetchDBSection,
 } from './components';
+import { CodeEditorDialog } from './components/CodeEditorDialog';
+import { BeforeEachSection, BeforeAllSection } from './components/NodeSections';
 import { useNodeValidation, useTernaryConditions } from '../../../hooks/RuleBuilder';
 
 interface RightSidebarProps {
@@ -62,6 +66,12 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
 
   const [editingLabel, setEditingLabel] = useState<string | null>(null);
   const [editingParams, setEditingParams] = useState<Record<string, string> | null>(null);
+  const [mockRequestModalOpen, setMockRequestModalOpen] = useState<boolean>(false);
+  const [mockRequestCode, setMockRequestCode] = useState<string>('');
+  const [beforeEachModalOpen, setBeforeEachModalOpen] = useState<boolean>(false);
+  const [beforeEachCode, setBeforeEachCode] = useState<string>('');
+  const [beforeAllModalOpen, setBeforeAllModalOpen] = useState<boolean>(false);
+  const [beforeAllCode, setBeforeAllCode] = useState<string>('');
   const inputRefs = React.useRef<Record<string, HTMLInputElement | HTMLTextAreaElement>>({});
   const updateTimeoutRef = React.useRef<number | null>(null);
   const validationTimeoutRef = React.useRef<number | null>(null);
@@ -441,6 +451,69 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
     handleResultVarChange: handleTernaryResultVarChange,
   } = useTernaryConditions({ currentParams, onParamChange: handleTernaryParamChange });
 
+  const handleEditMockRequest = useCallback(() => {
+    if (!window.globalVariablesData) {
+      alert('No global variables data available. Please load the test case first.');
+      return;
+    }
+    
+    const globalVars = window.globalVariablesData as { RuleRequest?: unknown };
+    const transformedCode = transformRuleRequestToCode(globalVars.RuleRequest);
+    setMockRequestCode(transformedCode);
+    setMockRequestModalOpen(true);
+  }, []);
+
+  const handleSaveMockRequest = useCallback(() => {
+    if (selectedNode) {
+      const updatedParams = { ...currentParamsRef.current, ruleRequestData: mockRequestCode };
+      setEditingParams(updatedParams);
+      onUpdateNode(selectedNode.id, { params: updatedParams });
+      setMockRequestModalOpen(false);
+    }
+  }, [selectedNode, mockRequestCode, onUpdateNode]);
+
+  const handleCloseMockRequestModal = useCallback(() => {
+    setMockRequestModalOpen(false);
+  }, []);
+
+  const handleEditBeforeEach = useCallback(() => {
+    const existingCode = currentParamsRef.current.beforeEachCode || '// Add setup code here\ndatabaseManager = MockDatabaseManagerFactory();\nloggerService = MockLoggerServiceFactory();';
+    setBeforeEachCode(existingCode);
+    setBeforeEachModalOpen(true);
+  }, []);
+
+  const handleSaveBeforeEach = useCallback(() => {
+    if (selectedNode) {
+      const updatedParams = { ...currentParamsRef.current, beforeEachCode };
+      setEditingParams(updatedParams);
+      onUpdateNode(selectedNode.id, { params: updatedParams });
+      setBeforeEachModalOpen(false);
+    }
+  }, [selectedNode, beforeEachCode, onUpdateNode]);
+
+  const handleCloseBeforeEachModal = useCallback(() => {
+    setBeforeEachModalOpen(false);
+  }, []);
+
+  const handleEditBeforeAll = useCallback(() => {
+    const existingCode = currentParamsRef.current.beforeAllCode || '// Add global setup code here';
+    setBeforeAllCode(existingCode);
+    setBeforeAllModalOpen(true);
+  }, []);
+
+  const handleSaveBeforeAll = useCallback(() => {
+    if (selectedNode) {
+      const updatedParams = { ...currentParamsRef.current, beforeAllCode };
+      setEditingParams(updatedParams);
+      onUpdateNode(selectedNode.id, { params: updatedParams });
+      setBeforeAllModalOpen(false);
+    }
+  }, [selectedNode, beforeAllCode, onUpdateNode]);
+
+  const handleCloseBeforeAllModal = useCallback(() => {
+    setBeforeAllModalOpen(false);
+  }, []);
+
   if (collapsed) {
     return (
       <SidebarContainer collapsed={true}>
@@ -558,6 +631,219 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
           allNodes={allNodes}
           getFieldError={getFieldError}
         />
+      ) : nodeData?.nodeType === 'RuleConfigFactory' ? (
+        <ParameterSection
+          inputs={[
+            {
+              key: 'factoryName',
+              label: 'Factory Name',
+              type: 'text',
+              required: true,
+              defaultValue: 'getRuleConfig',
+            }
+          ]}
+          currentParams={currentParams}
+          onParamChange={handleParamChange}
+          onParamBlur={handleParamBlur}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          inputRefs={inputRefs}
+          variableError={null}
+          isReadOnly={isReadOnly}
+          viewOnly={viewOnly}
+          nodeType={nodeData?.nodeType}
+          allNodes={allNodes}
+          getFieldError={getFieldError}
+          ruleId={ruleId}
+          edges={edges}
+          selectedNodeId={selectedNode?.id}
+        />
+      ) : nodeData?.nodeType === 'RuleRequestFactory' ? (
+        <>
+          <ParameterSection
+            inputs={[
+              {
+                key: 'factoryName',
+                label: 'Factory Name',
+                type: 'text',
+                required: true,
+                defaultValue: 'getMockRequest',
+              }
+            ]}
+            currentParams={currentParams}
+            onParamChange={handleParamChange}
+            onParamBlur={handleParamBlur}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            inputRefs={inputRefs}
+            variableError={null}
+            isReadOnly={isReadOnly}
+            viewOnly={viewOnly}
+            nodeType={nodeData?.nodeType}
+            allNodes={allNodes}
+            getFieldError={getFieldError}
+            ruleId={ruleId}
+            edges={edges}
+            selectedNodeId={selectedNode?.id}
+          />
+          <Button
+            variant="outlined"
+            startIcon={<EditIcon />}
+            onClick={handleEditMockRequest}
+            fullWidth
+            sx={{ mt: 2 }}
+            disabled={viewOnly}
+          >
+            Edit Mock Rule Request
+          </Button>
+        </>
+      ) : nodeData?.nodeType === 'BeforeEach' ? (
+        <BeforeEachSection onEdit={handleEditBeforeEach} viewOnly={viewOnly} />
+      ) : nodeData?.nodeType === 'BeforeAll' ? (
+        <BeforeAllSection onEdit={handleEditBeforeAll} viewOnly={viewOnly} />
+      ) : nodeData?.nodeType === 'RuleRequestScenario' ? (
+        <ParameterSection
+          inputs={[
+            {
+              key: 'factoryName',
+              label: 'Factory Name',
+              type: 'text',
+              required: true,
+              defaultValue: 'getMockRequestUnsuccessful',
+            },
+            {
+              key: 'modifications',
+              label: 'Modification Statement',
+              type: 'textarea',
+              required: false,
+              defaultValue: "quote.transaction.FIToFIPmtSts.TxInfAndSts.TxSts = 'RJCT';",
+              placeholder: "Enter modification code (e.g., quote.transaction.status = 'REJECTED';)"
+            }
+          ]}
+          currentParams={currentParams}
+          onParamChange={handleParamChange}
+          onParamBlur={handleParamBlur}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          inputRefs={inputRefs}
+          variableError={null}
+          isReadOnly={isReadOnly}
+          viewOnly={viewOnly}
+          nodeType={nodeData?.nodeType}
+          allNodes={allNodes}
+          getFieldError={getFieldError}
+          ruleId={ruleId}
+          edges={edges}
+          selectedNodeId={selectedNode?.id}
+        />
+      ) : nodeData?.nodeType === 'RuleResultFactory' ? (
+        <ParameterSection
+          inputs={[
+            {
+              key: 'factoryName',
+              label: 'Factory Name',
+              type: 'text',
+              required: true,
+              defaultValue: 'getRuleResult',
+            }
+          ]}
+          currentParams={currentParams}
+          onParamChange={handleParamChange}
+          onParamBlur={handleParamBlur}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          inputRefs={inputRefs}
+          variableError={null}
+          isReadOnly={isReadOnly}
+          viewOnly={viewOnly}
+          nodeType={nodeData?.nodeType}
+          allNodes={allNodes}
+          getFieldError={getFieldError}
+          ruleId={ruleId}
+          edges={edges}
+          selectedNodeId={selectedNode?.id}
+        />
+      ) : nodeData?.nodeType === 'DataCacheFactory' ? (
+        <ParameterSection
+          inputs={[
+            {
+              key: 'variableName',
+              label: 'Variable Name',
+              type: 'text',
+              required: true,
+              defaultValue: 'dataCache',
+            }
+          ]}
+          currentParams={currentParams}
+          onParamChange={handleParamChange}
+          onParamBlur={handleParamBlur}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          inputRefs={inputRefs}
+          variableError={null}
+          isReadOnly={isReadOnly}
+          viewOnly={viewOnly}
+          nodeType={nodeData?.nodeType}
+          allNodes={allNodes}
+          getFieldError={getFieldError}
+          ruleId={ruleId}
+          edges={edges}
+          selectedNodeId={selectedNode?.id}
+        />
+      ) : nodeData?.nodeType === 'DatabaseManager' ? (
+        <ParameterSection
+          inputs={[
+            {
+              key: 'variableName',
+              label: 'Variable Name',
+              type: 'text',
+              required: true,
+              defaultValue: 'databaseManager',
+            }
+          ]}
+          currentParams={currentParams}
+          onParamChange={handleParamChange}
+          onParamBlur={handleParamBlur}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          inputRefs={inputRefs}
+          variableError={null}
+          isReadOnly={isReadOnly}
+          viewOnly={viewOnly}
+          nodeType={nodeData?.nodeType}
+          allNodes={allNodes}
+          getFieldError={getFieldError}
+          ruleId={ruleId}
+          edges={edges}
+          selectedNodeId={selectedNode?.id}
+        />
+      ) : nodeData?.nodeType === 'LoggerService' ? (
+        <ParameterSection
+          inputs={[
+            {
+              key: 'variableName',
+              label: 'Variable Name',
+              type: 'text',
+              required: true,
+              defaultValue: 'loggerService',
+            }
+          ]}
+          currentParams={currentParams}
+          onParamChange={handleParamChange}
+          onParamBlur={handleParamBlur}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          inputRefs={inputRefs}
+          variableError={null}
+          isReadOnly={isReadOnly}
+          viewOnly={viewOnly}
+          nodeType={nodeData?.nodeType}
+          allNodes={allNodes}
+          getFieldError={getFieldError}
+          ruleId={ruleId}
+          edges={edges}
+          selectedNodeId={selectedNode?.id}
+        />
       ) : isFunctionCallNode && (nodeData?.function_name || template?.function_name) ? (
         <FunctionCallSection
           functionName={nodeData?.function_name || template.function_name || ''}
@@ -599,6 +885,33 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
           />
         )
       )}
+
+      <CodeEditorDialog
+        open={mockRequestModalOpen}
+        title="Edit Mock Rule Request"
+        value={mockRequestCode}
+        onChange={setMockRequestCode}
+        onSave={handleSaveMockRequest}
+        onClose={handleCloseMockRequestModal}
+      />
+
+      <CodeEditorDialog
+        open={beforeEachModalOpen}
+        title="Edit beforeEach Code"
+        value={beforeEachCode}
+        onChange={setBeforeEachCode}
+        onSave={handleSaveBeforeEach}
+        onClose={handleCloseBeforeEachModal}
+      />
+
+      <CodeEditorDialog
+        open={beforeAllModalOpen}
+        title="Edit beforeAll Code"
+        value={beforeAllCode}
+        onChange={setBeforeAllCode}
+        onSave={handleSaveBeforeAll}
+        onClose={handleCloseBeforeAllModal}
+      />
     </SidebarContainer>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { Box, Typography } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -7,75 +7,57 @@ import LeftSidebar from '../../components/RuleBuilder/LeftSidebar';
 import Header from '../../components/RuleBuilder/Header';
 import RuleBuilderCanvas from '../../components/RuleBuilder/Canvas';
 import RightSidebar from '../../components/RuleBuilder/RightSidebar';
-import NestedCanvas from '../../components/RuleBuilder/NestedCanvas';
 import OutputModal from '../../components/RuleBuilder/OutputModal';
 import { ValidationProvider } from '../../validation/context';
 import { ValidationErrorModal } from '../../components/RuleBuilder/ValidationErrorModal';
-import { useGetFlowQuery, useSaveFlowMutation, useGetNodesQuery } from '../../redux/Api/Rule-builder';
-import { transformApiFlowData, type ApiNode, type ApiEdge } from '../../utils/Flow/FlowTransformers';
+import { useGetNodesQuery, useSaveFlowMutation, useGetGlobalVariablesQuery, useGetFlowQuery } from '../../redux/Api/Rule-builder';
 import { setApiNodes } from '../../utils/Flow/nodeTemplateService';
-import {
-  useFlowAnimation,
-  useFlowState,
-  useNestedCanvasManager,
-} from '../../hooks/RuleBuilder';
+import { transformApiFlowData, type ApiNode as ApiFlowNode, type ApiEdge } from '../../utils/Flow/FlowTransformers';
+import { useFlowState } from '../../hooks/RuleBuilder';
 
-interface RuleBuilderProps {
+interface TestCaseGenerateProps {
   viewOnly?: boolean;
 }
 
-const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
-  const { id: ruleId } = useParams<{ id: string }>();
+const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false }) => {
+  const { ruleId } = useParams<{ ruleId: string }>();
   
-  const { data: nodesData, isLoading: isLoadingNodes, error: nodesError } = useGetNodesQuery('rule_builder');
-  
-  const { data: flowData, isLoading: isLoadingFlow, error: flowError } = useGetFlowQuery(
-    { ruleId: ruleId || '', category: 'rule_builder' },
+  const { data: nodesData, isLoading: isLoadingNodes, error: nodesError } = useGetNodesQuery('test_case_generation');
+  const { data: globalVariablesData } = useGetGlobalVariablesQuery(ruleId || '', {
+    skip: !ruleId,
+  });
+  const { data: flowData } = useGetFlowQuery(
+    { ruleId: ruleId || '', category: 'test_case_generation' },
     { skip: !ruleId }
   );
-  
   const [saveFlow, { isLoading: isSaving }] = useSaveFlowMutation();
   
   const flowState = useFlowState();
-  const nestedCanvasManager = useNestedCanvasManager();
   
-  // Store reference to updateNodeInternals from Canvas for dynamic handle updates
-  const updateNodeInternalsRef = React.useRef<((nodeId: string) => void) | null>(null);
-  
-  const [apiNodesInitialized, setApiNodesInitialized] = React.useState(false);
-  
-  useEffect(() => {
-    if (nodesData && Array.isArray(nodesData)) {
-      setApiNodes(nodesData as unknown as ApiNode[]);
-      setApiNodesInitialized(true);
-    }
+  const updateNodeInternalsRef = useRef<((nodeId: string) => void) | null>(null);
+  // Initialize API nodes synchronously using useMemo
+  const apiNodesInitialized = useMemo(() => {
+    if (!nodesData || !Array.isArray(nodesData)) return false;
+    setApiNodes(nodesData);
+    return true;
   }, [nodesData]);
-  
-  const transformedFlowData = useMemo(() => {
 
+  const transformedFlowData = useMemo(() => {
     if (!flowData?.flow || !apiNodesInitialized) return null;
     
     const flowJson = flowData.flow.flow_json || flowData.flow;
     
     return transformApiFlowData(
-      flowJson.nodes as ApiNode[] || [],
+      flowJson.nodes as ApiFlowNode[] || [],
       flowJson.edges as ApiEdge[] || []
     );
   }, [flowData, apiNodesInitialized]);
 
   useEffect(() => {
-    if (transformedFlowData?.nestedFlows) {
-      Object.entries(transformedFlowData.nestedFlows).forEach(([nodeId, nestedFlow]) => {
-        nestedCanvasManager.setNestedCanvasData(prev => ({
-          ...prev,
-          [nodeId]: nestedFlow,
-        }));
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transformedFlowData]);
+    window.globalVariablesData = globalVariablesData || null;
+  }, [globalVariablesData]);
 
-  const [showErrorModal, setShowErrorModal] = React.useState(false);
+  const [showErrorModal, setShowErrorModal] = useState<boolean>(false);
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -90,63 +72,18 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, []);
-  
-  const [isPaused, setIsPaused] = React.useState(false);
-  
-  const {
-    playFlowAnimation,
-    stopAnimation,
-    pauseAnimation,
-    resumeAnimation,
-    updateFlowState,
-    animationTimeoutRef,
-  } = useFlowAnimation({
-    isPlaying: Boolean(flowState.currentAnimationNode),
-    setIsPlaying: () => {},
-    nestedCanvasData: nestedCanvasManager.nestedCanvasData,
-    setDebugVariables: flowState.setDebugVariables,
-    setDebugLogs: flowState.setDebugLogs,
-    setCurrentAnimationNode: flowState.setCurrentAnimationNode,
-  });
 
   const nodeUpdateHandlerRef = useRef<((nodeId: string, updates: Record<string, unknown>) => void) | null>(null);
 
-  const handlePlayClick = () => {
-    if (nestedCanvasManager.activeNestedCanvas) {
-      nestedCanvasManager.setActiveNestedCanvas(null);
-      flowState.setSelectedNode(null);
-      setTimeout(playFlowAnimation, 100);
-    } else {
-      playFlowAnimation();
-    }
-  };
-
-  const handlePauseClick = () => {
-    setIsPaused(true);
-    pauseAnimation();
-  };
-
-  const handleResumeClick = () => {
-    setIsPaused(false);
-    resumeAnimation();
-  };
-
-  const handleStopClick = () => {
-    setIsPaused(false);
-    stopAnimation();
-    flowState.setDebugLogs([]);
-    flowState.setDebugVariables({});
-  };
-
-  const handleDisplayJson = () => {
+  const handleDisplayJson = useCallback(() => {
     window.generateFlowJson?.();
-  };
+  }, []);
 
-  const handleGenerateCode = () => {
+  const handleGenerateCode = useCallback(() => {
     window.generateFlowCode?.();
-  };
+  }, []);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!ruleId) {
       toast.error('Rule ID not found');
       return;
@@ -168,9 +105,8 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
       let parsedFlowJson;
       try {
         parsedFlowJson = JSON.parse(flowJson);
-      } catch (parseError) {
+      } catch {
         toast.error('Failed to parse flow data: Invalid JSON format');
-        console.error('JSON parse error:', parseError);
         return;
       }
 
@@ -184,30 +120,28 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
       const response = await saveFlow({
         ruleId,
         flowData: payload,
-        category: 'rule_builder',
+        category: 'test_case_generation',
       }).unwrap();
 
-      toast.success(response.message || 'Flow saved successfully');
+      toast.success(response.message || 'Test case flow saved successfully');
     } catch (error: unknown) {
-      const errorMessage = (error as { data?: { message?: string } })?.data?.message || 'Failed to save flow';
+      const errorMessage = (error as { data?: { message?: string } })?.data?.message || 'Failed to save test case';
       toast.error(errorMessage);
     }
-  };
+  }, [ruleId, saveFlow]);
+
+  const flowStateRef = useRef(flowState);
+  
+  useEffect(() => {
+    flowStateRef.current = flowState;
+  }, [flowState]);
 
   const handleNodeSelect = useCallback((node: Node | null) => {
     if (node?.data.nodeType === 'Start' || node?.data.nodeType === 'End') {
-      flowState.setSelectedNode(null);
       return;
     }
-    
-    if (node?.data.nodeType === 'HandleTransaction') {
-      nestedCanvasManager.openNestedCanvas(node.id, String(node.data.label || 'Handle Transaction'));
-      flowState.setSelectedNode(null);
-    } else {
-      flowState.setSelectedNode(node);
-      nestedCanvasManager.setActiveNestedCanvas(null);
-    }
-  }, [nestedCanvasManager, flowState]);
+    flowStateRef.current.setSelectedNode(node);
+  }, []);
 
   const handleNodeUpdateHandlerReady = useCallback((handler: (nodeId: string, updates: Record<string, unknown>) => void) => {
     nodeUpdateHandlerRef.current = handler;
@@ -225,41 +159,20 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
     updateNodeInternalsRef.current?.(nodeId);
   }, []);
 
-  const handleFlowStateUpdate = ((
+  const handleFlowStateUpdate = useCallback((
     nodes: Node[], 
-    edges: Edge[], 
-    setNodes: (nodes: Node[] | ((prevNodes: Node[]) => Node[])) => void, 
-    setEdges: (edges: Edge[] | ((prevEdges: Edge[]) => Edge[])) => void
+    edges: Edge[]
   ) => {
-    updateFlowState(nodes, edges, setNodes, setEdges);
-    flowState.setAllNodes(nodes);
-    flowState.setEdges(edges);
-  });
-  
-  const handleNestedCanvasSave = ((nodes: Node[], edges: Edge[]) => {
-    if (nestedCanvasManager.activeNestedCanvas) {
-      nestedCanvasManager.handleNestedCanvasSave(nestedCanvasManager.activeNestedCanvas, nodes, edges);
-    }
-  });
-
-  useEffect(() => {
-    const timeoutRef = animationTimeoutRef.current;
-    return () => {
-      if (timeoutRef) {
-        clearTimeout(timeoutRef);
-      }
-    };
-  }, [animationTimeoutRef]);
+    flowStateRef.current.setAllNodes(nodes);
+    flowStateRef.current.setEdges(edges);
+  }, []);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       <Header
-        isPlaying={Boolean(flowState.currentAnimationNode)}
-        isPaused={isPaused}
-        onPlayClick={handlePlayClick}
-        onPauseClick={handlePauseClick}
-        onResumeClick={handleResumeClick}
-        onStopClick={handleStopClick}
+        hidePlayControls={true}
+        onPlayClick={() => {}}
+        onStopClick={() => {}}
         onDisplayJson={handleDisplayJson}
         onGenerateCode={handleGenerateCode}
         onViewErrors={() => setShowErrorModal(true)}
@@ -267,24 +180,21 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
         isSaving={isSaving}
         viewOnly={viewOnly}
       />
-      {nodesError || flowError ? (
+      {nodesError ? (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, flexDirection: 'column', gap: 2 }}>
           <Typography variant="h6" color="error">
-            Error loading rule builder
+            Error loading test case builder
           </Typography>
           <Typography variant="body2">
-            {nodesError ? 'Failed to load node templates' : 'Failed to load rule flow'}
+            Failed to load node templates
           </Typography>
         </Box>
-      ) : isLoadingNodes || isLoadingFlow || !apiNodesInitialized ? (
+      ) : isLoadingNodes || !apiNodesInitialized ? (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, flexDirection: 'column', gap: 2 }}>
-          <Typography variant="h6">
-            {isLoadingNodes ? 'Loading node templates...' : isLoadingFlow ? 'Loading rule flow...' : 'Initializing...'}
-          </Typography>
-          <Typography variant="body2" color="textSecondary">
+          <Typography>Loading...</Typography>
+          <Typography variant="body2" color="text.secondary">
             {isLoadingNodes && 'Fetching available nodes from server'}
-            {isLoadingFlow && !isLoadingNodes && 'Fetching rule configuration'}
-            {!isLoadingNodes && !isLoadingFlow && !apiNodesInitialized && 'Setting up canvas...'}
+            {!isLoadingNodes && !apiNodesInitialized && 'Setting up canvas...'}
           </Typography>
         </Box>
       ) : !transformedFlowData ? (
@@ -298,7 +208,8 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
               mode="main" 
               collapsed={flowState.sidebarCollapsed}
               onToggleCollapse={flowState.handleToggleSidebar}
-              hideCustomFunctions={nestedCanvasManager.activeNestedCanvas !== null}
+              hideCustomFunctions={false}
+              hideStartEnd={true}
               allNodes={flowState.allNodes}
               edges={flowState.edges}
               selectedNodeId={flowState.selectedNode?.id || null}
@@ -306,20 +217,17 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
             />
           )}
           <RuleBuilderCanvas
-            isPlaying={Boolean(flowState.currentAnimationNode)}
             onJsonGenerate={flowState.handleJsonGenerate}
             onCodeGenerate={flowState.handleCodeGenerate}
             onNodeSelect={handleNodeSelect}
             onNodeUpdateHandlerReady={handleNodeUpdateHandlerReady}
-            debugVariables={flowState.debugVariables}
-            debugLogs={flowState.debugLogs}
-            currentNodeId={flowState.currentAnimationNode}
-            nestedCanvasData={nestedCanvasManager.nestedCanvasData}
+            nestedCanvasData={{}}
             viewOnly={viewOnly}
             onFlowStateUpdate={handleFlowStateUpdate}
             initialNodes={transformedFlowData?.nodes}
             initialEdges={transformedFlowData?.edges}
             onUpdateNodeInternalsReady={handleUpdateNodeInternalsReady}
+            mode="test-case-generate"
           />
           <RightSidebar
             key={flowState.selectedNode?.id || 'no-selection'}
@@ -332,20 +240,6 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
             edges={flowState.edges}
             updateNodeInternals={handleUpdateNodeInternals}
           />
-
-          {nestedCanvasManager.activeNestedCanvas && (
-            <NestedCanvas
-              nodeId={nestedCanvasManager.activeNestedCanvas}
-              nodeLabel={nestedCanvasManager.activeNestedCanvasLabel}
-              initialNodes={nestedCanvasManager.nestedCanvasData[nestedCanvasManager.activeNestedCanvas]?.nodes}
-              initialEdges={nestedCanvasManager.nestedCanvasData[nestedCanvasManager.activeNestedCanvas]?.edges}
-              onBack={nestedCanvasManager.handleNestedCanvasBack}
-              onSave={handleNestedCanvasSave}
-              viewOnly={viewOnly}
-              ruleId={ruleId}
-              mainCanvasNodes={flowState.allNodes}
-            />
-          )}
         </Box>
       )}
 
@@ -376,12 +270,12 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
   );
 };
 
-const RuleBuilderWithValidation: React.FC<RuleBuilderProps> = (props) => {
+const TestCaseGenerateWithValidation: React.FC<TestCaseGenerateProps> = (props) => {
   return (
     <ValidationProvider>
-      <RuleBuilder {...props} />
+      <TestCaseGenerate {...props} />
     </ValidationProvider>
   );
 };
 
-export default RuleBuilderWithValidation;
+export default TestCaseGenerateWithValidation;

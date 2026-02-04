@@ -31,6 +31,7 @@ interface LeftSidebarProps {
   onToggleCollapse?: () => void;
   hideCustomFunctions?: boolean;
   hideImportNode?: boolean;
+  hideStartEnd?: boolean;
   showGlobalVariables?: boolean;
   allNodes?: Node[];
   edges?: import('@xyflow/react').Edge[];
@@ -44,6 +45,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   onToggleCollapse,
   hideCustomFunctions = false,
   hideImportNode = false,
+  hideStartEnd = false,
   showGlobalVariables = false,
   allNodes = [],
   edges = [],
@@ -75,7 +77,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
     setActiveTab(newValue);
   };
 
-  const { getNodesToShow, functionNodes } = useNodePalette({ mode, hideCustomFunctions, hideImportNode, apiNodes: nodeTemplates });
+  const { getNodesToShow, functionNodes } = useNodePalette({ mode, hideCustomFunctions, hideImportNode, hideStartEnd, apiNodes: nodeTemplates });
   const { localVars, loopVars, loopContext } = useLocalVariables({ 
     allNodes, 
     edges, 

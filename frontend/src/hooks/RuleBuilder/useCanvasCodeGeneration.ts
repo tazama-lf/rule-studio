@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import type { Node, Edge } from '@xyflow/react';
 import { sortNodesInFlowOrder } from '../../utils/Common/helpers';
-import { generateTypeScriptCode } from '../../utils/Flow/CodeGenerator';
+import { generateTypeScriptCode, generateTestCaseCode } from '../../utils/Flow/CodeGenerator';
 
 interface NestedCanvasData {
   nodes: Node[];
@@ -15,6 +15,7 @@ interface UseCanvasCodeGenerationProps {
   onJsonGenerate?: (json: string) => void;
   onCodeGenerate?: (code: string) => void;
   reactFlowInstance?: Record<string, unknown>;
+  mode?: 'rule-builder' | 'test-case-generate';
 }
 
 export const useCanvasCodeGeneration = ({
@@ -23,6 +24,7 @@ export const useCanvasCodeGeneration = ({
   nestedCanvasData,
   onJsonGenerate,
   onCodeGenerate,
+  mode = 'rule-builder'
 }: UseCanvasCodeGenerationProps) => {
   const generateJson = useCallback(() => {
     const flowData = {
@@ -110,15 +112,18 @@ export const useCanvasCodeGeneration = ({
     }
     return json;
   }, [nodes, edges, nestedCanvasData, onJsonGenerate]);
+  
   const generateCode = useCallback(() => {
-    const code = generateTypeScriptCode(nodes, edges, nestedCanvasData);
+    const code = mode === 'test-case-generate' 
+      ? generateTestCaseCode(nodes, edges)
+      : generateTypeScriptCode(nodes, edges, nestedCanvasData);
 
     if (onCodeGenerate) {
       onCodeGenerate(code);
     }
     
     return code;
-  }, [nodes, edges, nestedCanvasData, onCodeGenerate]);
+  }, [nodes, edges, nestedCanvasData, onCodeGenerate, mode]);
 
   useEffect(() => {
     window.generateFlowJson = generateJson;

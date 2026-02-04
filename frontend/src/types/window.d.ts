@@ -5,6 +5,7 @@ declare global {
     generateFlowCode?: () => string;
     generateNestedFlowJson?: () => void;
     generateNestedFlowCode?: () => void;
+    globalVariablesData?: unknown;
   }
 }
 

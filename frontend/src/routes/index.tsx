@@ -1,6 +1,7 @@
 import { lazy } from "react";
 import { Navigate } from "react-router-dom";
 import RuleBuilder from "../pages/rule-builder";
+import TestCaseGenerate from "../pages/test-case-generate";
 
 const Components = lazy(() => import("../components"));
 const Login = lazy(() => import("../pages/Auth/Login"));
@@ -54,6 +55,18 @@ export const ROUTES = [
     {
         path: '/rule-builder/view/:id',
         element: <RuleBuilder viewOnly />,
+        private: true,
+        layout: false
+    },
+    {
+        path: '/test-case-generate/:ruleId',
+        element: <TestCaseGenerate />,
+        private: true,
+        layout: false
+    },
+    {
+        path: '/test-case-generate/view/:ruleId',
+        element: <TestCaseGenerate viewOnly />,
         private: true,
         layout: false
     },
