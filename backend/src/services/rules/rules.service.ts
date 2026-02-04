@@ -193,6 +193,7 @@ export class RulesService {
 
   async getActiveNetworkMap(token: string): Promise<any> {
     try {
+      // console.log('Fetching active network map via RulesService');
       return await this.adminServiceClient.getActiveNetworkMap(token);
     } catch (error) {
       const err = error as Error;
@@ -250,7 +251,7 @@ export class RulesService {
       );
     } catch (error) {
       const err = error as Error;
-      console.log(error);
+      // console.log(error);
       this.logger.error(
         `Error updating flow for rule ${ruleId}: ${err.message}`,
       );

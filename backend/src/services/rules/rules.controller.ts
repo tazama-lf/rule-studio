@@ -224,29 +224,6 @@ export class RulesController {
     );
   }
 
-  // get active network map
-  @Get('/api/network-map/active')
-  @RequireAnyClaims(
-    TazamaClaims.EDITOR,
-    TazamaClaims.APPROVER,
-    TazamaClaims.PUBLISHER,
-  )
-  @ApiParam({
-    name: 'id',
-    description: 'Numeric rule ID (integer)',
-    example: 1,
-    type: 'number',
-  })
-  @ApiSwagger({
-    summary: 'Get rule by numeric ID',
-    description: 'Retrieves a specific rule by its numeric database ID',
-    responses: mergeResponses(
-      CommonResponses.SUCCESS_200(Rules, 'Rule retrieved successfully'),
-      CommonResponses.BAD_REQUEST_400('Invalid ID format (must be numeric)'),
-      CommonResponses.NOT_FOUND_404('Rule not found')
-    )
-  })
-
 
   // get rule by ID
   @Get('/api/:id')
@@ -297,6 +274,7 @@ export class RulesController {
     )
   })
   async getActiveNetworkMap(@User() user: AuthenticatedUser): Promise<any> {
+    console.log('Controller: Fetching active network map for user:', user.userId);
     return await this.rulesService.getActiveNetworkMap(user.token.tokenString);
   }
 
