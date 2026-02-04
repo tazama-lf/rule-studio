@@ -47,6 +47,7 @@ import {
 export class RulesController {
   constructor(private readonly rulesService: RulesService) {}
 
+  // get available rule statuses
   @Get('/api/status')
   @RequireAnyClaims(
     TazamaClaims.EDITOR,
@@ -63,6 +64,7 @@ export class RulesController {
     return allowedStatuses;
   }
 
+  // get all rules with pagination and filters
   @Post('/api/all')
   // @UseGuards(StatusValidationGuard)
   @RequireAnyClaims(
@@ -278,6 +280,7 @@ export class RulesController {
     return await this.rulesService.getActiveNetworkMap(user.token.tokenString);
   }
 
+  // create rule flow configuration
   @Post('/api/:ruleId/flow')
   @RequireAnyClaims(
     TazamaClaims.EDITOR,
@@ -310,6 +313,7 @@ export class RulesController {
     );
   }
 
+  // get rule flow configuration
   @Get('/api/:ruleId/flow')
   @RequireAnyClaims(
     TazamaClaims.EDITOR,
@@ -338,6 +342,7 @@ export class RulesController {
     return result;
   }
 
+  // update rule flow configuration
   @Put('/api/:ruleId/flow')
   @RequireAnyClaims(TazamaClaims.EDITOR)
   @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: '001' })
@@ -366,6 +371,7 @@ export class RulesController {
     );
   }
 
+  // get global variables for a rule
   @Get('/api/global-variables/:ruleId')
   @RequireAnyClaims(
     TazamaClaims.EDITOR,
@@ -396,7 +402,7 @@ export class RulesController {
     );
   }
 
-  // Creating a new API for cloning an exising rule
+  // clone an existing rule
   @Post('/api/clone/:ruleId')
   @RequireAnyClaims(TazamaClaims.EDITOR)
   @ApiParam({
@@ -424,7 +430,7 @@ export class RulesController {
     return await this.rulesService.cloneRule(ruleId, user.token.tokenString, payload);
   }
 
-  // update the status of a rule based on rule ID
+  // update rule status
   @Put('/api/:ruleId/status')
   @RequireAnyClaims(
     TazamaClaims.EDITOR,
