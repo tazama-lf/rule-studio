@@ -1,6 +1,7 @@
 import { Box, Grid } from "@mui/material";
 import Button from "../../../components/Button";
 import useTestCasesController, { type ITestCases } from "./useTestCasesController";
+import { Text } from "../../../components/Text";
 
 const TestCases = (props: ITestCases) => {
 
@@ -10,12 +11,16 @@ const TestCases = (props: ITestCases) => {
         <Grid
             container
             py={3}
-            display={'flex'}
-            justifyContent={'space-between'}
-            alignItems={'center'}
-            gap={2}
-            height={'70vh'}
+            height={'60vh'}
         >
+            <Box>
+                <Grid size={12} >
+                    <Text weight={'bold'} color="black" size={'header'}>Generate Test Cases</Text>
+                </Grid>
+                <Grid size={12} >
+                    <Text color="text.ternary" size={'body'}>Add Test Cases Of Your Rule</Text>
+                </Grid>
+            </Box>
             <Box width={'100%'} display={'flex'} justifyContent={'center'}>
                 <Button
                     height="40px"

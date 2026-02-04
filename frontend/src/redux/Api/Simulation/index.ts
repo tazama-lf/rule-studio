@@ -36,11 +36,19 @@ export const simulationApi = createApi({
                 body: { ...body },
             }),
         }),
+        getReport: builder.query({
+            query: ({ branchName, organization, ruleId }) => ({
+                url: `report?organization=${organization}&ruleId=${ruleId}&branchName=${branchName}`,
+                method: "GET",
+                responseHandler: (response) => response.text(),
+            }),
+        }),
     }),
 })
 
 export const {
     useCreateRepoMutation,
     useUploadCodeMutation,
-    useMergeBranchMutation
+    useMergeBranchMutation,
+    useLazyGetReportQuery
 } = simulationApi
