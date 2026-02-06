@@ -10,7 +10,6 @@ import {
   RuleFlowFilterDto,
 } from './dto/rules.dto';
 import { ParseExtractService } from '../parse-extract/parse-extract.service';
-import { TransactionalMessage } from '../parse-extract/dto/message.dto';
 import { BASE_RULE_ID } from '../../constants/constant';
 import { AuthenticatedUser } from '../auth/auth.types';
 import { RuleCategory } from 'src/utils/enums/rule.enum';
@@ -57,51 +56,54 @@ export class RulesService {
   }
 
   async createRule(
-    ruleData: Partial<Rules> & { transactionalMessage?: TransactionalMessage },
+    ruleData: Partial<Rules> ,
     token: string,
+    tenantId: string,
   ): Promise<Rules> {
     try {
       // If transactional message is provided, process it to enrich rule data
-      if (ruleData.transactionalMessage) {
-        this.logger.log(
-          `Processing transactional message for rule creation: ${ruleData.transactionalMessage.TxTp}`,
-        );
+      // console.log('Rule data received for creation:', ruleData);
 
-        const parseResult = await this.parseExtractService.processForRuleCreation(
-          ruleData.transactionalMessage,
-          token,
-        );
+      // need to fetch transactionalMessage according to txtp and txtpVersion
+       const transactionType = ruleData.txtp ?? "";
+      
+      // Fetch the payload template for this transaction type
+      const payload = await this.adminServiceClient.getPayloadByTransactionType(
+        transactionType,
+        token,
+      );
+      // console.log("getPayloadByTransactionType:", payload);  
 
-        if (!parseResult.success) {
-          this.logger.error(
-            `Failed to process transactional message: ${parseResult.message}`,
-          );
-          throw new Error(
-            `Transaction processing failed: ${parseResult.message}`,
-          );
-        }
+      const parseResult = await this.parseExtractService.processForRuleCreation(
+        {TxTp: transactionType, TenantId:tenantId, ...payload},
+        token,
+      );
+      // console.log("Parse result for transactional message:", parseResult);
 
-        // Enrich rule data with processed transaction information
-        const processedData = {
-          processedTransaction: parseResult.ruleRequest?.transaction,
-          dataCache: parseResult.ruleRequest?.DataCache,
-          networkMap: parseResult.ruleRequest?.networkMap,
-          validatedPayload: parseResult.validatedPayload,
-          correlationId: parseResult.correlationId,
-        };
+      // iske neechay ka redundant
+      
+      //   // Enrich rule data with processed transaction information
+      //   const processedData = {
+      //     processedTransaction: parseResult.ruleRequest?.transaction,
+      //     dataCache: parseResult.ruleRequest?.DataCache,
+      //     networkMap: parseResult.ruleRequest?.networkMap,
+      //     validatedPayload: parseResult.validatedPayload,
+      //     correlationId: parseResult.correlationId,
+      //   };
 
-        // Store processed data in rule description or notes
-        ruleData.description = `${ruleData.description || ''} [Processed Transaction Data Available - Correlation ID: ${parseResult.correlationId}]`.trim();
+      //   // Store processed data in rule description or notes
+      //   ruleData.description = `${ruleData.description || ''} [Processed Transaction Data Available - Correlation ID: ${parseResult.correlationId}]`.trim();
 
-        this.logger.log(
-          `Successfully processed transaction data for rule creation [${parseResult.correlationId}]`,
-        );
-      }
+      //   this.logger.log(
+      //     `Successfully processed transaction data for rule creation [${parseResult.correlationId}]`,
+      //   );
+      // }
 
       // Remove transactionalMessage from ruleData before sending to admin service
-      const { transactionalMessage, ...cleanRuleData } = ruleData;
+      // const { transactionalMessage, ...cleanRuleData } = ruleData;
 
-      const rule = await this.adminServiceClient.createRule(cleanRuleData, token);
+      // admin service client ko aagay derha hun ruleRequest
+      const rule = await this.adminServiceClient.createRule(ruleData, token, parseResult.ruleRequest);
       let updatedRule = rule;
       if (rule.id) {
         const baseRuleBuilderFlow = await this.adminServiceClient.getRuleFlow(
