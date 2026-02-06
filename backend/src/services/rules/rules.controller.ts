@@ -161,7 +161,8 @@ export class RulesController {
       ...ruleData,
       userID: user.userId
     };
-    return await this.rulesService.createRule(ruleDataWithUser, user.token.tokenString);
+    console.log('Creating rule with data at controller');
+    return await this.rulesService.createRule(ruleDataWithUser, user.token.tokenString, user.tenantId);
   }
 
   // get rule configuration by rule ID

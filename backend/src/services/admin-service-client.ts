@@ -42,6 +42,7 @@ import {
   BASE_URL,
 } from '../constants/constant';
 import { ResponseQueryNodeDto } from './nodes/dto/responseNode.dto';
+import { RuleRequest } from '../services/parse-extract/dto/message.dto';
 
 @Injectable()
 export class AdminServiceClient {
@@ -63,7 +64,7 @@ export class AdminServiceClient {
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
     path: string,
     token: string,
-    body?: unknown,
+    body?: unknown, // one param for everything
     params?: Record<string, string>,
   ): Promise<T> {
     const url = new URL(`${this.adminServiceUrl}${path}`);
@@ -161,7 +162,6 @@ export class AdminServiceClient {
 
   async getRulesById(id: number, token: string): Promise<Rules> {
     return await this.executeHttpRequest<Rules>('GET', `${RULES_WITH_ID}/${id}`, token);
-    return await this.executeHttpRequest<Rules>('GET', `${RULES_WITH_ID}/${id}`, token);
   }
 
   async getVersionsOfTransactionType(
@@ -190,12 +190,15 @@ export class AdminServiceClient {
     );
   }
 
-  async createRule(ruleData: Partial<Rules>, token: string): Promise<Rules> {
+  async createRule(ruleData: Partial<Rules>, token: string, ruleRequest: RuleRequest | undefined): Promise<Rules> {
+
+    console.log("I have reached admin service client")
+    console.log("Rule Request:", ruleRequest);
     const response = await this.executeHttpRequest<{ rule: Rules }>(
       'POST',
       RULE,
       token,
-      ruleData,
+      {ruleData, ruleRequest},
     );
 
     return response.rule;

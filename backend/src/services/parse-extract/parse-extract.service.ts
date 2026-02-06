@@ -89,7 +89,7 @@ export class ParseExtractService {
   }
 
   /**
-   * Core logic for processing transaction payload - reusable for both message processing and rule creation
+   * Core logic - fetch schema -> validate payload -> process mappings -> create RuleRequest
    * @param request The transactional message request
    * @param token Authentication token
    * @param correlationId Correlation ID for tracking
@@ -197,8 +197,7 @@ export class ParseExtractService {
   }
 
   /**
-   * Process transaction data for rule creation scenarios
-   * This is a specialized method that provides the core processing logic for rule creation
+   * Core logic = calls processTransactionPayload - fetch schema -> validate payload -> process mappings -> create RuleRequest
    * @param request The transactional message request
    * @param token Authentication token
    * @returns Processing result optimized for rule creation
@@ -216,11 +215,14 @@ export class ParseExtractService {
     validationErrors?: string[];
   }> {
     const correlationId = randomUUID();
+    console.log("request is forming as ", request)
 
     try {
       this.logger.log(
         `Processing transaction data for rule creation - TxTp: ${request.TxTp} [${correlationId}]`,
       );
+
+      // CstmrCdtTrfInitn should be the root
 
       const result = await this.processTransactionPayload(
         request,
