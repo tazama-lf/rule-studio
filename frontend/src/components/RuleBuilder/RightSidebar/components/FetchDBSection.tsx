@@ -7,9 +7,17 @@ import { PropertyRow, SectionContainer, SectionTitle } from '../styles';
 import QueryEditorModal from './QueryEditorModal';
 import QueryExecutionResultModal from './QueryExecutionResultModal';
 import { useExecuteQueryMutation } from '../../../../redux/Api/Rule-builder';
-import type { QueryExecutionResponse } from '../../../../types/queryExecution';
-import { extractErrorMessage } from '../../../../types/queryExecution';
+import {
+  extractErrorMessage,
+  // QueryExecutionResponse,
+} from '../../../../types/queryExecution';
 import { useParams } from 'react-router-dom';
+import {
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+} from '@mui/material';
 
 interface FetchDBSectionProps {
   currentParams: Record<string, string>;
@@ -82,7 +90,7 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
       
       const response = await executeQuery({
         query,
-      }).unwrap() as QueryExecutionResponse;
+      }).unwrap();
 
       const data = Array.isArray(response.result) ? response.result : [];
       const rowCount = data.length;
@@ -111,11 +119,36 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
 
   const isDisabled = isReadOnly || viewOnly;
 
+  const databases = ['_event_history', 'configuration', '_rawHistory'];
+
   return (
     <>
       <Divider />
       <SectionContainer>
         <SectionTitle>Database Query</SectionTitle>
+        <PropertyRow>
+          <FormControl fullWidth>
+            <InputLabel id="db-select-label">Database</InputLabel>
+            <Select
+              labelId="db-select-label"
+              id="db-select"
+              value={currentParams.dbName ?? '_event_history'}
+              label="Database"
+              onChange={(e) =>
+                onParamChange('dbName')({
+                  target: { value: e.target.value },
+                } as React.ChangeEvent<HTMLInputElement>)
+              }
+              disabled={isDisabled}
+            >
+              {databases.map((db) => (
+                <MenuItem key={db} value={db}>
+                  {db}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </PropertyRow>
         <PropertyRow>
           <Typography variant="body2" color="text.secondary" gutterBottom>
             SQL Query
