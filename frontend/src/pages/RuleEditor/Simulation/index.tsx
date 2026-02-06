@@ -19,13 +19,44 @@ const Simulation = (props: ISimulation) => {
             py={3}
             height={'60vh'}
         >
-            <Box>
-                <Grid size={12} >
-                    <Text weight={'bold'} color="black" size={'header'}>Simulation Sandbox</Text>
-                </Grid>
-                <Grid size={12} >
-                    <Text color="text.ternary" size={'body'}>Submit Code For Review</Text>
-                </Grid>
+            <Box width={'100%'} display={'flex'} justifyContent={'space-between'} alignItems={'center'}>
+                <Box>
+                    <Grid size={12} >
+                        <Text weight={'bold'} color="black" size={'header'}>Simulation Sandbox</Text>
+                    </Grid>
+                    <Grid size={12} >
+                        <Text color="text.ternary" size={'body'}>Submit Code For Review</Text>
+                    </Grid>
+                </Box>
+                <Box display={'flex'} gap={2}>
+                    <Button
+                        height="40px"
+                        width="170px"
+                        type="secondary"
+                        size="md"
+                        text="Upload Code"
+                        Icon={UploadIcon}
+                        loading={values?.uploading}
+                        onClick={functions.handleUpload}
+                    />
+                    <Button
+                        height="40px"
+                        width="170px"
+                        type="secondary"
+                        size="md"
+                        text="Deploy"
+                        loading={values?.deploying}
+                        onClick={functions.handleDeploy}
+                    />
+                    <Button
+                        height="40px"
+                        width="170px"
+                        type="secondary"
+                        size="md"
+                        text="View Report"
+                        onClick={functions.handleReport}
+                    />
+                </Box>
             </Box>
             <Section header={'Configuration Association'} subHeader={'Associate this rule with transaction flow, network context, and typology definitions'}>
                 <Grid container size={12} spacing={2} alignItems={'flex-start'} justifyContent={'space-between'}>
