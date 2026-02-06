@@ -9,30 +9,36 @@ interface NestedCanvasData {
   edges: Edge[];
 }
 
-const stripVariableIndicators = (text: string): string => {
+const stripVariableIndicators = (text: string, mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
   if (!text || typeof text !== 'string') return text;
   const stripped = text.replace(/\{\{\s*(.+?)\s*\}\}/g, '$1');
-  return normalizeVariableNames(stripped);
+  return normalizeVariableNames(stripped, mode);
 };
 
-const normalizeVariableNames = (text: string): string => {
+const normalizeVariableNames = (text: string, mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
   if (!text || typeof text !== 'string') return text;
-  return text
-    .replace(/\bRuleRequest\b/g, 'req')
-    .replace(/\bruleRequest\b/g, 'req')
-    .replace(/\bRuleConfig\b/g, 'ruleConfig');
+
+  if (mode === 'rule-builder') {
+    return text
+      .replace(/\bRuleRequest\b/g, 'req')
+      .replace(/\bruleRequest\b/g, 'req')
+      .replace(/\bRuleConfig\b/g, 'ruleConfig');
+  }
+  
+  return text;
 };
 
 const processCodeTemplate = (
   template: string,
   params: Record<string, string>,
-  indent: string = ''
+  indent: string = '',
+  mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'
 ): string => {
   if (!template) return '';
 
   const cleanParams: Record<string, string> = {};
   Object.keys(params).forEach((key) => {
-    cleanParams[key] = stripVariableIndicators(params[key] || '');
+    cleanParams[key] = stripVariableIndicators(params[key] || '', mode);
   });
 
   let processedCode = template.replace(/\$\{params\.(\w+)\s*\|\|\s*['"]([^'"]*)['"  ]\}/g, (_match, key, defaultValue) => {
@@ -94,7 +100,12 @@ const generateFunctionCallCode = (
   return code;
 };
 
-const generateNodeCode = (node: Node, indent: string = '', allNodes?: Node[]): string => {
+const generateNodeCode = (
+  node: Node, 
+  indent: string = '', 
+  allNodes?: Node[],
+  generationMode?: 'rule-builder' | 'test-case-generate'
+): string => {
   const nodeData = node.data as EditableNodeData;
   const params = nodeData.params || {};
   const nodeType = nodeData.nodeType;
@@ -104,7 +115,7 @@ const generateNodeCode = (node: Node, indent: string = '', allNodes?: Node[]): s
 
   if (nodeType === 'Import') {
     const importStatement = params.importStatement || '';
-    return stripVariableIndicators(importStatement).trim();
+    return stripVariableIndicators(importStatement, generationMode).trim();
   }
 
   if (nodeType === 'RuleConfigFactory') {
@@ -124,51 +135,51 @@ const generateNodeCode = (node: Node, indent: string = '', allNodes?: Node[]): s
   }
 
   if (nodeType === 'If') {
-    return generateIfNodeCode(node, indent);
+    return generateIfNodeCode(node, indent, generationMode);
   }
 
   if (nodeType === 'FetchDB') {
-    return generateFetchDBCode(params, indent);
+    return generateFetchDBCode(params, indent, generationMode);
   }
 
   if (nodeType === 'SetVariable') {
-    return generateSetVariableCode(params, indent);
+    return generateSetVariableCode(params, indent, generationMode);
   }
 
   if (nodeType === 'Log') {
-    return generateLogCode(params, indent);
+    return generateLogCode(params, indent, generationMode);
   }
 
   if (nodeType === 'ThrowError') {
-    return generateThrowErrorCode(params, indent);
+    return generateThrowErrorCode(params, indent, generationMode);
   }
 
   if (nodeType === 'Loop') {
-    return generateLoopCode(params, indent);
+    return generateLoopCode(params, indent, generationMode);
   }
 
   if (nodeType === 'Exit') {
-    return generateExitCode(params, indent);
+    return generateExitCode(params, indent, generationMode);
   }
 
   if (nodeType === 'Ternary') {
-    return generateTernaryCode(params, indent);
+    return generateTernaryCode(params, indent, generationMode);
   }
 
   if (nodeType === 'arrayOp') {
-    return generateArrayOpCode(params, indent);
+    return generateArrayOpCode(params, indent, generationMode);
   }
 
   if (nodeType === 'math') {
-    return generateMathCode(params, indent);
+    return generateMathCode(params, indent, generationMode);
   }
 
   if (nodeType === 'stringFunc') {
-    return generateStringFuncCode(params, indent);
+    return generateStringFuncCode(params, indent, generationMode);
   }
 
   if (nodeType === 'objectOp') {
-    return generateObjectOpCode(params, indent);
+    return generateObjectOpCode(params, indent, generationMode);
   }
 
   if (mode === 'call' && (nodeData.function_name || params.function_name)) {
@@ -179,11 +190,11 @@ const generateNodeCode = (node: Node, indent: string = '', allNodes?: Node[]): s
   }
 
   if (template && template.call_template) {
-    return processCodeTemplate(template.call_template as string, params, indent);
+    return processCodeTemplate(template.call_template as string, params, indent, generationMode);
   }
 
   if (template && template.code_template) {
-    return processCodeTemplate(template.code_template as string, params, indent);
+    return processCodeTemplate(template.code_template as string, params, indent, generationMode);
   }
 
   const nodeDefinition = getApiNodes().find((n) => {
@@ -194,7 +205,7 @@ const generateNodeCode = (node: Node, indent: string = '', allNodes?: Node[]): s
   if (nodeDefinition) {
     const nodeJson = nodeDefinition.node_json as { code_template?: string };
     if (nodeJson?.code_template && typeof nodeJson.code_template === 'string') {
-      return processCodeTemplate(nodeJson.code_template, params, indent);
+      return processCodeTemplate(nodeJson.code_template, params, indent, generationMode);
     }
   }
 
@@ -373,14 +384,14 @@ const generateDataCacheFactoryCode = (params: Record<string, string>, indent: st
   }
 };
 
-const generateSetVariableCode = (params: Record<string, string>, indent: string): string => {
+const generateSetVariableCode = (params: Record<string, string>, indent: string, mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
   const varName = params.name || params.variableName || 'variable';
   const declarationType = params.declarationType || 'var';
   const dataType = params.dataType || 'any';
   const originalValue = params.value || params.variableValue || '';
 
   const isVariableReference = /\{\{\s*.+?\s*\}\}/.test(originalValue);
-  const varValue = stripVariableIndicators(originalValue);
+  const varValue = stripVariableIndicators(originalValue, mode);
 
   if (!varValue || varValue.trim() === '' || dataType === 'undefined') {
     return `${indent}${declarationType} ${varName};`;
@@ -413,7 +424,7 @@ const generateSetVariableCode = (params: Record<string, string>, indent: string)
   return `${indent}${declarationType} ${varName} = ${valueStr};`;
 };
 
-const generateLogCode = (params: Record<string, string>, indent: string): string => {
+const generateLogCode = (params: Record<string, string>, indent: string, mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
   let message = params.text || params.message || '';
   const hasVariables = /\{\{\s*.+?\s*\}\}/.test(message);
   message = message.replace(/^['"]|['"]$/g, '').trim();
@@ -425,9 +436,9 @@ const generateLogCode = (params: Record<string, string>, indent: string): string
   } else if (hasVariables) {
     const onlyVariableMatch = message.match(/^\s*\{\{\s*([^}]+)\s*\}\}\s*$/);
     if (onlyVariableMatch) {
-      messageStr = normalizeVariableNames(onlyVariableMatch[1].trim());
+      messageStr = normalizeVariableNames(onlyVariableMatch[1].trim(), mode);
     } else {
-      const interpolatedMessage = message.replace(/\{\{\s*(.+?)\s*\}\}/g, (_, varName) => `\${${normalizeVariableNames(varName)}}`);
+      const interpolatedMessage = message.replace(/\{\{\s*(.+?)\s*\}\}/g, (_, varName) => `\${${normalizeVariableNames(varName, mode)}}`);
       messageStr = `\`${interpolatedMessage.replace(/`/g, '\\`')}\``;
     }
   } else {
@@ -437,7 +448,7 @@ const generateLogCode = (params: Record<string, string>, indent: string): string
   return `${indent}loggerService.log(${messageStr}, context, msgId);`;
 };
 
-const generateThrowErrorCode = (params: Record<string, string>, indent: string): string => {
+const generateThrowErrorCode = (params: Record<string, string>, indent: string, mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
   let message = params.text || params.message || 'Error occurred';
   const hasVariables = /\{\{\s*.+?\s*\}\}/.test(message);
   message = message.replace(/^['"]|['"]$/g, '').trim();
@@ -449,9 +460,9 @@ const generateThrowErrorCode = (params: Record<string, string>, indent: string):
   } else if (hasVariables) {
     const onlyVariableMatch = message.match(/^\s*\{\{\s*([^}]+)\s*\}\}\s*$/);
     if (onlyVariableMatch) {
-      messageStr = normalizeVariableNames(onlyVariableMatch[1].trim());
+      messageStr = normalizeVariableNames(onlyVariableMatch[1].trim(), mode);
     } else {
-      const interpolatedMessage = message.replace(/\{\{\s*(.+?)\s*\}\}/g, (_, varName) => `\${${normalizeVariableNames(varName)}}`);
+      const interpolatedMessage = message.replace(/\{\{\s*(.+?)\s*\}\}/g, (_, varName) => `\${${normalizeVariableNames(varName, mode)}}`);
       messageStr = `\`${interpolatedMessage.replace(/`/g, '\\`')}\``;
     }
   } else {
@@ -462,13 +473,13 @@ const generateThrowErrorCode = (params: Record<string, string>, indent: string):
 };
 
 
-const generateExitCode = (params: Record<string, string>, indent: string): string => {
+const generateExitCode = (params: Record<string, string>, indent: string, mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
   const exitType = params.exitType || 'break';
   
   if (exitType === 'return') {
     const returnValue = params.returnValue?.trim() || '';
     if (returnValue) {
-      const cleanedValue = stripVariableIndicators(returnValue);
+      const cleanedValue = stripVariableIndicators(returnValue, mode);
       return `${indent}return ${cleanedValue};`;
     }
     return `${indent}return;`;
@@ -491,7 +502,7 @@ interface TernaryNode {
   falseValue: TernaryBranch;
 }
 
-const generateTernaryCode = (params: Record<string, string>, indent: string): string => {
+const generateTernaryCode = (params: Record<string, string>, indent: string, mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
   const storeResult = params.storeResult !== 'false';
   const resultVar = params.resultVar || 'ternaryResult';
   
@@ -501,11 +512,11 @@ const generateTernaryCode = (params: Record<string, string>, indent: string): st
     const tree = JSON.parse(treeStr) as TernaryNode;
 
     const buildTernaryExpression = (node: TernaryNode): string => {
-      const condition = stripVariableIndicators(node.condition || 'true');
+      const condition = stripVariableIndicators(node.condition || 'true', mode);
 
       let trueExpr: string;
       if (node.trueValue.type === 'value') {
-        trueExpr = stripVariableIndicators(node.trueValue.value || 'null');
+        trueExpr = stripVariableIndicators(node.trueValue.value || 'null', mode);
       } else if (node.trueValue.nested) {
         trueExpr = `(${buildTernaryExpression(node.trueValue.nested)})`;
       } else {
@@ -514,7 +525,7 @@ const generateTernaryCode = (params: Record<string, string>, indent: string): st
 
       let falseExpr: string;
       if (node.falseValue.type === 'value') {
-        falseExpr = stripVariableIndicators(node.falseValue.value || 'null');
+        falseExpr = stripVariableIndicators(node.falseValue.value || 'null', mode);
       } else if (node.falseValue.nested) {
         falseExpr = `(${buildTernaryExpression(node.falseValue.nested)})`;
       } else {
@@ -540,10 +551,10 @@ const generateTernaryCode = (params: Record<string, string>, indent: string): st
   }
 };
 
-const generateArrayOpCode = (params: Record<string, string>, indent: string): string => {
-  const array = stripVariableIndicators(params.array || 'arr');
+const generateArrayOpCode = (params: Record<string, string>, indent: string, mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
+  const array = stripVariableIndicators(params.array || 'arr', mode);
   const operation = params.operation || 'pop';
-  const value = stripVariableIndicators(params.value || '');
+  const value = stripVariableIndicators(params.value || '', mode);
   const resultVar = params.resultVar || 'arrayOpResult';
   
   if (operation === 'length') {
@@ -556,20 +567,20 @@ const generateArrayOpCode = (params: Record<string, string>, indent: string): st
   return `${indent}const ${resultVar} = ${array}.${operationCall};`;
 };
 
-const generateMathCode = (params: Record<string, string>, indent: string): string => {
+const generateMathCode = (params: Record<string, string>, indent: string, mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
   const method = params.method || 'sqrt';
-  const value = stripVariableIndicators(params.value || '0');
-  const value2 = params.value2 ? stripVariableIndicators(params.value2) : '';
+  const value = stripVariableIndicators(params.value || '0', mode);
+  const value2 = params.value2 ? stripVariableIndicators(params.value2, mode) : '';
   const resultVar = params.resultVar || 'mathResult';
   const methodArgs = method === 'pow' && value2 ? `${value}, ${value2}` : value;
   
   return `${indent}const ${resultVar} = Math.${method}(${methodArgs});`;
 };
 
-const generateStringFuncCode = (params: Record<string, string>, indent: string): string => {
+const generateStringFuncCode = (params: Record<string, string>, indent: string, mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
   const method = params.method || 'trim';
-  const text = stripVariableIndicators(params.text || '""');
-  const separator = params.separator ? stripVariableIndicators(params.separator) : '';
+  const text = stripVariableIndicators(params.text || '""', mode);
+  const separator = params.separator ? stripVariableIndicators(params.separator, mode) : '';
   const start = params.start || '';
   const end = params.end || '';
   const resultVar = params.resultVar || 'stringResult';
@@ -597,9 +608,9 @@ const generateStringFuncCode = (params: Record<string, string>, indent: string):
   return `${indent}const ${resultVar} = ${text}.${methodCall};`;
 };
 
-const generateObjectOpCode = (params: Record<string, string>, indent: string): string => {
+const generateObjectOpCode = (params: Record<string, string>, indent: string, mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
   const operation = params.operation || 'keys';
-  const obj = stripVariableIndicators(params.object || 'obj');
+  const obj = stripVariableIndicators(params.object || 'obj', mode);
   const resultVar = params.resultVar || 'objectResult';
   
   if (operation === 'destructure') {
@@ -608,19 +619,19 @@ const generateObjectOpCode = (params: Record<string, string>, indent: string): s
   }
   
   if (operation === 'hasOwnProperty') {
-    const property = params.property ? stripVariableIndicators(params.property) : 'prop';
+    const property = params.property ? stripVariableIndicators(params.property, mode) : 'prop';
     return `${indent}const ${resultVar} = ${obj}.hasOwnProperty(${property});`;
   }
   
   if (operation === 'assign') {
-    const sources = params.sourceObjects ? `, ${stripVariableIndicators(params.sourceObjects)}` : '';
+    const sources = params.sourceObjects ? `, ${stripVariableIndicators(params.sourceObjects, mode)}` : '';
     return `${indent}const ${resultVar} = Object.assign(${obj}${sources});`;
   }
   
   return `${indent}const ${resultVar} = Object.${operation}(${obj});`;
 };
 
-const generateFetchDBCode = (params: Record<string, string>, indent: string): string => {
+const generateFetchDBCode = (params: Record<string, string>, indent: string, mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
   const resultVar = params.resultVar || params.variable || 'dbResult';
   const queryVar = params.queryVar || 'query';
   const query = params.query || 'SELECT * FROM table';
@@ -633,7 +644,7 @@ const generateFetchDBCode = (params: Record<string, string>, indent: string): st
   if (matches.length > 0) {
     const uniqueVars = Array.from(new Set(matches.map(m => m[1])));
     uniqueVars.forEach((varPath, index) => {
-      const normalizedVarPath = normalizeVariableNames(varPath);
+      const normalizedVarPath = normalizeVariableNames(varPath, mode);
       globalVars.push(normalizedVarPath);
       const placeholder = `$${index + 1}`;
       const escapedVar = varPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -663,7 +674,7 @@ const generateFetchDBCode = (params: Record<string, string>, indent: string): st
   return lines.join('\n');
 };
 
-const generateIfNodeCode = (node: Node, indent: string): string => {
+const generateIfNodeCode = (node: Node, indent: string, mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
   const nodeData = node.data as EditableNodeData;
   const params = nodeData.params || {};
   
@@ -674,7 +685,7 @@ const generateIfNodeCode = (node: Node, indent: string): string => {
     let code = '';
     conditions.forEach((cond: { type: string; condition?: string }) => {
       const conditionText = cond.condition || 'true';
-      const cleanCondition = normalizeVariableNames(stripVariableIndicators(conditionText));
+      const cleanCondition = normalizeVariableNames(stripVariableIndicators(conditionText, mode), mode);
       
       const branchBody = `\n${indent}  // Add logic here`;
       
@@ -693,15 +704,15 @@ const generateIfNodeCode = (node: Node, indent: string): string => {
   }
 };
 
-const generateLoopCode = (params: Record<string, string>, indent: string): string => {
+const generateLoopCode = (params: Record<string, string>, indent: string, mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
   const loopType = params.loopType || 'forEach';
-  const arrayVariable = stripVariableIndicators(params.arrayVariable || 'items');
+  const arrayVariable = stripVariableIndicators(params.arrayVariable || 'items', mode);
   const itemVariable = params.itemVariable || 'item';
   const indexVariable = params.indexVariable || '';
   const resultVariable = params.resultVariable || 'loopResult';
-  const filterCondition = stripVariableIndicators(params.filterCondition || '');
-  const condition = stripVariableIndicators(params.condition || '');
-  const loopBody = stripVariableIndicators(params.loopBody || '// Custom logic here');
+  const filterCondition = stripVariableIndicators(params.filterCondition || '', mode);
+  const condition = stripVariableIndicators(params.condition || '', mode);
+  const loopBody = stripVariableIndicators(params.loopBody || '// Custom logic here', mode);
   
   const lines: string[] = [];
   
@@ -775,7 +786,8 @@ const processExitEdge = (
   nodes: Node[],
   edges: Edge[],
   indent: string,
-  processedNodes: Set<string>
+  processedNodes: Set<string>,
+  mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'
 ): string => {
   const exitEdge = edges.find((e) => e.source === nodeId && e.sourceHandle === 'exit');
   if (!exitEdge) return '';
@@ -788,7 +800,7 @@ const processExitEdge = (
   
   if (exitNodeData.nodeType === 'End') return '';
   
-  return generateNodeCodeRecursive(exitNode, nodes, edges, indent, processedNodes);
+  return generateNodeCodeRecursive(exitNode, nodes, edges, indent, processedNodes, mode);
 };
 
 const processNextNode = (
@@ -796,7 +808,8 @@ const processNextNode = (
   nodes: Node[],
   edges: Edge[],
   indent: string,
-  processedNodes: Set<string>
+  processedNodes: Set<string>,
+  mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'
 ): string => {
   const nextEdge = edges.find((e) => e.source === nodeId);
   if (!nextEdge) return '';
@@ -809,21 +822,22 @@ const processNextNode = (
   
   if (nextNodeData.nodeType === 'End') return '';
   
-  return generateNodeCodeRecursive(nextNode, nodes, edges, indent, processedNodes);
+  return generateNodeCodeRecursive(nextNode, nodes, edges, indent, processedNodes, mode);
 };
 
 const generateLoopCodeWithBody = (
   params: Record<string, string>,
   innerCode: string,
-  indent: string
+  indent: string,
+  mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'
 ): string => {
   const loopType = params.loopType || 'forEach';
-  const arrayVariable = stripVariableIndicators(params.arrayVariable || 'items');
+  const arrayVariable = stripVariableIndicators(params.arrayVariable || 'items', mode);
   const itemVariable = params.itemVariable || 'item';
   const indexVariable = params.indexVariable || '';
   const resultVariable = params.resultVariable || 'loopResult';
-  const filterCondition = stripVariableIndicators(params.filterCondition || '');
-  const condition = stripVariableIndicators(params.condition || '');
+  const filterCondition = stripVariableIndicators(params.filterCondition || '', mode);
+  const condition = stripVariableIndicators(params.condition || '', mode);
 
   let loopCode = `${indent}// Loop: ${loopType} over ${arrayVariable}\n`;
   
@@ -848,10 +862,10 @@ const generateLoopCodeWithBody = (
       
     case 'for': {
       const loopIndexVar = indexVariable || 'i';
-      const initialization = stripVariableIndicators(params.initialization || `${loopIndexVar} = 0`);
-      const loopCondition = stripVariableIndicators(params.loopCondition || `${loopIndexVar} < ${arrayVariable}.length`);
+      const initialization = stripVariableIndicators(params.initialization || `${loopIndexVar} = 0`, mode);
+      const loopCondition = stripVariableIndicators(params.loopCondition || `${loopIndexVar} < ${arrayVariable}.length`, mode);
       const incrementOp = params.incrementOperation || 'i++';
-      const customIncrement = stripVariableIndicators(params.customIncrement || '');
+      const customIncrement = stripVariableIndicators(params.customIncrement || '', mode);
       const incrementStatement = incrementOp === 'custom' ? customIncrement : incrementOp.replace('i', loopIndexVar);
       
       loopCode += `${indent}for (let ${initialization}; ${loopCondition}; ${incrementStatement}) {\n`;
@@ -861,7 +875,7 @@ const generateLoopCodeWithBody = (
     }
       
     case 'while': {
-      const whileCustomCondition = stripVariableIndicators(params.loopCondition || '');
+      const whileCustomCondition = stripVariableIndicators(params.loopCondition || '', mode);
       const loopIndexVar = indexVariable || 'i';
       
       if (whileCustomCondition) {
@@ -898,29 +912,29 @@ const generateLoopCodeWithBody = (
     }
 
     case 'every': {
-      const condition = stripVariableIndicators(params.condition || 'true');
+      const condition = stripVariableIndicators(params.condition || 'true', mode);
       const everyParams = indexVariable ? `${itemVariable}, ${indexVariable}` : itemVariable;
       loopCode += `${indent}const ${resultVariable} = ${arrayVariable}.every((${everyParams}) => ${condition});`;
       break;
     }
 
     case 'some': {
-      const condition = stripVariableIndicators(params.condition || 'true');
+      const condition = stripVariableIndicators(params.condition || 'true', mode);
       const someParams = indexVariable ? `${itemVariable}, ${indexVariable}` : itemVariable;
       loopCode += `${indent}const ${resultVariable} = ${arrayVariable}.some((${someParams}) => ${condition});`;
       break;
     }
 
     case 'find': {
-      const condition = stripVariableIndicators(params.condition || 'true');
+      const condition = stripVariableIndicators(params.condition || 'true', mode);
       const findParams = indexVariable ? `${itemVariable}, ${indexVariable}` : itemVariable;
       loopCode += `${indent}const ${resultVariable} = ${arrayVariable}.find((${findParams}) => ${condition});`;
       break;
     }
 
     case 'reduce': {
-      const reduceLogic = stripVariableIndicators(params.reduceLogic || 'return acc;');
-      const initialValue = stripVariableIndicators(params.initialValue || '0');
+      const reduceLogic = stripVariableIndicators(params.reduceLogic || 'return acc;', mode);
+      const initialValue = stripVariableIndicators(params.initialValue || '0', mode);
       const reduceParams = indexVariable ? `acc, ${itemVariable}, ${indexVariable}` : `acc, ${itemVariable}`;
       loopCode += `${indent}const ${resultVariable} = ${arrayVariable}.reduce((${reduceParams}) => {\n`;
       loopCode += `${indent}  ${reduceLogic}\n${indent}}, ${initialValue});`;
@@ -939,7 +953,8 @@ const generateNodeCodeRecursive = (
   nodes: Node[],
   edges: Edge[],
   indent: string,
-  processedNodes: Set<string>
+  processedNodes: Set<string>,
+  mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'
 ): string => {
   const nodeData = node.data as EditableNodeData;
 
@@ -960,17 +975,17 @@ const generateNodeCodeRecursive = (
         branchNodes.forEach((n) => processedNodes.add(n.id));
 
         const branchCode = branchNodes
-          .map((n) => generateNodeCodeRecursive(n, nodes, edges, indent + '  ', processedNodes))
+          .map((n) => generateNodeCodeRecursive(n, nodes, edges, indent + '  ', processedNodes, mode))
           .filter(Boolean)
           .join('\n');
         
         const branchBody = branchCode || `${indent}  // Add logic here`;
         
         if (cond.type === 'if') {
-          const cleanCondition = normalizeVariableNames(stripVariableIndicators(cond.condition || 'true'));
+          const cleanCondition = normalizeVariableNames(stripVariableIndicators(cond.condition || 'true', mode), mode);
           ifCode += `${indent}if (${cleanCondition}) {\n${branchBody}\n${indent}}`;
         } else if (cond.type === 'elseif') {
-          const cleanCondition = normalizeVariableNames(stripVariableIndicators(cond.condition || 'true'));
+          const cleanCondition = normalizeVariableNames(stripVariableIndicators(cond.condition || 'true', mode), mode);
           ifCode += ` else if (${cleanCondition}) {\n${branchBody}\n${indent}}`;
         } else if (cond.type === 'else') {
           ifCode += ` else {\n${branchBody}\n${indent}}`;
@@ -994,12 +1009,12 @@ const generateNodeCodeRecursive = (
     loopBodyNodes.forEach((n) => processedNodes.add(n.id));
 
     const innerCode = loopBodyNodes
-      .map((n) => generateNodeCodeRecursive(n, nodes, edges, indent + '  ', processedNodes))
+      .map((n) => generateNodeCodeRecursive(n, nodes, edges, indent + '  ', processedNodes, mode))
       .filter(Boolean)
       .join('\n');
 
-    const loopCode = generateLoopCodeWithBody(params, innerCode, indent);
-    const exitCode = processExitEdge(node.id, nodes, edges, indent, processedNodes);
+    const loopCode = generateLoopCodeWithBody(params, innerCode, indent, mode);
+    const exitCode = processExitEdge(node.id, nodes, edges, indent, processedNodes, mode);
     
     return [loopCode, exitCode].filter(Boolean).join('\n');
   }
@@ -1030,7 +1045,7 @@ const generateNodeCodeRecursive = (
   }
   
   // For regular nodes
-  const nodeCode = generateNodeCode(node, indent, nodes);
+  const nodeCode = generateNodeCode(node, indent, nodes, mode);
   const nextCode = processNextNode(node.id, nodes, edges, indent, processedNodes);
   
   return [nodeCode, nextCode].filter(Boolean).join('\n');
@@ -1040,7 +1055,8 @@ const generateNestedFlowCode = (
   nodes: Node[], 
   edges: Edge[], 
   indent: string = '  ',
-  mainCanvasNodes: Node[] = []
+  mainCanvasNodes: Node[] = [],
+  mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'
 ): string => {
   const codeLines: string[] = [];
   const processedNodes = new Set<string>();
@@ -1071,11 +1087,11 @@ const generateNestedFlowCode = (
       loopBodyNodes.forEach((n) => processedNodes.add(n.id));
 
       const innerCode = loopBodyNodes
-        .map((n) => generateNodeCodeRecursive(n, allNodes, edges, indent + '  ', processedNodes))
+        .map((n) => generateNodeCodeRecursive(n, allNodes, edges, indent + '  ', processedNodes, mode))
         .filter(Boolean)
         .join('\n');
 
-      const loopCode = generateLoopCodeWithBody(params, innerCode, indent);
+      const loopCode = generateLoopCodeWithBody(params, innerCode, indent, mode);
       codeLines.push(loopCode);
       
       const exitEdge = edges.find((e) => e.source === node.id && e.sourceHandle === 'exit');
@@ -1095,7 +1111,7 @@ const generateNestedFlowCode = (
       bodyNodes.forEach((n) => bodyProcessedNodes.add(n.id));
 
       const innerCode = bodyNodes
-        .map((n) => generateNodeCodeRecursive(n, allNodes, edges, indent + '  ', bodyProcessedNodes))
+        .map((n) => generateNodeCodeRecursive(n, nodes, edges, indent + '  ', bodyProcessedNodes, mode))
         .filter(Boolean)
         .join('\n');
 
@@ -1131,19 +1147,19 @@ const generateNestedFlowCode = (
           branchNodes.forEach((n) => processedNodes.add(n.id));
           
           const branchCode = branchNodes
-            .map((n) => generateNodeCodeRecursive(n, nodes, edges, indent + '  ', processedNodes))
+            .map((n) => generateNodeCodeRecursive(n, nodes, edges, indent + '  ', processedNodes, mode))
             .filter(Boolean)
             .join('\n');
           
           const branchBody = branchCode || `${indent}  // Add logic here`;
           
           if (cond.type === 'if') {
-            const cleanCondition = normalizeVariableNames(stripVariableIndicators(cond.condition || 'true'));
+            const cleanCondition = normalizeVariableNames(stripVariableIndicators(cond.condition || 'true', mode), mode);
             ifCode += `${indent}if (${cleanCondition}) {\n`;
             ifCode += branchBody + '\n';
             ifCode += `${indent}}`;
           } else if (cond.type === 'elseif') {
-            const cleanCondition = normalizeVariableNames(stripVariableIndicators(cond.condition || 'true'));
+            const cleanCondition = normalizeVariableNames(stripVariableIndicators(cond.condition || 'true', mode), mode);
             ifCode += ` else if (${cleanCondition}) {\n`;
             ifCode += branchBody + '\n';
             ifCode += `${indent}}`;
@@ -1162,7 +1178,7 @@ const generateNestedFlowCode = (
         codeLines.push(`${indent}// Error parsing If node conditions`);
       }
     } else {
-      const code = generateNodeCode(node, indent, allNodes);
+      const code = generateNodeCode(node, indent, allNodes, mode);
       if (code) {
         // Add consistent blank line between all statements (except the first)
         if (codeLines.length > 0 && codeLines[codeLines.length - 1] !== '') {
@@ -1222,7 +1238,7 @@ ${codeBody}
   }
   const codeTemplate = params.code_template || template.code_template;
   
-  return processCodeTemplate(codeTemplate as string, params, '');
+  return processCodeTemplate(codeTemplate as string, params, '', 'rule-builder');
 };
 
 export const generateTypeScriptCode = (
@@ -1238,7 +1254,7 @@ export const generateTypeScriptCode = (
   }
   
   const nestedData = nestedCanvasData[handleTransactionNode.id];
-  const nestedCode = generateNestedFlowCode(nestedData.nodes, nestedData.edges, '  ', nodes);
+  const nestedCode = generateNestedFlowCode(nestedData.nodes, nestedData.edges, '  ', nodes, 'rule-builder');
   
   const isNodeConnected = (nodeId: string): boolean => {
     return edges.some((edge) => edge.source === nodeId || edge.target === nodeId);
@@ -1247,7 +1263,7 @@ export const generateTypeScriptCode = (
   const extractImportStatement = (node: Node): string => {
     const params = (node.data as EditableNodeData).params || {};
     const rawImportStatement = params.importStatement || '';
-    return stripVariableIndicators(rawImportStatement).trim();
+    return stripVariableIndicators(rawImportStatement, 'rule-builder').trim();
   };
 
   const importNodes = nodes.filter((node) => node.data.nodeType === 'Import');
@@ -1295,7 +1311,7 @@ export async function handleTransaction(
   
 ${nestedCode}
   
-  return determineOutcome(count, ruleConfig, ruleRes);
+  return determineOutcome(countOfMatchingAmounts, ruleConfig, ruleRes);
 }`;
   
   return code;
@@ -1305,7 +1321,7 @@ export const generateTestCaseCode = (
   nodes: Node[],
   edges: Edge[],
 ): string => {
-  const flowCode = generateNestedFlowCode(nodes, edges, '', nodes);
+  const flowCode = generateNestedFlowCode(nodes, edges, '', nodes, 'test-case-generate');
   
   return flowCode || '// Add nodes to the canvas to generate code';
 };
