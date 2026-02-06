@@ -8,6 +8,7 @@ export interface NodeTemplate {
   color?: string;
   displayName?: string;
   isFunction?: boolean;
+  isPredefined?: boolean;
   bgColor?: string;
   code_template?: string;
   call_template?: string;

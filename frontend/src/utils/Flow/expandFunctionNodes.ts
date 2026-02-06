@@ -7,6 +7,7 @@ interface ApiNodeJson {
   color: string;
   description?: string | null;
   category: string;
+  isPredefined?: boolean;
   inputs?: unknown[];
   handles?: { source: boolean; target: boolean };
   code_template?: string;
@@ -91,9 +92,18 @@ export const expandFunctionNodes = (apiNodes: ApiNode[]): NodeTemplate[] => {
         });
       }
     } else {
-      const visibleOn = nodeJson.type === 'function' 
-        ? ['nested']
-        : ['main', 'nested'];
+      // Determine visible_on_canvas based on type and category
+      let visibleOn: string[];
+      if (nodeJson.type === 'function') {
+        // Function nodes in test_case_generation should be visible on main canvas
+        if (nodeJson.category === 'test_case_generation') {
+          visibleOn = ['main', 'nested'];
+        } else {
+          visibleOn = ['nested'];
+        }
+      } else {
+        visibleOn = ['main', 'nested'];
+      }
 
       expanded.push({
         type: nodeJson.node_type,
@@ -104,6 +114,7 @@ export const expandFunctionNodes = (apiNodes: ApiNode[]): NodeTemplate[] => {
         color: nodeJson.color,
         bgColor: getBgColorFromHex(nodeJson.color),
         isFunction: nodeJson.type === 'function',
+        isPredefined: nodeJson.isPredefined || false,
         visible_on_canvas: visibleOn,
         inputs: nodeJson.inputs as NodeTemplate['inputs'],
         handles: nodeJson.handles || { source: true, target: true },
