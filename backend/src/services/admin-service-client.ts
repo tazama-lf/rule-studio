@@ -13,6 +13,8 @@ import {
   RuleFiltersDto,
   RequestFlow,
   RuleFlowFilterDto,
+  ResponseRuleFlow,
+  ResponseUpdatedRuleFlowDto,
 } from '../services/rules/dto/rules.dto';
 import { firstValueFrom } from 'rxjs';
 import {
@@ -361,11 +363,11 @@ async getAllNodes(
   async getRuleFlow(
     ruleId: string,
     token: string,
-    filters: RuleFlowFilterDto,
-  ): Promise<ResponseRuleFlowDto> {
-    return await this.executeHttpRequest<ResponseRuleFlowDto>(
+    filters?: RuleFlowFilterDto,
+  ): Promise<ResponseRuleFlow> {
+    return await this.executeHttpRequest<ResponseRuleFlow>(
       'GET',
-      `${RULE_FLOW}/${ruleId}${Object.keys(filters).length ? '?' + new URLSearchParams(filters as Record<string, string>).toString() : ''}`,
+      `${RULE_FLOW}/${ruleId}${filters && Object.keys(filters).length ? '?' + new URLSearchParams(filters as Record<string, string>).toString() : ''}`,
       token,
     );
   }
@@ -374,8 +376,8 @@ async getAllNodes(
     ruleId: string,
     payload: RequestSaveFlow,
     token: string,
-  ): Promise<ResponseRuleFlowDto> {
-    return await this.executeHttpRequest<ResponseRuleFlowDto>(
+  ): Promise<ResponseUpdatedRuleFlowDto> {
+    return await this.executeHttpRequest<ResponseUpdatedRuleFlowDto>(
       'PUT',
       `${RULE_FLOW}/${ruleId}`,
       token,

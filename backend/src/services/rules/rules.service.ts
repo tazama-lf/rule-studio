@@ -8,6 +8,8 @@ import {
   RuleFiltersDto,
   RequestFlow,
   RuleFlowFilterDto,
+  ResponseRuleFlow,
+  ResponseUpdatedRuleFlowDto,
 } from './dto/rules.dto';
 import { ParseExtractService } from '../parse-extract/parse-extract.service';
 import { TransactionalMessage } from '../parse-extract/dto/message.dto';
@@ -104,36 +106,22 @@ export class RulesService {
       const rule = await this.adminServiceClient.createRule(cleanRuleData, token);
       let updatedRule = rule;
       if (rule.id) {
-        const baseRuleBuilderFlow = await this.adminServiceClient.getRuleFlow(
+        const baseRuleFlow = await this.getRuleFlow(
           BASE_RULE_ID,
           token,
-          { category: RuleCategory.RULE_BUILDER },
         );
-        // const baseTestCaseFlow = await this.adminServiceClient.getRuleFlow(
-        //   BASE_RULE_ID,
-        //   token,
-        //   { category: RuleCategory.TEST_CASE },
-        // );
-        const newRuleBuilderFlow = await this.adminServiceClient.createRuleFlow(
+        const newRuleFlow = await this.adminServiceClient.createRuleFlow(
           rule.id,
-          { 
-            category: RuleCategory.RULE_BUILDER,
-            flow_json: baseRuleBuilderFlow.flow,
+          {
+            flow_json_rule_builder: baseRuleFlow.result.flow_json_rule_builder ? baseRuleFlow.result.flow_json_rule_builder : {},
+            flow_json_test_case: baseRuleFlow.result.flow_json_test_case ? baseRuleFlow.result.flow_json_test_case : {},
           },
           token,
         );
-        // const newTestCaseFlow = await this.adminServiceClient.createRuleFlow(
-        //   rule.id,
-        //   { 
-        //     category: RuleCategory.TEST_CASE,
-        //     flow_json: baseTestCaseFlow.flow,
-        //   },
-        //   token,
-        // );
-        if (newRuleBuilderFlow) {
+        if (newRuleFlow) {
           updatedRule = await this.adminServiceClient.updateRule(
             rule.id,
-            { flow_id: newRuleBuilderFlow.id },
+            { flow_id: newRuleFlow.id },
             token,
           );
         } else {
@@ -205,10 +193,12 @@ export class RulesService {
   async getRuleFlow(
     ruleId: string,
     token: string,
-    filters: RuleFlowFilterDto,
-  ): Promise<ResponseRuleFlowDto> {
+    filters?: RuleFlowFilterDto,
+  ): Promise<ResponseRuleFlow>
+   {
     try {
-      return await this.adminServiceClient.getRuleFlow(ruleId, token, filters);
+      const ruleFlow = await this.adminServiceClient.getRuleFlow(ruleId, token, filters);
+      return ruleFlow;
     } catch (error) {
       const err = error as Error;
       this.logger.error(
@@ -242,7 +232,7 @@ export class RulesService {
     ruleId: string,
     payload: RequestSaveFlow,
     token: string,
-  ): Promise<ResponseRuleFlowDto> {
+  ): Promise<ResponseUpdatedRuleFlowDto> {
     try {
       return await this.adminServiceClient.updateRuleFlow(
         ruleId,

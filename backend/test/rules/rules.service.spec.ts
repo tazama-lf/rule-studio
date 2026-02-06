@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { RulesService } from '../../src/services/rules/rules.service';
 import { AdminServiceClient } from '../../src/services/admin-service-client';
 import { Logger } from '@nestjs/common';
+import { RuleCategory } from 'src/utils/enums/rule.enum';
 
 describe('RulesService', () => {
   let service: RulesService;
@@ -296,9 +297,12 @@ describe('RulesService', () => {
 
   describe('getRuleFlow', () => {
     it('should return rule flow', async () => {
-      const mockRuleFlow = { flowId: 'flow-123', steps: [], connections: [] };
-
-      adminServiceClient.getRuleFlow.mockResolvedValue(mockRuleFlow);
+      const mockRuleFlow = { id: 'flow-123', flow_json_rule_builder: { steps: [], connections: [] }, rule_id: 'rule-123', tenant_id: 'tenant-123', ts_file_base64_rule_builder: 'dGVzdC1maWxlLWRhdGE=', flow_json_test_case: { cases: [] }, ts_file_base64_test_case: 'dGVzdC1maWxlLWRhdGE=', flow_json: {}, ts_file_base64: '' };
+      const mockResponseRuleFlow = {
+        status: '200',
+        result: mockRuleFlow,
+      };
+      adminServiceClient.getRuleFlow.mockResolvedValue(mockResponseRuleFlow);
 
       const result = await service.getRuleFlow('rule-123', 'test-token');
 
@@ -325,15 +329,14 @@ describe('RulesService', () => {
 
   describe('createRuleFlow', () => {
     it('should create rule flow', async () => {
-      const mockFlowData = { steps: ['step1', 'step2'], connections: [] };
-      const mockRequestBody = { flowData: mockFlowData };
-      const mockCreatedFlow = { flowId: 'flow-123', ...mockFlowData };
-
-      adminServiceClient.createRuleFlow.mockResolvedValue(mockCreatedFlow);
+      const mockFlowData = { flow_json_rule_builder: { steps: ['step1', 'step2'], connections: [] }, flow_json_test_case: { cases: [] } };
+      const mockRuleFlow = { id: 'flow-123', flow_json_rule_builder: { steps: [], connections: [] }, rule_id: 'rule-123', tenant_id: 'tenant-123', ts_file_base64_rule_builder: 'dGVzdC1maWxlLWRhdGE=', flow_json_test_case: { cases: [] }, ts_file_base64_test_case: 'dGVzdC1maWxlLWRhdGE=', flow_json: {}, ts_file_base64: '' };
+      
+      adminServiceClient.createRuleFlow.mockResolvedValue(mockRuleFlow);
 
       const result = await service.createRuleFlow(
         'rule-123',
-        mockRequestBody,
+        mockFlowData,
         'test-token',
       );
 
@@ -342,7 +345,7 @@ describe('RulesService', () => {
         mockFlowData,
         'test-token',
       );
-      expect(result).toEqual(mockCreatedFlow);
+      expect(result).toEqual(mockRuleFlow);
     });
 
     it('should handle flow creation error', async () => {
@@ -351,7 +354,7 @@ describe('RulesService', () => {
       adminServiceClient.createRuleFlow.mockRejectedValue(mockError);
 
       await expect(
-        service.createRuleFlow('rule-123', { flowData: {} }, 'test-token'),
+        service.createRuleFlow('rule-123', { flow_json_rule_builder: { steps: ['step1', 'step2'], connections: [] }, flow_json_test_case: { cases: [] } }, 'test-token'),
       ).rejects.toThrow('Flow creation failed');
       expect(Logger.prototype.error).toHaveBeenCalledWith(
         'Error creating flow for rule rule-123: Flow creation failed',
@@ -362,11 +365,15 @@ describe('RulesService', () => {
   describe('updateRuleFlow', () => {
     it('should update rule flow', async () => {
       const mockPayload = {
-        flowId: 'flow-123',
-        steps: ['updated-step'],
-        connections: [],
+        category: RuleCategory.RULE_BUILDER,
+        flow_json: {
+          flowId: 'flow-123',
+          steps: ['updated-step'],
+          connections: [],
+        },
+        ts_file_base64: 'dGVzdC1maWxlLWRhdGE=',
       };
-      const mockUpdatedFlow = { ...mockPayload };
+      const mockUpdatedFlow = { ...mockPayload, id: '1', tenant_id: 'tenant-123', rule_id: 'rule-123' };
 
       adminServiceClient.updateRuleFlow.mockResolvedValue(mockUpdatedFlow);
 
@@ -390,7 +397,15 @@ describe('RulesService', () => {
       adminServiceClient.updateRuleFlow.mockRejectedValue(mockError);
 
       await expect(
-        service.updateRuleFlow('rule-123', {}, 'test-token'),
+        service.updateRuleFlow('rule-123', {
+          category: RuleCategory.RULE_BUILDER,
+          flow_json: {
+            flowId: 'flow-123',
+            steps: ['updated-step'],
+            connections: [],
+          },
+          ts_file_base64: 'dGVzdC1maWxlLWRhdGE=',
+        }, 'test-token'),
       ).rejects.toThrow('Flow update failed');
       expect(Logger.prototype.error).toHaveBeenCalledWith(
         'Error updating flow for rule rule-123: Flow update failed',
