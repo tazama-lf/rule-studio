@@ -36,21 +36,26 @@ const processCodeTemplate = (
   });
 
   let processedCode = template.replace(/\$\{params\.(\w+)\s*\|\|\s*['"]([^'"]*)['"  ]\}/g, (_match, key, defaultValue) => {
-    return cleanParams[key] || defaultValue;
+    const value = cleanParams[key] || defaultValue;
+    if (value.includes('\n') && indent) {
+      return value.split('\n').map((line: string, index: number) => {
+        return index === 0 ? line : indent + '  ' + line;
+      }).join('\n');
+    }
+    return value;
   });
 
   processedCode = processedCode.replace(/\$\{params\.(\w+)\}/g, (_match, key) => {
-    return cleanParams[key] || '';
+    const value = cleanParams[key] || '';
+    if (value.includes('\n') && indent) {
+      return value.split('\n').map((line: string, index: number) => {
+        return index === 0 ? line : indent + '  ' + line;
+      }).join('\n');
+    }
+    return value;
   });
 
   processedCode = processedCode.replace(/\$\{indent\}/g, indent);
-
-  if (indent) {
-    processedCode = processedCode
-      .split('\n')
-      .map((line) => (line.trim() ? indent + line : line))
-      .join('\n');
-  }
 
   return processedCode;
 };
@@ -96,6 +101,27 @@ const generateNodeCode = (node: Node, indent: string = '', allNodes?: Node[]): s
   const mode = nodeData.mode || nodeData.generation_type;
 
   const template = getNodeTemplate(nodeType, mode);
+
+  if (nodeType === 'Import') {
+    const importStatement = params.importStatement || '';
+    return stripVariableIndicators(importStatement).trim();
+  }
+
+  if (nodeType === 'RuleConfigFactory') {
+    return generateRuleConfigFactoryCode(params, indent);
+  }
+
+  if (nodeType === 'RuleRequestFactory') {
+    return generateRuleRequestFactoryCode(params, indent);
+  }
+
+  if (nodeType === 'RuleResultFactory') {
+    return generateRuleResultFactoryCode(params, indent);
+  }
+
+  if (nodeType === 'DataCacheFactory') {
+    return '\n' + generateDataCacheFactoryCode(params, indent);
+  }
 
   if (nodeType === 'If') {
     return generateIfNodeCode(node, indent);
@@ -173,6 +199,178 @@ const generateNodeCode = (node: Node, indent: string = '', allNodes?: Node[]): s
   }
 
   return `${indent}// ${nodeType} - ${nodeData.label}`;
+};
+
+const generateRuleConfigFactoryCode = (params: Record<string, string>, indent: string): string => {
+  const factoryName = params.factoryName || 'getRuleConfig';
+  const ruleConfigData = params.ruleConfigData || '';
+  
+  if (!ruleConfigData) {
+    return `${indent}const ${factoryName} = (): RuleConfig => {\n${indent}  return {} as RuleConfig;\n${indent}};`;
+  }
+  
+  try {
+    // Parse the RuleConfig data
+    const ruleConfig = JSON.parse(ruleConfigData);
+    
+    // Format the object with proper indentation
+    const formatObject = (obj: unknown, currentIndent: string): string => {
+      if (obj === null) return 'null';
+      if (obj === undefined) return 'undefined';
+      if (typeof obj === 'string') return `'${obj.replace(/'/g, "\\'")}'`;
+      if (typeof obj === 'number' || typeof obj === 'boolean') return String(obj);
+      
+      if (Array.isArray(obj)) {
+        if (obj.length === 0) return '[]';
+        const items = obj.map(item => `${currentIndent}  ${formatObject(item, currentIndent + '  ')}`).join(',\n');
+        return `[\n${items},\n${currentIndent}]`;
+      }
+      
+      if (typeof obj === 'object') {
+        const entries = Object.entries(obj);
+        if (entries.length === 0) return '{}';
+        const props = entries.map(([key, value]) => {
+          const formattedValue = formatObject(value, currentIndent + '  ');
+          return `${currentIndent}  ${key}: ${formattedValue}`;
+        }).join(',\n');
+        return `{\n${props},\n${currentIndent}}`;
+      }
+      
+      return 'undefined';
+    };
+    
+    const formattedConfig = formatObject(ruleConfig, indent + '  ');
+    
+    return `${indent}const ${factoryName} = (): RuleConfig => {\n${indent}  return ${formattedConfig};\n${indent}};`;
+  } catch (error) {
+    console.error('Error parsing RuleConfig data:', error);
+    return `${indent}const ${factoryName} = (): RuleConfig => {\n${indent}  // Error parsing RuleConfig data\n${indent}  return {} as RuleConfig;\n${indent}};`;
+  }
+};
+
+const generateRuleRequestFactoryCode = (params: Record<string, string>, indent: string): string => {
+  const factoryName = params.factoryName || 'getMockRequest';
+  const ruleRequestData = params.ruleRequestData || '';
+  
+  if (!ruleRequestData) {
+    return `${indent}const ${factoryName} = (): RuleRequest => {\n${indent}  const quote = {\n${indent}    transaction: JSON.parse(''),\n${indent}    networkMap: JSON.parse(''),\n${indent}    DataCache: JSON.parse(''),\n${indent}  };\n${indent}  return quote;\n${indent}};`;
+  }
+  
+  // If it's already transformed code (from Monaco editor), use it directly
+  if (ruleRequestData.includes('JSON.parse') || ruleRequestData.includes('const quote')) {
+    // Remove leading/trailing whitespace but preserve internal formatting
+    const codeLines = ruleRequestData.split('\n').map(line => `${indent}${line}`).join('\n');
+    return `${indent}const ${factoryName} = (): RuleRequest => {\n${codeLines}\n${indent}};`;
+  }
+  
+  // Otherwise, treat it as JSON and transform it
+  try {
+    const ruleRequest = JSON.parse(ruleRequestData);
+    
+    // Transform into the required format with proper escaping
+    const transactionStr = ruleRequest.transaction ? JSON.stringify(ruleRequest.transaction) : '';
+    const networkMapStr = ruleRequest.networkMap ? JSON.stringify(ruleRequest.networkMap) : '';
+    const dataCacheStr = ruleRequest.DataCache ? JSON.stringify(ruleRequest.DataCache) : '';
+    
+    // Escape for template literals and single quotes
+    const escapeForTemplate = (str: string) => str.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$');
+    const escapeForSingleQuote = (str: string) => str.replace(/'/g, "\\'");
+    
+    return `${indent}const ${factoryName} = (): RuleRequest => {\n${indent}  const quote = {\n${indent}    transaction: JSON.parse(\n${indent}      \`${escapeForTemplate(transactionStr)}\`,\n${indent}    ),\n${indent}    networkMap: JSON.parse(\n${indent}      '${escapeForSingleQuote(networkMapStr)}',\n${indent}    ),\n${indent}    DataCache: JSON.parse(\n${indent}      '${escapeForSingleQuote(dataCacheStr)}',\n${indent}    ),\n${indent}  };\n${indent}  return quote;\n${indent}};`;
+  } catch (error) {
+    console.error('Error parsing RuleRequest data:', error);
+    return `${indent}const ${factoryName} = (): RuleRequest => {\n${indent}  // Error parsing RuleRequest data\n${indent}  return {} as RuleRequest;\n${indent}};`;
+  }
+};
+
+const generateRuleResultFactoryCode = (params: Record<string, string>, indent: string): string => {
+  const factoryName = params.factoryName || 'getRuleResult';
+  const ruleResultData = params.ruleResultData || '';
+  
+  if (!ruleResultData) {
+    return `${indent}const ${factoryName} = (): RuleResult => {\n${indent}  return {} as RuleResult;\n${indent}};`;
+  }
+  
+  try {
+    const ruleResult = JSON.parse(ruleResultData);
+    
+    const formatObject = (obj: unknown, currentIndent: string): string => {
+      if (obj === null) return 'null';
+      if (obj === undefined) return 'undefined';
+      if (typeof obj === 'string') return `'${obj.replace(/'/g, "\\'")}'`;
+      if (typeof obj === 'number' || typeof obj === 'boolean') return String(obj);
+      
+      if (Array.isArray(obj)) {
+        if (obj.length === 0) return '[]';
+        const items = obj.map(item => `${currentIndent}  ${formatObject(item, currentIndent + '  ')}`).join(',\n');
+        return `[\n${items},\n${currentIndent}]`;
+      }
+      
+      if (typeof obj === 'object') {
+        const entries = Object.entries(obj);
+        if (entries.length === 0) return '{}';
+        const props = entries.map(([key, value]) => {
+          const formattedValue = formatObject(value, currentIndent + '  ');
+          return `${currentIndent}  ${key}: ${formattedValue}`;
+        }).join(',\n');
+        return `{\n${props},\n${currentIndent}}`;
+      }
+      
+      return 'undefined';
+    };
+    
+    const formattedResult = formatObject(ruleResult, indent + '  ');
+    
+    return `${indent}const ${factoryName} = (): RuleResult => {\n${indent}  return ${formattedResult};\n${indent}};`;
+  } catch (error) {
+    console.error('Error parsing RuleResult data:', error);
+    return `${indent}const ${factoryName} = (): RuleResult => {\n${indent}  // Error parsing RuleResult data\n${indent}  return {} as RuleResult;\n${indent}};`;
+  }
+};
+
+const generateDataCacheFactoryCode = (params: Record<string, string>, indent: string): string => {
+  const variableName = params.variableName || 'dataCache';
+  const dataCacheData = params.dataCacheData || '';
+  
+  if (!dataCacheData) {
+    return `${indent}const ${variableName}: DataCache = {};`;
+  }
+  
+  try {
+    const dataCache = JSON.parse(dataCacheData);
+    
+    const formatObject = (obj: unknown, currentIndent: string): string => {
+      if (obj === null) return 'null';
+      if (obj === undefined) return 'undefined';
+      if (typeof obj === 'string') return `'${obj.replace(/'/g, "\\'")}'`;
+      if (typeof obj === 'number' || typeof obj === 'boolean') return String(obj);
+      
+      if (Array.isArray(obj)) {
+        if (obj.length === 0) return '[]';
+        const items = obj.map(item => `${currentIndent}  ${formatObject(item, currentIndent + '  ')}`).join(',\n');
+        return `[\n${items},\n${currentIndent}]`;
+      }
+      
+      if (typeof obj === 'object') {
+        const entries = Object.entries(obj);
+        if (entries.length === 0) return '{}';
+        const props = entries.map(([key, value]) => {
+          const formattedValue = formatObject(value, currentIndent + '  ');
+          return `${currentIndent}  ${key}: ${formattedValue}`;
+        }).join(',\n');
+        return `{\n${props},\n${currentIndent}}`;
+      }
+      
+      return 'undefined';
+    };
+    
+    const formattedDataCache = formatObject(dataCache, indent);
+    
+    return `${indent}const ${variableName}: DataCache = ${formattedDataCache};`;
+  } catch (error) {
+    console.error('Error parsing DataCache data:', error);
+    return `${indent}const ${variableName}: DataCache = {};\n${indent}// Error parsing DataCache data`;
+  }
 };
 
 const generateSetVariableCode = (params: Record<string, string>, indent: string): string => {
@@ -805,6 +1003,31 @@ const generateNodeCodeRecursive = (
     
     return [loopCode, exitCode].filter(Boolean).join('\n');
   }
+
+  if (nodeData.nodeType === 'Describe') {
+    const params = nodeData.params || {};
+    const describeName = params.describeName || 'test suite';
+    
+    const bodyNodes = getNodesInBranch(node.id, 'body', nodes, edges, new Set(processedNodes));
+    
+    // Mark body nodes as processed to prevent duplicate processing
+    bodyNodes.forEach((n) => processedNodes.add(n.id));
+
+    const innerCode = bodyNodes
+      .map((n) => generateNodeCodeRecursive(n, nodes, edges, indent + '  ', processedNodes))
+      .filter(Boolean)
+      .join('\n');
+
+    let describeCode = `${indent}describe('${describeName}', () => {\n`;
+    if (innerCode) {
+      describeCode += innerCode + '\n';
+    }
+    describeCode += `${indent}});`;
+
+    const exitCode = processExitEdge(node.id, nodes, edges, indent, processedNodes);
+    
+    return [describeCode, exitCode].filter(Boolean).join('\n');
+  }
   
   // For regular nodes
   const nodeCode = generateNodeCode(node, indent, nodes);
@@ -859,6 +1082,38 @@ const generateNestedFlowCode = (
       if (exitEdge) processNode(exitEdge.target);
       return;
     }
+
+    if (nodeData.nodeType === 'Describe') {
+      processedNodes.add(node.id);
+      const params = nodeData.params || {};
+      const describeName = params.describeName || 'test suite';
+
+      const bodyNodes = getNodesInBranch(node.id, 'body', nodes, edges, new Set(processedNodes));
+      
+      // Use a fresh processedNodes set for the body to allow nested describes
+      const bodyProcessedNodes = new Set<string>(processedNodes);
+      bodyNodes.forEach((n) => bodyProcessedNodes.add(n.id));
+
+      const innerCode = bodyNodes
+        .map((n) => generateNodeCodeRecursive(n, allNodes, edges, indent + '  ', bodyProcessedNodes))
+        .filter(Boolean)
+        .join('\n');
+
+      let describeCode = `${indent}describe('${describeName}', () => {\n`;
+      if (innerCode) {
+        describeCode += innerCode + '\n';
+      }
+      describeCode += `${indent}});`;
+      
+      codeLines.push(describeCode);
+      
+      // Mark all body nodes as processed in the main set too
+      bodyNodes.forEach((n) => processedNodes.add(n.id));
+      
+      const exitEdge = edges.find((e) => e.source === node.id && e.sourceHandle === 'exit');
+      if (exitEdge) processNode(exitEdge.target);
+      return;
+    }
     
     if (nodeData.nodeType === 'If') {
       try {
@@ -908,7 +1163,13 @@ const generateNestedFlowCode = (
       }
     } else {
       const code = generateNodeCode(node, indent, allNodes);
-      if (code) codeLines.push(code);
+      if (code) {
+        // Add consistent blank line between all statements (except the first)
+        if (codeLines.length > 0 && codeLines[codeLines.length - 1] !== '') {
+          codeLines.push('');
+        }
+        codeLines.push(code);
+      }
       
       const nextEdge = edges.find((e) => e.source === nodeId);
       if (nextEdge) processNode(nextEdge.target);
@@ -1038,4 +1299,13 @@ ${nestedCode}
 }`;
   
   return code;
+};
+
+export const generateTestCaseCode = (
+  nodes: Node[],
+  edges: Edge[],
+): string => {
+  const flowCode = generateNestedFlowCode(nodes, edges, '', nodes);
+  
+  return flowCode || '// Add nodes to the canvas to generate code';
 };

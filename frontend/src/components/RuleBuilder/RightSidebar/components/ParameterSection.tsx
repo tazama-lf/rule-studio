@@ -93,13 +93,12 @@ const ParameterSection: React.FC<ParameterSectionProps> = ({
 
   const handleSaveCode = useCallback((code: string) => {
     if (editingCodeField) {
-      const syntheticEvent = {
-        target: { value: code }
-      } as React.ChangeEvent<HTMLInputElement>;
-      onParamChange(editingCodeField.key)(syntheticEvent);
-      onParamBlur?.();
+      const updatedParams = { ...currentParams, [editingCodeField.key]: code };
+      
+      onParamBlur?.(true, updatedParams);
     }
-  }, [editingCodeField, onParamChange, onParamBlur]);
+    handleCloseCodeModal();
+  }, [editingCodeField, currentParams, onParamBlur, handleCloseCodeModal]);
   
   const handleOpenQueryEditor = useCallback(() => {
     setQueryEditorOpen(true);
@@ -175,7 +174,7 @@ const ParameterSection: React.FC<ParameterSectionProps> = ({
     const isVariableNameField = nodeType === 'SetVariable' && ['name', 'variableName'].includes(input.key);
     const hasError = !!fieldError || (isVariableNameField && !!variableError);
     const isCodeField = ['code', 'loopBody', 'query', 'code_template', 'function_code'].includes(input.key);
-    const helperText = getHelperText(input, fieldError, isVariableNameField, isCodeField);
+    const helperText = getHelperText(input, fieldError, isVariableNameField, isCodeField || input.type === 'code');
 
 
     if (input.options && input.options.length > 0) {
@@ -238,7 +237,7 @@ const ParameterSection: React.FC<ParameterSectionProps> = ({
       );
     }
 
-    if (input.key === 'code_template') {
+    if (input.key === 'code_template' || input.type === 'code') {
       return (
         <CodeTemplateButton
           key={input.key}

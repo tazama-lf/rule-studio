@@ -9,6 +9,7 @@ import QueryExecutionResultModal from './QueryExecutionResultModal';
 import { useExecuteQueryMutation } from '../../../../redux/Api/Rule-builder';
 import type { QueryExecutionResponse } from '../../../../types/queryExecution';
 import { extractErrorMessage } from '../../../../types/queryExecution';
+import { useParams } from 'react-router-dom';
 
 interface FetchDBSectionProps {
   currentParams: Record<string, string>;
@@ -42,7 +43,7 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
   const [executionError, setExecutionError] = useState<string | null>(null);
 
   const [executeQuery, { isLoading: isExecuting }] = useExecuteQueryMutation();
-
+  const { id: ruleId } = useParams<{ id: string }>();
   const queryLineCount = useMemo(
     () => currentParams.query?.split('\n').length ?? 0,
     [currentParams.query]
@@ -252,6 +253,7 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
         initialValue={currentParams.query ?? ''}
         isExecuting={isExecuting}
         executionError={executionError}
+        ruleId={ruleId}
       />
       <QueryExecutionResultModal
         open={resultsModalOpen}

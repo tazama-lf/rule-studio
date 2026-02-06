@@ -30,6 +30,59 @@ export const useCanvasNodeOperations = ({
         });
       }
 
+      if (type === 'RuleConfigFactory' && window.globalVariablesData) {
+        try {
+          const globalVars = window.globalVariablesData as { RuleConfig?: unknown };
+          if (globalVars.RuleConfig) {
+            defaultParams.ruleConfigData = JSON.stringify(globalVars.RuleConfig);
+          }
+        } catch (error) {
+          console.error('Error auto-populating RuleConfig data:', error);
+        }
+      }
+
+      if (type === 'RuleRequestFactory' && window.globalVariablesData) {
+        try {
+          const globalVars = window.globalVariablesData as { RuleRequest?: unknown };
+          if (globalVars.RuleRequest) {
+            // Import the transform function dynamically
+            import('../../utils/Flow/transformRuleRequest').then(({ transformRuleRequestToCode }) => {
+              const transformedCode = transformRuleRequestToCode(globalVars.RuleRequest);
+              // Update the node params after creation
+              setNodes((nds) =>
+                nds.map((node) =>
+                  node.id === newNodeId
+                    ? { 
+                        ...node, 
+                        data: { 
+                          ...node.data, 
+                          params: { 
+                            ...((node.data as EditableNodeData).params as Record<string, string> || {}), 
+                            ruleRequestData: transformedCode 
+                          } 
+                        } 
+                      }
+                    : node
+                )
+              );
+            });
+          }
+        } catch (error) {
+          console.error('Error auto-populating RuleRequest data:', error);
+        }
+      }
+
+      if (type === 'RuleResultFactory' && window.globalVariablesData) {
+        try {
+          const globalVars = window.globalVariablesData as { RuleResult?: unknown };
+          if (globalVars.RuleResult) {
+            defaultParams.ruleResultData = JSON.stringify(globalVars.RuleResult);
+          }
+        } catch (error) {
+          console.error('Error auto-populating RuleResult data:', error);
+        }
+      }
+
       const newNode: Node = {
         id: newNodeId,
         type: 'editableNode',

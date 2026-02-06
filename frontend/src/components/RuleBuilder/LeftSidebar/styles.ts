@@ -78,12 +78,14 @@ export const NodeCard = styled(Card, {
 export const ScrollableList = styled(Box)(({ theme }) => ({
   flexGrow: 1,
   overflowY: 'auto',
-  overflowX: 'hidden',
+  overflowX: 'auto',
   padding: theme.spacing(1.5),
   width: '100%',
+  height: '100%',
   boxSizing: 'border-box',
   '&::-webkit-scrollbar': {
     width: '8px',
+    height: '8px',
   },
   '&::-webkit-scrollbar-track': {
     backgroundColor: theme.palette.grey[100],

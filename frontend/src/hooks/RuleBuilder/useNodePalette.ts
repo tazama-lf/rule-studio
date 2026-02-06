@@ -8,6 +8,7 @@ export interface NodeTemplate {
   color?: string;
   displayName?: string;
   isFunction?: boolean;
+  isPredefined?: boolean;
   bgColor?: string;
   code_template?: string;
   call_template?: string;
@@ -36,6 +37,7 @@ interface UseNodePaletteProps {
   mode?: 'main' | 'modal';
   hideCustomFunctions?: boolean;
   hideImportNode?: boolean;
+  hideStartEnd?: boolean;
   apiNodes?: NodeTemplate[];
 }
 
@@ -43,37 +45,31 @@ export const useNodePalette = ({
   mode = 'main', 
   hideCustomFunctions = false,
   hideImportNode = false,
+  hideStartEnd = false,
   apiNodes = [],
 }: UseNodePaletteProps) => {
   const basicNodes: NodeTemplate[] = useMemo(
     () => {
-      if (apiNodes && apiNodes.length > 0) {
-        let nodes = apiNodes.filter((node) => {
-          const visibleOn = node.visible_on_canvas || ['main', 'nested'];
-          const isVisibleOnThisCanvas = mode === 'modal' 
-            ? visibleOn.includes('nested') 
-            : visibleOn.includes('main');
-          
-          return !node.isFunction && isVisibleOnThisCanvas;
-        });
+      let nodes = apiNodes.filter((node) => {
+        const visibleOn = node.visible_on_canvas || ['main', 'nested'];
+        const isVisibleOnThisCanvas = mode === 'modal' 
+          ? visibleOn.includes('nested') 
+          : visibleOn.includes('main');
         
-        if (hideImportNode) {
-          nodes = nodes.filter((node) => node.type !== 'Import');
-        }
-        return nodes;
+        return !node.isFunction && isVisibleOnThisCanvas;
+      });
+      
+      if (hideImportNode) {
+        nodes = nodes.filter((node) => node.type !== 'Import');
       }
-      const nodes = [
-        { type: 'Import', label: 'Import', description: 'Import modules', color: '#8b5cf6' },
-        { type: 'SetVariable', label: 'Set Variable', description: 'Assign value to variable', color: '#60a5fa' },
-        { type: 'Log', label: 'Print Log', description: 'Output to console', color: '#fbbf24' },
-        { type: 'If', label: 'If Condition', description: 'Conditional branch', color: '#ec4899' },
-        { type: 'Code', label: 'Custom Code', description: 'Execute custom code', color: '#a78bfa' },
-        { type: 'FetchDB', label: 'Fetch from DB', description: 'Database query', color: '#fb923c' },
-        { type: 'ThrowError', label: 'Throw Error', description: 'Raise an error', color: '#f87171' },
-      ];
-      return hideImportNode ? nodes.filter((n) => n.type !== 'Import') : nodes;
+      
+      if (hideStartEnd) {
+        nodes = nodes.filter((node) => node.type !== 'Start' && node.type !== 'End');
+      }
+      
+      return nodes;
     },
-    [apiNodes, hideImportNode, mode]
+    [apiNodes, hideImportNode, hideStartEnd, mode]
   );
 
   const modalNodes: NodeTemplate[] = useMemo(
@@ -83,17 +79,14 @@ export const useNodePalette = ({
 
   const functionNodes: NodeTemplate[] = useMemo(
     () => {
-      if (apiNodes && apiNodes.length > 0) {
-        return apiNodes.filter((node) => {
-          if (!node.isFunction) return false;
-          
-          const visibleOn = node.visible_on_canvas || ['nested'];
-          return mode === 'modal' 
-            ? visibleOn.includes('nested') 
-            : visibleOn.includes('main');
-        });
-      }
-      return [];
+      return apiNodes.filter((node) => {
+        if (!node.isFunction) return false;
+        
+        const visibleOn = node.visible_on_canvas || ['nested'];
+        return mode === 'modal' 
+          ? visibleOn.includes('nested') 
+          : visibleOn.includes('main');
+      });
     },
     [apiNodes, mode]
   );

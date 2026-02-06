@@ -16,22 +16,22 @@ export const ruleBuilderApi = createApi({
     }),
     endpoints: (builder) => ({
         getNodes: builder.query({
-            query: () => ({
-                url: `nodes?category=rule_builder`,
+            query: (category: string = 'rule_builder') => ({
+                url: `nodes?category=${category}`,
                 method: "GET",
             }),
         }),
         getFlow: builder.query({
-            query: (ruleId: string | number) => ({
-                url: `rules/api/${ruleId}/flow`,
+            query: ({ ruleId, category = 'rule_builder' }: { ruleId: string | number; category?: string }) => ({
+                url: `rules/api/${ruleId}/flow?category=${category}`,
                 method: "GET",
             }),
         }),
         saveFlow: builder.mutation({
-            query: ({ ruleId, flowData }: { ruleId: string | number; flowData: unknown }) => ({
+            query: ({ ruleId, flowData, category = 'rule_builder' }: { ruleId: string | number; flowData: unknown; category?: string }) => ({
                 url: `rules/api/${ruleId}/flow`,
                 method: "PUT",
-                body: flowData,
+                body: { ...(flowData as Record<string, unknown>), category },
             }),
         }),
         getGlobalVariables: builder.query({
