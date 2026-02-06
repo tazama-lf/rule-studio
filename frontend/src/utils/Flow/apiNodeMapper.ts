@@ -20,6 +20,8 @@ export interface ApiNode {
     type: string;
     category: string;
     color: string;
+    isPredefined?: boolean;
+    visible_on_canvas?: string[];
     handles: {
       source: boolean;
       target: boolean;
@@ -36,6 +38,19 @@ export interface ApiNode {
 
 export const mapApiNodeToTemplate = (apiNode: ApiNode): NodeTemplate => {
   const { node_json } = apiNode;
+  
+  // Default visible_on_canvas based on category and type
+  let visibleOnCanvas = node_json.visible_on_canvas;
+  if (!visibleOnCanvas) {
+    if (node_json.category === 'test_case_generation' && node_json.type === 'function') {
+      visibleOnCanvas = ['main', 'nested'];
+    } else if (node_json.type === 'function') {
+      visibleOnCanvas = ['nested'];
+    } else {
+      visibleOnCanvas = ['main', 'nested'];
+    }
+  }
+  
   return {
     type: node_json.node_type,
     displayName: node_json.label,
@@ -44,6 +59,8 @@ export const mapApiNodeToTemplate = (apiNode: ApiNode): NodeTemplate => {
     color: node_json.color,
     bgColor: getBgColorFromHex(node_json.color),
     isFunction: node_json.type === 'function',
+    isPredefined: node_json.isPredefined || false,
+    visible_on_canvas: visibleOnCanvas,
     code_template: node_json.code_template,
     inputs: node_json.inputs?.map((input) => ({
       key: input.key,

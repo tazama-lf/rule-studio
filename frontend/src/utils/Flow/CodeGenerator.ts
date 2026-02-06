@@ -36,21 +36,26 @@ const processCodeTemplate = (
   });
 
   let processedCode = template.replace(/\$\{params\.(\w+)\s*\|\|\s*['"]([^'"]*)['"  ]\}/g, (_match, key, defaultValue) => {
-    return cleanParams[key] || defaultValue;
+    const value = cleanParams[key] || defaultValue;
+    if (value.includes('\n') && indent) {
+      return value.split('\n').map((line: string, index: number) => {
+        return index === 0 ? line : indent + '  ' + line;
+      }).join('\n');
+    }
+    return value;
   });
 
   processedCode = processedCode.replace(/\$\{params\.(\w+)\}/g, (_match, key) => {
-    return cleanParams[key] || '';
+    const value = cleanParams[key] || '';
+    if (value.includes('\n') && indent) {
+      return value.split('\n').map((line: string, index: number) => {
+        return index === 0 ? line : indent + '  ' + line;
+      }).join('\n');
+    }
+    return value;
   });
 
   processedCode = processedCode.replace(/\$\{indent\}/g, indent);
-
-  if (indent) {
-    processedCode = processedCode
-      .split('\n')
-      .map((line) => (line.trim() ? indent + line : line))
-      .join('\n');
-  }
 
   return processedCode;
 };
