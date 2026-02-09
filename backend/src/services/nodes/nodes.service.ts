@@ -7,6 +7,7 @@ import {
 } from './dto';
 import { AdminServiceClient } from '../admin-service-client';
 import { GetNodesQuery } from './interfaces/node.interface';
+import { decryptData } from 'src/utils/helperFunction';
 
 @Injectable()
 export class NodesService {
@@ -59,7 +60,8 @@ export class NodesService {
     data: RequestQueryNodeDto,
   ): Promise<ResponseQueryNodeDto> {
     try {
-      return await this.adminServiceClient.executeQueryNode(token, data);
+      const decryptedQuery = decryptData(data.query);
+      return await this.adminServiceClient.executeQueryNode(token, { ...data, query: decryptedQuery });
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Error executing query node: ${err.message}`);
