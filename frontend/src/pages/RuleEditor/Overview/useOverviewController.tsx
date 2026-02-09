@@ -99,15 +99,15 @@ const useOverviewController = (props: IOverviewProps) => {
                     : 'Rule Successfully Created'
             )
 
-            // const repoBody = {
-            //     ruleId: res?.id,
-            //     ruleVersion: values?.version,
-            //     organization: 'psl-copilot',
-            // }
+            const repoBody = {
+                ruleId: res?.id,
+                ruleVersion: values?.version,
+                organization: 'psl-copilot',
+            }
 
-            // const repoRes = await createRepo(repoBody)
+            const repoRes = await createRepo(repoBody)
 
-            if (true) {
+            if (repoRes) {
                 enableNextTab()
             }
         } catch (error: unknown) {
@@ -182,7 +182,7 @@ const useOverviewController = (props: IOverviewProps) => {
     return {
         values: {
             control,
-            isEdit: mode === 'edit' || mode == 'view',
+            isEdit: mode === 'edit' || mode == 'view' || (data && !mode),
             errors,
             isLoading,
             rule_config_id: getValues('rule_config_id'),

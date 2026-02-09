@@ -38,8 +38,7 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
   
   const flowState = useFlowState();
   const nestedCanvasManager = useNestedCanvasManager();
-  
-  // Store reference to updateNodeInternals from Canvas for dynamic handle updates
+
   const updateNodeInternalsRef = React.useRef<((nodeId: string) => void) | null>(null);
   
   const [apiNodesInitialized, setApiNodesInitialized] = React.useState(false);
@@ -53,9 +52,9 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
   
   const transformedFlowData = useMemo(() => {
 
-    if (!flowData?.flow || !apiNodesInitialized) return null;
+    if (!flowData?.result || !apiNodesInitialized) return null;
     
-    const flowJson = flowData.flow.flow_json || flowData.flow;
+    const flowJson = flowData.result.flow_json || flowData.flow;
     
     return transformApiFlowData(
       flowJson.nodes as ApiNode[] || [],
@@ -366,6 +365,8 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
         emptyMessage="Click 'Generate Code' to see output"
         onDownload={() => flowState.handleDownload(flowState.generatedCode)}
         language="typescript"
+        enableValidation={true}
+        validationType="rule"
       />
 
       <ValidationErrorModal

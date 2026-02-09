@@ -43,9 +43,9 @@ const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false })
   }, [nodesData]);
 
   const transformedFlowData = useMemo(() => {
-    if (!flowData?.flow || !apiNodesInitialized) return null;
+    if (!flowData?.result || !apiNodesInitialized) return null;
     
-    const flowJson = flowData.flow.flow_json || flowData.flow;
+    const flowJson = flowData.result.flow_json || flowData.flow;
     
     return transformApiFlowData(
       flowJson.nodes as ApiFlowNode[] || [],
@@ -255,11 +255,13 @@ const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false })
       <OutputModal
         open={flowState.codeModalOpen}
         onClose={() => flowState.setCodeModalOpen(false)}
-        title="Generated TypeScript Code"
+        title="Generated Test Code"
         content={flowState.codeOutput}
         emptyMessage="Click 'Generate Code' to see output"
         onDownload={() => flowState.handleDownload(flowState.generatedCode)}
         language="typescript"
+        enableValidation={true}
+        validationType="test"
       />
 
       <ValidationErrorModal
