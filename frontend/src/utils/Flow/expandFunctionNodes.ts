@@ -12,6 +12,7 @@ interface ApiNodeJson {
   handles?: { source: boolean; target: boolean };
   code_template?: string;
   function_name?: string;
+  visible_on_canvas?: string[];
   modes?: {
     definition?: {
       visible_on_canvas: string[];
@@ -99,10 +100,10 @@ export const expandFunctionNodes = (apiNodes: ApiNode[]): NodeTemplate[] => {
         if (nodeJson.category === 'test_case_generation') {
           visibleOn = ['main', 'nested'];
         } else {
-          visibleOn = ['nested'];
+          visibleOn = nodeJson.visible_on_canvas || ['nested'];
         }
       } else {
-        visibleOn = ['main', 'nested'];
+        visibleOn = nodeJson.visible_on_canvas || ['main', 'nested'];
       }
 
       expanded.push({
