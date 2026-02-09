@@ -18,6 +18,7 @@ import type { Node, Edge } from '@xyflow/react';
 import EditorSection, { type EditorSectionHandle } from './EditorSection';
 import VariablesPanel from './VariablesPanel';
 import { useDragDropEditor, useVariableData } from '../../../../../hooks/RuleBuilder';
+import { extractQueryParameters } from '../../../../../utils/Common/extractQueryParameters';
 
 interface QueryEditorModalProps {
   open: boolean;
@@ -64,12 +65,14 @@ const QueryEditorModal: React.FC<QueryEditorModalProps> = ({
   }, [onSave]);
 
   const handleExecute = useCallback(() => {
-    const query = editorRef.current?.getValue() ?? '';
-    if (!query.trim()) {
+    const rawQuery = editorRef.current?.getValue() ?? '';
+    if (!rawQuery.trim()) {
       setValidationError('Query cannot be empty');
       return;
     }
     setValidationError(null);
+
+    const query = extractQueryParameters(rawQuery, variableData);
     onExecute(query);
   }, [onExecute]);
 
