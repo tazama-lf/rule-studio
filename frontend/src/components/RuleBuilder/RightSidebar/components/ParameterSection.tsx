@@ -239,6 +239,7 @@ const ParameterSection: React.FC<ParameterSectionProps> = ({
           fieldError={fieldError}
           onOpenQueryEditor={handleOpenQueryEditor}
           onExecuteQuery={executeQuery}
+          dbName={currentParams.dbName ?? '_event_history'}
         />
       );
     }
@@ -308,6 +309,7 @@ const ParameterSection: React.FC<ParameterSectionProps> = ({
               onClose={handleCloseQueryEditor}
               onSave={handleSaveQuery}
               onExecute={executeQuery}
+              dbName={currentParams.dbName ?? '_event_history'}
               initialValue={currentParams.query ?? ''}
               isExecuting={isExecuting}
               executionError={executionError}

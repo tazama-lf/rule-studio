@@ -1,5 +1,6 @@
 export interface QueryExecutionRequest {
   query: string;
+  dbName?: string;
 }
 
 export interface QueryExecutionResponse {

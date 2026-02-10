@@ -23,7 +23,8 @@ interface QueryEditorModalProps {
   open: boolean;
   onClose: () => void;
   onSave: (query: string) => void;
-  onExecute: (query: string) => void;
+  onExecute: (query: string, dbName?: string) => void;
+  dbName?: string;
   initialValue: string;
   isExecuting?: boolean;
   executionError?: string | null;
@@ -38,6 +39,7 @@ const QueryEditorModal: React.FC<QueryEditorModalProps> = ({
   onClose,
   onSave,
   onExecute,
+  dbName,
   initialValue,
   isExecuting = false,
   executionError = null,
@@ -75,8 +77,8 @@ const QueryEditorModal: React.FC<QueryEditorModalProps> = ({
       return;
     }
     setValidationError(null);
-    onExecute(rawQuery);
-  }, [onExecute]);
+    onExecute(rawQuery, dbName);
+  }, [onExecute, dbName]);
 
   const handleCancel = useCallback(() => {
     setValidationError(null);
