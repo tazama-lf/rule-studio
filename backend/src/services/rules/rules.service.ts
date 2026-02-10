@@ -124,7 +124,7 @@ export class RulesService {
         console.log("XML to JSON conversion completed")
 
         // conversion done 
-        typedPayload = replaceObjectsWithArrays(transformedPayload, arrayFields, []);
+        typedPayload = replaceObjectsWithArrays(transformedPayload, arrayFields, stringFields);
         console.log("Final converted payload:", JSON.stringify(typedPayload, null, 2));
       }
       

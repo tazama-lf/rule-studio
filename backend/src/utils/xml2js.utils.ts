@@ -115,15 +115,25 @@ export function replaceObjectsWithArrays(payload: any, arrayFields: string[], st
       throw new Error('Payload cannot be null or undefined');
     }
 
-    const modifiedPayload = structuredClone(payload);
+    // console.log("Starting replacement of objects with arrays and numbers with strings in payload...");
+    const modifiedPayload = structuredClone(payload); // deep copy
+    // console.log("Payload cloned successfully, modified payload.", JSON.stringify(modifiedPayload, null, 2));
+
+    // console.log("Array fields to process:", arrayFields);
 
     arrayFields.forEach((fieldPath) => {
       convertObjectToArrayAtPath(modifiedPayload, fieldPath, loggerService);
     });
 
+    // console.log("Completed object to array conversions. Now starting number to string conversions...");
+    // console.log(JSON.stringify(modifiedPayload, null, 2));
+    // console.log("String fields to process:", stringFields);
+
     stringFields.forEach((fieldPath) => {
       convertNumberToStringAtPath(modifiedPayload, fieldPath, loggerService);
     });
+
+    // console.log("Completed number to string conversions. Final modified payload:", JSON.stringify(modifiedPayload, null, 2));
 
     return modifiedPayload;
   } catch (error) {
