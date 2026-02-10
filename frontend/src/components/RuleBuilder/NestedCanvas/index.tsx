@@ -28,7 +28,6 @@ const nodeTypes = {
   editableNode: EditableNode,
 };
 
-// Internal component to expose updateNodeInternals from within ReactFlow context
 const UpdateNodeInternalsExposer: React.FC<{ onReady: (updateFn: (nodeId: string) => void) => void }> = ({ onReady }) => {
   const updateNodeInternals = useUpdateNodeInternals();
   
@@ -141,6 +140,23 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
     nodesRef.current = nodes;
     edgesRef.current = edges;
   }, [nodes, edges]);
+
+  const prevProvidedNodesRef = useRef<Node[] | undefined>(undefined);
+  const prevProvidedEdgesRef = useRef<Edge[] | undefined>(undefined);
+  
+  useEffect(() => {
+    if (providedInitialNodes !== undefined && providedInitialNodes !== prevProvidedNodesRef.current) {
+      prevProvidedNodesRef.current = providedInitialNodes;
+      setNodes(providedInitialNodes);
+    }
+  }, [providedInitialNodes, setNodes]);
+
+  useEffect(() => {
+    if (providedInitialEdges !== undefined && providedInitialEdges !== prevProvidedEdgesRef.current) {
+      prevProvidedEdgesRef.current = providedInitialEdges;
+      setEdges(providedInitialEdges);
+    }
+  }, [providedInitialEdges, setEdges]);
   
   const allNodes = useMemo(() => {
     return [...mainCanvasNodes, ...nodes];
@@ -274,7 +290,6 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
   );
   const onKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      // No-op in view-only mode
       if (viewOnly) {
         return;
       }

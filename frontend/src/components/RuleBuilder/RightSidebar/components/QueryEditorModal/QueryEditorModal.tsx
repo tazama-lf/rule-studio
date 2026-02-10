@@ -18,7 +18,6 @@ import type { Node, Edge } from '@xyflow/react';
 import EditorSection, { type EditorSectionHandle } from './EditorSection';
 import VariablesPanel from './VariablesPanel';
 import { useDragDropEditor, useVariableData } from '../../../../../hooks/RuleBuilder';
-import { extractQueryParameters } from '../../../../../utils/Common/extractQueryParameters';
 
 interface QueryEditorModalProps {
   open: boolean;
@@ -52,7 +51,12 @@ const QueryEditorModal: React.FC<QueryEditorModalProps> = ({
   
   const { handleDrop, handleDragOver, handleDragEnter, handleDragLeave, handleEditorMount } = useDragDropEditor();
   
-  const variableData = useVariableData({ ruleId, allNodes, edges, selectedNodeId });
+  const variableData = useVariableData({ 
+    ruleId: open ? ruleId : undefined, 
+    allNodes: open ? allNodes : [], 
+    edges: open ? edges : [], 
+    selectedNodeId: open ? selectedNodeId : null 
+  });
 
   const handleSave = useCallback(() => {
     const query = editorRef.current?.getValue() ?? '';
@@ -71,9 +75,7 @@ const QueryEditorModal: React.FC<QueryEditorModalProps> = ({
       return;
     }
     setValidationError(null);
-
-    const query = extractQueryParameters(rawQuery, variableData);
-    onExecute(query);
+    onExecute(rawQuery);
   }, [onExecute]);
 
   const handleCancel = useCallback(() => {
@@ -166,4 +168,36 @@ const QueryEditorModal: React.FC<QueryEditorModalProps> = ({
   );
 };
 
-export default React.memo(QueryEditorModal);
+const arePropsEqual = (
+  prevProps: QueryEditorModalProps,
+  nextProps: QueryEditorModalProps
+): boolean => {
+  if (!prevProps.open && !nextProps.open) {
+    return true;
+  }
+
+  if (prevProps.open !== nextProps.open) {
+    return false;
+  }
+
+  if (
+    prevProps.initialValue !== nextProps.initialValue ||
+    prevProps.isExecuting !== nextProps.isExecuting ||
+    prevProps.executionError !== nextProps.executionError ||
+    prevProps.ruleId !== nextProps.ruleId ||
+    prevProps.selectedNodeId !== nextProps.selectedNodeId
+  ) {
+    return false;
+  }
+
+  if (
+    prevProps.allNodes?.length !== nextProps.allNodes?.length ||
+    prevProps.edges?.length !== nextProps.edges?.length
+  ) {
+    return false;
+  }
+
+  return true;
+};
+
+export default React.memo(QueryEditorModal, arePropsEqual);

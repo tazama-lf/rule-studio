@@ -30,7 +30,6 @@ const nodeTypes = {
   editableNode: EditableNode,
 };
 
-// Internal component to expose updateNodeInternals from within ReactFlow context
 const UpdateNodeInternalsExposer: React.FC<{ onReady: (updateFn: (nodeId: string) => void) => void }> = ({ onReady }) => {
   const updateNodeInternals = useUpdateNodeInternals();
   
@@ -122,6 +121,23 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = ({
   useEffect(() => {
     onFlowStateUpdateRef.current = onFlowStateUpdate;
   }, [onFlowStateUpdate]);
+
+  const prevInitialNodesRef = useRef<Node[] | undefined>(undefined);
+  const prevInitialEdgesRef = useRef<Edge[] | undefined>(undefined);
+  
+  useEffect(() => {
+    if (initialNodes !== undefined && initialNodes !== prevInitialNodesRef.current) {
+      prevInitialNodesRef.current = initialNodes;
+      setNodes(initialNodes);
+    }
+  }, [initialNodes, setNodes]);
+
+  useEffect(() => {
+    if (initialEdges !== undefined && initialEdges !== prevInitialEdgesRef.current) {
+      prevInitialEdgesRef.current = initialEdges;
+      setEdges(initialEdges);
+    }
+  }, [initialEdges, setEdges]);
 
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);

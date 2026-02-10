@@ -265,6 +265,7 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
         onSave={handleSave}
         isSaving={isSaving}
         viewOnly={viewOnly}
+        hidePlayControls={true}
       />
       {nodesError || flowError ? (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, flexDirection: 'column', gap: 2 }}>
@@ -305,6 +306,7 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
             />
           )}
           <RuleBuilderCanvas
+            key={nestedCanvasManager.activeNestedCanvas ? 'hidden' : 'main-canvas'}
             isPlaying={Boolean(flowState.currentAnimationNode)}
             onJsonGenerate={flowState.handleJsonGenerate}
             onCodeGenerate={flowState.handleCodeGenerate}
@@ -334,6 +336,7 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
 
           {nestedCanvasManager.activeNestedCanvas && (
             <NestedCanvas
+              key={`nested-${nestedCanvasManager.activeNestedCanvas}`}
               nodeId={nestedCanvasManager.activeNestedCanvas}
               nodeLabel={nestedCanvasManager.activeNestedCanvasLabel}
               initialNodes={nestedCanvasManager.nestedCanvasData[nestedCanvasManager.activeNestedCanvas]?.nodes}
