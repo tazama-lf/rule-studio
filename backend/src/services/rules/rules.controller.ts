@@ -163,7 +163,7 @@ export class RulesController {
       ...ruleData,
       userID: user.userId
     };
-    console.log('Creating rule with data at controller');
+    console.log('Creating rule with data at controller', ruleData);
     return await this.rulesService.createRule(ruleDataWithUser, user.token.tokenString, user.tenantId);
   }
 

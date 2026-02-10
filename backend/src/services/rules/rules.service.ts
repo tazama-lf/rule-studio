@@ -74,24 +74,29 @@ export class RulesService {
        const transactionType = ruleData.txtp ?? "";
       
       // Fetch the payload template for this transaction type
-      let {payload, type} = await this.adminServiceClient.getPayloadByTransactionType(
+      const result = await this.adminServiceClient.getPayloadByTransactionType(
         transactionType,
         token,
       );
-      console.log("getPayloadByTransactionType:", payload);  
+      console.log("getPayloadByTransactionType:", result); // getting undefined
 
-        // Fetch the configured schema for this transaction type
+      const payload = result.payload;
+      let typedPayload = payload as Record<string, unknown>;  
 
-
-      if(type === 'xml') {
+      if(result.type === 'xml') {
         // Convert XML to JSON
         const result = await this.adminServiceClient.getConfigRowByTxTp(transactionType, token); 
-        console.log("getConfigRowByTxTp result:", result);
+        console.log("having fetched the payload, now getConfigRowByTxTp result:", result);
 
-      const configuredSchema = result.config.schema;
+        const configuredSchema = result.config.schema;
+
+        console.log("the configured scehma is :", JSON.stringify(configuredSchema, null, 2));
 
        
         const { stringFields, arrayFields } = returnArrayFieldsFromSchema(configuredSchema);
+
+        console.log("String fields identified for number processing:", stringFields.length );
+        console.log("Array fields identified for replacement:", arrayFields.length);
 
         const options: ParserOptions = {
           explicitArray: false, // Don't wrap single values in arrays
@@ -102,6 +107,8 @@ export class RulesService {
           normalize: true,
           valueProcessors: [createSchemaAwareNumberProcessor(stringFields)], 
         };
+
+        console.log("Starting XML to JSON conversion with xml2js...");
 
         // eslint-disable-next-line promise/avoid-new -- we need to wrap xml2js parseString in a promise
         const transformedPayload = await new Promise((resolve, reject) => {
@@ -114,60 +121,50 @@ export class RulesService {
           });
         });
 
-        // Convert the transformed payload to ensure array fields are properly formatted
-        // Note: We don't need string conversion here anymore since the parser handles it
-        payload = replaceObjectsWithArrays(transformedPayload, arrayFields, []);
-        console.log("Final converted payload:", JSON.stringify(payload, null, 2));
+        console.log("XML to JSON conversion completed")
 
-        // Now, you can use convertedPayload for further processing as needed
-      
+        // conversion done 
+        typedPayload = replaceObjectsWithArrays(transformedPayload, arrayFields, []);
+        console.log("Final converted payload:", JSON.stringify(typedPayload, null, 2));
       }
       
-      // try {
-      //   const parser = new xml2js.Parser();
-      //   const jsonResult = await parser.parseStringPromise(payload);
-      //   console.log("XML converted to JSON:", JSON.stringify(jsonResult, null, 2));
-      // } catch (parseError) {
-      //   console.error("Error converting XML to JSON:", parseError);
-      // }
-      // XML ko JSON convert
+      // if it was XML, now its JSON
+      const parseResult = await this.parseExtractService.processForRuleCreation(
+        {TxTp: transactionType, TenantId:tenantId, ...typedPayload},
+        token,
+      );
+      console.log("Parse result for transactional message:", parseResult);
 
-      // const parseResult = await this.parseExtractService.processForRuleCreation(
-      //   {TxTp: transactionType, TenantId:tenantId, ...payload},
-      //   token,
-      // );
-      // console.log("Parse result for transactional message:", parseResult);
+      // admin service client ko aagay derha hun ruleRequest
+      const rule = await this.adminServiceClient.createRule(ruleData, token, parseResult.ruleRequest);
+      let updatedRule = rule;
+      if (rule.id) {
+        const baseRuleFlow = await this.getRuleFlow(
+          BASE_RULE_ID,
+          token,
+        );
+        const newRuleFlow = await this.adminServiceClient.createRuleFlow(
+          rule.id,
+          {
+            flow_json_rule_builder: baseRuleFlow.result.flow_json_rule_builder ? baseRuleFlow.result.flow_json_rule_builder : {},
+            flow_json_test_case: baseRuleFlow.result.flow_json_test_case ? baseRuleFlow.result.flow_json_test_case : {},
+          },
+          token,
+        );
+        if (newRuleFlow) {
+          updatedRule = await this.adminServiceClient.updateRule(
+            rule.id,
+            { flow_id: newRuleFlow.id },
+            token,
+          );
+        } else {
+          this.logger.warn(
+            `No flow ID returned when creating rule flow for rule ${rule.id}`,
+          );
+        }
+      }
 
-      // // admin service client ko aagay derha hun ruleRequest
-      // const rule = await this.adminServiceClient.createRule(ruleData, token, parseResult.ruleRequest);
-      // let updatedRule = rule;
-      // if (rule.id) {
-      //   const baseRuleFlow = await this.getRuleFlow(
-      //     BASE_RULE_ID,
-      //     token,
-      //   );
-      //   const newRuleFlow = await this.adminServiceClient.createRuleFlow(
-      //     rule.id,
-      //     {
-      //       flow_json_rule_builder: baseRuleFlow.result.flow_json_rule_builder ? baseRuleFlow.result.flow_json_rule_builder : {},
-      //       flow_json_test_case: baseRuleFlow.result.flow_json_test_case ? baseRuleFlow.result.flow_json_test_case : {},
-      //     },
-      //     token,
-      //   );
-      //   if (newRuleFlow) {
-      //     updatedRule = await this.adminServiceClient.updateRule(
-      //       rule.id,
-      //       { flow_id: newRuleFlow.id },
-      //       token,
-      //     );
-      //   } else {
-      //     this.logger.warn(
-      //       `No flow ID returned when creating rule flow for rule ${rule.id}`,
-      //     );
-      //   }
-      // }
-
-      // return updatedRule;
+      return updatedRule;
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Error creating rule: ${err.message}`);

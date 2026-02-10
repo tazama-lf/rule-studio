@@ -108,11 +108,14 @@ export class ParseExtractService {
     ruleRequest?: RuleRequest;
   }> {
     // 1. Fetch schema from database via Admin Service
+    console.log("0. Starting processTransactionPayload for TxTp:", request.TxTp, "with correlationId:", correlationId);
     const adminServiceResponse =
       await this.adminServiceClient.getConfigRowByTxTp(
         request.TxTp, // needs to be sent for saving ruleRequest in db table
         token,
       );
+
+    console.log("1. fetch schema from admin service | adminServiceResponse is ", adminServiceResponse)
 
     if (!adminServiceResponse.config?.schema) {
       const errorMsg = `No schema configuration found for transaction type: ${request.TxTp}`;
@@ -125,6 +128,7 @@ export class ParseExtractService {
     }
 
     this.logger.log(`Found schema configuration for: ${request.TxTp}`);
+    console.log("whole request is ", request)
 
     // 2. Extract payload to validate - exclude TxTp and TenantId from request
     const extractedData = this.extractPayloadFromRequest(request);
@@ -137,6 +141,7 @@ export class ParseExtractService {
     }
 
     const { TxTp, TenantId, payloadToValidate } = extractedData;
+    console.log("2. Extracted payload to validate:", extractedData);
 
     // 3. Validate payload against schema thru AJV
     const validationResult = await this.validatePayload(
@@ -162,11 +167,17 @@ export class ParseExtractService {
     // Process mappings to extract dataCache and transaction relationship
     payloadToValidate.TxTp = TxTp;
     payloadToValidate.TenantId = TenantId;
+
+    console.log("3a. Sending payloadToValidate to processMappings:", payloadToValidate);
+    console.log("3b. Mappings from admin service config:", adminServiceResponse.config.mapping); 
+   
     const mappingResult = processMappings(
       payloadToValidate,
-      adminServiceResponse.config.mapping ?? [],
+      adminServiceResponse.config.mapping ?? [], // where is this coming form?
       request.TxTp,
     );
+
+    console.log("4. Mapping result from TCS-LIB processMappings:", mappingResult);
 
     // Fetch active network map for the tenant
     const activeNetworkMap =
