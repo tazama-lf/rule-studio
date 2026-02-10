@@ -32,15 +32,20 @@ export const useQueryExecution = ({ variableData }: UseQueryExecutionOptions) =>
 
   const [executeQueryMutation] = useExecuteQueryMutation();
 
-  const executeQuery = useCallback(async (rawQuery: string) => {
+  const executeQuery = useCallback(async (rawQuery: string, dbName?: string) => {
     try {
       setState(prev => ({ ...prev, executionError: null, isExecuting: true }));
 
       const processedQuery = extractQueryParameters(rawQuery, variableData);
       
-      const response = await executeQueryMutation({
+      const cleanDbName = dbName?.startsWith('_') ? dbName.substring(1) : dbName;
+      
+      const payload = {
         query: processedQuery,
-      }).unwrap() as QueryExecutionResponse;
+        ...(cleanDbName && { dbName: cleanDbName }),
+      };
+      
+      const response = await executeQueryMutation(payload).unwrap() as QueryExecutionResponse;
 
       const data = Array.isArray(response.result) ? response.result : [];
       const rowCount = data.length;

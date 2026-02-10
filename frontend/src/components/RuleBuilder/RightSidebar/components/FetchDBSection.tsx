@@ -189,7 +189,10 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
               variant="contained"
               color="success"
               startIcon={<PlayArrowIcon />}
-              onClick={() => executeQuery(currentParams.query)}
+              onClick={() => {
+                const dbNameValue = currentParams.dbName ?? '_event_history';
+                executeQuery(currentParams.query, dbNameValue);
+              }}
               disabled={isExecuting}
               sx={{ py: 1 }}
             >
@@ -265,6 +268,7 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
         onClose={handleCloseQueryEditor}
         onSave={handleSaveQuery}
         onExecute={executeQuery}
+        dbName={currentParams.dbName ?? '_event_history'}
         initialValue={currentParams.query ?? ''}
         isExecuting={isExecuting}
         executionError={executionError}
