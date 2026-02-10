@@ -306,6 +306,7 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
             />
           )}
           <RuleBuilderCanvas
+            key={nestedCanvasManager.activeNestedCanvas ? 'hidden' : 'main-canvas'}
             isPlaying={Boolean(flowState.currentAnimationNode)}
             onJsonGenerate={flowState.handleJsonGenerate}
             onCodeGenerate={flowState.handleCodeGenerate}
@@ -335,6 +336,7 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
 
           {nestedCanvasManager.activeNestedCanvas && (
             <NestedCanvas
+              key={`nested-${nestedCanvasManager.activeNestedCanvas}`}
               nodeId={nestedCanvasManager.activeNestedCanvas}
               nodeLabel={nestedCanvasManager.activeNestedCanvasLabel}
               initialNodes={nestedCanvasManager.nestedCanvasData[nestedCanvasManager.activeNestedCanvas]?.nodes}

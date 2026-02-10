@@ -10,13 +10,18 @@ export const useNestedCanvasManager = () => {
   const [activeNestedCanvas, setActiveNestedCanvas] = useState<string | null>(null);
   const [activeNestedCanvasLabel, setActiveNestedCanvasLabel] = useState<string>('Handle Transaction');
   const [nestedCanvasData, _setNestedCanvasData] = useState<Record<string, NestedCanvasData>>({});
+  const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
   
   const setNestedCanvasData = useCallback((updater: Record<string, NestedCanvasData> | ((prev: Record<string, NestedCanvasData>) => Record<string, NestedCanvasData>)) => {
     _setNestedCanvasData(updater);
   }, []);
 
   const handleNestedCanvasBack = useCallback(() => {
-    setActiveNestedCanvas(null);
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setActiveNestedCanvas(null);
+      setIsTransitioning(false);
+    }, 0);
   }, []);
 
   const handleNestedCanvasSave = useCallback(
@@ -30,8 +35,12 @@ export const useNestedCanvasManager = () => {
   );
 
   const openNestedCanvas = useCallback((nodeId: string, label: string) => {
-    setActiveNestedCanvas(nodeId);
-    setActiveNestedCanvasLabel(label);
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setActiveNestedCanvas(nodeId);
+      setActiveNestedCanvasLabel(label);
+      setIsTransitioning(false);
+    }, 0);
   }, []);
 
   return {
@@ -44,5 +53,6 @@ export const useNestedCanvasManager = () => {
     handleNestedCanvasBack,
     handleNestedCanvasSave,
     openNestedCanvas,
+    isTransitioning,
   };
 };
