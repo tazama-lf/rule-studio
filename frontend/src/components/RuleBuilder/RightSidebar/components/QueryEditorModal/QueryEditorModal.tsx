@@ -52,7 +52,13 @@ const QueryEditorModal: React.FC<QueryEditorModalProps> = ({
   
   const { handleDrop, handleDragOver, handleDragEnter, handleDragLeave, handleEditorMount } = useDragDropEditor();
   
-  const variableData = useVariableData({ ruleId, allNodes, edges, selectedNodeId });
+  // Only compute variable data when modal is open to optimize performance
+  const variableData = useVariableData({ 
+    ruleId: open ? ruleId : undefined, 
+    allNodes: open ? allNodes : [], 
+    edges: open ? edges : [], 
+    selectedNodeId: open ? selectedNodeId : null 
+  });
 
   const handleSave = useCallback(() => {
     const query = editorRef.current?.getValue() ?? '';
@@ -74,7 +80,7 @@ const QueryEditorModal: React.FC<QueryEditorModalProps> = ({
 
     const query = extractQueryParameters(rawQuery, variableData);
     onExecute(query);
-  }, [onExecute]);
+  }, [onExecute, variableData]);
 
   const handleCancel = useCallback(() => {
     setValidationError(null);
@@ -166,4 +172,42 @@ const QueryEditorModal: React.FC<QueryEditorModalProps> = ({
   );
 };
 
-export default React.memo(QueryEditorModal);
+// Custom comparison function to prevent unnecessary re-renders
+const arePropsEqual = (
+  prevProps: QueryEditorModalProps,
+  nextProps: QueryEditorModalProps
+): boolean => {
+  // If modal is closed in both states, skip re-render regardless of other props
+  if (!prevProps.open && !nextProps.open) {
+    return true;
+  }
+  
+  // If open state changed, always re-render
+  if (prevProps.open !== nextProps.open) {
+    return false;
+  }
+  
+  // Compare primitive props
+  if (
+    prevProps.initialValue !== nextProps.initialValue ||
+    prevProps.isExecuting !== nextProps.isExecuting ||
+    prevProps.executionError !== nextProps.executionError ||
+    prevProps.ruleId !== nextProps.ruleId ||
+    prevProps.selectedNodeId !== nextProps.selectedNodeId
+  ) {
+    return false;
+  }
+  
+  // Compare array lengths for performance (deep comparison is expensive)
+  if (
+    prevProps.allNodes?.length !== nextProps.allNodes?.length ||
+    prevProps.edges?.length !== nextProps.edges?.length
+  ) {
+    return false;
+  }
+  
+  // Props are equal
+  return true;
+};
+
+export default React.memo(QueryEditorModal, arePropsEqual);

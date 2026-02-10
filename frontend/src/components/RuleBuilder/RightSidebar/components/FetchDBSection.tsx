@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { TextField, Typography, Divider, Button, Box } from '@mui/material';
 import CodeIcon from '@mui/icons-material/Code';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import type { Node } from '@xyflow/react';
+import type { Node, Edge } from '@xyflow/react';
 import { PropertyRow, SectionContainer, SectionTitle } from '../styles';
 import QueryEditorModal from './QueryEditorModal';
 import QueryExecutionResultModal from './QueryExecutionResultModal';
@@ -29,6 +29,8 @@ interface FetchDBSectionProps {
   isReadOnly: boolean;
   viewOnly: boolean;
   allNodes?: Node[];
+  edges?: Edge[];
+  selectedNodeId?: string | null;
   getFieldError?: (fieldName: string) => string | undefined;
 }
 
@@ -41,6 +43,9 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
   inputRefs: inputRefsRef,
   isReadOnly,
   viewOnly,
+  allNodes = [],
+  edges = [],
+  selectedNodeId = null,
   getFieldError,
 }) => {
   const [queryEditorOpen, setQueryEditorOpen] = useState<boolean>(false);
@@ -287,6 +292,9 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
         isExecuting={isExecuting}
         executionError={executionError}
         ruleId={ruleId}
+        allNodes={allNodes}
+        edges={edges}
+        selectedNodeId={selectedNodeId}
       />
       <QueryExecutionResultModal
         open={resultsModalOpen}
