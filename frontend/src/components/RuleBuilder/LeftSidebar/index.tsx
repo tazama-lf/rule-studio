@@ -81,7 +81,8 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const { localVars, loopVars, loopContext } = useLocalVariables({ 
     allNodes, 
     edges, 
-    selectedNodeId 
+    selectedNodeId,
+    globalVarsData
   });
 
   const localVarsTree = useVariableTree({ obj: localVars, parentPath: '' });

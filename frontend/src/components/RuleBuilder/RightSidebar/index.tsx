@@ -629,6 +629,8 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
           isReadOnly={isReadOnly}
           viewOnly={viewOnly}
           allNodes={allNodes}
+          edges={edges}
+          selectedNodeId={selectedNode?.id ?? null}
           getFieldError={getFieldError}
         />
       ) : nodeData?.nodeType === 'RuleConfigFactory' ? (
