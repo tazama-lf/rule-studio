@@ -265,6 +265,7 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
         onSave={handleSave}
         isSaving={isSaving}
         viewOnly={viewOnly}
+        hidePlayControls={true}
       />
       {nodesError || flowError ? (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, flexDirection: 'column', gap: 2 }}>
