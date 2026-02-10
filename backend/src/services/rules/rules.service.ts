@@ -15,6 +15,10 @@ import { ParseExtractService } from '../parse-extract/parse-extract.service';
 import { BASE_RULE_ID } from '../../constants/constant';
 import { AuthenticatedUser } from '../auth/auth.types';
 import { RuleCategory } from 'src/utils/enums/rule.enum';
+// import * as xml2js from 'xml2js';
+import { parseString, ParserOptions } from 'xml2js';
+
+import { createSchemaAwareNumberProcessor, replaceObjectsWithArrays, returnArrayFieldsFromSchema } from 'src/utils/xml2js.utils';
 
 @Injectable()
 export class RulesService {
@@ -61,7 +65,7 @@ export class RulesService {
     ruleData: Partial<Rules> ,
     token: string,
     tenantId: string,
-  ): Promise<Rules> {
+  ): Promise<any> {
     try {
       // If transactional message is provided, process it to enrich rule data
       // console.log('Rule data received for creation:', ruleData);
@@ -70,70 +74,100 @@ export class RulesService {
        const transactionType = ruleData.txtp ?? "";
       
       // Fetch the payload template for this transaction type
-      const payload = await this.adminServiceClient.getPayloadByTransactionType(
+      let {payload, type} = await this.adminServiceClient.getPayloadByTransactionType(
         transactionType,
         token,
       );
-      // console.log("getPayloadByTransactionType:", payload);  
+      console.log("getPayloadByTransactionType:", payload);  
 
-      const parseResult = await this.parseExtractService.processForRuleCreation(
-        {TxTp: transactionType, TenantId:tenantId, ...payload},
-        token,
-      );
+        // Fetch the configured schema for this transaction type
+
+
+      if(type === 'xml') {
+        // Convert XML to JSON
+        const result = await this.adminServiceClient.getConfigRowByTxTp(transactionType, token); 
+        console.log("getConfigRowByTxTp result:", result);
+
+      const configuredSchema = result.config.schema;
+
+       
+        const { stringFields, arrayFields } = returnArrayFieldsFromSchema(configuredSchema);
+
+        const options: ParserOptions = {
+          explicitArray: false, // Don't wrap single values in arrays
+          ignoreAttrs: false, // Include attributes
+          mergeAttrs: true, // Merge attributes with element content
+          explicitRoot: true, // Don't include root wrapper
+          explicitChildren: true,
+          normalize: true,
+          valueProcessors: [createSchemaAwareNumberProcessor(stringFields)], 
+        };
+
+        // eslint-disable-next-line promise/avoid-new -- we need to wrap xml2js parseString in a promise
+        const transformedPayload = await new Promise((resolve, reject) => {
+          parseString(payload, options, (err, result) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(result);
+            }
+          });
+        });
+
+        // Convert the transformed payload to ensure array fields are properly formatted
+        // Note: We don't need string conversion here anymore since the parser handles it
+        payload = replaceObjectsWithArrays(transformedPayload, arrayFields, []);
+        console.log("Final converted payload:", JSON.stringify(payload, null, 2));
+
+        // Now, you can use convertedPayload for further processing as needed
+      
+      }
+      
+      // try {
+      //   const parser = new xml2js.Parser();
+      //   const jsonResult = await parser.parseStringPromise(payload);
+      //   console.log("XML converted to JSON:", JSON.stringify(jsonResult, null, 2));
+      // } catch (parseError) {
+      //   console.error("Error converting XML to JSON:", parseError);
+      // }
+      // XML ko JSON convert
+
+      // const parseResult = await this.parseExtractService.processForRuleCreation(
+      //   {TxTp: transactionType, TenantId:tenantId, ...payload},
+      //   token,
+      // );
       // console.log("Parse result for transactional message:", parseResult);
 
-      // iske neechay ka redundant
-      
-      //   // Enrich rule data with processed transaction information
-      //   const processedData = {
-      //     processedTransaction: parseResult.ruleRequest?.transaction,
-      //     dataCache: parseResult.ruleRequest?.DataCache,
-      //     networkMap: parseResult.ruleRequest?.networkMap,
-      //     validatedPayload: parseResult.validatedPayload,
-      //     correlationId: parseResult.correlationId,
-      //   };
-
-      //   // Store processed data in rule description or notes
-      //   ruleData.description = `${ruleData.description || ''} [Processed Transaction Data Available - Correlation ID: ${parseResult.correlationId}]`.trim();
-
-      //   this.logger.log(
-      //     `Successfully processed transaction data for rule creation [${parseResult.correlationId}]`,
+      // // admin service client ko aagay derha hun ruleRequest
+      // const rule = await this.adminServiceClient.createRule(ruleData, token, parseResult.ruleRequest);
+      // let updatedRule = rule;
+      // if (rule.id) {
+      //   const baseRuleFlow = await this.getRuleFlow(
+      //     BASE_RULE_ID,
+      //     token,
       //   );
+      //   const newRuleFlow = await this.adminServiceClient.createRuleFlow(
+      //     rule.id,
+      //     {
+      //       flow_json_rule_builder: baseRuleFlow.result.flow_json_rule_builder ? baseRuleFlow.result.flow_json_rule_builder : {},
+      //       flow_json_test_case: baseRuleFlow.result.flow_json_test_case ? baseRuleFlow.result.flow_json_test_case : {},
+      //     },
+      //     token,
+      //   );
+      //   if (newRuleFlow) {
+      //     updatedRule = await this.adminServiceClient.updateRule(
+      //       rule.id,
+      //       { flow_id: newRuleFlow.id },
+      //       token,
+      //     );
+      //   } else {
+      //     this.logger.warn(
+      //       `No flow ID returned when creating rule flow for rule ${rule.id}`,
+      //     );
+      //   }
       // }
 
-      // Remove transactionalMessage from ruleData before sending to admin service
-      // const { transactionalMessage, ...cleanRuleData } = ruleData;
-
-      // admin service client ko aagay derha hun ruleRequest
-      const rule = await this.adminServiceClient.createRule(ruleData, token, parseResult.ruleRequest);
-      let updatedRule = rule;
-      if (rule.id) {
-        const baseRuleFlow = await this.getRuleFlow(
-          BASE_RULE_ID,
-          token,
-        );
-        const newRuleFlow = await this.adminServiceClient.createRuleFlow(
-          rule.id,
-          {
-            flow_json_rule_builder: baseRuleFlow.result.flow_json_rule_builder ? baseRuleFlow.result.flow_json_rule_builder : {},
-            flow_json_test_case: baseRuleFlow.result.flow_json_test_case ? baseRuleFlow.result.flow_json_test_case : {},
-          },
-          token,
-        );
-        if (newRuleFlow) {
-          updatedRule = await this.adminServiceClient.updateRule(
-            rule.id,
-            { flow_id: newRuleFlow.id },
-            token,
-          );
-        } else {
-          this.logger.warn(
-            `No flow ID returned when creating rule flow for rule ${rule.id}`,
-          );
-        }
-      }
-
-      return updatedRule;
+      // return updatedRule;
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Error creating rule: ${err.message}`);
