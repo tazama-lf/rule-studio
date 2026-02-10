@@ -635,6 +635,7 @@ const generateFetchDBCode = (params: Record<string, string>, indent: string, mod
   const resultVar = params.resultVar || params.variable || 'dbResult';
   const queryVar = params.queryVar || 'query';
   const query = params.query || 'SELECT * FROM table';
+  const dbName = params.dbName || '_eventHistory';
   
   const varPattern = /\{\{\s*(.+?)\s*\}\}/g;
   const globalVars: string[] = [];
@@ -660,7 +661,7 @@ const generateFetchDBCode = (params: Record<string, string>, indent: string, mod
   
   if (globalVars.length > 0) {
     lines.push(`${indent}// Execute query with parameters`);
-    lines.push(`${indent}const ${resultVar} = await databaseManager._eventHistory.query<{ [key: string]: unknown }>(${queryVar}, [`);
+    lines.push(`${indent}const ${resultVar} = await databaseManager.${dbName}.query<{ [key: string]: unknown }>(${queryVar}, [`);
     globalVars.forEach((varPath, index) => {
       const comma = index < globalVars.length - 1 ? ',' : '';
       lines.push(`${indent}  ${varPath}${comma}`);
@@ -668,7 +669,7 @@ const generateFetchDBCode = (params: Record<string, string>, indent: string, mod
     lines.push(`${indent}]);`);
   } else {
     lines.push(`${indent}// Execute query without parameters`);
-    lines.push(`${indent}const ${resultVar} = await databaseManager._eventHistory.query<{ [key: string]: unknown }>(${queryVar});`);
+    lines.push(`${indent}const ${resultVar} = await databaseManager.${dbName}.query<{ [key: string]: unknown }>(${queryVar});`);
   }
   
   return lines.join('\n');
