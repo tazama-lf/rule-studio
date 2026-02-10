@@ -234,6 +234,19 @@ export class AdminServiceClient {
     return response.transactionTypes;
   }
 
+  // async findSchemaAndMapping(transaction_type: string, token: string): Promise<[string, Record<string, string>, Record<string, string>]> {
+  //   const response = await this.executeHttpRequest<{
+  //     schema: string;
+  //     mapping: Record<string, string>;
+  //     functions: Record<string, string>;
+  //   }>(
+  //     'GET',
+  //     `${CONFIG}/${encodeURIComponent(transaction_type)}`,
+  //     token,
+  //   );
+  //   return [response.schema, response.mapping, response.functions];
+  // }
+
   async getPayloadByTransactionType(
     transactionType: string,
     token: string,
@@ -243,6 +256,7 @@ export class AdminServiceClient {
       `${CONFIG_PAYLOAD}/${transactionType}`,
       token,
     );
+    console.log("Response from getPayloadByTransactionType:", response);
     return response.payload;
   }
 
