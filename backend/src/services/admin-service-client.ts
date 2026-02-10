@@ -422,6 +422,7 @@ async getAllNodes(
   ): Promise<ResponseQueryNodeDto> {
     return await this.executeHttpRequest<ResponseQueryNodeDto>('POST', QUERY_NODES, token, {
       query: data.query,
+      dbName: data.dbName,
       params: data.params,
     });
   }
