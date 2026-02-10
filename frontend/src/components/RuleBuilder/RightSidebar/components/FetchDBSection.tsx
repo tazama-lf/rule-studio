@@ -6,12 +6,8 @@ import type { Node, Edge } from '@xyflow/react';
 import { PropertyRow, SectionContainer, SectionTitle } from '../styles';
 import QueryEditorModal from './QueryEditorModal';
 import QueryExecutionResultModal from './QueryExecutionResultModal';
-import { useExecuteQueryMutation } from '../../../../redux/Api/Rule-builder';
-import {
-  extractErrorMessage,
-  // QueryExecutionResponse,
-} from '../../../../types/queryExecution';
 import { useParams } from 'react-router-dom';
+import { useVariableData, useQueryExecution } from '../../../../hooks/RuleBuilder';
 import {
   FormControl,
   InputLabel,
@@ -49,14 +45,28 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
   getFieldError,
 }) => {
   const [queryEditorOpen, setQueryEditorOpen] = useState<boolean>(false);
-  const [resultsModalOpen, setResultsModalOpen] = useState<boolean>(false);
-  const [queryResults, setQueryResults] = useState<Record<string, unknown>[] | null>(null);
-  const [totalCount, setTotalCount] = useState<number | undefined>(undefined);
-  const [displayCount, setDisplayCount] = useState<number | undefined>(undefined);
-  const [executionError, setExecutionError] = useState<string | null>(null);
 
-  const [executeQuery, { isLoading: isExecuting }] = useExecuteQueryMutation();
   const { id: ruleId } = useParams<{ id: string }>();
+
+  const variableData = useVariableData({ 
+    ruleId, 
+    allNodes, 
+    edges, 
+    selectedNodeId 
+  });
+
+  const {
+    executeQuery,
+    closeResults,
+    clearError,
+    isExecuting,
+    queryResults,
+    totalCount,
+    displayCount,
+    executionError,
+    resultsModalOpen,
+  } = useQueryExecution({ variableData });
+  
   const queryLineCount = useMemo(
     () => currentParams.query?.split('\n').length ?? 0,
     [currentParams.query]
@@ -73,8 +83,8 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
 
   const handleCloseQueryEditor = useCallback(() => {
     setQueryEditorOpen(false);
-    setExecutionError(null);
-  }, []);
+    clearError();
+  }, [clearError]);
 
   const handleSaveQuery = useCallback((query: string) => {
     console.log('📝 handleSaveQuery received:', query);
@@ -88,39 +98,6 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
 
     handleCloseQueryEditor();
   }, [onParamChange, onParamBlur, currentParams, handleCloseQueryEditor]);
-
-  const handleExecuteQuery = useCallback(async (query: string) => {
-    try {
-      setExecutionError(null);
-      
-      const response = await executeQuery({
-        query,
-      }).unwrap();
-
-      const data = Array.isArray(response.result) ? response.result : [];
-      const rowCount = data.length;
-
-      setQueryResults(data);
-      setTotalCount(rowCount);
-      setDisplayCount(rowCount);
-      setResultsModalOpen(true);
-      
-    } catch (error: unknown) {
-      const errorMessage = extractErrorMessage(
-        error,
-        'Failed to execute query. Please check your query and try again.'
-      );
-      setExecutionError(errorMessage);
-      setQueryResults([]);
-      setTotalCount(0);
-      setDisplayCount(0);
-      setResultsModalOpen(true);
-    }
-  }, [executeQuery]);
-
-  const handleCloseResults = useCallback(() => {
-    setResultsModalOpen(false);
-  }, []);
 
   const isDisabled = isReadOnly || viewOnly;
 
@@ -212,7 +189,7 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
               variant="contained"
               color="success"
               startIcon={<PlayArrowIcon />}
-              onClick={() => handleExecuteQuery(currentParams.query)}
+              onClick={() => executeQuery(currentParams.query)}
               disabled={isExecuting}
               sx={{ py: 1 }}
             >
@@ -287,7 +264,7 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
         open={queryEditorOpen}
         onClose={handleCloseQueryEditor}
         onSave={handleSaveQuery}
-        onExecute={handleExecuteQuery}
+        onExecute={executeQuery}
         initialValue={currentParams.query ?? ''}
         isExecuting={isExecuting}
         executionError={executionError}
@@ -298,7 +275,7 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
       />
       <QueryExecutionResultModal
         open={resultsModalOpen}
-        onClose={handleCloseResults}
+        onClose={closeResults}
         results={queryResults}
         totalCount={totalCount}
         displayCount={displayCount}

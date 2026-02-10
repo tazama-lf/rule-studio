@@ -18,7 +18,6 @@ import type { Node, Edge } from '@xyflow/react';
 import EditorSection, { type EditorSectionHandle } from './EditorSection';
 import VariablesPanel from './VariablesPanel';
 import { useDragDropEditor, useVariableData } from '../../../../../hooks/RuleBuilder';
-import { extractQueryParameters } from '../../../../../utils/Common/extractQueryParameters';
 
 interface QueryEditorModalProps {
   open: boolean;
@@ -52,7 +51,6 @@ const QueryEditorModal: React.FC<QueryEditorModalProps> = ({
   
   const { handleDrop, handleDragOver, handleDragEnter, handleDragLeave, handleEditorMount } = useDragDropEditor();
   
-  // Only compute variable data when modal is open to optimize performance
   const variableData = useVariableData({ 
     ruleId: open ? ruleId : undefined, 
     allNodes: open ? allNodes : [], 
@@ -77,10 +75,8 @@ const QueryEditorModal: React.FC<QueryEditorModalProps> = ({
       return;
     }
     setValidationError(null);
-
-    const query = extractQueryParameters(rawQuery, variableData);
-    onExecute(query);
-  }, [onExecute, variableData]);
+    onExecute(rawQuery);
+  }, [onExecute]);
 
   const handleCancel = useCallback(() => {
     setValidationError(null);
@@ -172,22 +168,18 @@ const QueryEditorModal: React.FC<QueryEditorModalProps> = ({
   );
 };
 
-// Custom comparison function to prevent unnecessary re-renders
 const arePropsEqual = (
   prevProps: QueryEditorModalProps,
   nextProps: QueryEditorModalProps
 ): boolean => {
-  // If modal is closed in both states, skip re-render regardless of other props
   if (!prevProps.open && !nextProps.open) {
     return true;
   }
-  
-  // If open state changed, always re-render
+
   if (prevProps.open !== nextProps.open) {
     return false;
   }
-  
-  // Compare primitive props
+
   if (
     prevProps.initialValue !== nextProps.initialValue ||
     prevProps.isExecuting !== nextProps.isExecuting ||
@@ -197,16 +189,14 @@ const arePropsEqual = (
   ) {
     return false;
   }
-  
-  // Compare array lengths for performance (deep comparison is expensive)
+
   if (
     prevProps.allNodes?.length !== nextProps.allNodes?.length ||
     prevProps.edges?.length !== nextProps.edges?.length
   ) {
     return false;
   }
-  
-  // Props are equal
+
   return true;
 };
 
