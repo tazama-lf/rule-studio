@@ -3,6 +3,7 @@ import { useLazyGetReportQuery } from "../../../../redux/Api/Simulation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { extractData } from "../../../../utils/Common/storage";
 import { LocalStorage } from "../../../../utils/Common/enums";
+import useToggle from "../../../../hooks/useToggle";
 
 export interface IViewReport {
   data?: Record<string, unknown> | undefined
@@ -17,7 +18,15 @@ const useViewReportController = (props: IViewReport) => {
 
   const [getReport, { isLoading }] = useLazyGetReportQuery()
   const [htmlContent, setHtmlContent] = useState<string>('')
+  const [loader, toggleLoader] = useToggle()
 
+
+  const handleLoader = () => {
+    toggleLoader()
+    setTimeout(() => {
+      handleReport()
+    }, 30000)
+  }
 
   const handleReport = useCallback(() => {
     const body = {
@@ -29,7 +38,13 @@ const useViewReportController = (props: IViewReport) => {
       .unwrap()
       .then((res) => {
         if (res) {
-          setHtmlContent(res)
+          if (!res?.success) {
+            handleLoader()
+            toast.error(res?.message)
+          } else {
+            toggleLoader()
+            setHtmlContent(res)
+          }
         }
       })
       .catch(() => {
@@ -43,7 +58,7 @@ const useViewReportController = (props: IViewReport) => {
 
   return {
     values: {
-      isLoading,
+      isLoading: isLoading || loader,
       htmlContent,
     },
     functions: {

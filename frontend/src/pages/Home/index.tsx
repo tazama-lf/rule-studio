@@ -43,7 +43,7 @@ const Home = () => {
                             type="secondary"
                             size="md"
                             text="Create New Rule"
-                            onClick={()=>functions.handleCreateEdit()}
+                            onClick={() => functions.handleCreateEdit()}
                         />
                         : null}
             </Grid>
@@ -89,7 +89,7 @@ const Home = () => {
                         width: '25px',
                         height: '25px',
                         "&:hover": {
-                            bgcolor: "#f3f4f6",
+                            bgcolor: "static.lightGrey",
                         },
                     }} />
                 </IconButton>

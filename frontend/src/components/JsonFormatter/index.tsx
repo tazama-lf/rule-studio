@@ -2,13 +2,15 @@ import { Box, Typography } from "@mui/material";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import ReactJson from "@microlink/react-json-view";
 import { useCallback } from "react";
+import Grid from "@mui/material/Grid";
 
 interface IFormattedJsonSection {
     value: string,
-    onChange?: (value: string) => void
+    onChange?: (value: string) => void,
+    label?: string
 }
 
-const FormattedJsonSection = ({ value, onChange }: IFormattedJsonSection) => {
+const FormattedJsonSection = ({ value, onChange, label }: IFormattedJsonSection) => {
 
     const safeJsonParse = useCallback((
         jsonString: string,
@@ -25,26 +27,35 @@ const FormattedJsonSection = ({ value, onChange }: IFormattedJsonSection) => {
 
     if (parseResult.success && parseResult.data) {
         return (
-            <Box sx={{ fontSize: 13 }}>
-                <ReactJson
-                    src={parseResult.data}
-                    onEdit={onChange ? (e) =>
-                        onChange(JSON.stringify(e.updated_src, null, 2)) : undefined
-                    }
-                    onAdd={onChange ? (e) =>
-                        onChange(JSON.stringify(e.updated_src, null, 2)) : undefined
-                    }
-                    onDelete={onChange ? (e) =>
-                        onChange(JSON.stringify(e.updated_src, null, 2)) : undefined
-                    }
-                    theme="rjv-default"
-                    name={false}
-                    displayDataTypes={false}
-                    displayObjectSize
-                    enableClipboard={false}
-                    collapsed={false}
-                />
-            </Box>
+            <Grid size={{ xs: 12, md: 12 }} mt={0.4} overflow={'auto'} >
+                <Box>
+                    {label && (
+                        <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+                            {label} :
+                        </Typography>
+                    )}
+                </Box>
+                <Box sx={{ fontSize: 13 }} border={1} p={2} borderColor={'static.border'} borderRadius={1} height={310}>
+                    <ReactJson
+                        src={parseResult.data}
+                        onEdit={onChange ? (e) =>
+                            onChange(JSON.stringify(e.updated_src, null, 2)) : undefined
+                        }
+                        onAdd={onChange ? (e) =>
+                            onChange(JSON.stringify(e.updated_src, null, 2)) : undefined
+                        }
+                        onDelete={onChange ? (e) =>
+                            onChange(JSON.stringify(e.updated_src, null, 2)) : undefined
+                        }
+                        theme="rjv-default"
+                        name={false}
+                        displayDataTypes={false}
+                        displayObjectSize
+                        enableClipboard={false}
+                        collapsed={false}
+                    />
+                </Box>
+            </Grid>
         );
     }
 

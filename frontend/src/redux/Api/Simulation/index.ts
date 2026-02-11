@@ -6,7 +6,7 @@ const BASE_URL = import.meta.env.VITE_SANDBOX_API_URL as string;
 export const simulationApi = createApi({
     reducerPath: 'simulationApi',
     baseQuery: fetchBaseQuery({
-        baseUrl: `${BASE_URL}/api/v1/`,
+        baseUrl: `${BASE_URL}`,
         prepareHeaders: (headers) => {
             const token = getAuthToken()
             if (token) headers.set("authorization", `Bearer ${token}`)
@@ -17,30 +17,50 @@ export const simulationApi = createApi({
     endpoints: (builder) => ({
         createRepo: builder.mutation({
             query: (body) => ({
-                url: `bootstrap`,
+                url: `/api/v1/bootstrap`,
                 method: "POST",
                 body: { ...body },
             }),
         }),
         uploadCode: builder.mutation({
             query: (body) => ({
-                url: `populate`,
+                url: `/api/v1/populate`,
                 method: "POST",
                 body: { ...body },
             }),
         }),
         mergeBranch: builder.mutation({
             query: (body) => ({
-                url: `promote`,
+                url: `/api/v1/promote`,
                 method: "POST",
                 body: { ...body },
             }),
         }),
         getReport: builder.query({
             query: ({ branchName, organization, ruleId }) => ({
-                url: `report?organization=${organization}&ruleId=${ruleId}&branchName=${branchName}`,
+                url: `/api/v1/report?organization=${organization}&ruleId=${ruleId}&branchName=${branchName}`,
                 method: "GET",
                 responseHandler: (response) => response.text(),
+            }),
+        }),
+        getReportStatus: builder.query({
+            query: ({ branchName, organization, ruleId }) => ({
+                url: `/api/v1/unit-tests/status?organization=${organization}&ruleId=${ruleId}&branchName=${branchName}`,
+                method: "GET",
+            }),
+        }),
+        ruleOnly: builder.mutation({
+            query: (body) => ({
+                url: `/natsPublish`,
+                method: "POST",
+                body: { ...body },
+            }),
+        }),
+        endToEnd: builder.mutation({
+            query: (body) => ({
+                url: `/restPublish`,
+                method: "POST",
+                body: { ...body },
             }),
         }),
     }),
@@ -50,5 +70,6 @@ export const {
     useCreateRepoMutation,
     useUploadCodeMutation,
     useMergeBranchMutation,
-    useLazyGetReportQuery
+    useLazyGetReportQuery,
+    useLazyGetReportStatusQuery
 } = simulationApi

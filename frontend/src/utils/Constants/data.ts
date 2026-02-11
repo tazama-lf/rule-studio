@@ -1,13 +1,25 @@
-export const Status = {
-    STATUS_01_IN_PROGRESS: 'STATUS_01_IN_PROGRESS',
-    STATUS_02_ON_HOLD: 'STATUS_02_ON_HOLD',
-    STATUS_03_UNDER_REVIEW: 'STATUS_03_UNDER_REVIEW',
-    STATUS_04_APPROVED: 'STATUS_04_APPROVED',
-    STATUS_05_REJECTED: 'STATUS_05_REJECTED',
-    STATUS_07_READY_FOR_DEPLOYMENT: 'STATUS_07_READY_FOR_DEPLOYMENT',
-    STATUS_08_DEPLOYED: 'STATUS_08_DEPLOYED',
-    STATUS_09_ARCHIVED: 'STATUS_09_ARCHIVED',
-}
+import ElectricBoltIcon from '@mui/icons-material/ElectricBolt';
+import AccountTreeIcon from '@mui/icons-material/AccountTree';
+
+
+export const simulations = [
+    {
+        id: 1,
+        icon: ElectricBoltIcon,
+        title: 'Rule-Only Simulation',
+        description: 'Test this rule in isolation with minimal inputs',
+        complexity: 'Simple',
+        cost: "Low"
+    },
+    {
+        id: 2,
+        icon: AccountTreeIcon,
+        title: 'Full End-to-End Simulation',
+        description: 'Complete system test with all components',
+        complexity: 'Complex',
+        cost: "High"
+    },
+]
 
 export const samplePayload = {
     "CstmrCdtTrfInitn": {
@@ -48,10 +60,23 @@ export const samplePayload = {
     "TenantId": "cbe"
 }
 
+
 export const publishingStatus = {
     Active: 'ACTIVE',
     Inactive: 'INACTIVE'
 }
+
+export const Status = {
+    STATUS_01_IN_PROGRESS: 'STATUS_01_IN_PROGRESS',
+    STATUS_02_ON_HOLD: 'STATUS_02_ON_HOLD',
+    STATUS_03_UNDER_REVIEW: 'STATUS_03_UNDER_REVIEW',
+    STATUS_04_APPROVED: 'STATUS_04_APPROVED',
+    STATUS_05_REJECTED: 'STATUS_05_REJECTED',
+    STATUS_07_READY_FOR_DEPLOYMENT: 'STATUS_07_READY_FOR_DEPLOYMENT',
+    STATUS_08_DEPLOYED: 'STATUS_08_DEPLOYED',
+    STATUS_09_ARCHIVED: 'STATUS_09_ARCHIVED',
+}
+
 
 export const Tabs = [
     {
@@ -105,6 +130,7 @@ export const RoleStatusMap: Record<string, string[]> = {
         Status.STATUS_08_DEPLOYED,
     ],
 };
+
 
 export const getStatusOptionsForRole = (role: string) => {
     const allowedStatuses = RoleStatusMap[role] ?? [];
