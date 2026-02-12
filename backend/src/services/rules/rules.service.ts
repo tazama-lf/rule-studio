@@ -67,18 +67,13 @@ export class RulesService {
     tenantId: string,
   ): Promise<any> {
     try {
-      // If transactional message is provided, process it to enrich rule data
-      // console.log('Rule data received for creation:', ruleData);
-
-      // need to fetch transactionalMessage according to txtp and txtpVersion
-       const transactionType = ruleData.txtp ?? "";
+      const transactionType = ruleData.txtp ?? "";
       
-      // Fetch the payload template for this transaction type
       const result = await this.adminServiceClient.getPayloadByTransactionType(
         transactionType,
         token,
       );
-      console.log("getPayloadByTransactionType:", result); // getting undefined
+      console.log("getPayloadByTransactionType in rules.service:", JSON.stringify(result, null, 2)); 
 
       const payload = result.payload;
       let typedPayload = payload as Record<string, unknown>;  
@@ -133,7 +128,7 @@ export class RulesService {
         {TxTp: transactionType, TenantId:tenantId, ...typedPayload},
         token,
       );
-      console.log("Parse result for transactional message:", parseResult);
+      // console.log("Parse result for transactional message:", parseResult);
 
       // admin service client ko aagay derha hun ruleRequest
       const rule = await this.adminServiceClient.createRule(ruleData, token, parseResult.ruleRequest);
@@ -168,6 +163,77 @@ export class RulesService {
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Error creating rule: ${err.message}`);
+      throw error;
+    }
+  }
+
+   async cloneRule(ruleId: string, token: string, payload: any): Promise<Rules> {
+    try {
+      const transactionType = payload.txtp ?? "";
+      
+      const result = await this.adminServiceClient.getPayloadByTransactionType(
+        transactionType,
+        token,
+      );
+      console.log("getPayloadByTransactionType in rules.service:", JSON.stringify(result, null, 2)); 
+
+      let typedPayload = result.payload as Record<string, unknown>;  
+
+      if(result.type === 'xml') {
+        // Convert XML to JSON
+        const result = await this.adminServiceClient.getConfigRowByTxTp(transactionType, token); 
+        console.log("having fetched the payload, now getConfigRowByTxTp result:", result);
+
+        const configuredSchema = result.config.schema;
+
+        console.log("the configured scehma is :", JSON.stringify(configuredSchema, null, 2));
+
+       
+        const { stringFields, arrayFields } = returnArrayFieldsFromSchema(configuredSchema);
+
+        console.log("String fields identified for number processing:", stringFields.length );
+        console.log("Array fields identified for replacement:", arrayFields.length);
+
+        const options: ParserOptions = {
+          explicitArray: false, // Don't wrap single values in arrays
+          ignoreAttrs: false, // Include attributes
+          mergeAttrs: true, // Merge attributes with element content
+          explicitRoot: true, // Don't include root wrapper
+          explicitChildren: true,
+          normalize: true,
+          valueProcessors: [createSchemaAwareNumberProcessor(stringFields)], 
+        };
+
+        console.log("Starting XML to JSON conversion with xml2js...");
+
+        // eslint-disable-next-line promise/avoid-new -- we need to wrap xml2js parseString in a promise
+        const transformedPayload = await new Promise((resolve, reject) => {
+          parseString(payload, options, (err, result) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(result);
+            }
+          });
+        });
+
+        console.log("XML to JSON conversion completed")
+
+        // conversion done 
+        typedPayload = replaceObjectsWithArrays(transformedPayload, arrayFields, stringFields);
+        console.log("Final converted payload:", JSON.stringify(typedPayload, null, 2));
+      }
+      
+      // if it was XML, now its JSON
+      const parseResult = await this.parseExtractService.processForRuleCreation(
+        {TxTp: transactionType, TenantId:"default", ...typedPayload},
+        token,
+      );
+      console.log(`Cloning rule with ID ${ruleId} and payload:`, JSON.stringify(payload, null, 2));
+      return await this.adminServiceClient.cloneRule(ruleId, token, payload, parseResult.ruleRequest);
+    } catch (error) {
+      const err = error as Error;
+      this.logger.error(`Error cloning rule ${ruleId}: ${err.message}`);
       throw error;
     }
   }
@@ -307,15 +373,7 @@ export class RulesService {
     }
   }
 
-  async cloneRule(ruleId: string, token: string, payload: any): Promise<Rules> {
-    try {
-      return await this.adminServiceClient.cloneRule(ruleId, token, payload);
-    } catch (error) {
-      const err = error as Error;
-      this.logger.error(`Error cloning rule ${ruleId}: ${err.message}`);
-      throw error;
-    }
-  }
+ 
 
   async updateRuleStatus(
     ruleId: string,
