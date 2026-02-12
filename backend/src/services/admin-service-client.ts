@@ -304,13 +304,13 @@ export class AdminServiceClient {
     );
   }
 
-  async cloneRule(ruleId: string, token: string, payload: any): Promise<Rules> {
+  async cloneRule(ruleId: string, token: string, payload: any, ruleRequest: RuleRequest | undefined): Promise<Rules> {
     // console.log('Cloning rule with ID:', ruleId);
     const response = await this.executeHttpRequest<{ rule: Rules }>(
       'POST',
       `/v1/admin/trs/rule/clone/${ruleId}`,
       token,
-      payload,
+      {payload, ruleRequest},
     );
 
     return response.rule;
