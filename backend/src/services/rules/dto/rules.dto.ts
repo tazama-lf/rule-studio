@@ -20,6 +20,28 @@ import type {
 } from '@tazama-lf/frms-coe-lib/lib/interfaces';
 import { RuleCategory, RuleFlowStatus } from 'src/utils/enums/rule.enum';
 
+export class MetaDataDto {
+  @ApiPropertyOptional({ description: 'Sync status', example: true })
+  @IsOptional()
+  @IsBoolean()
+  sync?: boolean;
+
+  @ApiPropertyOptional({ description: 'Deploy status', example: false })
+  @IsOptional()
+  @IsBoolean()
+  deploy?: boolean;
+
+  @ApiPropertyOptional({ description: 'Test status', example: false })
+  @IsOptional()
+  @IsBoolean()
+  test?: boolean;
+
+  @ApiPropertyOptional({ description: 'Simulation status', example: false })
+  @IsOptional()
+  @IsBoolean()
+  simulation?: boolean;
+}
+
 export class RuleBaseDto {
 
   @ApiProperty({
@@ -112,6 +134,15 @@ export class Rules extends RuleBaseDto {
   flow_id?: string;
 
   @ApiPropertyOptional({
+    description: 'Rule metadata',
+  })
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => MetaDataDto)
+  meta_data?: MetaDataDto;
+
+  @ApiPropertyOptional({
     description: 'Last update timestamp',
     example: '2024-01-16T10:30:00Z',
   })
@@ -201,6 +232,15 @@ export class UpdateRuleDto {
   @IsOptional()
   @IsString()
   rule_config_id?: string;
+
+  @ApiPropertyOptional({
+    description: 'Rule metadata',
+  })
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => MetaDataDto)
+  metadata?: MetaDataDto;
 }
 
 export class RuleIdDto {

@@ -500,4 +500,32 @@ export class RulesController {
       user.token.tokenString,
     );
   }
+
+  // update rule metadata
+  @Put('/api/:ruleId/metadata')
+  @RequireAnyClaims(TazamaClaims.EDITOR)
+  @ApiParam({
+    name: 'ruleId',
+    description: 'Rule identifier to update',
+    example: '001',
+  })
+  @ApiBody({
+    type: UpdateRuleDto,
+    description: 'Partial rule data for update',
+  })
+  @ApiSwagger({
+    summary: 'Update existing rule metadata',
+    description: 'Updates an existing rule with partial metadata (only provided fields will be updated)',
+    responses: mergeResponses(
+      CommonResponses.SUCCESS_200(Rules, 'Rule metadata updated successfully'),
+      CommonResponses.NOT_FOUND_404('Rule not found'),
+    ),
+  })
+  async updateRuleMetadata(
+    @Param('ruleId') ruleId: string,
+    @Body() updateData: UpdateRuleDto,
+    @User() user: AuthenticatedUser,
+  ): Promise<Rules> {
+    return await this.rulesService.updateRule(ruleId, updateData, user.token.tokenString);
+  }
 }
