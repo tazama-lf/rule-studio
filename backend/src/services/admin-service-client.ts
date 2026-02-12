@@ -15,6 +15,7 @@ import {
   RuleFlowFilterDto,
   ResponseRuleFlow,
   ResponseUpdatedRuleFlowDto,
+  ResponseRuleFlowStatusDto,
 } from '../services/rules/dto/rules.dto';
 import { firstValueFrom } from 'rxjs';
 import {
@@ -388,6 +389,18 @@ async getAllNodes(
       token,
     );
   }
+
+  async getRuleFlowStatus(
+  ruleId: string,
+  token: string,
+  filters?: RuleFlowFilterDto,
+): Promise<ResponseRuleFlowStatusDto> {
+  return await this.executeHttpRequest<ResponseRuleFlowStatusDto>(
+    'GET',
+    `${RULE_FLOW}/status/${ruleId}${filters && Object.keys(filters).length ? '?' + new URLSearchParams(filters as Record<string, string>).toString() : ''}`,
+    token,
+  );
+}
 
   async updateRuleFlow(
     ruleId: string,

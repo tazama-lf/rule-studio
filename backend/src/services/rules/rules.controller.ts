@@ -40,6 +40,7 @@ import {
   RuleFlowFilterDto,
   ResponseRuleFlow,
   ResponseUpdatedRuleFlowDto,
+  ResponseRuleFlowStatusDto,
 } from './dto/rules.dto';
 
 @ApiTags('Rules')
@@ -61,7 +62,7 @@ export class RulesController {
     description: 'Retrieves available rule statuses based on user role and permissions',
     responses: CommonResponses.SUCCESS_200([String], 'Rule statuses retrieved successfully')
   })
-  async getRulesStatus(@User() user: AuthenticatedUser): Promise<string[]> {
+  getRulesStatus(@User() user: AuthenticatedUser): string[] {
     const allowedStatuses = this.rulesService.getRulesStatusbyRole(user);
     return allowedStatuses;
   }
@@ -338,6 +339,35 @@ export class RulesController {
     @User() user: AuthenticatedUser,
   ): Promise<ResponseRuleFlow> {
     const result = await this.rulesService.getRuleFlow(
+      ruleId,
+      user.token.tokenString,
+      query
+    );
+    return result;
+  }
+
+  //get rule flow status based on rule ID:
+  @Get('/api/:ruleId/flow/status')
+  @RequireAnyClaims(
+    TazamaClaims.EDITOR,
+    TazamaClaims.APPROVER,
+    TazamaClaims.PUBLISHER,
+  )
+  @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: '001' })
+  @ApiSwagger({
+    summary: 'Get rule flow status',
+    description: 'Retrieves the current status of the rule flow configuration (e.g., active, draft, error)',
+    responses: mergeResponses(
+      CommonResponses.SUCCESS_200(ResponseRuleFlowStatusDto, 'Rule flow status retrieved successfully'),
+      CommonResponses.NOT_FOUND_404('Rule flow not found')
+    )
+  })
+  async getRuleFlowStatus(
+    @Param('ruleId') ruleId: string,
+    @Query() query: RuleFlowFilterDto,
+    @User() user: AuthenticatedUser,
+  ): Promise<ResponseRuleFlowStatusDto> {
+    const result = await this.rulesService.getRuleFlowStatus(
       ruleId,
       user.token.tokenString,
       query
