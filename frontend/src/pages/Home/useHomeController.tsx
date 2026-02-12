@@ -13,6 +13,7 @@ import { extractData, removeData } from "../../utils/Common/storage";
 import { claims, publishingStatus, ruleTypes, Status } from "../../utils/Constants/data";
 
 const useHomeController = () => {
+
     const navigate = useNavigate();
     const [ruleType, setRuleType] = useState<DropdownOption | DropdownOption[] | null>(null)
     const [status, setStatus] = useState<DropdownOption | DropdownOption[] | null>(null)

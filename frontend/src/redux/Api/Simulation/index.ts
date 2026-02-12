@@ -49,20 +49,6 @@ export const simulationApi = createApi({
                 method: "GET",
             }),
         }),
-        ruleOnly: builder.mutation({
-            query: (body) => ({
-                url: `/natsPublish`,
-                method: "POST",
-                body: { ...body },
-            }),
-        }),
-        endToEnd: builder.mutation({
-            query: (body) => ({
-                url: `/restPublish`,
-                method: "POST",
-                body: { ...body },
-            }),
-        }),
     }),
 })
 
@@ -71,5 +57,5 @@ export const {
     useUploadCodeMutation,
     useMergeBranchMutation,
     useLazyGetReportQuery,
-    useLazyGetReportStatusQuery
+    useLazyGetReportStatusQuery,
 } = simulationApi

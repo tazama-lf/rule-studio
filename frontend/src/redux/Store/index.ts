@@ -7,6 +7,7 @@ import { configApi } from '../Api/Config'
 import { parseApi } from '../Api/Parse'
 import { ruleBuilderApi } from '../Api/Rule-builder'
 import { simulationApi } from '../Api/Simulation'
+import { natsApi } from '../Api/Nats'
 
 export default configureStore({
     reducer: {
@@ -16,6 +17,7 @@ export default configureStore({
         [parseApi.reducerPath]: parseApi.reducer,
         [ruleBuilderApi.reducerPath]: ruleBuilderApi.reducer,
         [simulationApi.reducerPath]: simulationApi.reducer,
+        [natsApi.reducerPath]: natsApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
@@ -27,6 +29,7 @@ export default configureStore({
             .concat(parseApi.middleware)
             .concat(ruleBuilderApi.middleware)
             .concat(simulationApi.middleware)
+            .concat(natsApi.middleware)
             .concat(errorLogger)
             .concat(successLogger)
 })

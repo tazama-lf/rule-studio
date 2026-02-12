@@ -1,15 +1,17 @@
 import CheckIcon from '@mui/icons-material/Check';
 import ClearRoundedIcon from '@mui/icons-material/ClearRounded';
+import TaskAltIcon from '@mui/icons-material/TaskAlt';
 import UploadIcon from '@mui/icons-material/Upload';
 import { Box, Grid } from "@mui/material";
 import Button from "../../../components/Button";
-import StatusCard from "../../../components/Cards/StatusCard";
 import { Text } from "../../../components/Text";
 import Section from "../../../components/Wrappers/Section";
-import { claims, samplePayload, simulations, Status } from "../../../utils/Constants/data";
+import { claims, simulations, Status } from "../../../utils/Constants/data";
 import useSimulationController, { type ISimulation } from "./useSimulationController";
-import TaskAltIcon from '@mui/icons-material/TaskAlt';
 import FormattedJsonSection from '../../../components/JsonFormatter';
+import EditableJsonPayload from '../../../components/JsonFormatter/EditableJsonPayload';
+import { Controller } from 'react-hook-form';
+import Loader from '../../../components/Loader';
 
 const Simulation = (props: ISimulation) => {
 
@@ -30,7 +32,7 @@ const Simulation = (props: ISimulation) => {
                 height={'auto'}
                 bgcolor={simulate ? 'static.lightBlue' : 'white'}
                 minHeight={150}
-                onClick={() => functions.setSelected(data.id)}
+                onClick={() => functions.handleSelect(data.id)}
                 sx={{ cursor: 'pointer', transition: 'all 0.2s' }}
             >
                 <Box width={'100%'} display={'flex'} flexDirection={'column'}>
@@ -73,10 +75,11 @@ const Simulation = (props: ISimulation) => {
                         height="40px"
                         width="170px"
                         type="secondary"
-                        size="md"
-                        text="Sync On Github"
+                        size="lg"
+                        text={values?.codeSynced ? "Synced" : "Sync On Github"}
                         Icon={UploadIcon}
                         loading={values?.uploading}
+                        disabled={values?.codeSynced}
                         onClick={functions.handleUpload}
                     />
                     <Button
@@ -84,9 +87,9 @@ const Simulation = (props: ISimulation) => {
                         width="170px"
                         type="secondary"
                         size="md"
-                        text="Deploy Rule"
+                        text={values?.codeDeployed ? "Rule Deployed" : "Deploy Rule"}
                         loading={values?.deploying}
-                        disabled={!values?.codeSynced}
+                        disabled={!values?.codeSynced || !values?.viewReport || values?.codeDeployed}
                         onClick={functions.handleDeploy}
                     />
                     <Button
@@ -102,35 +105,52 @@ const Simulation = (props: ISimulation) => {
                 </Box>
             </Box>
             <Section header={'Simulation Scope'} subHeader={'Select the scope of your simulation to determine required inputs and runtime cost'}>
-                <Grid container spacing={2} width={'80%'} display={'flex'} justifyContent={'space-between'} alignSelf={'center'}>
+                <Grid container spacing={2} width={'80%'} display={'flex'} justifyContent={'space-between'} alignSelf={'center'} mb={4}>
                     {simulations.map((item, index) => (
                         <SimulationBox key={index} data={item} />
                     ))}
                 </Grid>
 
-                {/* <Box width={'100%'} display={'flex'} justifyContent={'center'} >
-                    <Box width={'80%'} >
-                        <FormattedJsonSection label="Result " value={JSON.stringify(samplePayload)} />
-                    </Box>
-                </Box> */}
+                <Grid container spacing={2} width={'100%'} mt={2}>
+                    {
+                        values?.payloadLoading ?
+                            <Box width={'100%'} display={'flex'} justifyContent={'center'}>
+                                <Loader />
+                            </Box> :
+                            values?.selected &&
+                            <Grid size={{ xs: 12, md: values?.result ? 6 : 12 }}>
+                                <Controller
+                                    name="payload"
+                                    control={values?.control}
+                                    render={({ field }) => (
+                                        <EditableJsonPayload
+                                            label="Payload (Edit values only)"
+                                            value={field.value}
+                                            onChange={field.onChange}
+                                            error={values?.errors.payload?.message}
+                                        />
+                                    )}
+                                />
+                            </Grid>
+                    }
+
+                    {values?.result &&
+                        <Grid size={{ xs: 12, md: 6 }}>
+                            <FormattedJsonSection label="Result" value={JSON.stringify(values?.result)} />
+                        </Grid>
+                    }
+                </Grid>
+
                 {values?.selected &&
-                    <Box width={'100%'} display={'flex'} gap={2} justifyContent={'flex-end'}>
-                        <Button
-                            height="40px"
-                            width="170px"
-                            type="secondary"
-                            size="md"
-                            text="Edit Payload"
-                            loading={values?.deploying}
-                            onClick={functions.handlePayload}
-                        />
+                    <Box width={'100%'} display={'flex'} gap={2} justifyContent={'flex-end'} mt={2}>
                         <Button
                             height="40px"
                             width="170px"
                             type="secondary"
                             size="md"
                             text="Run Simulation"
-                            onClick={functions.handleSimulation}
+                            loading={values?.simulating}
+                            onClick={functions.onSubmit}
                         />
                     </Box>
                 }

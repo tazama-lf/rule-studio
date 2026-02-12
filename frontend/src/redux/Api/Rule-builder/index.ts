@@ -55,5 +55,6 @@ export const {
     useGetFlowQuery,
     useSaveFlowMutation,
     useGetGlobalVariablesQuery,
+    useLazyGetGlobalVariablesQuery,
     useExecuteQueryMutation,
 } = ruleBuilderApi

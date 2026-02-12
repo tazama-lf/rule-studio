@@ -3,7 +3,6 @@ import { useLazyGetReportQuery } from "../../../../redux/Api/Simulation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { extractData } from "../../../../utils/Common/storage";
 import { LocalStorage } from "../../../../utils/Common/enums";
-import useToggle from "../../../../hooks/useToggle";
 
 export interface IViewReport {
   data?: Record<string, unknown> | undefined
@@ -18,15 +17,6 @@ const useViewReportController = (props: IViewReport) => {
 
   const [getReport, { isLoading }] = useLazyGetReportQuery()
   const [htmlContent, setHtmlContent] = useState<string>('')
-  const [loader, toggleLoader] = useToggle()
-
-
-  const handleLoader = () => {
-    toggleLoader()
-    setTimeout(() => {
-      handleReport()
-    }, 30000)
-  }
 
   const handleReport = useCallback(() => {
     const body = {
@@ -37,20 +27,16 @@ const useViewReportController = (props: IViewReport) => {
     getReport({ ...body })
       .unwrap()
       .then((res) => {
-        if (res) {
-          if (!res?.success) {
-            handleLoader()
-            toast.error(res?.message)
-          } else {
-            toggleLoader()
-            setHtmlContent(res)
-          }
+        if (res && typeof res === 'string') {
+          setHtmlContent(res)
+        } else {
+          toast.error('Invalid report format received')
         }
       })
       .catch(() => {
         toast.error('Failed to fetch report')
       })
-  }, [getReport])
+  }, [getReport, data?.id])
 
   useEffect(() => {
     handleReport()
@@ -58,7 +44,7 @@ const useViewReportController = (props: IViewReport) => {
 
   return {
     values: {
-      isLoading: isLoading || loader,
+      isLoading,
       htmlContent,
     },
     functions: {

@@ -21,43 +21,172 @@ export const simulations = [
     },
 ]
 
-export const samplePayload = {
-    "CstmrCdtTrfInitn": {
-        "GrpHdr": {
-            "MsgId": "17fa-afea-48d6-b147-05c8463ea494",
-            "CreDtTm": "2023-02-03T07:03:17.438Z",
-            "NbOfTxs": 1,
-            "InitgPty": {
-                "Id": {
-                    "PrvtId": {
-                        "Othr": [
-                            {
-                                "Id": "+36-432226947",
-                                "SchmeNm": {
-                                    "Prtry": "MSISDN"
-                                }
-                            }
-                        ],
-                        "DtAndPlcOfBirth": {
-                            "BirthDt": "1968-02-01",
-                            "CityOfBirth": "Unknown",
-                            "CtryOfBirth": "ZZ"
+export const sampelRuleRequest = {
+    "transaction": {
+        "TenantId": "DEFAULT",
+        "TxTp": "pacs.002.001.12",
+        "FIToFIPmtSts": {
+            "GrpHdr": {
+                "MsgId": "6cff4f7c20c243a7886ad448839b726f",
+                "CreDtTm": "2026-01-28T12:30:00.777Z"
+            },
+            "TxInfAndSts": {
+                "OrgnlInstrId": "5ab4fc7355de4ef8a75b78b00a681ed2",
+                "OrgnlEndToEndId": "0e9583c8714c461891008348ac40e5a3",
+                "TxSts": "ACCC",
+                "AccptncDtTm": "2023-06-02T07:52:31.000Z",
+                "InstgAgt": {
+                    "FinInstnId": {
+                        "ClrSysMmbId": {
+                            "MmbId": "fsp001"
                         }
                     }
                 },
-                "Nm": "April Blake Grant",
-                "CtctDtls": {
-                    "MobNb": "+36-432226947"
-                }
+                "InstdAgt": {
+                    "FinInstnId": {
+                        "ClrSysMmbId": {
+                            "MmbId": "fsp002"
+                        }
+                    }
+                },
+                "ChrgsInf": [
+                    {
+                        "Amt": { "Amt": 0, "Ccy": "USD" },
+                        "Agt": {
+                            "FinInstnId": {
+                                "ClrSysMmbId": { "MmbId": "fsp001" }
+                            }
+                        }
+                    },
+                    {
+                        "Amt": { "Amt": 0, "Ccy": "USD" },
+                        "Agt": {
+                            "FinInstnId": {
+                                "ClrSysMmbId": { "MmbId": "fsp001" }
+                            }
+                        }
+                    },
+                    {
+                        "Amt": { "Amt": 0, "Ccy": "USD" },
+                        "Agt": {
+                            "FinInstnId": {
+                                "ClrSysMmbId": { "MmbId": "fsp002" }
+                            }
+                        }
+                    }
+                ]
             }
-        },
-        "PmtInf": {
-            "PmtMtd": "TRA",
-            "PmtInfId": "23730c89dd57490a9a79f9b3747e3c08"
         }
     },
-    "TxTp": "pain.001.001.11",
-    "TenantId": "cbe"
+    "DataCache": {
+        "dbtrId": "dbtr_23dd53293b5348b385b87c7d741d9ea2TAZAMA_EID",
+        "cdtrId": "cdtr_7cf52237dc2e4b528793d9da79c49931TAZAMA_EID",
+        "dbtrAcctId": "dbtrAcct_ed55196be37a4719accc8367855016cfMSISDNfsp001",
+        "cdtrAcctId": "cdtrAcct_9ce6454753014c21847a7b43575ac3a2MSISDNfsp002",
+        "creDtTm": "2026-01-28T12:25:00.777Z",
+        "instdAmt": {
+            "amt": 657.95,
+            "ccy": "XTS"
+        },
+        "intrBkSttlmAmt": {
+            "amt": 657.95,
+            "ccy": "XTS"
+        },
+        "xchgRate": 1
+    },
+    "networkMap": {
+        "messages": [
+            {
+                "id": "6cff4f7c20c243a7886ad448839b726f",
+                "cfg": "1.0.0",
+                "txTp": "pacs.002.001.12",
+                "typologies": [
+                    {
+                        "id": "typology-processor@1.0.0",
+                        "cfg": "999-901@1.0.0",
+                        "rules": [
+                            {
+                                "id": "901@1.0.0",
+                                "cfg": "1.0.0"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "active": true
+    }
+}
+
+export const samplePayload = {
+    "TxTp": "pacs.002.001.12",
+    "FIToFIPmtSts": {
+        "GrpHdr": {
+            "MsgId": "c05423ef3b454900a44202c43d5e179b",
+            "CreDtTm": "2026-01-29T11:32:41.628Z"
+        },
+        "TxInfAndSts": {
+            "OrgnlInstrId": "5ab4fc7355de4ef8a75b78b00a681ed2",
+            "OrgnlEndToEndId": "c2bb30cdfa1141bdbc9a24582492d626",
+            "TxSts": "ACCC",
+            "ChrgsInf": [
+                {
+                    "Amt": {
+                        "Amt": 0,
+                        "Ccy": "USD"
+                    },
+                    "Agt": {
+                        "FinInstnId": {
+                            "ClrSysMmbId": {
+                                "MmbId": "fsp001"
+                            }
+                        }
+                    }
+                },
+                {
+                    "Amt": {
+                        "Amt": 0,
+                        "Ccy": "USD"
+                    },
+                    "Agt": {
+                        "FinInstnId": {
+                            "ClrSysMmbId": {
+                                "MmbId": "fsp001"
+                            }
+                        }
+                    }
+                },
+                {
+                    "Amt": {
+                        "Amt": 0,
+                        "Ccy": "USD"
+                    },
+                    "Agt": {
+                        "FinInstnId": {
+                            "ClrSysMmbId": {
+                                "MmbId": "fsp002"
+                            }
+                        }
+                    }
+                }
+            ],
+            "AccptncDtTm": "2023-06-02T07:52:31.000Z",
+            "InstgAgt": {
+                "FinInstnId": {
+                    "ClrSysMmbId": {
+                        "MmbId": "fsp001"
+                    }
+                }
+            },
+            "InstdAgt": {
+                "FinInstnId": {
+                    "ClrSysMmbId": {
+                        "MmbId": "fsp002"
+                    }
+                }
+            }
+        }
+    }
 }
 
 
