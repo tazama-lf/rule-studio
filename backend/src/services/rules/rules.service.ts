@@ -10,6 +10,7 @@ import {
   RuleFlowFilterDto,
   ResponseRuleFlow,
   ResponseUpdatedRuleFlowDto,
+  ResponseRuleFlowStatusDto,
 } from './dto/rules.dto';
 import { ParseExtractService } from '../parse-extract/parse-extract.service';
 import { BASE_RULE_ID } from '../../constants/constant';
@@ -302,6 +303,19 @@ export class RulesService {
       const err = error as Error;
       this.logger.error(
         `Error fetching flow for rule ${ruleId}: ${err.message}`,
+      );
+      throw error;
+    }
+  }
+
+  async getRuleFlowStatus(ruleId: string, token: string, filters?: RuleFlowFilterDto): Promise<ResponseRuleFlowStatusDto> {
+    try {
+      const status = await this.adminServiceClient.getRuleFlowStatus(ruleId, token, filters);
+      return status;
+    } catch (error) {
+      const err = error as Error;
+      this.logger.error(
+        `Error fetching flow status for rule ${ruleId}: ${err.message}`,
       );
       throw error;
     }

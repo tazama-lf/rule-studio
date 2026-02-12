@@ -18,7 +18,7 @@ import type {
   RuleRequest,
   RuleResult,
 } from '@tazama-lf/frms-coe-lib/lib/interfaces';
-import { RuleCategory } from 'src/utils/enums/rule.enum';
+import { RuleCategory, RuleFlowStatus } from 'src/utils/enums/rule.enum';
 
 export class RuleBaseDto {
 
@@ -362,6 +362,47 @@ export class ResponseRuleFlowDto {
   ts_file_base64?: string;
 }
 
+export class ResponseRuleFlowStatusDto {
+  @ApiProperty({
+    description: 'Unique identifier for the rule flow',
+    example: 'flow-001',
+  })
+  @IsString()
+  id: string;
+
+  @ApiProperty({
+    description: 'Identifier of the associated rule',
+    example: '01',
+  })
+  @IsString()
+  @IsNotEmpty()
+  rule_id: string;
+
+  @ApiProperty({
+    description: 'rule builder status of the flow',
+    example: 'initial',
+  })
+  @IsString()
+  @IsNotEmpty()
+  status_rule_builder?: string;
+
+  @ApiProperty({
+    description: 'test case generation status of the flow',
+    example: 'initial',
+  })
+  @IsString()
+  @IsNotEmpty()
+  status_test_case?: string;
+
+  @ApiProperty({
+    description: 'test case generation status of the flow',
+    example: 'initial',
+  })
+  @IsString()
+  @IsNotEmpty()
+  status?: string;
+}
+
 export class FlowNodeDto {
   @IsString()
   @IsNotEmpty()
@@ -512,6 +553,14 @@ export class RequestSaveFlow {
   @IsEnum(RuleCategory)
   @IsNotEmpty()
   category: RuleCategory;
+
+  @ApiProperty({
+    description: 'Status of the flow',
+    example: RuleFlowStatus.INITIAL,
+  })
+  @IsEnum(RuleFlowStatus)
+  @IsNotEmpty()
+  status: RuleFlowStatus;
 }
 
 export class RequestFlow {
