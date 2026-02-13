@@ -9,6 +9,7 @@ import { insertData } from "../../utils/Common/storage"
 import { LocalStorage } from "../../utils/Common/enums"
 import { useTab } from "../../contexts/TabContext/useTab"
 import TestCases from "./TestCases"
+import History from "./History"
 
 const useRuleEditorController = () => {
 
@@ -38,6 +39,8 @@ const useRuleEditorController = () => {
                 return <Simulation data={data?.rules} />
             case 'test_cases':
                 return <TestCases />
+            case 'History':
+                return <History data={data} />
             default:
                 return null;
         }

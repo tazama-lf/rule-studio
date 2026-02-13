@@ -37,15 +37,21 @@ export const simulationApi = createApi({
             }),
         }),
         getReport: builder.query({
-            query: ({ branchName, organization, ruleId }) => ({
-                url: `/api/v1/report?organization=${organization}&ruleId=${ruleId}&branchName=${branchName}`,
+            query: ({ branchName, ruleId }) => ({
+                url: `/api/v1/report?&ruleId=${ruleId}&branchName=${branchName}`,
                 method: "GET",
                 responseHandler: (response) => response.text(),
             }),
         }),
         getReportStatus: builder.query({
-            query: ({ branchName, organization, ruleId }) => ({
-                url: `/api/v1/unit-tests/status?organization=${organization}&ruleId=${ruleId}&branchName=${branchName}`,
+            query: ({ branchName, ruleId }) => ({
+                url: `/api/v1/unit-tests/status?&ruleId=${ruleId}&branchName=${branchName}`,
+                method: "GET",
+            }),
+        }),
+        getSimulationLogs: builder.query({
+            query: ({ ruleId }) => ({
+                url: `/simulation-logs/${ruleId}?category=read_only`,
                 method: "GET",
             }),
         }),
@@ -58,4 +64,5 @@ export const {
     useMergeBranchMutation,
     useLazyGetReportQuery,
     useLazyGetReportStatusQuery,
+    useGetSimulationLogsQuery
 } = simulationApi
