@@ -34,6 +34,7 @@ export class RulesService {
       return await this.adminServiceClient.getRulesById(id, token);
     } catch (error) {
       const err = error as Error;
+      console.log(error);
       this.logger.error(`Error finding rules by ID ${id}: ${err.message}`);
       throw error;
     }
