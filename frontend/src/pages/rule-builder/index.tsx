@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useCallback, useMemo } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import type { Node, Edge } from '@xyflow/react';
@@ -76,9 +76,12 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
   }, [transformedFlowData]);
 
   const [showErrorModal, setShowErrorModal] = React.useState(false);
+  const [showSaveSuccessModal, setShowSaveSuccessModal] = React.useState(false);
+  const [allowNavigation, setAllowNavigation] = React.useState(false);
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (allowNavigation) return;
       event.preventDefault();
       event.returnValue = '';
       return '';
@@ -89,7 +92,7 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, []);
+  }, [allowNavigation]);
   
   const [isPaused, setIsPaused] = React.useState(false);
   
@@ -185,13 +188,17 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
         status,
       };
 
-      const response = await saveFlow({
+      await saveFlow({
         ruleId,
         flowData: payload,
         category: 'rule_builder',
       }).unwrap();
 
-      toast.success(response.message || 'Flow saved successfully');
+      // Close JSON modal but keep code modal open
+      flowState.setJsonModalOpen(false);
+      
+      // Show save success modal (code modal stays open in background)
+      setShowSaveSuccessModal(true);
     } catch (error: unknown) {
       const errorMessage = (error as { data?: { message?: string } })?.data?.message || 'Failed to save flow';
       toast.error(errorMessage);
@@ -279,6 +286,8 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
         isSaving={isSaving}
         viewOnly={viewOnly}
         hidePlayControls={true}
+        title="Rule Builder"
+        backUrl="/editor?tab=rule_builder"
       />
       {nodesError || flowError ? (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, flexDirection: 'column', gap: 2 }}>
@@ -391,6 +400,37 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
         open={showErrorModal}
         onClose={() => setShowErrorModal(false)}
       />
+
+      <Dialog open={showSaveSuccessModal} onClose={() => setShowSaveSuccessModal(false)}>
+        <DialogTitle>Flow Saved Successfully</DialogTitle>
+        <DialogContent>
+          <Typography>Your rule flow has been saved. What would you like to do next?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => {
+              setShowSaveSuccessModal(false);
+              // Keep code modal open when staying on editor
+            }} 
+            variant="outlined"
+          >
+            Stay on Editor
+          </Button>
+          <Button 
+            onClick={() => {
+              setShowSaveSuccessModal(false);
+              flowState.setCodeModalOpen(false);
+              setAllowNavigation(true);
+              setTimeout(() => {
+                window.location.href = '/editor?tab=rule_builder';
+              }, 0);
+            }} 
+            variant="contained"
+          >
+            Proceed to Next Step
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

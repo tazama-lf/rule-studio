@@ -1,4 +1,3 @@
-import { useNavigate } from "react-router-dom";
 import { extractData } from "../../../utils/Common/storage";
 import { LocalStorage } from "../../../utils/Common/enums";
 import { useTab } from "../../../contexts/TabContext/useTab";
@@ -23,10 +22,8 @@ const useRuleBuilderController = (props: IRuleBuilder) => {
 
     const { enableNextTab, enablePreviousTab } = useTab()
 
-    const navigate = useNavigate()
-
     const handleBuilder = () => {
-        navigate(`/rule-builder/${data?.id}`)
+        window.location.href = `/rule-builder/${data?.id}`
     }
 
     const handleNext = () => {
