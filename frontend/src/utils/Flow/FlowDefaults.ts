@@ -32,6 +32,10 @@ export const setCounters = (nodeCount: number, edgeCount: number, nestedNodeCoun
   nestedNodeCounter = nestedNodeCount;
 };
 
+export const setNestedNodeCounter = (nestedNodeCount: number) => {
+  nestedNodeCounter = Math.max(nestedNodeCounter, nestedNodeCount);
+};
+
 export const extractCountersFromFlow = (nodes: Node[], edges: Edge[], nestedCanvasData: Record<string, { nodes: Node[], edges: Edge[] }>) => {
   let maxNodeId = 0;
   let maxEdgeId = 0;

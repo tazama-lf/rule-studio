@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, memo } from 'react';
 import type { DragEvent } from 'react';
 import {
   ReactFlow,
@@ -30,6 +30,11 @@ const nodeTypes = {
   editableNode: EditableNode,
 };
 
+const EMPTY_NESTED_DATA: Record<string, NestedCanvasData> = {};
+const EMPTY_DEBUG_VARS: Record<string, unknown> = {};
+const EMPTY_DEBUG_LOGS: DebugLog[] = [];
+const DEFAULT_VIEWPORT = { x: 150, y: 50, zoom: 1 };
+
 const UpdateNodeInternalsExposer: React.FC<{ onReady: (updateFn: (nodeId: string) => void) => void }> = ({ onReady }) => {
   const updateNodeInternals = useUpdateNodeInternals();
   
@@ -53,6 +58,7 @@ interface CanvasProps {
   onNodeUpdateHandlerReady?: (handler: (nodeId: string, updates: Record<string, unknown>) => void) => void;
   debugVariables?: Record<string, unknown>;
   debugLogs?: DebugLog[];
+  isNestedCanvasActive?: boolean;
   currentNodeId?: string;
   nestedCanvasData?: Record<string, NestedCanvasData>;
   onFlowStateUpdate?: (
@@ -70,15 +76,16 @@ interface CanvasProps {
 
 
 
-const RuleBuilderCanvas: React.FC<CanvasProps> = ({ 
+const RuleBuilderCanvas: React.FC<CanvasProps> = memo(({
   isPlaying, 
   onJsonGenerate, 
   onCodeGenerate,
   onNodeSelect,
   onNodeUpdateHandlerReady,
-  nestedCanvasData = {},
-  debugVariables = {},
-  debugLogs = [],
+  nestedCanvasData = EMPTY_NESTED_DATA,
+  debugVariables = EMPTY_DEBUG_VARS,
+  debugLogs = EMPTY_DEBUG_LOGS,
+  isNestedCanvasActive = false,
   currentNodeId,
   onFlowStateUpdate,
   viewOnly = false,
@@ -87,34 +94,24 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = ({
   onUpdateNodeInternalsReady,
   mode = 'rule-builder',
 }) => {
-  const initialDataRef = useRef({ nodes: initialNodes, edges: initialEdges });
   const extractedNestedCountersRef = useRef(false);
+  const hasInitializedStateRef = useRef(false);
   
-  const getInitialFlow = React.useMemo(() => {
-    const nodes = (initialDataRef.current.nodes as Node[]) || [];
-    const edges = (initialDataRef.current.edges as Edge[]) || [];
-    return { nodes, edges };
-  }, []);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
 
-  const hasNestedFlows = React.useMemo(() => {
-    return nestedCanvasData ? Object.keys(nestedCanvasData).length > 0 : false;
-  }, [nestedCanvasData]);
-  
   useEffect(() => {
-    const { nodes, edges } = getInitialFlow;
-    
-    if ((nodes.length > 0 || edges.length > 0) && hasNestedFlows && !extractedNestedCountersRef.current) {
-      extractCountersFromFlow(nodes, edges, nestedCanvasData || {});
-      extractedNestedCountersRef.current = true;
-    } else if ((nodes.length > 0 || edges.length > 0) && !hasNestedFlows && !extractedNestedCountersRef.current) {
-      extractCountersFromFlow(nodes, edges, {});
+    if (!hasInitializedStateRef.current && initialNodes && initialNodes.length > 0 && initialEdges) {
+      setNodes(initialNodes);
+      setEdges(initialEdges);
+      hasInitializedStateRef.current = true;
+
+      const hasNestedFlows = nestedCanvasData ? Object.keys(nestedCanvasData).length > 0 : false;
+      extractCountersFromFlow(initialNodes, initialEdges, hasNestedFlows ? (nestedCanvasData || {}) : {});
       extractedNestedCountersRef.current = true;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasNestedFlows]);
-
-  const [nodes, setNodes, onNodesChange] = useNodesState(getInitialFlow.nodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(getInitialFlow.edges);
+  }, [initialNodes, initialEdges]);
   
   const onFlowStateUpdateRef = useRef(onFlowStateUpdate);
 
@@ -122,48 +119,38 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = ({
     onFlowStateUpdateRef.current = onFlowStateUpdate;
   }, [onFlowStateUpdate]);
 
-  const prevInitialNodesRef = useRef<Node[] | undefined>(undefined);
-  const prevInitialEdgesRef = useRef<Edge[] | undefined>(undefined);
-  
-  useEffect(() => {
-    if (initialNodes !== undefined && initialNodes !== prevInitialNodesRef.current) {
-      prevInitialNodesRef.current = initialNodes;
-      setNodes(initialNodes);
-    }
-  }, [initialNodes, setNodes]);
-
-  useEffect(() => {
-    if (initialEdges !== undefined && initialEdges !== prevInitialEdgesRef.current) {
-      prevInitialEdgesRef.current = initialEdges;
-      setEdges(initialEdges);
-    }
-  }, [initialEdges, setEdges]);
-
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
 
+  const saveHistoryNoOp = useCallback(() => {}, []);
+
   const nodeOps = useCanvasNodeOperations({
     setNodes,
-    saveHistory: () => {},
+    saveHistory: saveHistoryNoOp,
     setEdges,
   });
+
+  const deleteSelectedNodesCallback = useCallback(() => {
+    const selectedNodes = nodes.filter((n) => n.selected);
+    setNodes((currentNodes) => nodeOps.deleteSelectedNodes(currentNodes, selectedNodes));
+    
+    if (onNodeSelect && selectedNodes.length > 0) {
+      onNodeSelect(null);
+    }
+  }, [nodes, setNodes, nodeOps, onNodeSelect]);
+
+  const deleteSelectedEdgesCallback = useCallback(() => {
+    setEdges((currentEdges) => nodeOps.deleteSelectedEdges(currentEdges));
+  }, [setEdges, nodeOps]);
 
   const { pushHistory } = useCanvasKeyboardShortcuts({
     nodes,
     edges,
     setNodes,
     setEdges,
-    deleteSelectedNodes: () => {
-      const selectedNodes = nodes.filter((n) => n.selected);
-      setNodes((currentNodes) => nodeOps.deleteSelectedNodes(currentNodes, selectedNodes));
-      
-      if (onNodeSelect && selectedNodes.length > 0) {
-        onNodeSelect(null);
-      }
-    },
-    deleteSelectedEdges: () => {
-      setEdges((currentEdges) => nodeOps.deleteSelectedEdges(currentEdges));
-    },
+    deleteSelectedNodes: deleteSelectedNodesCallback,
+    deleteSelectedEdges: deleteSelectedEdgesCallback,
+    enabled: !isNestedCanvasActive,
   });
 
   const { createNodeFromTemplate: createNode, updateNode: update } =
@@ -223,9 +210,15 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = ({
     }
   }, [onNodeUpdateHandlerReady, handleNodeUpdate]);
 
+  const nodesLengthRef = useRef(nodes.length);
+  const edgesLengthRef = useRef(edges.length);
+
   React.useEffect(() => {
-    if (onFlowStateUpdateRef.current) {
+    if (onFlowStateUpdateRef.current && 
+        (nodesLengthRef.current !== nodes.length || edgesLengthRef.current !== edges.length)) {
       onFlowStateUpdateRef.current(nodes, edges, setNodes, setEdges);
+      nodesLengthRef.current = nodes.length;
+      edgesLengthRef.current = edges.length;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes, edges]);
@@ -289,7 +282,7 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = ({
           onNodeClick={onNodeClick}
           onPaneClick={onPaneClick}
           nodeTypes={nodeTypes}
-          defaultViewport={{ x: 150, y: 50, zoom: 1 }}
+          defaultViewport={DEFAULT_VIEWPORT}
           nodesDraggable={!isPlaying && !viewOnly}
           nodesConnectable={!isPlaying && !viewOnly}
           elementsSelectable={!isPlaying && !viewOnly}
@@ -396,6 +389,8 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = ({
     )}
     </Box>
   );
-};
+});
+
+RuleBuilderCanvas.displayName = 'RuleBuilderCanvas';
 
 export default RuleBuilderCanvas;

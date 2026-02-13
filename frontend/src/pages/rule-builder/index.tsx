@@ -14,6 +14,7 @@ import { ValidationErrorModal } from '../../components/RuleBuilder/ValidationErr
 import { useGetFlowQuery, useSaveFlowMutation, useGetNodesQuery } from '../../redux/Api/Rule-builder';
 import { transformApiFlowData, type ApiNode, type ApiEdge } from '../../utils/Flow/FlowTransformers';
 import { setApiNodes } from '../../utils/Flow/nodeTemplateService';
+import { validateTypeScriptCode } from '../../utils/Flow/codeValidator';
 import {
   useFlowAnimation,
   useFlowState,
@@ -31,7 +32,7 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
   
   const { data: flowData, isLoading: isLoadingFlow, error: flowError } = useGetFlowQuery(
     { ruleId: ruleId || '', category: 'rule_builder' },
-    { skip: !ruleId }
+    { skip: !ruleId, refetchOnMountOrArgChange: true }
   );
   
   const [saveFlow, { isLoading: isSaving }] = useSaveFlowMutation();
@@ -173,11 +174,15 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
         return;
       }
 
+      const validationResult = validateTypeScriptCode(tsCode);
+      const status = validationResult.isValid ? 'pass' : 'fail';
+
       const tsFileBase64 = btoa(unescape(encodeURIComponent(tsCode)));
 
       const payload = {
         flow_json: parsedFlowJson,
         ts_file_base64: tsFileBase64,
+        status,
       };
 
       const response = await saveFlow({
@@ -224,8 +229,7 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
     updateNodeInternalsRef.current?.(nodeId);
   }, []);
 
-  const handleFlowStateUpdate = ((
-    nodes: Node[], 
+  const handleFlowStateUpdate = useCallback((    nodes: Node[], 
     edges: Edge[], 
     setNodes: (nodes: Node[] | ((prevNodes: Node[]) => Node[])) => void, 
     setEdges: (edges: Edge[] | ((prevEdges: Edge[]) => Edge[])) => void
@@ -233,13 +237,22 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
     updateFlowState(nodes, edges, setNodes, setEdges);
     flowState.setAllNodes(nodes);
     flowState.setEdges(edges);
-  });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [updateFlowState, flowState.setAllNodes, flowState.setEdges]);
   
-  const handleNestedCanvasSave = ((nodes: Node[], edges: Edge[]) => {
+  const handleNestedCanvasSave = useCallback((nodes: Node[], edges: Edge[]) => {
     if (nestedCanvasManager.activeNestedCanvas) {
       nestedCanvasManager.handleNestedCanvasSave(nestedCanvasManager.activeNestedCanvas, nodes, edges);
     }
-  });
+  }, [nestedCanvasManager]);
+
+  const canvasWrapperStyle = useMemo(() => ({
+    display: nestedCanvasManager.activeNestedCanvas ? 'none' : 'flex',
+    flex: 1,
+    flexDirection: 'column' as const,
+    height: '100%',
+    width: '100%'
+  }), [nestedCanvasManager.activeNestedCanvas]);
 
   useEffect(() => {
     const timeoutRef = animationTimeoutRef.current;
@@ -305,23 +318,25 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
               ruleId={ruleId}
             />
           )}
-          <RuleBuilderCanvas
-            key={nestedCanvasManager.activeNestedCanvas ? 'hidden' : 'main-canvas'}
-            isPlaying={Boolean(flowState.currentAnimationNode)}
-            onJsonGenerate={flowState.handleJsonGenerate}
-            onCodeGenerate={flowState.handleCodeGenerate}
-            onNodeSelect={handleNodeSelect}
-            onNodeUpdateHandlerReady={handleNodeUpdateHandlerReady}
-            debugVariables={flowState.debugVariables}
-            debugLogs={flowState.debugLogs}
-            currentNodeId={flowState.currentAnimationNode}
-            nestedCanvasData={nestedCanvasManager.nestedCanvasData}
-            viewOnly={viewOnly}
-            onFlowStateUpdate={handleFlowStateUpdate}
-            initialNodes={transformedFlowData?.nodes}
-            initialEdges={transformedFlowData?.edges}
-            onUpdateNodeInternalsReady={handleUpdateNodeInternalsReady}
-          />
+          <Box sx={canvasWrapperStyle}>
+            <RuleBuilderCanvas
+              isPlaying={Boolean(flowState.currentAnimationNode)}
+              onJsonGenerate={flowState.handleJsonGenerate}
+              onCodeGenerate={flowState.handleCodeGenerate}
+              onNodeSelect={handleNodeSelect}
+              onNodeUpdateHandlerReady={handleNodeUpdateHandlerReady}
+              debugVariables={flowState.debugVariables}
+              debugLogs={flowState.debugLogs}
+              currentNodeId={flowState.currentAnimationNode}
+              nestedCanvasData={nestedCanvasManager.nestedCanvasData}
+              viewOnly={viewOnly}
+              onFlowStateUpdate={handleFlowStateUpdate}
+              initialNodes={transformedFlowData?.nodes}
+              initialEdges={transformedFlowData?.edges}
+              onUpdateNodeInternalsReady={handleUpdateNodeInternalsReady}
+              isNestedCanvasActive={Boolean(nestedCanvasManager.activeNestedCanvas)}
+            />
+          </Box>
           <RightSidebar
             key={flowState.selectedNode?.id || 'no-selection'}
             selectedNode={flowState.selectedNode}
