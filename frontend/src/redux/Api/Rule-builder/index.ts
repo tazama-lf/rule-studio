@@ -47,6 +47,12 @@ export const ruleBuilderApi = createApi({
                 body: queryData,
             }),
         }),
+        getRuleFlowStatus: builder.query({
+            query: ({ ruleId, category = 'rule_builder' }: { ruleId: string | number; category?: string }) => ({
+                url: `rules/api/${ruleId}/flow/status?category=${category}`,
+                method: "GET",
+            }), 
+        })
     }),
 })
 
@@ -57,4 +63,5 @@ export const {
     useGetGlobalVariablesQuery,
     useLazyGetGlobalVariablesQuery,
     useExecuteQueryMutation,
+    useGetRuleFlowStatusQuery
 } = ruleBuilderApi

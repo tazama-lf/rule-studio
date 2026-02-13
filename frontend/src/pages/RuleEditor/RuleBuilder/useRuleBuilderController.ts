@@ -1,8 +1,8 @@
-import { useNavigate } from "react-router-dom";
 import { extractData } from "../../../utils/Common/storage";
 import { LocalStorage } from "../../../utils/Common/enums";
 import { useTab } from "../../../contexts/TabContext/useTab";
 import { useMemo } from "react";
+import { useGetRuleFlowStatusQuery } from "../../../redux/Api/Rule-builder";
 
 export interface IRuleBuilder {
     data?: Record<string, unknown> | undefined
@@ -11,16 +11,19 @@ export interface IRuleBuilder {
 const useRuleBuilderController = (props: IRuleBuilder) => {
 
     const data = useMemo(
-        () => extractData('trs_rule', LocalStorage, true) ?? props?.data,
-        [props?.data]
+        () => extractData('trs_rule', LocalStorage, true) ?? props.data,
+        [props.data]
     )
+
+    const { data: flowData, isLoading: isLoadingFlow } = useGetRuleFlowStatusQuery(
+        { ruleId: (data?.id || '') as string | number, category: 'rule_builder' },
+        { skip: !data?.id, refetchOnMountOrArgChange: true }
+    );
 
     const { enableNextTab, enablePreviousTab } = useTab()
 
-    const navigate = useNavigate()
-
     const handleBuilder = () => {
-        navigate(`/rule-builder/${data?.id}`)
+        window.location.href = `/rule-builder/${data?.id}`
     }
 
     const handleNext = () => {
@@ -30,8 +33,63 @@ const useRuleBuilderController = (props: IRuleBuilder) => {
         enablePreviousTab()
     }
 
+    const flowStatus = flowData?.result?.status || 'initial'
+    const isInitial = flowStatus === 'initial'
+    const isPassed = flowStatus === 'pass'
+    const isFailed = flowStatus === 'fail'
+
+    const getStatusConfig = () => {
+        switch (flowStatus) {
+            case 'initial':
+                return {
+                    title: 'Rule Not Created Yet',
+                    description: 'Your rule is in initial mode. Click the button below to start building your rule.',
+                    buttonText: 'Open Rule Builder',
+                    color: '#FFA726',
+                    bgColor: '#FFF3E0',
+                    icon: '🚀'
+                }
+            case 'pass':
+                return {
+                    title: 'Rule Validated Successfully',
+                    description: 'Your rule has been validated and is ready to use. You can edit it anytime.',
+                    buttonText: 'Edit Rule',
+                    color: '#66BB6A',
+                    bgColor: '#E8F5E9',
+                    icon: '✅'
+                }
+            case 'fail':
+                return {
+                    title: 'Validation Failed',
+                    description: 'Your rule contains errors and needs to be fixed. Click below to review and correct the issues.',
+                    buttonText: 'Edit Rule',
+                    color: '#EF5350',
+                    bgColor: '#FFEBEE',
+                    icon: '⚠️'
+                }
+            default:
+                return {
+                    title: 'Rule Builder',
+                    description: 'Create your rule',
+                    buttonText: 'Open Rule Builder',
+                    color: '#42A5F5',
+                    bgColor: '#E3F2FD',
+                    icon: '📝'
+                }
+        }
+    }
+
+    const statusConfig = getStatusConfig()
+
     return {
-        values: {},
+        values: {
+            flowStatus,
+            isInitial,
+            isPassed,
+            isFailed,
+            isLoadingFlow,
+            statusConfig
+        },
         functions: {
             handleBuilder,
             handleNext,

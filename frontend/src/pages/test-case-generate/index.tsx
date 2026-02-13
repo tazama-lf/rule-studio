@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useCallback, useState, useMemo } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import type { Node, Edge } from '@xyflow/react';
@@ -13,6 +13,7 @@ import { ValidationErrorModal } from '../../components/RuleBuilder/ValidationErr
 import { useGetNodesQuery, useSaveFlowMutation, useGetGlobalVariablesQuery, useGetFlowQuery } from '../../redux/Api/Rule-builder';
 import { setApiNodes } from '../../utils/Flow/nodeTemplateService';
 import { transformApiFlowData, type ApiNode as ApiFlowNode, type ApiEdge } from '../../utils/Flow/FlowTransformers';
+import { validateTypeScriptCode } from '../../utils/Flow/codeValidator';
 import { useFlowState } from '../../hooks/RuleBuilder';
 
 interface TestCaseGenerateProps {
@@ -28,8 +29,9 @@ const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false })
   });
   const { data: flowData } = useGetFlowQuery(
     { ruleId: ruleId || '', category: 'test_case_generation' },
-    { skip: !ruleId }
+    { skip: !ruleId, refetchOnMountOrArgChange: true }
   );
+
   const [saveFlow, { isLoading: isSaving }] = useSaveFlowMutation();
   
   const flowState = useFlowState();
@@ -58,9 +60,12 @@ const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false })
   }, [globalVariablesData]);
 
   const [showErrorModal, setShowErrorModal] = useState<boolean>(false);
+  const [showSaveSuccessModal, setShowSaveSuccessModal] = useState<boolean>(false);
+  const [allowNavigation, setAllowNavigation] = useState<boolean>(false);
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (allowNavigation) return;
       event.preventDefault();
       event.returnValue = '';
       return '';
@@ -71,7 +76,7 @@ const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false })
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, []);
+  }, [allowNavigation]);
 
   const nodeUpdateHandlerRef = useRef<((nodeId: string, updates: Record<string, unknown>) => void) | null>(null);
 
@@ -110,38 +115,37 @@ const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false })
         return;
       }
 
+      const validationResult = validateTypeScriptCode(tsCode);
+      const status = validationResult.isValid ? 'pass' : 'fail';
+
       const tsFileBase64 = btoa(unescape(encodeURIComponent(tsCode)));
 
       const payload = {
         flow_json: parsedFlowJson,
         ts_file_base64: tsFileBase64,
+        status,
       };
 
-      const response = await saveFlow({
+      await saveFlow({
         ruleId,
         flowData: payload,
         category: 'test_case_generation',
       }).unwrap();
 
-      toast.success(response.message || 'Test case flow saved successfully');
+      flowState.setJsonModalOpen(false);
+      setShowSaveSuccessModal(true);
     } catch (error: unknown) {
       const errorMessage = (error as { data?: { message?: string } })?.data?.message || 'Failed to save test case';
       toast.error(errorMessage);
     }
-  }, [ruleId, saveFlow]);
-
-  const flowStateRef = useRef(flowState);
-  
-  useEffect(() => {
-    flowStateRef.current = flowState;
-  }, [flowState]);
+  }, [ruleId, saveFlow, flowState]);
 
   const handleNodeSelect = useCallback((node: Node | null) => {
     if (node?.data.nodeType === 'Start' || node?.data.nodeType === 'End') {
       return;
     }
-    flowStateRef.current.setSelectedNode(node);
-  }, []);
+    flowState.setSelectedNode(node);
+  }, [flowState]);
 
   const handleNodeUpdateHandlerReady = useCallback((handler: (nodeId: string, updates: Record<string, unknown>) => void) => {
     nodeUpdateHandlerRef.current = handler;
@@ -163,9 +167,9 @@ const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false })
     nodes: Node[], 
     edges: Edge[]
   ) => {
-    flowStateRef.current.setAllNodes(nodes);
-    flowStateRef.current.setEdges(edges);
-  }, []);
+    flowState.setAllNodes(nodes);
+    flowState.setEdges(edges);
+  }, [flowState]);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
@@ -179,6 +183,8 @@ const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false })
         onSave={handleSave}
         isSaving={isSaving}
         viewOnly={viewOnly}
+        title="Test Cases Generation"
+        backUrl="/editor?tab=test_cases"
       />
       {nodesError ? (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, flexDirection: 'column', gap: 2 }}>
@@ -268,6 +274,37 @@ const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false })
         open={showErrorModal}
         onClose={() => setShowErrorModal(false)}
       />
+
+      <Dialog open={showSaveSuccessModal} onClose={() => setShowSaveSuccessModal(false)}>
+        <DialogTitle>Test Cases Saved Successfully</DialogTitle>
+        <DialogContent>
+          <Typography>Your test case flow has been saved. What would you like to do next?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => {
+              setShowSaveSuccessModal(false);
+              // Keep code modal open when staying on editor
+            }} 
+            variant="outlined"
+          >
+            Stay on Editor
+          </Button>
+          <Button 
+            onClick={() => {
+              setShowSaveSuccessModal(false);
+              flowState.setCodeModalOpen(false);
+              setAllowNavigation(true);
+              setTimeout(() => {
+                window.location.href = '/editor?tab=test_cases';
+              }, 0);
+            }} 
+            variant="contained"
+          >
+            Proceed to Next Step
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

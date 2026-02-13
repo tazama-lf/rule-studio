@@ -36,6 +36,8 @@ interface HeaderProps {
   disabled?: boolean;
   viewOnly?: boolean;
   hidePlayControls?: boolean;
+  title?: string;
+  backUrl?: string;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -53,6 +55,8 @@ const Header: React.FC<HeaderProps> = ({
   disabled = false,
   viewOnly = false,
   hidePlayControls = false,
+  title = 'Rule Builder',
+  backUrl = '/editor?tab=rule_builder',
 }) => {
   const { hasErrors, getErrorCount } = useValidationContext();
   const navigate = useNavigate();
@@ -65,7 +69,7 @@ const Header: React.FC<HeaderProps> = ({
         <Box display="flex" alignItems="center" gap={1}>
           <Tooltip title="Back to Editor">
             <IconButton
-              onClick={() => navigate('/editor?tab=rule_builder')}
+              onClick={() => navigate(backUrl)}
               color="primary"
               size="medium"
             >
@@ -79,7 +83,7 @@ const Header: React.FC<HeaderProps> = ({
             fontWeight={600}
             color="text.primary"
           >
-            Rule Builder {viewOnly && '(View Only)'}
+            {title} {viewOnly && '(View Only)'}
           </Typography>
         </Box>
 
