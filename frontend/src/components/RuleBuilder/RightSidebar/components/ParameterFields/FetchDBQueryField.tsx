@@ -10,7 +10,8 @@ interface FetchDBQueryFieldProps {
   isExecuting: boolean;
   fieldError?: string;
   onOpenQueryEditor: () => void;
-  onExecuteQuery: (query: string) => void;
+  onExecuteQuery: (query: string, dbName?: string) => void;
+  dbName?: string;
 }
 
 const FetchDBQueryField: React.FC<FetchDBQueryFieldProps> = ({
@@ -20,6 +21,7 @@ const FetchDBQueryField: React.FC<FetchDBQueryFieldProps> = ({
   fieldError,
   onOpenQueryEditor,
   onExecuteQuery,
+  dbName,
 }) => {
   const queryLineCount = currentValue ? (currentValue.match(/\n/g) || []).length + 1 : 0;
   const hasQuery = Boolean(currentValue?.trim());
@@ -85,7 +87,9 @@ const FetchDBQueryField: React.FC<FetchDBQueryFieldProps> = ({
             variant="contained"
             color="success"
             startIcon={<PlayArrowIcon />}
-            onClick={() => onExecuteQuery(currentValue)}
+            onClick={() => {
+              onExecuteQuery(currentValue, dbName);
+            }}
             disabled={isExecuting}
             sx={{ py: 1 }}
           >

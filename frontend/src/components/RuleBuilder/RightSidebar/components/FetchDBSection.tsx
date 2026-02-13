@@ -2,14 +2,18 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { TextField, Typography, Divider, Button, Box } from '@mui/material';
 import CodeIcon from '@mui/icons-material/Code';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import type { Node } from '@xyflow/react';
+import type { Node, Edge } from '@xyflow/react';
 import { PropertyRow, SectionContainer, SectionTitle } from '../styles';
 import QueryEditorModal from './QueryEditorModal';
 import QueryExecutionResultModal from './QueryExecutionResultModal';
-import { useExecuteQueryMutation } from '../../../../redux/Api/Rule-builder';
-import type { QueryExecutionResponse } from '../../../../types/queryExecution';
-import { extractErrorMessage } from '../../../../types/queryExecution';
 import { useParams } from 'react-router-dom';
+import { useVariableData, useQueryExecution } from '../../../../hooks/RuleBuilder';
+import {
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+} from '@mui/material';
 
 interface FetchDBSectionProps {
   currentParams: Record<string, string>;
@@ -21,6 +25,8 @@ interface FetchDBSectionProps {
   isReadOnly: boolean;
   viewOnly: boolean;
   allNodes?: Node[];
+  edges?: Edge[];
+  selectedNodeId?: string | null;
   getFieldError?: (fieldName: string) => string | undefined;
 }
 
@@ -33,17 +39,34 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
   inputRefs: inputRefsRef,
   isReadOnly,
   viewOnly,
+  allNodes = [],
+  edges = [],
+  selectedNodeId = null,
   getFieldError,
 }) => {
   const [queryEditorOpen, setQueryEditorOpen] = useState<boolean>(false);
-  const [resultsModalOpen, setResultsModalOpen] = useState<boolean>(false);
-  const [queryResults, setQueryResults] = useState<Record<string, unknown>[] | null>(null);
-  const [totalCount, setTotalCount] = useState<number | undefined>(undefined);
-  const [displayCount, setDisplayCount] = useState<number | undefined>(undefined);
-  const [executionError, setExecutionError] = useState<string | null>(null);
 
-  const [executeQuery, { isLoading: isExecuting }] = useExecuteQueryMutation();
   const { id: ruleId } = useParams<{ id: string }>();
+
+  const variableData = useVariableData({ 
+    ruleId, 
+    allNodes, 
+    edges, 
+    selectedNodeId 
+  });
+
+  const {
+    executeQuery,
+    closeResults,
+    clearError,
+    isExecuting,
+    queryResults,
+    totalCount,
+    displayCount,
+    executionError,
+    resultsModalOpen,
+  } = useQueryExecution({ variableData });
+  
   const queryLineCount = useMemo(
     () => currentParams.query?.split('\n').length ?? 0,
     [currentParams.query]
@@ -60,8 +83,8 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
 
   const handleCloseQueryEditor = useCallback(() => {
     setQueryEditorOpen(false);
-    setExecutionError(null);
-  }, []);
+    clearError();
+  }, [clearError]);
 
   const handleSaveQuery = useCallback((query: string) => {
     console.log('📝 handleSaveQuery received:', query);
@@ -76,46 +99,38 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
     handleCloseQueryEditor();
   }, [onParamChange, onParamBlur, currentParams, handleCloseQueryEditor]);
 
-  const handleExecuteQuery = useCallback(async (query: string) => {
-    try {
-      setExecutionError(null);
-      
-      const response = await executeQuery({
-        query,
-      }).unwrap() as QueryExecutionResponse;
-
-      const data = Array.isArray(response.result) ? response.result : [];
-      const rowCount = data.length;
-
-      setQueryResults(data);
-      setTotalCount(rowCount);
-      setDisplayCount(rowCount);
-      setResultsModalOpen(true);
-      
-    } catch (error: unknown) {
-      const errorMessage = extractErrorMessage(
-        error,
-        'Failed to execute query. Please check your query and try again.'
-      );
-      setExecutionError(errorMessage);
-      setQueryResults([]);
-      setTotalCount(0);
-      setDisplayCount(0);
-      setResultsModalOpen(true);
-    }
-  }, [executeQuery]);
-
-  const handleCloseResults = useCallback(() => {
-    setResultsModalOpen(false);
-  }, []);
-
   const isDisabled = isReadOnly || viewOnly;
+
+  const databases = ['_event_history', 'configuration', '_rawHistory'];
 
   return (
     <>
       <Divider />
       <SectionContainer>
         <SectionTitle>Database Query</SectionTitle>
+        <PropertyRow>
+          <FormControl fullWidth>
+            <InputLabel id="db-select-label">Database</InputLabel>
+            <Select
+              labelId="db-select-label"
+              id="db-select"
+              value={currentParams.dbName ?? '_event_history'}
+              label="Database"
+              onChange={(e) =>
+                onParamChange('dbName')({
+                  target: { value: e.target.value },
+                } as React.ChangeEvent<HTMLInputElement>)
+              }
+              disabled={isDisabled}
+            >
+              {databases.map((db) => (
+                <MenuItem key={db} value={db}>
+                  {db}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </PropertyRow>
         <PropertyRow>
           <Typography variant="body2" color="text.secondary" gutterBottom>
             SQL Query
@@ -174,7 +189,10 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
               variant="contained"
               color="success"
               startIcon={<PlayArrowIcon />}
-              onClick={() => handleExecuteQuery(currentParams.query)}
+              onClick={() => {
+                const dbNameValue = currentParams.dbName ?? '_event_history';
+                executeQuery(currentParams.query, dbNameValue);
+              }}
               disabled={isExecuting}
               sx={{ py: 1 }}
             >
@@ -249,15 +267,19 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
         open={queryEditorOpen}
         onClose={handleCloseQueryEditor}
         onSave={handleSaveQuery}
-        onExecute={handleExecuteQuery}
+        onExecute={executeQuery}
+        dbName={currentParams.dbName ?? '_event_history'}
         initialValue={currentParams.query ?? ''}
         isExecuting={isExecuting}
         executionError={executionError}
         ruleId={ruleId}
+        allNodes={allNodes}
+        edges={edges}
+        selectedNodeId={selectedNodeId}
       />
       <QueryExecutionResultModal
         open={resultsModalOpen}
-        onClose={handleCloseResults}
+        onClose={closeResults}
         results={queryResults}
         totalCount={totalCount}
         displayCount={displayCount}

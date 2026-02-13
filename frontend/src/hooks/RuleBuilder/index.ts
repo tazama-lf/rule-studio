@@ -11,6 +11,7 @@ export { useNodeScope } from './useNodeScope';
 export { useQueryValidation } from './useQueryValidation';
 export { useDragDropEditor } from './useDragDropEditor';
 export { useVariableData } from './useVariableData';
+export { useQueryExecution } from './useQueryExecution';
 
 export { useNodePalette, type NodeTemplate as NodePaletteTemplate } from './useNodePalette';
 

@@ -6,9 +6,7 @@ import { SectionContainer, SectionTitle } from '../styles';
 import CodeEditorModal from './CodeEditorModal';
 import QueryEditorModal from './QueryEditorModal/QueryEditorModal';
 import QueryExecutionResultModal from './QueryExecutionResultModal';
-import { useExecuteQueryMutation } from '../../../../redux/Api/Rule-builder';
-import type { QueryExecutionResponse } from '../../../../types/queryExecution';
-import { extractErrorMessage } from '../../../../types/queryExecution';
+import { useVariableData, useQueryExecution } from '../../../../hooks/RuleBuilder';
 import { 
   DropdownField, 
   CodeTemplateButton, 
@@ -61,13 +59,25 @@ const ParameterSection: React.FC<ParameterSectionProps> = ({
   const [editingCodeField, setEditingCodeField] = useState<{ key: string; label: string; value: string } | null>(null);
   
   const [queryEditorOpen, setQueryEditorOpen] = useState<boolean>(false);
-  const [resultsModalOpen, setResultsModalOpen] = useState<boolean>(false);
-  const [queryResults, setQueryResults] = useState<Record<string, unknown>[] | null>(null);
-  const [totalCount, setTotalCount] = useState<number | undefined>(undefined);
-  const [displayCount, setDisplayCount] = useState<number | undefined>(undefined);
-  const [executionError, setExecutionError] = useState<string | null>(null);
-  
-  const [executeQuery, { isLoading: isExecuting }] = useExecuteQueryMutation();
+
+  const variableData = useVariableData({ 
+    ruleId, 
+    allNodes, 
+    edges, 
+    selectedNodeId 
+  });
+
+  const {
+    executeQuery,
+    closeResults,
+    clearError,
+    isExecuting,
+    queryResults,
+    totalCount,
+    displayCount,
+    executionError,
+    resultsModalOpen,
+  } = useQueryExecution({ variableData });
 
   const isFetchDBNode = nodeType === 'FetchDB';
   const isDisabled = isReadOnly || viewOnly;
@@ -106,8 +116,8 @@ const ParameterSection: React.FC<ParameterSectionProps> = ({
 
   const handleCloseQueryEditor = useCallback(() => {
     setQueryEditorOpen(false);
-    setExecutionError(null);
-  }, []);
+    clearError();
+  }, [clearError]);
 
   const handleSaveQuery = useCallback((query: string) => {
     const syntheticEvent = {
@@ -117,40 +127,8 @@ const ParameterSection: React.FC<ParameterSectionProps> = ({
     const updatedParams = { ...currentParams, query };
     
     onParamBlur?.(true, updatedParams);
-  }, [onParamChange, onParamBlur, currentParams]);
-
-  const handleExecuteQuery = useCallback(async (query: string) => {
-    try {
-      setExecutionError(null);
-      
-      const response = await executeQuery({
-        query,
-      }).unwrap() as QueryExecutionResponse;
-
-      const data = Array.isArray(response.result) ? response.result : [];
-      const rowCount = data.length;
-
-      setQueryResults(data);
-      setTotalCount(rowCount);
-      setDisplayCount(rowCount);
-      setResultsModalOpen(true);
-      
-    } catch (error: unknown) {
-      const errorMessage = extractErrorMessage(
-        error,
-        'Failed to execute query. Please check your query and try again.'
-      );
-      setExecutionError(errorMessage);
-      setQueryResults([]);
-      setTotalCount(0);
-      setDisplayCount(0);
-      setResultsModalOpen(true);
-    }
-  }, [executeQuery]);
-
-  const handleCloseResults = useCallback(() => {
-    setResultsModalOpen(false);
-  }, []);
+    handleCloseQueryEditor();
+  }, [onParamChange, onParamBlur, currentParams, handleCloseQueryEditor]);
 
   const handleInputRef = useCallback((key: string, el: HTMLInputElement | HTMLTextAreaElement | null) => {
     if (el) {
@@ -260,7 +238,8 @@ const ParameterSection: React.FC<ParameterSectionProps> = ({
           isExecuting={isExecuting}
           fieldError={fieldError}
           onOpenQueryEditor={handleOpenQueryEditor}
-          onExecuteQuery={handleExecuteQuery}
+          onExecuteQuery={executeQuery}
+          dbName={currentParams.dbName ?? '_event_history'}
         />
       );
     }
@@ -329,7 +308,8 @@ const ParameterSection: React.FC<ParameterSectionProps> = ({
               open={queryEditorOpen}
               onClose={handleCloseQueryEditor}
               onSave={handleSaveQuery}
-              onExecute={handleExecuteQuery}
+              onExecute={executeQuery}
+              dbName={currentParams.dbName ?? '_event_history'}
               initialValue={currentParams.query ?? ''}
               isExecuting={isExecuting}
               executionError={executionError}
@@ -340,7 +320,7 @@ const ParameterSection: React.FC<ParameterSectionProps> = ({
             />
             <QueryExecutionResultModal
               open={resultsModalOpen}
-              onClose={handleCloseResults}
+              onClose={closeResults}
               results={queryResults}
               totalCount={totalCount}
               displayCount={displayCount}
