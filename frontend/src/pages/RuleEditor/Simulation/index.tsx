@@ -135,7 +135,7 @@ const Simulation = (props: ISimulation) => {
                     }
 
                     {values?.result &&
-                        <Grid size={{ xs: 12, md: 6 }}>
+                        <Grid size={{ xs: 12, md: 6 }} overflow={'hidden'}>
                             <FormattedJsonSection label="Result" value={JSON.stringify(values?.result)} />
                         </Grid>
                     }

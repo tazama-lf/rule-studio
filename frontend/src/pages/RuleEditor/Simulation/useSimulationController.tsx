@@ -165,13 +165,13 @@ const useSimulationController = (props: ISimulation) => {
                     ...sampelRuleRequest
                 }
             }
-            setResult(sampelRuleRequest)
-            // ruleOnly(body).unwrap()
-            //     .then((res) => {
-            //         if (res) {
-            //             toggleSimulationExecuted()
-            //         }
-            //     })
+            ruleOnly(body).unwrap()
+                .then((res) => {
+                    if (res) {
+                        setResult(res)
+                        toggleSimulationExecuted()
+                    }
+                })
         } else {
             const body = {
                 endpoint: "http://10.10.80.18:5000/v1/evaluate/iso20022/pacs.002.001.12",
@@ -185,6 +185,7 @@ const useSimulationController = (props: ISimulation) => {
             endToEnd(body).unwrap()
                 .then((res) => {
                     if (res) {
+                        setResult(res)
                         toggleSimulationExecuted()
                     }
                 })
