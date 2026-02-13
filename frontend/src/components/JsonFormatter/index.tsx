@@ -35,7 +35,7 @@ const FormattedJsonSection = ({ value, onChange, label }: IFormattedJsonSection)
                         </Typography>
                     )}
                 </Box>
-                <Box sx={{ fontSize: 13 }} border={1} p={2} borderColor={'static.border'} borderRadius={1} height={310}>
+                <Box sx={{ fontSize: 13, overflow: 'auto' }} border={1} p={2} borderColor={'static.border'} borderRadius={1} height={310}>
                     <ReactJson
                         src={parseResult.data}
                         onEdit={onChange ? (e) =>
