@@ -11,12 +11,14 @@ declare module '@mui/material/styles' {
         static: {
             primary: string;
             secondary: string;
+            skyBlue: string;
             ternary: string;
             black: string;
             white: string;
             lightBlue: string;
             border: string;
             grey: string;
+            lightGrey: string
         };
         progressbar: {
             main: string;
@@ -27,11 +29,14 @@ declare module '@mui/material/styles' {
         static?: {
             primary: string;
             secondary: string;
+            skyBlue: string;
             ternary: string;
             black: string;
             white: string;
-            lightBlue: string
-            border: string
+            lightBlue: string;
+            border: string;
+            grey: string;
+            lightGrey: string
         };
         progressbar?: {
             main: string;

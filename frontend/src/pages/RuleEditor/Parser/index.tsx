@@ -24,14 +24,10 @@ const Parser = (props: IParseProps) => {
 
             <Section header={'Rule Request Definition'} subHeader={'Generated Rule Request which includes Meta Data, Data Cache, Network Map & Transaction payload'}>
                 {values?.payload &&
-                    <Grid size={{ xs: 12, md: 12 }} border={1} borderColor={'static.border'} mt={0.4} p={2} overflow={'auto'} borderRadius={1} height={310}>
-                        <FormattedJsonSection value={values?.payload} />
-                    </Grid>
+                    <FormattedJsonSection label="Transaction Payload" value={values?.payload} />
                 }
                 {values?.ruleRequest &&
-                    <Grid size={{ xs: 12, md: 12 }} border={1} borderColor={'static.border'} mt={0.4} p={2} overflow={'auto'} borderRadius={1} height={310}>
-                        <FormattedJsonSection value={JSON.stringify(values?.ruleRequest)} />
-                    </Grid>
+                    <FormattedJsonSection label="RuleRequest" value={JSON.stringify(values?.ruleRequest)} />
                 }
             </Section>
 

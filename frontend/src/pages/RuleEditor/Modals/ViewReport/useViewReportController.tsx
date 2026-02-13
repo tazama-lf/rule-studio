@@ -18,7 +18,6 @@ const useViewReportController = (props: IViewReport) => {
   const [getReport, { isLoading }] = useLazyGetReportQuery()
   const [htmlContent, setHtmlContent] = useState<string>('')
 
-
   const handleReport = useCallback(() => {
     const body = {
       organization: 'psl-copilot',
@@ -28,14 +27,16 @@ const useViewReportController = (props: IViewReport) => {
     getReport({ ...body })
       .unwrap()
       .then((res) => {
-        if (res) {
+        if (res && typeof res === 'string') {
           setHtmlContent(res)
+        } else {
+          toast.error('Invalid report format received')
         }
       })
       .catch(() => {
         toast.error('Failed to fetch report')
       })
-  }, [getReport])
+  }, [getReport, data?.id])
 
   useEffect(() => {
     handleReport()

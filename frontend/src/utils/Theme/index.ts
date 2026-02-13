@@ -15,12 +15,14 @@ const theme = () => {
     const staticColorPalette = {
         primary: '#1f2937',
         secondary: '#4b7eee',
+        skyBlue: '#dbeafe',
         ternary: '#616a76',
         black: '#000',
         white: '#fff',
         lightBlue: '#eff6ff',
         border: '#dfddde',
-        grey: '#fbf9fa'
+        grey: '#fbf9fa',
+        lightGrey: '#f3f4f6'
     };
 
     return {

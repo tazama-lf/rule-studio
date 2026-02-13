@@ -16,14 +16,14 @@ const ModalFooter = ({ onSubmit, isSubmitting = false, type = 'primary', title =
     return (
         <Box
             sx={{
+                width: '100%',
                 display: "flex",
                 justifyContent: "flex-end",
                 gap: 2,
-                mt: 3,
             }}
         >
-            <Button height="35px" text="Cancel" size="sm" onClick={close} type="muted" />
-            <Button height="35px" type={type} text={title} onClick={onSubmit} size="md" loading={isSubmitting} />
+            <Button height="35px" type={'danger'} text="Cancel" size="sm" onClick={close} />
+            <Button height="35px" type={type} text={title} onClick={onSubmit} size="sm" loading={isSubmitting} />
         </Box>
     );
 };
