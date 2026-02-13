@@ -43,9 +43,12 @@ import {
   RULE,
   RULES_WITH_ID,
   BASE_URL,
+  GET_SIMULATION_LOGS,
+  INSERT_SIMULATION_LOGS,
 } from '../constants/constant';
 import { ResponseQueryNodeDto } from './nodes/dto/responseNode.dto';
 import { RuleRequest } from '../services/parse-extract/dto/message.dto';
+import { SimulationLogsDto } from './simulation-logs/dto';
 
 @Injectable()
 export class AdminServiceClient {
@@ -452,5 +455,22 @@ async getAllNodes(
       dbName: data.dbName,
       params: data.params,
     });
+  }
+
+  async getSimulationLogs(token: string, ruleId: string, query: { category: string }): Promise<SimulationLogsDto> {
+    return await this.executeHttpRequest<SimulationLogsDto>(
+      'GET', `${GET_SIMULATION_LOGS.replace(':ruleId', ruleId)}${query && Object.keys(query).length ? '?' + new URLSearchParams(query as Record<string, string>).toString() : ''}`,
+      token,
+    );
+  }
+
+  async insertSimulationLogs(token: string, logs: unknown): Promise<SimulationLogsDto> {
+    console
+    return await this.executeHttpRequest(
+      'POST',
+      INSERT_SIMULATION_LOGS,
+      token,
+      logs,
+    );
   }
 }

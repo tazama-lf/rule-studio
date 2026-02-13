@@ -140,7 +140,7 @@ export class Rules extends RuleBaseDto {
   @IsObject()
   @ValidateNested()
   @Type(() => MetaDataDto)
-  meta_data?: MetaDataDto;
+  metadata?: MetaDataDto;
 
   @ApiPropertyOptional({
     description: 'Last update timestamp',

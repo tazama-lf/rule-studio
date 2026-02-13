@@ -26,5 +26,10 @@ export const CREATE_NODES = `${NODES}/create`;
 export const QUERY_NODES = `${NODES}/query`;
 export const DELETE_NODES = `${NODES}/delete`;
 
+// Simulation Logs
+export const SIMULATION_LOGS = '/v1/admin/simulation-logs';
+export const INSERT_SIMULATION_LOGS = `${SIMULATION_LOGS}/insert`;
+export const GET_SIMULATION_LOGS = `${SIMULATION_LOGS}/:ruleId`;
+
 // Base rule for cloning flow
 export const BASE_RULE_ID = '21';

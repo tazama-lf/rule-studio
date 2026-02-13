@@ -7,6 +7,7 @@ import { RulesModule } from './services/rules/rules.module';
 import { ConfigModule } from './services/config/config.module';
 import { NodesModule } from './services/nodes/nodes.module';
 import { ParseExtractModule } from './services/parse-extract/parse-extract.module';
+import { SimulationLogsModule } from './services/simulation-logs/simulation-logs.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { ParseExtractModule } from './services/parse-extract/parse-extract.modul
     ConfigModule,
     NodesModule,
     ParseExtractModule,
+    SimulationLogsModule
   ],
   controllers: [AppController],
   providers: [AppService],
