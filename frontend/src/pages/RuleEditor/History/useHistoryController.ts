@@ -40,10 +40,10 @@ const useHistoryController = (props: IHistory) => {
             key: 'created_at',
         },
     ]
+
     const handlePrevious = () => {
         enablePreviousTab()
     }
-
 
     return {
         values: {
