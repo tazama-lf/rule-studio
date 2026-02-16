@@ -23,7 +23,12 @@ const useRuleBuilderController = (props: IRuleBuilder) => {
     const { enableNextTab, enablePreviousTab } = useTab()
 
     const handleBuilder = () => {
-        window.location.href = `/rule-builder/${data?.id}`
+        if(data.status.includes('IN_PROGRESS')){
+            window.location.href = `/rule-builder/${data?.id}`
+        }
+        else {
+            window.location.href = `/rule-builder/view/${data?.id}`
+        }
     }
 
     const handleNext = () => {

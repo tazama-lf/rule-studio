@@ -32,7 +32,12 @@ const useTestCasesController = (props: ITestCases) => {
     }
 
     const handleCanvas = () => {
-        window.location.href = `/test-case-generate/${data?.id}`
+        if(data.status.includes('IN_PROGRESS')){
+            window.location.href = `/test-case-generate/${data?.id}`
+        }
+        else {
+            window.location.href = `/test-case-generate/view/${data?.id}`
+        }
     }
 
     const flowStatus = flowData?.result?.status || 'initial'

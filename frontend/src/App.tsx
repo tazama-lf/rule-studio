@@ -61,8 +61,6 @@ function App() {
                 }
               </Route>
             </Route>
-
-
           </Routes>
         </ModalProvider>
       </ThemeProvider>
