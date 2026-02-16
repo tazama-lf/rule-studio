@@ -5,6 +5,7 @@ import {
     IsDateString,
     IsObject,
     IsEnum,
+    IsOptional,
 } from 'class-validator';
 import { SimulationLogCategory } from "src/utils/enums/simulation.enum";
 
@@ -24,7 +25,8 @@ export class SimulationLogsDto {
 
     @ApiProperty({ description: 'old data for the simulation', example: { key: 'value' } })
     @IsObject()
-    old_data: Record<string, unknown>;
+    @IsOptional()
+    old_data?: Record<string, unknown>;
 
     @ApiProperty({ description: 'updated data from the simulation', example: { result: 'success' } })
     @IsObject()
@@ -54,13 +56,15 @@ export class SimulationLogsDto {
 export class RequestSimulationLogsDto {
     @ApiProperty({ description: 'old data for the simulation', example: { key: 'value' } })
     @IsObject()
-    old_data: Record<string, unknown>;
+    @IsOptional()
+    old_data?: Record<string, unknown>;
 
     @ApiProperty({ description: 'updated data from the simulation', example: { result: 'success' } })
     @IsObject()
     new_data: Record<string, unknown>;
 
     @ApiProperty({ description: 'description of the simulation log', example: 'Simulation log for rule execution' })
+    @IsOptional()
     @IsString()
     description?: string;
 
