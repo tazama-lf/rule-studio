@@ -78,27 +78,31 @@ const Simulation = (props: ISimulation) => {
                     </Grid>
                 </Box>
                 <Box display={'flex'} gap={2}>
-                    <Button
-                        height="40px"
-                        width="170px"
-                        type="secondary"
-                        size="lg"
-                        text={!values?.codeSynced ? "Synced" : "Sync On Github"}
-                        Icon={UploadIcon}
-                        loading={values?.uploading}
-                        disabled={!values?.codeSynced}
-                        onClick={functions.handleUpload}
-                    />
-                    <Button
-                        height="40px"
-                        width="170px"
-                        type="secondary"
-                        size="md"
-                        text={values?.codeDeployed ? "Rule Deployed" : "Deploy Rule"}
-                        loading={values?.deploying}
-                        disabled={!values?.viewReport || values?.codeDeployed}
-                        onClick={functions.handleDeploy}
-                    />
+                    {claims.editor === values?.claim &&
+                        <>
+                            <Button
+                                height="40px"
+                                width="170px"
+                                type="secondary"
+                                size="lg"
+                                text={!values?.codeSynced ? "Synced" : "Sync On Github"}
+                                Icon={UploadIcon}
+                                loading={values?.uploading}
+                                disabled={!values?.codeSynced}
+                                onClick={functions.handleUpload}
+                            />
+                            <Button
+                                height="40px"
+                                width="170px"
+                                type="secondary"
+                                size="md"
+                                text={values?.codeDeployed ? "Rule Deployed" : "Deploy Rule"}
+                                loading={values?.deploying}
+                                disabled={!values?.viewReport || values?.codeDeployed || values?.isReportFailed}
+                                onClick={functions.handleDeploy}
+                            />
+                        </>
+                    }
                     <Button
                         height="40px"
                         width="170px"

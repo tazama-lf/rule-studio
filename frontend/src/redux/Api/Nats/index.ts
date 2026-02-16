@@ -1,9 +1,9 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { getAuthToken } from "../../../utils/Common/storage";
 
-const BASE_URL = import.meta.env.DEV 
-    ? '/nats-proxy' 
-    : (import.meta.env.VITE_NATS_API_URL as string);
+const BASE_URL = import.meta.env.VITE_NATS_API_URL 
+    // ? '/nats-proxy' 
+    // : (import.meta.env.VITE_NATS_API_URL as string);
 
 export const natsApi = createApi({
     reducerPath: 'natsApi',

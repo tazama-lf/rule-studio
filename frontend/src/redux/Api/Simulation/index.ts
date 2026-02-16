@@ -49,19 +49,7 @@ export const simulationApi = createApi({
                 method: "GET",
             }),
         }),
-        getSimulationLogs: builder.query({
-            query: ({ ruleId }) => ({
-                url: `/simulation-logs/${ruleId}?category=read_only`,
-                method: "GET",
-            }),
-        }),
-        addSimulationlogs: builder.mutation({
-            query: ({ body, id }) => ({
-                url: `/simulation-logs/insert/${id}`,
-                method: "POST",
-                body: { ...body },
-            }),
-        }),
+       
     }),
 })
 
@@ -71,6 +59,4 @@ export const {
     useMergeBranchMutation,
     useLazyGetReportQuery,
     useLazyGetReportStatusQuery,
-    useGetSimulationLogsQuery,
-    useAddSimulationlogsMutation
 } = simulationApi

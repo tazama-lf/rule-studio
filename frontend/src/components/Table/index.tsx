@@ -50,11 +50,25 @@ const Table = ({
     onRowClick,
     getRowClassName,
     getRowStyle,
+    serial_no = false,
 }: TableProps) => {
-    const headers = [...columns];
+    const headers = serial_no
+        ? [{ key: 'serial_no', label: 'S.No.' }, ...columns]
+        : [...columns];
 
     const renderRow = (row: Record<string, unknown>, index: number) => (
         <>
+            {serial_no && (
+                <TableCell
+                    key={`serial_no-${index}`}
+                    sx={{
+                        borderBottom: "1px solid #e0e0e0",
+                        textAlign: 'left',
+                    }}
+                >
+                    {(pagination ? (pagination.offset - 1) * pagination.limit : 0) + index + 1}
+                </TableCell>
+            )}
             {columns.map((col) => (
                 <TableCell
                     key={`${(row as Record<string, unknown>)?.id ?? index}-${col.key}`}
