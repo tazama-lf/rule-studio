@@ -8,6 +8,7 @@ import { ConfigModule } from './services/config/config.module';
 import { NodesModule } from './services/nodes/nodes.module';
 import { ParseExtractModule } from './services/parse-extract/parse-extract.module';
 import { SimulationLogsModule } from './services/simulation-logs/simulation-logs.module';
+import { createAuditProvider } from '@tazama-lf/audit-lib';
 
 @Module({
   imports: [
@@ -20,6 +21,10 @@ import { SimulationLogsModule } from './services/simulation-logs/simulation-logs
     SimulationLogsModule
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    // Audit logging provider for tracking critical user actions
+    createAuditProvider('rule-studio-backend'),
+  ],
 })
 export class AppModule {}
