@@ -25,6 +25,7 @@ import {
   TazamaClaims,
   RequireAnyClaims,
 } from '../../decorators/auth.decorator';
+import { Audit } from '../../decorators/audit.decorator';
 import { RulesService } from './rules.service';
 import {
   Rules,
@@ -144,6 +145,7 @@ export class RulesController {
   // create a new rule
   @Post('/api/create')
   @RequireAnyClaims(TazamaClaims.EDITOR)
+  @Audit() // Audit rule creation actions
   @ApiBody({
     type: Rules,
     description: 'Rule data for creation',
@@ -201,6 +203,7 @@ export class RulesController {
   // update an existing rule
   @Put('/api/:ruleId')
   @RequireAnyClaims(TazamaClaims.EDITOR)
+  @Audit() // Audit rule modification actions
   @ApiParam({
     name: 'ruleId',
     description: 'Rule identifier to update',
@@ -291,6 +294,7 @@ export class RulesController {
     TazamaClaims.APPROVER,
     TazamaClaims.PUBLISHER,
   )
+  @Audit() // Audit rule flow creation
   @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: '001' })
   @ApiBody({
     type: RequestFlow,
@@ -378,6 +382,7 @@ export class RulesController {
   // update rule flow configuration
   @Put('/api/:ruleId/flow')
   @RequireAnyClaims(TazamaClaims.EDITOR)
+  @Audit() // Audit rule flow modification
   @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: '001' })
   @ApiBody({
     type: RequestSaveFlow,
@@ -438,6 +443,7 @@ export class RulesController {
   // clone an existing rule
   @Post('/api/clone/:ruleId')
   @RequireAnyClaims(TazamaClaims.EDITOR)
+  @Audit() // Audit rule cloning actions
   @ApiParam({
     name: 'ruleId',
     description: 'Source rule identifier to clone',
@@ -470,6 +476,7 @@ export class RulesController {
     TazamaClaims.APPROVER,
     TazamaClaims.PUBLISHER,
   )
+  @Audit() // Audit rule status changes (critical for compliance)
   @ApiParam({
     name: 'ruleId',
     description: 'Rule identifier',
