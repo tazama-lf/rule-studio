@@ -219,7 +219,7 @@ export class AdminServiceClient {
     return response.ruleIds;
   }
 
-  async getRuleConfiguration(ruleId: string, token: string): Promise<{}> {
+  async getRuleConfiguration(ruleId: string, token: string): Promise<Record<string, unknown>> {
     const response = await this.executeHttpRequest<{ configuration: Record<string, unknown> }>(
       'GET',
       `${RULE_CONFIGURATION}/${ruleId}`,

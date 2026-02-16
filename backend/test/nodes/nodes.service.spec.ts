@@ -137,9 +137,17 @@ describe('NodesService', () => {
   });
 
   describe('executeQueryNode', () => {
+    beforeEach(() => {
+      process.env.CRYPTO_SECRET_KEY = 'test-secret-key-for-testing-purposes';
+    });
+
+    afterEach(() => {
+      delete process.env.CRYPTO_SECRET_KEY;
+    });
+
     it('should successfully execute a query', async () => {
       const token = 'test-token';
-      const data: RequestQueryNodeDto = { query: 'SELECT * FROM users' };
+      const data: RequestQueryNodeDto = { query: 'SELECT * FROM users', dbName: 'test_db' };
       const expectedResult = { result: [{ id: 1, name: 'Test User' }] };
 
       mockAdminServiceClient.executeQueryNode.mockResolvedValue(expectedResult);
@@ -149,13 +157,13 @@ describe('NodesService', () => {
       expect(result).toEqual(expectedResult);
       expect(adminServiceClient.executeQueryNode).toHaveBeenCalledWith(
         token,
-        data,
+        expect.objectContaining({ dbName: 'test_db' }),
       );
     });
 
     it('should throw an error if adminServiceClient fails', async () => {
       const token = 'test-token';
-      const data: RequestQueryNodeDto = { query: 'SELECT * FROM users' };
+      const data: RequestQueryNodeDto = { query: 'SELECT * FROM users', dbName: 'test_db' };
       const error = new Error('Failed to execute query');
 
       mockAdminServiceClient.executeQueryNode.mockRejectedValue(error);

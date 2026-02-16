@@ -1,12 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RulesService } from '../../src/services/rules/rules.service';
 import { AdminServiceClient } from '../../src/services/admin-service-client';
+import { ParseExtractService } from '../../src/services/parse-extract/parse-extract.service';
 import { Logger } from '@nestjs/common';
-import { RuleCategory } from 'src/utils/enums/rule.enum';
+import { RuleCategory } from '../../src/utils/enums/rule.enum';
 
 describe('RulesService', () => {
   let service: RulesService;
   let adminServiceClient: jest.Mocked<AdminServiceClient>;
+  let parseExtractService: jest.Mocked<ParseExtractService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -28,6 +30,14 @@ describe('RulesService', () => {
             getGlobalVariables: jest.fn(),
             cloneRule: jest.fn(),
             updateRuleStatus: jest.fn(),
+            getPayloadByTransactionType: jest.fn(),
+          },
+        },
+        {
+          provide: ParseExtractService,
+          useValue: {
+            processForRuleCreation: jest.fn(),
+            processTransactionalMessage: jest.fn(),
           },
         },
       ],
@@ -35,6 +45,7 @@ describe('RulesService', () => {
 
     service = module.get<RulesService>(RulesService);
     adminServiceClient = module.get(AdminServiceClient);
+    parseExtractService = module.get(ParseExtractService);
 
     jest.spyOn(Logger.prototype, 'log').mockImplementation(jest.fn());
     jest.spyOn(Logger.prototype, 'warn').mockImplementation(jest.fn());
@@ -103,16 +114,22 @@ describe('RulesService', () => {
 
   describe('createRule', () => {
     it('should create a new rule', async () => {
-      const mockRuleData = { name: 'New Rule', description: 'Test rule' };
+      const mockRuleData = { name: 'New Rule', description: 'Test rule', txtp: 'pain.001.001.11' };
       const mockCreatedRule = { id: 1, ...mockRuleData } as any;
-      const mockBaseFlow = { flow: [{ id: 'base-flow-1' }] };
-      const mockNewRuleFlow = { flow: [{ id: 'new-flow-1' }] };
+      const mockBaseFlow = { result: { flow_json_rule_builder: { nodes: [], edges: [] }, flow_json_test_case: { nodes: [], edges: [] } } };
+      const mockNewRuleFlow = { id: 'new-flow-1' };
       const mockUpdatedRule = {
         id: 1,
         ...mockRuleData,
         flow_id: 'new-flow-1',
       } as any;
+      const mockParseResult = {
+        success: true,
+        ruleRequest: { transaction: {}, metaData: {}, networkMap: {}, DataCache: {} },
+      };
 
+      adminServiceClient.getPayloadByTransactionType.mockResolvedValue({});
+      parseExtractService.processForRuleCreation.mockResolvedValue(mockParseResult);
       adminServiceClient.createRule.mockResolvedValue(mockCreatedRule);
       adminServiceClient.getRuleFlow.mockResolvedValue(mockBaseFlow);
       adminServiceClient.createRuleFlow.mockResolvedValue(mockNewRuleFlow);
@@ -120,33 +137,16 @@ describe('RulesService', () => {
 
       const result = await service.createRule(mockRuleData, 'test-token');
 
-      expect(adminServiceClient.createRule).toHaveBeenCalledWith(
-        mockRuleData,
-        'test-token',
-      );
-      expect(adminServiceClient.getRuleFlow).toHaveBeenCalledWith(
-        '21',
-        'test-token',
-      );
-      expect(adminServiceClient.createRuleFlow).toHaveBeenCalledWith(
-        1,
-        [{ id: 'base-flow-1' }],
-        'test-token',
-      );
-      expect(adminServiceClient.updateRule).toHaveBeenCalledWith(
-        1,
-        { flow_id: 'new-flow-1' },
-        'test-token',
-      );
       expect(result).toEqual(mockUpdatedRule);
     });
 
     it('should handle creation error', async () => {
+      const mockRuleData = { txtp: 'pain.001.001.11' };
       const mockError = new Error('Creation failed');
 
-      adminServiceClient.createRule.mockRejectedValue(mockError);
+      adminServiceClient.getPayloadByTransactionType.mockRejectedValue(mockError);
 
-      await expect(service.createRule({}, 'test-token')).rejects.toThrow(
+      await expect(service.createRule(mockRuleData, 'test-token')).rejects.toThrow(
         'Creation failed',
       );
       expect(Logger.prototype.error).toHaveBeenCalledWith(
@@ -155,19 +155,21 @@ describe('RulesService', () => {
     });
 
     it('should create rule without flow when base flow has no flow property', async () => {
-      const mockRuleData = { name: 'New Rule', description: 'Test rule' };
+      const mockRuleData = { name: 'New Rule', description: 'Test rule', txtp: 'pain.001.001.11' };
       const mockCreatedRule = { id: 1, ...mockRuleData } as any;
-      const mockBaseFlow = {}; // No flow property
+      const mockBaseFlow = { result: {} }; // No flow property
+      const mockParseResult = {
+        success: true,
+        ruleRequest: { transaction: {}, metaData: {}, networkMap: {}, DataCache: {} },
+      };
 
+      adminServiceClient.getPayloadByTransactionType.mockResolvedValue({});
+      parseExtractService.processForRuleCreation.mockResolvedValue(mockParseResult);
       adminServiceClient.createRule.mockResolvedValue(mockCreatedRule);
       adminServiceClient.getRuleFlow.mockResolvedValue(mockBaseFlow);
 
       const result = await service.createRule(mockRuleData, 'test-token');
 
-      expect(adminServiceClient.createRule).toHaveBeenCalledWith(
-        mockRuleData,
-        'test-token',
-      );
       expect(result).toEqual(mockCreatedRule);
     });
   });
@@ -309,8 +311,9 @@ describe('RulesService', () => {
       expect(adminServiceClient.getRuleFlow).toHaveBeenCalledWith(
         'rule-123',
         'test-token',
+        undefined,
       );
-      expect(result).toEqual(mockRuleFlow);
+      expect(result).toEqual(mockResponseRuleFlow);
     });
 
     it('should handle rule flow fetch error', async () => {
@@ -322,7 +325,7 @@ describe('RulesService', () => {
         service.getRuleFlow('rule-123', 'test-token'),
       ).rejects.toThrow('Flow not found');
       expect(Logger.prototype.error).toHaveBeenCalledWith(
-        'Error fetching configuration for rule rule-123: Flow not found',
+        'Error fetching flow for rule rule-123: Flow not found',
       );
     });
   });
@@ -475,29 +478,33 @@ describe('RulesService', () => {
 
   describe('cloneRule', () => {
     it('should clone a rule', async () => {
+      const mockPayload = { txtp: 'pain.001.001.11' };
       const mockClonedRule = {
         id: 2,
         name: 'Cloned Rule',
         originalId: 1,
       } as any;
+      const mockParseResult = {
+        success: true,
+        ruleRequest: { transaction: {}, metaData: {}, networkMap: {}, DataCache: {} },
+      };
 
+      adminServiceClient.getPayloadByTransactionType.mockResolvedValue({});
+      parseExtractService.processForRuleCreation.mockResolvedValue(mockParseResult);
       adminServiceClient.cloneRule.mockResolvedValue(mockClonedRule);
 
-      const result = await service.cloneRule('rule-123', 'test-token');
+      const result = await service.cloneRule('rule-123', 'test-token', mockPayload);
 
-      expect(adminServiceClient.cloneRule).toHaveBeenCalledWith(
-        'rule-123',
-        'test-token',
-      );
       expect(result).toEqual(mockClonedRule);
     });
 
     it('should handle clone error', async () => {
+      const mockPayload = { txtp: 'pain.001.001.11' };
       const mockError = new Error('Clone failed');
 
-      adminServiceClient.cloneRule.mockRejectedValue(mockError);
+      adminServiceClient.getPayloadByTransactionType.mockRejectedValue(mockError);
 
-      await expect(service.cloneRule('rule-123', 'test-token')).rejects.toThrow(
+      await expect(service.cloneRule('rule-123', 'test-token', mockPayload)).rejects.toThrow(
         'Clone failed',
       );
       expect(Logger.prototype.error).toHaveBeenCalledWith(

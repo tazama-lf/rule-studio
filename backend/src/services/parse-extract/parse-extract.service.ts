@@ -35,8 +35,7 @@ export class ParseExtractService {
       this.logger.log(
         `Processing transactional message for ${request.TxTp} [${correlationId}]`,
       );
-      this.logger.log('tenant id is ', request.TenantId);
-
+      this.logger.log(`tenant id is ${request.TenantId}`);
       const result = await this.processTransactionPayload(
         request,
         token,
@@ -226,7 +225,6 @@ export class ParseExtractService {
     validationErrors?: string[];
   }> {
     const correlationId = randomUUID();
-    console.log("request is forming as ", request)
 
     try {
       this.logger.log(
