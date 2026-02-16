@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { getAuthToken } from "../../../utils/Common/storage";
 
-const BASE_URL = import.meta.env.VITE_API_URL as string;
+const BASE_URL = import.meta.env.VITE_SANDBOX_API_URL as string;
 
 export const simulationApi = createApi({
     reducerPath: 'simulationApi',
@@ -55,6 +55,13 @@ export const simulationApi = createApi({
                 method: "GET",
             }),
         }),
+        addSimulationlogs: builder.mutation({
+            query: ({ body, id }) => ({
+                url: `/simulation-logs/insert/${id}`,
+                method: "POST",
+                body: { ...body },
+            }),
+        }),
     }),
 })
 
@@ -64,5 +71,6 @@ export const {
     useMergeBranchMutation,
     useLazyGetReportQuery,
     useLazyGetReportStatusQuery,
-    useGetSimulationLogsQuery
+    useGetSimulationLogsQuery,
+    useAddSimulationlogsMutation
 } = simulationApi

@@ -27,6 +27,12 @@ export const ruleBuilderApi = createApi({
                 method: "GET",
             }),
         }),
+        getAllFlow: builder.query({
+            query: ({ ruleId }: { ruleId: string | number }) => ({
+                url: `rules/api/${ruleId}/flow`,
+                method: "GET",
+            }),
+        }),
         saveFlow: builder.mutation({
             query: ({ ruleId, flowData, category = 'rule_builder' }: { ruleId: string | number; flowData: unknown; category?: string }) => ({
                 url: `rules/api/${ruleId}/flow`,
@@ -51,7 +57,7 @@ export const ruleBuilderApi = createApi({
             query: ({ ruleId, category = 'rule_builder' }: { ruleId: string | number; category?: string }) => ({
                 url: `rules/api/${ruleId}/flow/status?category=${category}`,
                 method: "GET",
-            }), 
+            }),
         })
     }),
 })
@@ -63,5 +69,6 @@ export const {
     useGetGlobalVariablesQuery,
     useLazyGetGlobalVariablesQuery,
     useExecuteQueryMutation,
-    useGetRuleFlowStatusQuery
+    useGetRuleFlowStatusQuery,
+    useGetAllFlowQuery
 } = ruleBuilderApi

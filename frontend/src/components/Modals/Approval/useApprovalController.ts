@@ -5,7 +5,7 @@ import { Status } from "../../../utils/Constants/data";
 import { useModal } from "../../../contexts/ModalContext";
 
 export interface IApproval {
-    type: 'review' | 'approve' | 'reject' | 'pause' | 'resume',
+    type: 'review' | 'approve' | 'reject' | 'pause' | 'resume' | 'deploy',
     id: string | unknown,
     onSuccess?: () => void
 }
@@ -19,7 +19,8 @@ const message = {
     reject: 'Important: This will reject the rule and send it back to the maker for revisions.',
     review: 'Important: This will submit the rule for approval and update its status to UNDER REVIEW.',
     pause: 'This will put the rule on hold. You can resume it later.',
-    resume: 'This will change the rule status back to IN PROGRESS.'
+    resume: 'This will change the rule status back to IN PROGRESS.',
+    deploy: 'Important: This will deploy the rule to production stage.'
 }
 
 const header = {
@@ -28,6 +29,7 @@ const header = {
     review: 'Are you sure you want to send this rule for review?',
     pause: 'Are you sure you want to pause this rule?',
     resume: 'Are you sure you want to resume this rule?',
+    deploy: 'Are you sure you want to deploy this rule?'
 }
 
 const getBtnTitle = (type: IApproval['type']) => {
@@ -37,6 +39,7 @@ const getBtnTitle = (type: IApproval['type']) => {
         case 'review': return 'Submit For Approval'
         case 'pause': return 'Yes, Pause Rule'
         case 'resume': return 'Yes, Resume Rule'
+        case 'deploy': return 'Yes, Deploy Rule'
     }
 }
 
@@ -47,6 +50,7 @@ const getStatus = (type: IApproval['type']) => {
         case 'review': return Status.STATUS_03_UNDER_REVIEW
         case 'pause': return Status.STATUS_02_ON_HOLD
         case 'resume': return Status.STATUS_01_IN_PROGRESS
+        case 'deploy': return Status.STATUS_08_DEPLOYED
     }
 }
 
@@ -57,6 +61,13 @@ const getTheme = (type: IApproval['type']) => {
                 bgColor: '#edf7ed',
                 borderColor: 'success.main',
                 textColor: 'text.black',
+                buttonType: 'primary' as const
+            }
+        case 'deploy':
+            return {
+                bgColor: '#4f46e5',
+                borderColor: '#4f46e5',
+                textColor: 'text.white',
                 buttonType: 'primary' as const
             }
         case 'review':

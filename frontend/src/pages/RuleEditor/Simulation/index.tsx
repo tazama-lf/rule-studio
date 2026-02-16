@@ -17,6 +17,13 @@ const Simulation = (props: ISimulation) => {
 
     const { values, functions } = useSimulationController(props);
 
+
+    if (values?.isLoading) {
+        return <Box width={'100%'} height={'60vh'} alignItems={'center'} display={'flex'} justifyContent={'center'}>
+            <Loader />
+        </Box>
+    }
+
     const SimulationBox = ({ data }: { data: typeof simulations[0] }) => {
         const Icon = data.icon;
 
@@ -76,10 +83,10 @@ const Simulation = (props: ISimulation) => {
                         width="170px"
                         type="secondary"
                         size="lg"
-                        text={values?.codeSynced ? "Synced" : "Sync On Github"}
+                        text={!values?.codeSynced ? "Synced" : "Sync On Github"}
                         Icon={UploadIcon}
                         loading={values?.uploading}
-                        // disabled={values?.codeSynced}
+                        disabled={!values?.codeSynced}
                         onClick={functions.handleUpload}
                     />
                     <Button
@@ -89,7 +96,7 @@ const Simulation = (props: ISimulation) => {
                         size="md"
                         text={values?.codeDeployed ? "Rule Deployed" : "Deploy Rule"}
                         loading={values?.deploying}
-                        // disabled={!values?.codeDeployed && !values?.viewReport}
+                        disabled={!values?.viewReport || values?.codeDeployed}
                         onClick={functions.handleDeploy}
                     />
                     <Button
@@ -99,7 +106,7 @@ const Simulation = (props: ISimulation) => {
                         size="md"
                         text="View Test Report"
                         loading={values?.loader}
-
+                        disabled={!values?.viewReport}
                         onClick={functions.handleReport}
                     />
                 </Box>
@@ -226,7 +233,16 @@ const Simulation = (props: ISimulation) => {
                                 onClick={() => functions.handleApproval('review')}
                                 text="Send For Approval"
                             />
-                            : null
+                            :
+                            values?.claim === claims.publisher ?
+                                <Button
+                                    height="40px"
+                                    size="md"
+                                    type='secondary'
+                                    onClick={() => functions.handleApproval('review')}
+                                    text="Deploy to Production"
+                                />
+                                : null
                     }
                     <Button
                         height="40px"

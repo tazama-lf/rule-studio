@@ -131,7 +131,9 @@ const useHomeController = () => {
                             onEdit: () => handleCreateEdit(row as Record<string, string>),
                             onHold: () => handleHold(row as Record<string, string>),
                         } : {}),
-                        onClone: () => handleClone(row as Record<string, string>)
+                        ...(row?.status === Status.STATUS_03_UNDER_REVIEW || row?.status === Status.STATUS_04_APPROVED ? {
+                            onClone: () => handleClone(row as Record<string, string>)
+                        } : {}),
                     })}
                 />
             )
