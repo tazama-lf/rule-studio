@@ -54,6 +54,14 @@ export const rulesApi = createApi({
             }),
             invalidatesTags: ['rule']
         }),
+        updateMetadata: builder.mutation({
+            query: ({ id, body }) => ({
+                url: `${id}/metadata`,
+                method: "PUT",
+                body: { ...body },
+            }),
+            invalidatesTags: ['rule']
+        }),
         getRuleById: builder.query({
             query: ({ id }) => ({
                 url: `${id}`,
@@ -98,5 +106,6 @@ export const {
     useGetStatusQuery,
     useUpdateRuleMutation,
     useUpdateStatusMutation,
-    useCloneRuleMutation
+    useCloneRuleMutation,
+    useUpdateMetadataMutation
 } = rulesApi

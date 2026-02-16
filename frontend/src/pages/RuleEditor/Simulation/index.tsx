@@ -79,7 +79,7 @@ const Simulation = (props: ISimulation) => {
                         text={values?.codeSynced ? "Synced" : "Sync On Github"}
                         Icon={UploadIcon}
                         loading={values?.uploading}
-                        disabled={values?.codeSynced}
+                        // disabled={values?.codeSynced}
                         onClick={functions.handleUpload}
                     />
                     <Button
@@ -89,7 +89,7 @@ const Simulation = (props: ISimulation) => {
                         size="md"
                         text={values?.codeDeployed ? "Rule Deployed" : "Deploy Rule"}
                         loading={values?.deploying}
-                        disabled={!values?.codeSynced || !values?.viewReport || values?.codeDeployed}
+                        // disabled={!values?.codeDeployed && !values?.viewReport}
                         onClick={functions.handleDeploy}
                     />
                     <Button
@@ -99,7 +99,7 @@ const Simulation = (props: ISimulation) => {
                         size="md"
                         text="View Test Report"
                         loading={values?.loader}
-                        disabled={!values?.viewReport}
+
                         onClick={functions.handleReport}
                     />
                 </Box>

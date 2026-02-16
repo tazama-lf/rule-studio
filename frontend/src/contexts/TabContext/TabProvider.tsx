@@ -51,7 +51,7 @@ export const TabProvider = ({ children }: TabProviderProps) => {
 
     const enablePreviousTab = useCallback(() => {
         const currentIndex = filteredTabs.findIndex(t => t.value === selectedTab)
-        if (currentIndex >= 0 && currentIndex < filteredTabs.length - 1) {
+        if (currentIndex >= 0 && currentIndex < filteredTabs.length) {
             const nextTab = filteredTabs[currentIndex - 1]
             setEnabledTabs(prev => {
                 if (!prev.includes(nextTab.value)) {
