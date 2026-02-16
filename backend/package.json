@@ -34,6 +34,7 @@
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/swagger": "^11.2.5",
+    "@tazama-lf/audit-lib": "^1.0.0",
     "@tazama-lf/auth-lib": "3.0.0",
     "@tazama-lf/frms-coe-lib": "7.0.0-rc.0",
     "@tazama-lf/frms-coe-startup-lib": "3.0.0",
