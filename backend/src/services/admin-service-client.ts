@@ -182,6 +182,14 @@ export class AdminServiceClient {
     return response.versions;
   }
 
+  async getTxTpVersionsByTransactionType(
+    transactionType: string,
+    token: string,
+  ): Promise<string[]> {
+    // Using the existing method with consistent naming for validation service
+    return this.getVersionsOfTransactionType(transactionType, token);
+  }
+
   async saveRuleRequest(
     txTp: string,
     tenantId: string,

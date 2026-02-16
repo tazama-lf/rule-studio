@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { AdminServiceClient } from '../admin-service-client';
 import {
   ResponseRuleFlowDto,
@@ -16,6 +16,7 @@ import { ParseExtractService } from '../parse-extract/parse-extract.service';
 import { BASE_RULE_ID } from '../../constants/constant';
 import { AuthenticatedUser } from '../auth/auth.types';
 import { RuleCategory } from '../../utils/enums/rule.enum';
+import { RuleValidationService } from './validation/rule-validation.service';
 // import * as xml2js from 'xml2js';
 import { parseString, ParserOptions } from 'xml2js';
 
@@ -28,6 +29,7 @@ export class RulesService {
   constructor(
     private readonly adminServiceClient: AdminServiceClient,
     private readonly parseExtractService: ParseExtractService,
+    private readonly ruleValidationService: RuleValidationService,
   ) {}
   private async getRuleOrThrow(id: number, token: string): Promise<Rules> {
     try {
@@ -69,7 +71,35 @@ export class RulesService {
     tenantId: string,
   ): Promise<any> {
     try {
-      const transactionType = ruleData.txtp ?? "";
+      // Step 1: Validate all rule creation requirements
+      this.logger.log(`Starting rule validation for tenant: ${tenantId}`);
+      const validationResult = await this.ruleValidationService.validateRuleCreation(
+        ruleData, 
+        token, 
+        tenantId
+      );
+
+      if (!validationResult.isValid) {
+        this.logger.error(`Rule validation failed: ${JSON.stringify(validationResult.errors)}`);
+        throw new BadRequestException({
+          message: 'Rule validation failed',
+          errors: validationResult.errors,
+        });
+      }
+
+      // Step 2: Apply default values and generate rule name if needed
+      const processedRuleData = this.ruleValidationService.applyDefaults(ruleData);
+      
+      if (!processedRuleData.ruleName) {
+        processedRuleData.ruleName = this.ruleValidationService.generateDefaultRuleName(
+          tenantId, 
+          processedRuleData.rule_config_id
+        );
+        this.logger.log(`Generated rule name: ${processedRuleData.ruleName}`);
+      }
+
+      // Step 3: Process transaction type payload (existing logic)
+      const transactionType = processedRuleData.txtp ?? "";
       
       const result = await this.adminServiceClient.getPayloadByTransactionType(
         transactionType,
@@ -132,8 +162,9 @@ export class RulesService {
       );
       // console.log("Parse result for transactional message:", parseResult);
 
-      // admin service client ko aagay derha hun ruleRequest
-      const rule = await this.adminServiceClient.createRule(ruleData, token, parseResult.ruleRequest);
+      // Step 4: Create rule via admin service client
+      this.logger.log(`Creating rule with validated data: ${JSON.stringify(processedRuleData)}`);
+      const rule = await this.adminServiceClient.createRule(processedRuleData, token, parseResult.ruleRequest);
       let updatedRule = rule;
       if (rule.id) {
         const baseRuleFlow = await this.getRuleFlow(

@@ -10,6 +10,7 @@ import {
   Matches,
   IsEnum,
   IsBoolean,
+  MaxLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -18,7 +19,7 @@ import type {
   RuleRequest,
   RuleResult,
 } from '@tazama-lf/frms-coe-lib/lib/interfaces';
-import { RuleCategory, RuleFlowStatus } from 'src/utils/enums/rule.enum';
+import { RuleCategory, RuleFlowStatus, RuleType, RuleStatus, PublishingStatus } from 'src/utils/enums/rule.enum';
 
 export class MetaDataDto {
   @ApiPropertyOptional({ description: 'Sync status', example: true })
@@ -45,12 +46,13 @@ export class MetaDataDto {
 export class RuleBaseDto {
 
   @ApiProperty({
-    description: 'Rule name',
+    description: 'Rule name - ideally constructed from tenant_id->rule->rule_config_id',
     example: 'cbe-rule-061',
   })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  ruleName: string;
+  @MaxLength(255, { message: 'ruleName must not exceed 255 characters' })
+  ruleName?: string;
 
   @ApiProperty({
     description: 'Rule description',
@@ -58,6 +60,7 @@ export class RuleBaseDto {
   })
   @IsString()
   @IsNotEmpty()
+  @MaxLength(500, { message: 'description must not exceed 500 characters' })
   description: string;
 
   @ApiProperty({ description: 'Transaction type', example: 'pain.001.001.11' })
@@ -84,38 +87,46 @@ export class RuleBaseDto {
 
   @ApiPropertyOptional({
     description: 'Rule status',
-    example: 'ACTIVE',
-    enum: ['ACTIVE', 'INACTIVE', 'TESTING'],
+    example: 'STATUS_01_IN_PROGRESS',
+    enum: RuleStatus,
+    default: 'STATUS_01_IN_PROGRESS',
   })
   @IsOptional()
-  @IsString()
-  status?: string;
+  @IsEnum(RuleStatus, {
+    message: `status must be one of: ${Object.values(RuleStatus).join(', ')}`,
+  })
+  status?: RuleStatus;
 
   @ApiPropertyOptional({
-    description: 'Publishing status',
-    example: 'PUBLISHED',
-    enum: ['DRAFT', 'SUBMITTED', 'APPROVED', 'PUBLISHED'],
+    description: 'Publishing status - defaults to INACTIVE for new rules',
+    example: 'INACTIVE',
+    enum: PublishingStatus,
+    default: 'INACTIVE',
   })
   @IsOptional()
-  @IsString()
-  publishing_status?: string;
+  @IsEnum(PublishingStatus, {
+    message: `publishing_status must be one of: ${Object.values(PublishingStatus).join(', ')}`,
+  })
+  publishing_status?: PublishingStatus;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'Rule type classification',
     example: 'fraud_detection',
-    enum: ['fraud_detection', 'aml', 'security', 'compliance'],
+    enum: RuleType,
   })
-  @IsOptional()
-  @IsString()
-  rule_type?: string;
+  @IsEnum(RuleType, {
+    message: `rule_type must be one of: ${Object.values(RuleType).join(', ')}`,
+  })
+  rule_type: RuleType;
 
   @ApiPropertyOptional({
-    description: 'Configuration identifier',
+    description: 'Configuration identifier - conditional based on rule flow existence',
     example: 'CFG001',
     maxLength: 10,
   })
   @IsOptional()
   @IsString()
+  @MaxLength(10, { message: 'rule_config_id must not exceed 10 characters' })
   rule_config_id?: string;
 }
 
@@ -200,37 +211,45 @@ export class UpdateRuleDto {
 
   @ApiPropertyOptional({
     description: 'Rule status',
-    example: 'ACTIVE',
-    enum: ['ACTIVE', 'INACTIVE', 'TESTING'],
+    example: 'STATUS_01_IN_PROGRESS',
+    enum: RuleStatus,
   })
   @IsOptional()
-  @IsString()
-  status?: string;
+  @IsEnum(RuleStatus, {
+    message: `status must be one of: ${Object.values(RuleStatus).join(', ')}`,
+  })
+  status?: RuleStatus;
 
   @ApiPropertyOptional({
     description: 'Publishing status',
     example: 'PUBLISHED',
-    enum: ['DRAFT', 'SUBMITTED', 'APPROVED', 'PUBLISHED'],
+    enum: PublishingStatus,
   })
   @IsOptional()
-  @IsString()
-  publishing_status?: string;
+  @IsEnum(PublishingStatus, {
+    message: `publishing_status must be one of: ${Object.values(PublishingStatus).join(', ')}`,
+  })
+  publishing_status?: PublishingStatus;
 
   @ApiPropertyOptional({
     description: 'Rule type classification',
     example: 'fraud_detection',
-    enum: ['fraud_detection', 'aml', 'security', 'compliance'],
+    enum: RuleType,
   })
   @IsOptional()
-  @IsString()
-  rule_type?: string;
+  @IsEnum(RuleType, {
+    message: `rule_type must be one of: ${Object.values(RuleType).join(', ')}`,
+  })
+  rule_type?: RuleType;
 
   @ApiPropertyOptional({
     description: 'Configuration identifier',
     example: 'CFG001',
+    maxLength: 10,
   })
   @IsOptional()
   @IsString()
+  @MaxLength(10, { message: 'rule_config_id must not exceed 10 characters' })
   rule_config_id?: string;
 
   @ApiPropertyOptional({
