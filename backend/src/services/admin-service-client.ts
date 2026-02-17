@@ -374,12 +374,13 @@ async getAllNodes(
     payload: RequestFlow,
     token: string,
   ): Promise<ResponseRuleFlowDto> {
-    return await this.executeHttpRequest<ResponseRuleFlowDto>(
+    const result = await this.executeHttpRequest<{ flow: ResponseRuleFlowDto[] }>(
       'POST',
       `${RULE_FLOW}/${ruleId}`,
       token,
       payload,
     );
+    return result.flow[0] as ResponseRuleFlowDto;
   }
 
   async getRuleFlow(
