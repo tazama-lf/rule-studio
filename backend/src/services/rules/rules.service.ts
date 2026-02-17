@@ -15,11 +15,11 @@ import {
 import { ParseExtractService } from '../parse-extract/parse-extract.service';
 import { BASE_RULE_ID } from '../../constants/constant';
 import { AuthenticatedUser } from '../auth/auth.types';
-import { RuleCategory } from 'src/utils/enums/rule.enum';
+import { RuleCategory } from '../../utils/enums/rule.enum';
 // import * as xml2js from 'xml2js';
 import { parseString, ParserOptions } from 'xml2js';
 
-import { createSchemaAwareNumberProcessor, replaceObjectsWithArrays, returnArrayFieldsFromSchema } from 'src/utils/xml2js.utils';
+import { createSchemaAwareNumberProcessor, replaceObjectsWithArrays, returnArrayFieldsFromSchema } from '../../utils/xml2js.utils';
 
 @Injectable()
 export class RulesService {

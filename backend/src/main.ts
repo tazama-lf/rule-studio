@@ -12,7 +12,7 @@ import * as path from 'node:path';
  *
  * Configures global validation, CORS (based on NODE_ENV and ALLOWED_ORIGINS), integrates a LoggerService,
  * sets up Swagger UI and OpenAPI document generation, optionally writes the Swagger JSON to ./docs/swagger.json
- * when WRITE_SWAGGER_JSON is "true", and begins listening on the PORT (default 3000) while logging startup info.
+ * when WRITE_SWAGGER_JSON is "true", and begins listening on the PORT (default 3005) while logging startup info.
  */
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
@@ -43,14 +43,17 @@ async function bootstrap(): Promise<void> {
   });
 
   // Swagger Configuration
+  const apiHost = process.env.API_HOST ?? 'localhost';
+  const apiPort = process.env.API_PORT ?? '3005';
+  const baseUrl = `http://${apiHost}:${apiPort}`;
+
   const config = new DocumentBuilder()
     .setTitle('Tazama Model Management API')
     .setDescription(
       'Complete API documentation for Tazama Model Management Backend organized by service modules',
     )
     .setVersion('1.0.0')
-    .addServer('http://10.10.80.37:3005', 'Production Server')
-    .addServer('http://localhost:3000', 'Local Development Server')
+    .addServer(baseUrl, 'API Server')
     .addBearerAuth(
       {
         type: 'http',
@@ -58,14 +61,14 @@ async function bootstrap(): Promise<void> {
         bearerFormat: 'JWT',
         name: 'JWT',
         description:
-          'Enter JWT token (Login at: http://10.10.80.37:3000/auth/login)',
+          `Enter JWT token (Login at: ${baseUrl}/auth/login)`,
         in: 'header',
       },
       'JWT-auth',
     )
     .addTag(
       'Authentication',
-      'JWT token management - Login URL: http://10.10.80.37:3000/auth/login',
+      `JWT token management - Login URL: ${baseUrl}/auth/login`,
     )
     .addTag('Configuration', 'System configuration and transaction types')
     .addTag('Nodes', 'Node management operations')
@@ -95,7 +98,7 @@ async function bootstrap(): Promise<void> {
       logger.warn(`Swagger JSON write skipped: ${String(err)}`);
     }
   }
-  const port = process.env.PORT ?? 3000;
+  const port = process.env.PORT ?? 3005;
   await app.listen(port);
 
   logger.log(

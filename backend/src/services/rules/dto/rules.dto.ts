@@ -362,12 +362,12 @@ export class ResponseRuleFlowDto {
   @ApiProperty({ description: 'Flow structure of the rule builder if no category filter applied', type: FlowDto })
   @IsObject()
   @IsOptional()
-  flow_json_rule_builder?: Record<string, unknown>;
+  flow_json_rule_builder?: Record<string,unknown>;
 
   @ApiProperty({ description: 'Flow structure of the test case if no category filter applied', type: FlowDto })
   @IsObject()
   @IsOptional()
-  flow_json_test_case: Record<string, unknown>;
+  flow_json_test_case?: Record<string,unknown>;
 
   @ApiProperty({
     description: 'Base64 encoded TypeScript file representing the flow of the rule builder if no filter applied',
@@ -387,10 +387,10 @@ export class ResponseRuleFlowDto {
   @IsOptional()
   ts_file_base64_test_case?: string;
 
-   @ApiProperty({ description: 'Flow structure of the test case if category filter applied', type: FlowDto })
+   @ApiProperty({ description: 'Flow structure for category-filtered flow', type: FlowDto })
   @IsObject()
   @IsOptional()
-  flow_json: Record<string, unknown>;
+  flow_json: Record<string,unknown>;
 
   @ApiProperty({
     description: 'Base64 encoded TypeScript file representing the flow if category filter applied',

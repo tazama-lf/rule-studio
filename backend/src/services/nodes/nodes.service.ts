@@ -7,7 +7,7 @@ import {
 } from './dto';
 import { AdminServiceClient } from '../admin-service-client';
 import { GetNodesQuery } from './interfaces/node.interface';
-import { decryptData } from 'src/utils/helperFunction';
+import { decryptData } from '../../utils/helperFunction';
 
 @Injectable()
 export class NodesService {

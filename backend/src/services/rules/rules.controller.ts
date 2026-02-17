@@ -8,6 +8,7 @@ import {
   Get,
   Query,
   Put,
+  Logger,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -49,6 +50,8 @@ import {
 @Controller('rules')
 @UseGuards(TazamaAuthGuard)
 export class RulesController {
+  private readonly logger = new Logger(RulesController.name);
+
   constructor(private readonly rulesService: RulesService) {}
 
   // get available rule statuses
@@ -166,7 +169,6 @@ export class RulesController {
       ...ruleData,
       userID: user.userId
     };
-    console.log('Creating rule with data at controller', ruleData);
     return await this.rulesService.createRule(ruleDataWithUser, user.token.tokenString, user.tenantId);
   }
 
@@ -283,7 +285,7 @@ export class RulesController {
     )
   })
   async getActiveNetworkMap(@User() user: AuthenticatedUser): Promise<any> {
-    console.log('Controller: Fetching active network map for user:', user.userId);
+    this.logger.log(`Controller: Fetching active network map for user: ${user.userId}`);
     return await this.rulesService.getActiveNetworkMap(user.token.tokenString);
   }
 
