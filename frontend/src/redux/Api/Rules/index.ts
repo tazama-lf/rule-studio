@@ -100,6 +100,7 @@ export const rulesApi = createApi({
 export const {
     useGetRulesMutation,
     useGetRuleByIdQuery,
+    useLazyGetRuleByIdQuery,
     useGetRuleConfigsIdsQuery,
     useLazyGetRuleConfigQuery,
     useGetNetworkMapQuery,

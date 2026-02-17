@@ -13,7 +13,7 @@ import { useLazyGetReportStatusQuery, useMergeBranchMutation, useUploadCodeMutat
 import { useAddSimulationlogsMutation } from "../../../redux/Api/SimulationLogs";
 import { LocalStorage } from "../../../utils/Common/enums";
 import { extractData } from "../../../utils/Common/storage";
-import { claims, ruleCode, testCode } from "../../../utils/Constants/data";
+import { claims } from "../../../utils/Constants/data";
 import ViewNetworkMap from "../Modals/ViewNetworkMap";
 import ViewReport from "../Modals/ViewReport";
 
@@ -88,10 +88,8 @@ const useSimulationController = (props: ISimulation) => {
     const handleUpload = useCallback(() => {
         const body = {
             ruleId: data?.id,
-            // ruleCode: flowData?.result?.ts_file_base64_rule_builder,
-            // testCode: flowData?.result?.ts_file_base64_test_case
-            ruleCode,
-            testCode
+            ruleCode: flowData?.result?.ts_file_base64_rule_builder,
+            testCode: flowData?.result?.ts_file_base64_test_case
         }
         upload(body).unwrap()
             .then((res) => {
@@ -129,8 +127,8 @@ const useSimulationController = (props: ISimulation) => {
                     updateMetadata({
                         sync: false,
                         test: true,
-                        deploy: true,
-                        simulation: data?.metadata?.simulation ?? false
+                        deploy: false,
+                        simulation: true
                     })
                 }
             })

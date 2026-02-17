@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from "react"
 import { useParams, useSearchParams } from "react-router-dom"
-import { useGetRuleByIdQuery } from "../../redux/Api/Rules"
+import { useGetRuleByIdQuery, useLazyGetRuleByIdQuery } from "../../redux/Api/Rules"
 import Overview from "./Overview"
 import Parser from "./Parser"
 import RuleBuilder from "./RuleBuilder"
@@ -18,8 +18,25 @@ const useRuleEditorController = () => {
     const mode = searchParams.get('mode') ?? null
 
     const { data, isFetching: isLoading, isSuccess } = useGetRuleByIdQuery({ id }, { skip: !id, refetchOnMountOrArgChange: true })
+    const [getRuleById] = useLazyGetRuleByIdQuery()
     const { selectedTab } = useTab()
 
+
+    useEffect(() => {
+        if (selectedTab === 'simulation' && id) {
+            getRuleById({ id })
+                .unwrap()
+                .then((updatedRule: any) => {
+                    if (updatedRule?.rules) {
+                        insertData('trs_rule', updatedRule.rules, LocalStorage, true)
+                        console.log('Rule data refreshed for simulation tab')
+                    }
+                })
+                .catch((error: any) => {
+                    console.error('Failed to refetch rule data', error)
+                })
+        }
+    }, [selectedTab, id, getRuleById])
 
     useEffect(() => {
         if (isSuccess && data?.rules) {

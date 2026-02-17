@@ -18,6 +18,11 @@ const Simulation = (props: ISimulation) => {
 
     const { values, functions } = useSimulationController(props);
 
+    console.log("!values?.viewReport ", !values?.viewReport, )
+    console.log("!values?.codeDeployed ", values?.codeDeployed,)
+    console.log("values?.isReportFailed ", values?.isReportFailed)
+    console.log('======================')
+
 
     if (values?.isLoading) {
         return <Box width={'100%'} height={'60vh'} alignItems={'center'} display={'flex'} justifyContent={'center'}>
