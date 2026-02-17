@@ -26,8 +26,6 @@ const useSimulationController = (props: ISimulation) => {
 
     const data = props?.data ?? extractData('trs_rule', LocalStorage, true)
 
-    console.log("DATAAAAAAAAA",JSON.stringify(data,null,2))
-
     const user = useMemo(() => extractData('user'), [])
 
     const [searchParams] = useSearchParams();
@@ -155,12 +153,14 @@ const useSimulationController = (props: ISimulation) => {
     }, [codeSynced, data?.id, data?.metadata?.simulation, deploy, toggleCodeDeployed, updateMetadata])
 
     const handleSelect = (id: number) => {
-        if (!codeDeployed && claims.editor === user?.claims) {
-            toast.error('Deploy rule first to run simulation')
-            return;
-        } else {
-            setSelected(id)
-        }
+        // if (!codeDeployed && claims.editor === user?.claims) {
+        //     toast.error('Deploy rule first to run simulation')
+        //     return;
+        // } else {
+        //     setSelected(id)
+        // }
+
+        setSelected(id)
 
         if (id === 1) {
             getRuleRequest(data?.id).unwrap()
