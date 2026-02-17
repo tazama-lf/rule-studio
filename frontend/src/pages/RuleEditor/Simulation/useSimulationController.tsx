@@ -140,13 +140,12 @@ const useSimulationController = (props: ISimulation) => {
     }, [codeSynced, data?.id, data?.metadata?.simulation, deploy, toggleCodeDeployed, updateMetadata])
 
     const handleSelect = (id: number) => {
-        setSelected(id)
-        // if (codeDeployed) {
-        //     setSelected(id)
-        // } else {
-        //     toast.error('Deploy rule first to run simulation')
-        //     return;
-        // }
+        if (codeDeployed) {
+            setSelected(id)
+        } else {
+            toast.error('Deploy rule first to run simulation')
+            return;
+        }
 
         if (id === 1) {
             getRuleRequest(data?.id).unwrap()
@@ -289,7 +288,7 @@ const useSimulationController = (props: ISimulation) => {
             handleReportStatus()
         }, 40000)
     }, [toggleLoader, handleReportStatus])
-    
+
     return {
         values: {
             claim: user?.claims,
