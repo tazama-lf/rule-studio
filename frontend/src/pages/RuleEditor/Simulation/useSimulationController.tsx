@@ -13,7 +13,7 @@ import { useLazyGetReportStatusQuery, useMergeBranchMutation, useUploadCodeMutat
 import { useAddSimulationlogsMutation } from "../../../redux/Api/SimulationLogs";
 import { LocalStorage } from "../../../utils/Common/enums";
 import { extractData } from "../../../utils/Common/storage";
-import { claims, samplePayload } from "../../../utils/Constants/data";
+import { claims, sampelRuleRequest, samplePayload } from "../../../utils/Constants/data";
 import ViewNetworkMap from "../Modals/ViewNetworkMap";
 import ViewReport from "../Modals/ViewReport";
 import { useSearchParams } from "react-router-dom";
@@ -243,7 +243,7 @@ const useSimulationController = (props: ISimulation) => {
                 awaitReply: true,
                 destination: `sub-rule-901@1.0.0`,
                 consumer: `pub-rule-901@1.0.0`,
-                message: samplePayload
+                message: sampelRuleRequest
             };
             mutation = ruleOnly;
             logCategory = 'read_only';
@@ -266,7 +266,7 @@ const useSimulationController = (props: ISimulation) => {
                 natsConsumer: "investigation-service",
                 functionName: "TMS",
                 awaitReply: true,
-                transaction: parsedPayload
+                transaction: samplePayload
             };
             mutation = endToEnd;
             logCategory = 'end_to_end';
