@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useUpdateStatusMutation } from "../../../redux/Api/Rules";
 import { Status } from "../../../utils/Constants/data";
 import { useModal } from "../../../contexts/ModalContext";
+import { useMergeBranchMutation } from "../../../redux/Api/Simulation";
+import toast from "react-hot-toast";
 
 export interface IApproval {
     type: 'review' | 'approve' | 'reject' | 'pause' | 'resume' | 'deploy',
@@ -65,10 +67,10 @@ const getTheme = (type: IApproval['type']) => {
             }
         case 'deploy':
             return {
-                bgColor: '#4f46e5',
-                borderColor: '#4f46e5',
-                textColor: 'text.white',
-                buttonType: 'primary' as const
+                bgColor: '#dceeff',
+                borderColor: 'static.secondary',
+                textColor: 'static.secondary',
+                buttonType: 'prod' as const
             }
         case 'review':
         case 'pause':
@@ -100,13 +102,14 @@ const useApprovalController = (props: IApproval) => {
     const navigate = useNavigate()
 
     const theme = getTheme(type)
-    const showCommentsField = !['review', 'pause', 'resume'].includes(type)
+    const showCommentsField = !['review', 'pause', 'resume', 'deploy'].includes(type)
 
     const { handleSubmit, formState: { errors }, control } = useForm({
         defaultValues: { comment: '' }
     })
 
     const [submit, { isLoading }] = useUpdateStatusMutation()
+    const [deploy, { isLoading: deploying }] = useMergeBranchMutation()
 
     const onSubmit = (values: IValues) => {
         const status = getStatus(type)
@@ -117,24 +120,48 @@ const useApprovalController = (props: IApproval) => {
                 : {}),
             status,
         }
-        submit({ id, body })
-            .then((res: unknown) => {
-                if (res) {
-                    close()
-                    if (type === 'pause' || type === 'resume') {
-                        onSuccess?.()
-                    } else {
-                        navigate('/home')
+
+        if (status === Status.STATUS_08_DEPLOYED) {
+            const deployBody = {
+                ruleId: id,
+                branchName: "prod"
+            }
+            deploy(deployBody).unwrap()
+                .then((res) => {
+                    if (res) {
+                        toast.success('Code Deployed Successfully')
+                        submit({ id, body })
+                            .then((res: unknown) => {
+                                if (res) {
+                                    close()
+                                    navigate('/home')
+                                }
+                            })
                     }
-                }
-            })
+                })
+                .catch(() => {
+                    toast.error('Failed to deploy code')
+                })
+        } else {
+            submit({ id, body })
+                .then((res: unknown) => {
+                    if (res) {
+                        close()
+                        if (type === 'pause' || type === 'resume') {
+                            onSuccess?.()
+                        } else {
+                            navigate('/home')
+                        }
+                    }
+                })
+        }
     }
 
     return {
         values: {
             control,
             errors,
-            isLoading,
+            isLoading: isLoading || deploying,
             message: message[type],
             header: header[type],
             btnTitle: getBtnTitle(type),
