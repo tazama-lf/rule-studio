@@ -245,7 +245,7 @@ const Simulation = (props: ISimulation) => {
                                     size="lg"
                                     type='prod'
                                     Icon={RocketLaunchIcon}
-                                    onClick={() => functions.handleApproval('review')}
+                                    onClick={() => functions.handleApproval('deploy')}
                                     text="Deploy to Production"
                                 />
                                 : null

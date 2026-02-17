@@ -10,12 +10,12 @@ import { useEndToEndMutation, useRuleOnlyMutation } from "../../../redux/Api/Nat
 import { useGetAllFlowQuery, useLazyGetGlobalVariablesQuery } from "../../../redux/Api/Rule-builder";
 import { useUpdateMetadataMutation } from "../../../redux/Api/Rules";
 import { useLazyGetReportStatusQuery, useMergeBranchMutation, useUploadCodeMutation } from "../../../redux/Api/Simulation";
+import { useAddSimulationlogsMutation } from "../../../redux/Api/SimulationLogs";
 import { LocalStorage } from "../../../utils/Common/enums";
 import { extractData } from "../../../utils/Common/storage";
-import { claims, ruleCode, sampelRuleRequest, samplePayload, testCode } from "../../../utils/Constants/data";
+import { claims, ruleCode, testCode } from "../../../utils/Constants/data";
 import ViewNetworkMap from "../Modals/ViewNetworkMap";
 import ViewReport from "../Modals/ViewReport";
-import { useAddSimulationlogsMutation } from "../../../redux/Api/SimulationLogs";
 
 export interface ISimulation {
     data?: Record<string, unknown> | undefined
@@ -209,23 +209,26 @@ const useSimulationController = (props: ISimulation) => {
         }
         addLogs({ body, id: data?.id }).unwrap()
     }
-    
-    const handleSimulation = useCallback(() => {
+
+    const handleSimulation = useCallback((values: Record<string, unknown>) => {
+
         const isReadOnly = selected === 1;
         let body: Record<string, unknown>;
         let mutation;
         let logCategory: 'read_only' | 'end_to_end';
         let onSuccess;
 
+        const parsedPayload = typeof values?.payload === 'string'
+            ? JSON.parse(values.payload)
+            : values?.payload || {};
         if (isReadOnly) {
+
             body = {
                 functionName: '',
                 awaitReply: true,
-                destination: `sub-rule-901@1.0.0`,
-                consumer: "pub-rule-901@1.0.0",
-                message: {
-                    ...sampelRuleRequest
-                }
+                destination: `sub-rule-${data?.rule_config_id}`,
+                consumer: `pub-rule-${data?.rule_config_id}`,
+                message: parsedPayload
             };
             mutation = ruleOnly;
             logCategory = 'read_only';
@@ -248,9 +251,7 @@ const useSimulationController = (props: ISimulation) => {
                 natsConsumer: "investigation-service",
                 functionName: "TMS",
                 awaitReply: true,
-                transaction: {
-                    ...samplePayload
-                }
+                transaction: parsedPayload
             };
             mutation = endToEnd;
             logCategory = 'end_to_end';
@@ -268,7 +269,6 @@ const useSimulationController = (props: ISimulation) => {
                 addSimulationLog(body, logCategory);
             };
         }
-
         mutation(body).unwrap()
             .then((res: any) => {
                 if (res) {
