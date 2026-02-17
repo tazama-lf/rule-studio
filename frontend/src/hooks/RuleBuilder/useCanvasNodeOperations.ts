@@ -72,14 +72,88 @@ export const useCanvasNodeOperations = ({
         }
       }
 
-      if (type === 'RuleResultFactory' && window.globalVariablesData) {
-        try {
-          const globalVars = window.globalVariablesData as { RuleResult?: unknown };
-          if (globalVars.RuleResult) {
-            defaultParams.ruleResultData = JSON.stringify(globalVars.RuleResult);
+      if (type === 'RuleResultFactory') {
+        if (window.globalVariablesData) {
+          try {
+            const globalVars = window.globalVariablesData as { RuleResult?: unknown };
+            if (globalVars.RuleResult) {
+              import('../../utils/Flow/transformRuleResult').then(({ transformRuleResultToCode }) => {
+                const transformedCode = transformRuleResultToCode(globalVars.RuleResult);
+                setNodes((nds) =>
+                  nds.map((node) =>
+                    node.id === newNodeId
+                      ? { 
+                          ...node, 
+                          data: { 
+                            ...node.data, 
+                            params: { 
+                              ...((node.data as EditableNodeData).params as Record<string, string> || {}), 
+                              ruleResultData: transformedCode 
+                            } 
+                          } 
+                        }
+                      : node
+                  )
+                );
+              });
+            } else {
+              import('../../utils/Flow/transformRuleResult').then(({ transformRuleResultToCode }) => {
+                const defaultRuleResult = {
+                  id: '021@1.0.0',
+                  tenantId: 'DEFAULT',
+                  cfg: '1.0.0',
+                  subRuleRef: '.err',
+                  reason: 'Unhandled rule result outcome',
+                };
+                const transformedCode = transformRuleResultToCode(defaultRuleResult);
+                setNodes((nds) =>
+                  nds.map((node) =>
+                    node.id === newNodeId
+                      ? { 
+                          ...node, 
+                          data: { 
+                            ...node.data, 
+                            params: { 
+                              ...((node.data as EditableNodeData).params as Record<string, string> || {}), 
+                              ruleResultData: transformedCode 
+                            } 
+                          } 
+                        }
+                      : node
+                  )
+                );
+              });
+            }
+          } catch (error) {
+            console.error('Error auto-populating RuleResult data:', error);
           }
-        } catch (error) {
-          console.error('Error auto-populating RuleResult data:', error);
+        } else {
+          import('../../utils/Flow/transformRuleResult').then(({ transformRuleResultToCode }) => {
+            const defaultRuleResult = {
+              id: '021@1.0.0',
+              tenantId: 'DEFAULT',
+              cfg: '1.0.0',
+              subRuleRef: '.err',
+              reason: 'Unhandled rule result outcome',
+            };
+            const transformedCode = transformRuleResultToCode(defaultRuleResult);
+            setNodes((nds) =>
+              nds.map((node) =>
+                node.id === newNodeId
+                  ? { 
+                      ...node, 
+                      data: { 
+                        ...node.data, 
+                        params: { 
+                          ...((node.data as EditableNodeData).params as Record<string, string> || {}), 
+                          ruleResultData: transformedCode 
+                        } 
+                      } 
+                    }
+                  : node
+              )
+            );
+          });
         }
       }
 

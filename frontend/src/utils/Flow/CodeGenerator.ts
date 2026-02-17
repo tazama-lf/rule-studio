@@ -9,6 +9,26 @@ interface NestedCanvasData {
   edges: Edge[];
 }
 
+const normalizeTenantIdToDefault = (obj: unknown): unknown => {
+  if (obj === null || obj === undefined) return obj;
+  
+  if (typeof obj !== 'object') return obj;
+
+  if (Array.isArray(obj)) {
+    return obj.map(item => normalizeTenantIdToDefault(item));
+  }
+
+  const normalized: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (key.toLowerCase() === 'tenantid') {
+      normalized[key] = 'DEFAULT';
+    } else {
+      normalized[key] = normalizeTenantIdToDefault(value);
+    }
+  }
+  return normalized;
+};
+
 const stripVariableIndicators = (text: string, mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
   if (!text || typeof text !== 'string') return text;
   const stripped = text.replace(/\{\{\s*(.+?)\s*\}\}/g, '$1');
@@ -222,7 +242,9 @@ const generateRuleConfigFactoryCode = (params: Record<string, string>, indent: s
   
   try {
     // Parse the RuleConfig data
-    const ruleConfig = JSON.parse(ruleConfigData);
+    let ruleConfig = JSON.parse(ruleConfigData);
+    
+    ruleConfig = normalizeTenantIdToDefault(ruleConfig);
     
     // Format the object with proper indentation
     const formatObject = (obj: unknown, currentIndent: string): string => {
@@ -267,23 +289,20 @@ const generateRuleRequestFactoryCode = (params: Record<string, string>, indent: 
     return `${indent}const ${factoryName} = (): RuleRequest => {\n${indent}  const quote = {\n${indent}    transaction: JSON.parse(''),\n${indent}    networkMap: JSON.parse(''),\n${indent}    DataCache: JSON.parse(''),\n${indent}  };\n${indent}  return quote;\n${indent}};`;
   }
   
-  // If it's already transformed code (from Monaco editor), use it directly
   if (ruleRequestData.includes('JSON.parse') || ruleRequestData.includes('const quote')) {
-    // Remove leading/trailing whitespace but preserve internal formatting
     const codeLines = ruleRequestData.split('\n').map(line => `${indent}${line}`).join('\n');
     return `${indent}const ${factoryName} = (): RuleRequest => {\n${codeLines}\n${indent}};`;
   }
-  
-  // Otherwise, treat it as JSON and transform it
+
   try {
-    const ruleRequest = JSON.parse(ruleRequestData);
+    let ruleRequest = JSON.parse(ruleRequestData);
     
-    // Transform into the required format with proper escaping
+    ruleRequest = normalizeTenantIdToDefault(ruleRequest);
+    
     const transactionStr = ruleRequest.transaction ? JSON.stringify(ruleRequest.transaction) : '';
     const networkMapStr = ruleRequest.networkMap ? JSON.stringify(ruleRequest.networkMap) : '';
     const dataCacheStr = ruleRequest.DataCache ? JSON.stringify(ruleRequest.DataCache) : '';
-    
-    // Escape for template literals and single quotes
+
     const escapeForTemplate = (str: string) => str.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$');
     const escapeForSingleQuote = (str: string) => str.replace(/'/g, "\\'");
     
@@ -295,15 +314,26 @@ const generateRuleRequestFactoryCode = (params: Record<string, string>, indent: 
 };
 
 const generateRuleResultFactoryCode = (params: Record<string, string>, indent: string): string => {
-  const factoryName = params.factoryName || 'getRuleResult';
+  const factoryName = params.factoryName || 'ruleResult';
   const ruleResultData = params.ruleResultData || '';
   
   if (!ruleResultData) {
-    return `${indent}const ${factoryName} = (): RuleResult => {\n${indent}  return {} as RuleResult;\n${indent}};`;
+    return `${indent}const ${factoryName}: RuleResult = {} as RuleResult;`;
   }
   
+  if (ruleResultData.includes('const ruleResult') || ruleResultData.includes('const ')) {
+    const codeLines = ruleResultData.split('\n').map((line, index) => {
+      if (index === 0) {
+        return `${indent}${line.replace(/const\s+\w+/, `const ${factoryName}`)}`;
+      }
+      return `${indent}${line}`;
+    }).join('\n');
+    return codeLines;
+  }
   try {
-    const ruleResult = JSON.parse(ruleResultData);
+    let ruleResult = JSON.parse(ruleResultData);
+    
+    ruleResult = normalizeTenantIdToDefault(ruleResult);
     
     const formatObject = (obj: unknown, currentIndent: string): string => {
       if (obj === null) return 'null';
@@ -330,12 +360,11 @@ const generateRuleResultFactoryCode = (params: Record<string, string>, indent: s
       return 'undefined';
     };
     
-    const formattedResult = formatObject(ruleResult, indent + '  ');
+    const formattedResult = formatObject(ruleResult, indent);
     
-    return `${indent}const ${factoryName} = (): RuleResult => {\n${indent}  return ${formattedResult};\n${indent}};`;
+    return `${indent}const ${factoryName}: RuleResult = ${formattedResult};`;
   } catch (error) {
-    console.error('Error parsing RuleResult data:', error);
-    return `${indent}const ${factoryName} = (): RuleResult => {\n${indent}  // Error parsing RuleResult data\n${indent}  return {} as RuleResult;\n${indent}};`;
+    return `${indent}const ${factoryName}: RuleResult = {} as RuleResult;\n${indent}// Error parsing RuleResult data: ${error instanceof Error ? error.message : 'Unknown error'}`;
   }
 };
 
@@ -348,7 +377,9 @@ const generateDataCacheFactoryCode = (params: Record<string, string>, indent: st
   }
   
   try {
-    const dataCache = JSON.parse(dataCacheData);
+    let dataCache = JSON.parse(dataCacheData);
+
+    dataCache = normalizeTenantIdToDefault(dataCache);
     
     const formatObject = (obj: unknown, currentIndent: string): string => {
       if (obj === null) return 'null';
@@ -378,8 +409,7 @@ const generateDataCacheFactoryCode = (params: Record<string, string>, indent: st
     const formattedDataCache = formatObject(dataCache, indent);
     
     return `${indent}const ${variableName}: DataCache = ${formattedDataCache};`;
-  } catch (error) {
-    console.error('Error parsing DataCache data:', error);
+  } catch {
     return `${indent}const ${variableName}: DataCache = {};\n${indent}// Error parsing DataCache data`;
   }
 };
