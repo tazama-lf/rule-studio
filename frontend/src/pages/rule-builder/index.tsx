@@ -20,6 +20,9 @@ import {
   useFlowState,
   useNestedCanvasManager,
 } from '../../hooks/RuleBuilder';
+import { extractData } from '../../utils/Common/storage';
+import { LocalStorage } from '../../utils/Common/enums';
+import { useUpdateMetadataMutation } from '../../redux/Api/Rules';
 
 interface RuleBuilderProps {
   viewOnly?: boolean;
@@ -27,36 +30,37 @@ interface RuleBuilderProps {
 
 const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
   const { id: ruleId } = useParams<{ id: string }>();
-  
+
   const { data: nodesData, isLoading: isLoadingNodes, error: nodesError } = useGetNodesQuery('rule_builder');
-  
+
   const { data: flowData, isLoading: isLoadingFlow, error: flowError } = useGetFlowQuery(
     { ruleId: ruleId || '', category: 'rule_builder' },
     { skip: !ruleId, refetchOnMountOrArgChange: true }
   );
-  
+
   const [saveFlow, { isLoading: isSaving }] = useSaveFlowMutation();
-  
+  const [update] = useUpdateMetadataMutation()
+
   const flowState = useFlowState();
   const nestedCanvasManager = useNestedCanvasManager();
 
   const updateNodeInternalsRef = React.useRef<((nodeId: string) => void) | null>(null);
-  
+
   const [apiNodesInitialized, setApiNodesInitialized] = React.useState(false);
-  
+
   useEffect(() => {
     if (nodesData && Array.isArray(nodesData)) {
       setApiNodes(nodesData as unknown as ApiNode[]);
       setApiNodesInitialized(true);
     }
   }, [nodesData]);
-  
+
   const transformedFlowData = useMemo(() => {
 
     if (!flowData?.result || !apiNodesInitialized) return null;
-    
+
     const flowJson = flowData.result.flow_json || flowData.flow;
-    
+
     return transformApiFlowData(
       flowJson.nodes as ApiNode[] || [],
       flowJson.edges as ApiEdge[] || []
@@ -93,9 +97,9 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [allowNavigation]);
-  
+
   const [isPaused, setIsPaused] = React.useState(false);
-  
+
   const {
     playFlowAnimation,
     stopAnimation,
@@ -105,7 +109,7 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
     animationTimeoutRef,
   } = useFlowAnimation({
     isPlaying: Boolean(flowState.currentAnimationNode),
-    setIsPlaying: () => {},
+    setIsPlaying: () => { },
     nestedCanvasData: nestedCanvasManager.nestedCanvasData,
     setDebugVariables: flowState.setDebugVariables,
     setDebugLogs: flowState.setDebugLogs,
@@ -192,11 +196,25 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
         ruleId,
         flowData: payload,
         category: 'rule_builder',
-      }).unwrap();
+      }).unwrap().then((res) => {
+        if (res) {
+          update({
+            id: ruleId,
+            body: {
+              metadata: {
+                sync: true,
+                test: false,
+                deploy: false,
+                simulation: false
+              }
+            }
+          }).unwrap()
+        }
+      });
 
       // Close JSON modal but keep code modal open
       flowState.setJsonModalOpen(false);
-      
+
       // Show save success modal (code modal stays open in background)
       setShowSaveSuccessModal(true);
     } catch (error: unknown) {
@@ -210,7 +228,7 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
       flowState.setSelectedNode(null);
       return;
     }
-    
+
     if (node?.data.nodeType === 'HandleTransaction') {
       nestedCanvasManager.openNestedCanvas(node.id, String(node.data.label || 'Handle Transaction'));
       flowState.setSelectedNode(null);
@@ -236,17 +254,17 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
     updateNodeInternalsRef.current?.(nodeId);
   }, []);
 
-  const handleFlowStateUpdate = useCallback((    nodes: Node[], 
-    edges: Edge[], 
-    setNodes: (nodes: Node[] | ((prevNodes: Node[]) => Node[])) => void, 
+  const handleFlowStateUpdate = useCallback((nodes: Node[],
+    edges: Edge[],
+    setNodes: (nodes: Node[] | ((prevNodes: Node[]) => Node[])) => void,
     setEdges: (edges: Edge[] | ((prevEdges: Edge[]) => Edge[])) => void
   ) => {
     updateFlowState(nodes, edges, setNodes, setEdges);
     flowState.setAllNodes(nodes);
     flowState.setEdges(edges);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [updateFlowState, flowState.setAllNodes, flowState.setEdges]);
-  
+
   const handleNestedCanvasSave = useCallback((nodes: Node[], edges: Edge[]) => {
     if (nestedCanvasManager.activeNestedCanvas) {
       nestedCanvasManager.handleNestedCanvasSave(nestedCanvasManager.activeNestedCanvas, nodes, edges);
@@ -270,6 +288,10 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
     };
   }, [animationTimeoutRef]);
 
+  const mode = extractData('mode', LocalStorage)
+
+  console.log("MODEEEEEEEEEEEEEE", mode)
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       <Header
@@ -287,7 +309,7 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
         viewOnly={viewOnly}
         hidePlayControls={true}
         title="Rule Builder"
-        backUrl="/editor?tab=rule_builder"
+        backUrl={mode === 'view' ? `/editor?mode=view&tab=rule_builder` : `/editor?tab=rule_builder`}
       />
       {nodesError || flowError ? (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, flexDirection: 'column', gap: 2 }}>
@@ -316,8 +338,8 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
       ) : (
         <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
           {!viewOnly && (
-            <LeftSidebar 
-              mode="main" 
+            <LeftSidebar
+              mode="main"
               collapsed={flowState.sidebarCollapsed}
               onToggleCollapse={flowState.handleToggleSidebar}
               hideCustomFunctions={nestedCanvasManager.activeNestedCanvas !== null}
@@ -407,24 +429,24 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
           <Typography>Your rule flow has been saved. What would you like to do next?</Typography>
         </DialogContent>
         <DialogActions>
-          <Button 
+          <Button
             onClick={() => {
               setShowSaveSuccessModal(false);
               // Keep code modal open when staying on editor
-            }} 
+            }}
             variant="outlined"
           >
             Stay on Editor
           </Button>
-          <Button 
+          <Button
             onClick={() => {
               setShowSaveSuccessModal(false);
               flowState.setCodeModalOpen(false);
               setAllowNavigation(true);
               setTimeout(() => {
-                window.location.href = '/editor?tab=rule_builder';
+                window.location.href = mode === 'view' ? `/editor?mode=view&tab=rule_builder` : `/editor?tab=rule_builder`;
               }, 0);
-            }} 
+            }}
             variant="contained"
           >
             Proceed to Next Step

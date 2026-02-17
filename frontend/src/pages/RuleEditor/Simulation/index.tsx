@@ -18,12 +18,6 @@ const Simulation = (props: ISimulation) => {
 
     const { values, functions } = useSimulationController(props);
 
-    console.log("!values?.viewReport ", !values?.viewReport, )
-    console.log("!values?.codeDeployed ", values?.codeDeployed,)
-    console.log("values?.isReportFailed ", values?.isReportFailed)
-    console.log('======================')
-
-
     if (values?.isLoading) {
         return <Box width={'100%'} height={'60vh'} alignItems={'center'} display={'flex'} justifyContent={'center'}>
             <Loader />
@@ -84,7 +78,7 @@ const Simulation = (props: ISimulation) => {
                     </Grid>
                 </Box>
                 <Box display={'flex'} gap={2}>
-                    {claims.editor === values?.claim && values?.status === Status.STATUS_01_IN_PROGRESS &&
+                    {claims.editor === values?.claim && values?.status === Status.STATUS_01_IN_PROGRESS && values?.mode !== 'view' &&
                         <>
                             <Button
                                 height="40px"

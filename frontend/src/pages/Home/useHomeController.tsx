@@ -9,7 +9,7 @@ import { useModal } from "../../contexts/ModalContext";
 import useFilters from "../../hooks/useFilters";
 import { useGetRulesMutation, useGetStatusQuery } from "../../redux/Api/Rules";
 import { LocalStorage } from "../../utils/Common/enums";
-import { extractData, removeData } from "../../utils/Common/storage";
+import { extractData, insertData, removeData } from "../../utils/Common/storage";
 import { claims, publishingStatus, ruleTypes, Status } from "../../utils/Constants/data";
 
 const useHomeController = () => {
@@ -83,6 +83,7 @@ const useHomeController = () => {
         if (!row) {
             removeData('trs_rule', LocalStorage)
         }
+        removeData('mode', LocalStorage)
         navigate(row ? `/editor/${row?.id}?mode=edit` : "/editor");
     };
 
@@ -100,6 +101,7 @@ const useHomeController = () => {
     }
 
     const onView = (row: Record<string, string>) => {
+        insertData('view', 'mode', LocalStorage)
         navigate(`/editor/${row?.id}?mode=view`);
     }
 

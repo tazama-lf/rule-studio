@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import Approval from "../../../components/Modals/Approval";
@@ -13,9 +13,10 @@ import { useLazyGetReportStatusQuery, useMergeBranchMutation, useUploadCodeMutat
 import { useAddSimulationlogsMutation } from "../../../redux/Api/SimulationLogs";
 import { LocalStorage } from "../../../utils/Common/enums";
 import { extractData } from "../../../utils/Common/storage";
-import { claims } from "../../../utils/Constants/data";
+import { claims, samplePayload } from "../../../utils/Constants/data";
 import ViewNetworkMap from "../Modals/ViewNetworkMap";
 import ViewReport from "../Modals/ViewReport";
+import { useSearchParams } from "react-router-dom";
 
 export interface ISimulation {
     data?: Record<string, unknown> | undefined
@@ -23,12 +24,14 @@ export interface ISimulation {
 
 const useSimulationController = (props: ISimulation) => {
 
-    const data = useMemo(
-        () => extractData('trs_rule', LocalStorage, true) ?? props?.data,
-        [props?.data]
-    )
+    const data = props?.data ?? extractData('trs_rule', LocalStorage, true)
+
+    console.log("DATAAAAAAAAA",JSON.stringify(data,null,2))
 
     const user = useMemo(() => extractData('user'), [])
+
+    const [searchParams] = useSearchParams();
+    const mode = searchParams.get('mode') ?? null
 
     const { handleSubmit, formState: { errors }, control, setValue } = useForm({
         defaultValues: { payload: '' }
@@ -40,11 +43,25 @@ const useSimulationController = (props: ISimulation) => {
     const [update] = useUpdateMetadataMutation()
 
     const [loader, toggleLoader] = useToggle()
-    const [viewReport, toggleViewReport] = useToggle(data?.metadata?.test ?? false)
-    const [codeSynced, toggleCodeSynced] = useToggle(data?.metadata?.sync ?? true)
-    const [codeDeployed, toggleCodeDeployed] = useToggle(data?.metadata?.deploy ?? false)
-    const [simulationExecuted, toggleSimulationExecuted] = useToggle(data?.metadata?.test ?? false)
+    const [viewReport, setViewReport] = useState(data?.metadata?.test ?? false)
+    const [codeSynced, setCodeSynced] = useState(data?.metadata?.sync ?? true)
+    const [codeDeployed, setCodeDeployed] = useState(data?.metadata?.deploy ?? false)
+    const [simulationExecuted, setSimulationExecuted] = useState(data?.metadata?.test ?? false)
     const [isReportFailed, setIsReportFailed] = useState(false);
+
+    const toggleViewReport = useCallback(() => setViewReport((prev: boolean) => !prev), [])
+    const toggleCodeSynced = useCallback(() => setCodeSynced((prev: boolean) => !prev), [])
+    const toggleCodeDeployed = useCallback(() => setCodeDeployed((prev: boolean) => !prev), [])
+    const toggleSimulationExecuted = useCallback(() => setSimulationExecuted((prev: boolean) => !prev), [])
+
+    useEffect(() => {
+        if (data?.metadata) {
+            setViewReport(data.metadata.test ?? false)
+            setCodeSynced(data.metadata.sync ?? true)
+            setCodeDeployed(data.metadata.deploy ?? false)
+            setSimulationExecuted(data.metadata.test ?? false)
+        }
+    }, [data?.metadata])
 
     const [selected, setSelected] = useState<number | null>(null)
 
@@ -127,7 +144,7 @@ const useSimulationController = (props: ISimulation) => {
                     updateMetadata({
                         sync: false,
                         test: true,
-                        deploy: false,
+                        deploy: true,
                         simulation: true
                     })
                 }
@@ -176,7 +193,7 @@ const useSimulationController = (props: ISimulation) => {
                         updateMetadata({
                             sync: false,
                             test: true,
-                            deploy: true,
+                            deploy: false,
                             simulation: false
                         })
                     } else if (res?.status === 'failed') {
@@ -224,9 +241,9 @@ const useSimulationController = (props: ISimulation) => {
             body = {
                 functionName: '',
                 awaitReply: true,
-                destination: `sub-rule-${data?.rule_config_id}`,
-                consumer: `pub-rule-${data?.rule_config_id}`,
-                message: parsedPayload
+                destination: `sub-rule-901@1.0.0`,
+                consumer: `pub-rule-901@1.0.0`,
+                message: samplePayload
             };
             mutation = ruleOnly;
             logCategory = 'read_only';
@@ -310,6 +327,7 @@ const useSimulationController = (props: ISimulation) => {
             simulating: ruleOnlyLoading || endToEndLoading,
             payloadLoading: variablesLoading || sampleLoading,
             isReportFailed,
+            mode
         },
         functions: {
             handleApproval,
