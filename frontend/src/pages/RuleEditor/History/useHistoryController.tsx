@@ -47,7 +47,7 @@ const useHistoryController = (props: IHistory) => {
     const logs_columns = [
         {
             label: 'Created By',
-            key: 'created_by_name',
+            key: 'created_by_email',
         },
         {
             label: "Created At",

@@ -12,6 +12,7 @@ import FormattedJsonSection from '../../../components/JsonFormatter';
 import EditableJsonPayload from '../../../components/JsonFormatter/EditableJsonPayload';
 import { Controller } from 'react-hook-form';
 import Loader from '../../../components/Loader';
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 
 const Simulation = (props: ISimulation) => {
 
@@ -78,7 +79,7 @@ const Simulation = (props: ISimulation) => {
                     </Grid>
                 </Box>
                 <Box display={'flex'} gap={2}>
-                    {claims.editor === values?.claim &&
+                    {claims.editor === values?.claim && values?.status === Status.STATUS_01_IN_PROGRESS &&
                         <>
                             <Button
                                 height="40px"
@@ -238,11 +239,12 @@ const Simulation = (props: ISimulation) => {
                                 text="Send For Approval"
                             />
                             :
-                            values?.claim === claims.publisher ?
+                            values?.claim === claims.publisher && Status.STATUS_04_APPROVED === values?.status ?
                                 <Button
                                     height="40px"
-                                    size="md"
-                                    type='secondary'
+                                    size="lg"
+                                    type='prod'
+                                    Icon={RocketLaunchIcon}
                                     onClick={() => functions.handleApproval('review')}
                                     text="Deploy to Production"
                                 />
@@ -259,7 +261,7 @@ const Simulation = (props: ISimulation) => {
                 </Box>
 
             </Box>
-        </Grid>
+        </Grid >
     )
 }
 

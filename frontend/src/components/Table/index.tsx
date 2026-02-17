@@ -13,6 +13,7 @@ import { memo } from "react";
 import { dateFormatter, getNestedValue } from "../../utils/Common/helpers";
 import Loader from "../Loader";
 import CustomPagination from "../Pagination";
+import { Text } from "../Text";
 
 export type TableColumn = {
     key: string;
@@ -40,6 +41,7 @@ type TableProps = {
     onRowClick?: (row: unknown) => void;
     getRowClassName?: (row: unknown) => string;
     getRowStyle?: (row: unknown) => React.CSSProperties;
+    title?: string;
 };
 
 const Table = ({
@@ -51,6 +53,7 @@ const Table = ({
     getRowClassName,
     getRowStyle,
     serial_no = false,
+    title,
 }: TableProps) => {
     const headers = serial_no
         ? [{ key: 'serial_no', label: 'S.No.' }, ...columns]
@@ -91,6 +94,13 @@ const Table = ({
 
     return (
         <Box my={3}>
+            {title && (
+                <Box mb={2}>
+                    <Text weight="bold" color="black" size="main">
+                        {title}
+                    </Text>
+                </Box>
+            )}
             <TableContainer component={Paper} variant="outlined">
                 <MuiTable stickyHeader sx={{ minWidth: 600 }}>
                     <TableHead>
