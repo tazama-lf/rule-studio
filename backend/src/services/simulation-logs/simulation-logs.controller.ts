@@ -19,7 +19,11 @@ export class SimulationLogsController {
     ) { }
 
     @Get(':ruleId')
-    @RequireAnyClaims(TazamaClaims.EDITOR)
+    @RequireAnyClaims(
+        TazamaClaims.EDITOR,
+        TazamaClaims.APPROVER,
+        TazamaClaims.PUBLISHER,
+    )
     @ApiParam({
         name: 'ruleId',
         description: 'Rule identifier to retrieve simulation logs for',
@@ -39,7 +43,11 @@ export class SimulationLogsController {
     }
 
     @Post('insert/:ruleId')
-    @RequireAnyClaims(TazamaClaims.EDITOR)
+    @RequireAnyClaims(
+        TazamaClaims.EDITOR,
+        TazamaClaims.APPROVER,
+        TazamaClaims.PUBLISHER,
+    )
     @ApiBody({
         type: RequestSimulationLogsDto,
         description: 'Simulation logs to be inserted',
