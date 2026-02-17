@@ -15,7 +15,7 @@ import { extractData } from "../../../utils/Common/storage";
 import { ruleCode, sampelRuleRequest, samplePayload, testCode } from "../../../utils/Constants/data";
 import ViewNetworkMap from "../Modals/ViewNetworkMap";
 import ViewReport from "../Modals/ViewReport";
-import { useAddSimulationlogsMutation } from "../../../redux/Api/Logs";
+import { useAddSimulationlogsMutation } from "../../../redux/Api/SimulationLogs";
 
 export interface ISimulation {
     data?: Record<string, unknown> | undefined

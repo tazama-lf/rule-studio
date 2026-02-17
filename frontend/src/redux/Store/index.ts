@@ -8,7 +8,7 @@ import { parseApi } from '../Api/Parse'
 import { ruleBuilderApi } from '../Api/Rule-builder'
 import { simulationApi } from '../Api/Simulation'
 import { natsApi } from '../Api/Nats'
-import { logsApi } from '../Api/Logs'
+import { logsApi } from '../Api/SimulationLogs'
 
 export default configureStore({
     reducer: {

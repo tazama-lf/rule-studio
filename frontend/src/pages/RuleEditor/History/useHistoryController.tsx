@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { extractData } from "../../../utils/Common/storage";
 import { LocalStorage } from "../../../utils/Common/enums";
 import { useTab } from "../../../contexts/TabContext/useTab";
-import { useGetSimulationLogsQuery } from "../../../redux/Api/Logs";
+import { useGetSimulationLogsQuery } from "../../../redux/Api/SimulationLogs";
 import TableActions from "../../../components/TableActions";
 import ViewPayload from "../Modals/ViewPayload";
 import { useModal } from "../../../contexts/ModalContext";
