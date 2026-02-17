@@ -93,6 +93,7 @@ export const rulesApi = createApi({
                 method: "GET",
             }),
         }),
+
     }),
 })
 
@@ -107,5 +108,6 @@ export const {
     useUpdateRuleMutation,
     useUpdateStatusMutation,
     useCloneRuleMutation,
-    useUpdateMetadataMutation
+    useUpdateMetadataMutation,
+   
 } = rulesApi

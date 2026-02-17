@@ -12,6 +12,8 @@ const History = (props: IHistory) => {
         <Box mt={3}>
             <Box mb={4}>
                 <Table
+                    serial_no
+                    title={'Rule-Only Simulation'}
                     columns={values.columns}
                     data={values.readOnlyData}
                     loading={values.isLoading}
@@ -20,6 +22,8 @@ const History = (props: IHistory) => {
 
             <Box>
                 <Table
+                    serial_no
+                    title={'End-To-End Simulation'}
                     columns={values.columns}
                     data={values.endToEndData}
                     loading={values.isLoading}

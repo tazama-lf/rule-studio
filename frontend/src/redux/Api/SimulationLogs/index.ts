@@ -1,12 +1,10 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { getAuthToken } from "../../../utils/Common/storage";
 
-const BASE_URL = import.meta.env.VITE_NATS_API_URL 
-    // ? '/nats-proxy' 
-    // : (import.meta.env.VITE_NATS_API_URL as string);
+const BASE_URL = import.meta.env.VITE_API_URL
 
-export const natsApi = createApi({
-    reducerPath: 'natsApi',
+export const logsApi = createApi({
+    reducerPath: 'logsApi',
     baseQuery: fetchBaseQuery({
         baseUrl: `${BASE_URL}`,
         prepareHeaders: (headers) => {
@@ -18,16 +16,15 @@ export const natsApi = createApi({
         }
     }),
     endpoints: (builder) => ({
-        ruleOnly: builder.mutation({
-            query: (body) => ({
-                url: `/natsPublish`,
-                method: "POST",
-                body: { ...body },
+        getSimulationLogs: builder.query({
+            query: ({ ruleId }) => ({
+                url: `/simulation-logs/${ruleId}`,
+                method: "GET",
             }),
         }),
-        endToEnd: builder.mutation({
-            query: (body) => ({
-                url: `/restPublish`,
+        addSimulationlogs: builder.mutation({
+            query: ({ body, id }) => ({
+                url: `/simulation-logs/insert/${id}`,
                 method: "POST",
                 body: { ...body },
             }),
@@ -36,6 +33,6 @@ export const natsApi = createApi({
 })
 
 export const {
-    useRuleOnlyMutation,
-    useEndToEndMutation // Add this line to export the endToEnd mutation hook
-} = natsApi
+    useGetSimulationLogsQuery,
+    useAddSimulationlogsMutation
+} = logsApi

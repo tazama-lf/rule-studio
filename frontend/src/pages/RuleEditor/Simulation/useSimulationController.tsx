@@ -9,12 +9,13 @@ import { useLazyGetSamplePayloadQuery } from "../../../redux/Api/Config";
 import { useEndToEndMutation, useRuleOnlyMutation } from "../../../redux/Api/Nats";
 import { useGetAllFlowQuery, useLazyGetGlobalVariablesQuery } from "../../../redux/Api/Rule-builder";
 import { useUpdateMetadataMutation } from "../../../redux/Api/Rules";
-import { useAddSimulationlogsMutation, useLazyGetReportStatusQuery, useMergeBranchMutation, useUploadCodeMutation } from "../../../redux/Api/Simulation";
+import { useLazyGetReportStatusQuery, useMergeBranchMutation, useUploadCodeMutation } from "../../../redux/Api/Simulation";
 import { LocalStorage } from "../../../utils/Common/enums";
 import { extractData } from "../../../utils/Common/storage";
-import { sampelRuleRequest, samplePayload } from "../../../utils/Constants/data";
+import { claims, ruleCode, sampelRuleRequest, samplePayload, testCode } from "../../../utils/Constants/data";
 import ViewNetworkMap from "../Modals/ViewNetworkMap";
 import ViewReport from "../Modals/ViewReport";
+import { useAddSimulationlogsMutation } from "../../../redux/Api/SimulationLogs";
 
 export interface ISimulation {
     data?: Record<string, unknown> | undefined
@@ -36,14 +37,14 @@ const useSimulationController = (props: ISimulation) => {
     const { open } = useModal()
     const { enableNextTab, enablePreviousTab } = useTab()
     const [result, setResult] = useState<unknown | null>(null)
-    const [update, { isLoading }] = useUpdateMetadataMutation()
+    const [update] = useUpdateMetadataMutation()
 
     const [loader, toggleLoader] = useToggle()
     const [viewReport, toggleViewReport] = useToggle(data?.metadata?.test ?? false)
     const [codeSynced, toggleCodeSynced] = useToggle(data?.metadata?.sync ?? true)
     const [codeDeployed, toggleCodeDeployed] = useToggle(data?.metadata?.deploy ?? false)
     const [simulationExecuted, toggleSimulationExecuted] = useToggle(data?.metadata?.test ?? false)
-
+    const [isReportFailed, setIsReportFailed] = useState(false);
 
     const [selected, setSelected] = useState<number | null>(null)
 
@@ -87,8 +88,10 @@ const useSimulationController = (props: ISimulation) => {
     const handleUpload = useCallback(() => {
         const body = {
             ruleId: data?.id,
-            ruleCode: flowData?.result?.ts_file_base64_rule_builder,
-            testCode: flowData?.result?.ts_file_base64_test_case
+            // ruleCode: flowData?.result?.ts_file_base64_rule_builder,
+            // testCode: flowData?.result?.ts_file_base64_test_case
+            ruleCode,
+            testCode
         }
         upload(body).unwrap()
             .then((res) => {
@@ -137,12 +140,11 @@ const useSimulationController = (props: ISimulation) => {
     }, [codeSynced, data?.id, data?.metadata?.simulation, deploy, toggleCodeDeployed, updateMetadata])
 
     const handleSelect = (id: number) => {
-
-        if (codeDeployed) {
-            setSelected(id)
-        } else {
+        if (!codeDeployed && claims.editor === user?.claims) {
             toast.error('Deploy rule first to run simulation')
             return;
+        } else {
+            setSelected(id)
         }
 
         if (id === 1) {
@@ -169,14 +171,27 @@ const useSimulationController = (props: ISimulation) => {
         getReportStatus({ ...body })
             .unwrap()
             .then((res) => {
-                if (res && res?.success && res?.status === 'completed') {
+                if (res && res?.success) {
                     toggleViewReport()
-                    updateMetadata({
-                        sync: false,
-                        test: true,
-                        deploy: true,
-                        simulation: data?.metadata?.simulation ?? false
-                    })
+                    if (res?.status === 'completed') {
+                        setIsReportFailed(false);
+                        updateMetadata({
+                            sync: false,
+                            test: true,
+                            deploy: true,
+                            simulation: false
+                        })
+                    } else if (res?.status === 'failed') {
+                        setIsReportFailed(true);
+                        updateMetadata({
+                            sync: false,
+                            test: true,
+                            deploy: false,
+                            simulation: false
+                        })
+                    } else {
+                        setIsReportFailed(false);
+                    }
                 }
             })
             .catch(() => {
@@ -194,7 +209,7 @@ const useSimulationController = (props: ISimulation) => {
         }
         addLogs({ body, id: data?.id }).unwrap()
     }
-
+    
     const handleSimulation = useCallback(() => {
         const isReadOnly = selected === 1;
         let body: Record<string, unknown>;
@@ -206,7 +221,7 @@ const useSimulationController = (props: ISimulation) => {
             body = {
                 functionName: '',
                 awaitReply: true,
-                destination: "sub-rule-901@1.0.0",
+                destination: `sub-rule-901@1.0.0`,
                 consumer: "pub-rule-901@1.0.0",
                 message: {
                     ...sampelRuleRequest
@@ -217,20 +232,22 @@ const useSimulationController = (props: ISimulation) => {
             onSuccess = (res: unknown) => {
                 setResult(res);
                 toggleSimulationExecuted();
-                updateMetadata({
-                    sync: false,
-                    test: true,
-                    deploy: false,
-                    simulation: true
-                });
+                if (claims.editor === user?.claims) {
+                    updateMetadata({
+                        sync: false,
+                        test: true,
+                        deploy: false,
+                        simulation: true
+                    });
+                }
                 addSimulationLog(body, logCategory);
             };
         } else {
             body = {
                 endpoint: "http://10.10.80.37:5000/v1/evaluate/iso20022/pacs.002.001.12",
-                natsConsumer: "interdiction-service",
+                natsConsumer: "investigation-service",
                 functionName: "TMS",
-                awaitReply: false,
+                awaitReply: true,
                 transaction: {
                     ...samplePayload
                 }
@@ -240,12 +257,14 @@ const useSimulationController = (props: ISimulation) => {
             onSuccess = (res: unknown) => {
                 setResult(res);
                 toggleSimulationExecuted();
-                updateMetadata({
-                    sync: false,
-                    test: true,
-                    deploy: false,
-                    simulation: true
-                });
+                if (claims.editor === user?.claims) {
+                    updateMetadata({
+                        sync: false,
+                        test: true,
+                        deploy: false,
+                        simulation: true
+                    });
+                }
                 addSimulationLog(body, logCategory);
             };
         }
@@ -283,7 +302,7 @@ const useSimulationController = (props: ISimulation) => {
             viewReport,
             loader: loader || statusLoading,
             selected,
-            sentForApproval: codeSynced && codeDeployed && simulationExecuted,
+            sentForApproval: !codeSynced && codeDeployed && simulationExecuted,
             codeSynced,
             codeDeployed,
             result,
@@ -292,6 +311,7 @@ const useSimulationController = (props: ISimulation) => {
             isLoading: flowLoading,
             simulating: ruleOnlyLoading || endToEndLoading,
             payloadLoading: variablesLoading || sampleLoading,
+            isReportFailed,
         },
         functions: {
             handleApproval,
