@@ -49,6 +49,7 @@ import {
 import { ResponseQueryNodeDto } from './nodes/dto/responseNode.dto';
 import { RuleRequest } from '../services/parse-extract/dto/message.dto';
 import { SimulationLogsDto } from './simulation-logs/dto';
+import { ISimulationLog } from './simulation-logs/interface/simulation-logs.interface';
 
 @Injectable()
 export class AdminServiceClient {
@@ -464,7 +465,7 @@ async getAllNodes(
     );
   }
 
-  async insertSimulationLogs(token: string, logs: unknown): Promise<SimulationLogsDto> {
+  async insertSimulationLogs(token: string, logs: ISimulationLog): Promise<SimulationLogsDto> {
     console
     return await this.executeHttpRequest(
       'POST',
