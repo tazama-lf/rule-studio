@@ -43,14 +43,17 @@ async function bootstrap(): Promise<void> {
   });
 
   // Swagger Configuration
+  const apiHost = process.env.API_HOST ?? 'localhost';
+  const apiPort = process.env.API_PORT ?? '3005';
+  const baseUrl = `http://${apiHost}:${apiPort}`;
+
   const config = new DocumentBuilder()
     .setTitle('Tazama Model Management API')
     .setDescription(
       'Complete API documentation for Tazama Model Management Backend organized by service modules',
     )
     .setVersion('1.0.0')
-    .addServer('http://10.10.80.37:3005', 'Production Server')
-    .addServer('http://localhost:3005', 'Local Development Server')
+    .addServer(baseUrl, 'API Server')
     .addBearerAuth(
       {
         type: 'http',
@@ -58,14 +61,14 @@ async function bootstrap(): Promise<void> {
         bearerFormat: 'JWT',
         name: 'JWT',
         description:
-          'Enter JWT token (Login at: http://10.10.80.37:3005/auth/login)',
+          `Enter JWT token (Login at: ${baseUrl}/auth/login)`,
         in: 'header',
       },
       'JWT-auth',
     )
     .addTag(
       'Authentication',
-      'JWT token management - Login URL: http://10.10.80.37:3005/auth/login',
+      `JWT token management - Login URL: ${baseUrl}/auth/login`,
     )
     .addTag('Configuration', 'System configuration and transaction types')
     .addTag('Nodes', 'Node management operations')

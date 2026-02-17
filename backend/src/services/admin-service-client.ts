@@ -11,6 +11,11 @@ import {
   GlobalVariableDto,
   RequestSaveFlow,
   RuleFiltersDto,
+  RequestFlow,
+  RuleFlowFilterDto,
+  ResponseRuleFlow,
+  ResponseUpdatedRuleFlowDto,
+  ResponseRuleFlowStatusDto,
 } from '../services/rules/dto/rules.dto';
 import { firstValueFrom } from 'rxjs';
 import {
@@ -38,8 +43,12 @@ import {
   RULE,
   RULES_WITH_ID,
   BASE_URL,
+  GET_SIMULATION_LOGS,
+  INSERT_SIMULATION_LOGS,
 } from '../constants/constant';
 import { ResponseQueryNodeDto } from './nodes/dto/responseNode.dto';
+import { RuleRequest } from '../services/parse-extract/dto/message.dto';
+import { SimulationLogsDto } from './simulation-logs/dto';
 
 @Injectable()
 export class AdminServiceClient {
@@ -61,10 +70,12 @@ export class AdminServiceClient {
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
     path: string,
     token: string,
-    body?: unknown,
+    body?: unknown, // one param for everything
     params?: Record<string, string>,
   ): Promise<T> {
     const url = new URL(`${this.adminServiceUrl}${path}`);
+    // console.log('Admin Service Request URL:', url.toString());
+
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         url.searchParams.append(key, value);
@@ -117,9 +128,9 @@ export class AdminServiceClient {
 
       const message =
         data &&
-        typeof data === 'object' &&
-        'message' in data &&
-        typeof data.message === 'string'
+          typeof data === 'object' &&
+          'message' in data &&
+          typeof data.message === 'string'
           ? data.message
           : 'Admin service returned an error response';
 
@@ -141,7 +152,7 @@ export class AdminServiceClient {
     }
   }
 
- async getAllRulesWithFilters(
+  async getAllRulesWithFilters(
     offset: number,
     limit: number,
     filters: RuleFiltersDto,
@@ -156,7 +167,7 @@ export class AdminServiceClient {
   }
 
   async getRulesById(id: number, token: string): Promise<Rules> {
-    return await this.executeHttpRequest<Rules>('GET', `${RULES_WITH_ID}${id}`, token);
+    return await this.executeHttpRequest<Rules>('GET', `${RULES_WITH_ID}/${id}`, token);
   }
 
   async getVersionsOfTransactionType(
@@ -185,12 +196,15 @@ export class AdminServiceClient {
     );
   }
 
-  async createRule(ruleData: Partial<Rules>, token: string): Promise<Rules> {
+  async createRule(ruleData: Partial<Rules>, token: string, ruleRequest: RuleRequest | undefined): Promise<Rules> {
+
+    console.log("I have reached admin service client")
+    console.log("Rule Request:", ruleRequest);
     const response = await this.executeHttpRequest<{ rule: Rules }>(
       'POST',
       RULE,
       token,
-      ruleData,
+      {ruleData, ruleRequest},
     );
 
     return response.rule;
@@ -224,6 +238,19 @@ export class AdminServiceClient {
     return response.transactionTypes;
   }
 
+  // async findSchemaAndMapping(transaction_type: string, token: string): Promise<[string, Record<string, string>, Record<string, string>]> {
+  //   const response = await this.executeHttpRequest<{
+  //     schema: string;
+  //     mapping: Record<string, string>;
+  //     functions: Record<string, string>;
+  //   }>(
+  //     'GET',
+  //     `${CONFIG}/${encodeURIComponent(transaction_type)}`,
+  //     token,
+  //   );
+  //   return [response.schema, response.mapping, response.functions];
+  // }
+
   async getPayloadByTransactionType(
     transactionType: string,
     token: string,
@@ -233,6 +260,7 @@ export class AdminServiceClient {
       `${CONFIG_PAYLOAD}/${transactionType}`,
       token,
     );
+    console.log("Response from getPayloadByTransactionType:", response);
     return response.payload;
   }
 
@@ -280,12 +308,13 @@ export class AdminServiceClient {
     );
   }
 
-  async cloneRule(ruleId: string, token: string): Promise<Rules> {
+  async cloneRule(ruleId: string, token: string, payload: any, ruleRequest: RuleRequest | undefined): Promise<Rules> {
+    // console.log('Cloning rule with ID:', ruleId);
     const response = await this.executeHttpRequest<{ rule: Rules }>(
       'POST',
       `/v1/admin/trs/rule/clone/${ruleId}`,
       token,
-      {},
+      {payload, ruleRequest},
     );
 
     return response.rule;
@@ -310,13 +339,21 @@ export class AdminServiceClient {
     );
   }
 
-  async getAllNodes(
+async getAllNodes(
     token: string,
     query: GetNodesQuery,
   ): Promise<ResponseNodesDto[]> {
+    const params: Record<string, string> = {};
+    if (query.tenantId) params.tenantId = query.tenantId;
+    if (query.type) params.type = query.type;
+    if (query.category) params.category = query.category;
+    if (query.sortBy) params.sortBy = query.sortBy;
+    if (query.sortOrder) params.sortOrder = query.sortOrder;
+    if (query.limit !== undefined) params.limit = String(query.limit);
+    if (query.offset !== undefined) params.offset = String(query.offset);
     const response = await this.executeHttpRequest<{
       nodes: ResponseNodesDto[];
-    }>('GET', NODES, token, undefined, query as Record<string, string>);
+    }>('GET', NODES, token, undefined, params);
     return response.nodes;
   }
 
@@ -333,34 +370,47 @@ export class AdminServiceClient {
 
   async createRuleFlow(
     ruleId: string,
-    flowData: Record<string, unknown>,
+    payload: RequestFlow,
     token: string,
   ): Promise<ResponseRuleFlowDto> {
     return await this.executeHttpRequest<ResponseRuleFlowDto>(
       'POST',
       `${RULE_FLOW}/${ruleId}`,
       token,
-      flowData,
+      payload,
     );
   }
 
   async getRuleFlow(
     ruleId: string,
     token: string,
-  ): Promise<ResponseRuleFlowDto> {
-    return await this.executeHttpRequest<ResponseRuleFlowDto>(
+    filters?: RuleFlowFilterDto,
+  ): Promise<ResponseRuleFlow> {
+    return await this.executeHttpRequest<ResponseRuleFlow>(
       'GET',
-      `${RULE_FLOW}/${ruleId}`,
+      `${RULE_FLOW}/${ruleId}${filters && Object.keys(filters).length ? '?' + new URLSearchParams(filters as Record<string, string>).toString() : ''}`,
       token,
     );
   }
+
+  async getRuleFlowStatus(
+  ruleId: string,
+  token: string,
+  filters?: RuleFlowFilterDto,
+): Promise<ResponseRuleFlowStatusDto> {
+  return await this.executeHttpRequest<ResponseRuleFlowStatusDto>(
+    'GET',
+    `${RULE_FLOW}/status/${ruleId}${filters && Object.keys(filters).length ? '?' + new URLSearchParams(filters as Record<string, string>).toString() : ''}`,
+    token,
+  );
+}
 
   async updateRuleFlow(
     ruleId: string,
     payload: RequestSaveFlow,
     token: string,
-  ): Promise<ResponseRuleFlowDto> {
-    return await this.executeHttpRequest<ResponseRuleFlowDto>(
+  ): Promise<ResponseUpdatedRuleFlowDto> {
+    return await this.executeHttpRequest<ResponseUpdatedRuleFlowDto>(
       'PUT',
       `${RULE_FLOW}/${ruleId}`,
       token,
@@ -402,7 +452,25 @@ export class AdminServiceClient {
   ): Promise<ResponseQueryNodeDto> {
     return await this.executeHttpRequest<ResponseQueryNodeDto>('POST', QUERY_NODES, token, {
       query: data.query,
+      dbName: data.dbName,
       params: data.params,
     });
+  }
+
+  async getSimulationLogs(token: string, ruleId: string, query: { category: string }): Promise<SimulationLogsDto> {
+    return await this.executeHttpRequest<SimulationLogsDto>(
+      'GET', `${GET_SIMULATION_LOGS.replace(':ruleId', ruleId)}${query && Object.keys(query).length ? '?' + new URLSearchParams(query as Record<string, string>).toString() : ''}`,
+      token,
+    );
+  }
+
+  async insertSimulationLogs(token: string, logs: unknown): Promise<SimulationLogsDto> {
+    console
+    return await this.executeHttpRequest(
+      'POST',
+      INSERT_SIMULATION_LOGS,
+      token,
+      logs,
+    );
   }
 }

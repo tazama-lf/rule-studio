@@ -32,6 +32,7 @@ import {
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { User } from '../../decorators/user.decorator';
 import type { GetNodesQuery } from './interfaces/node.interface';
+import { Audit } from '../../decorators/audit.decorator';
 
 @ApiTags('Nodes')
 @ApiBearerAuth('JWT-auth')
@@ -51,6 +52,7 @@ export class NodesController {
     TazamaClaims.APPROVER,
     TazamaClaims.PUBLISHER,
   )
+  @Audit() // Audit node creation actions
   @ApiBody({ type: [CreateNodeDto] })
   @ApiResponse({
     status: 201,
@@ -155,6 +157,7 @@ export class NodesController {
     TazamaClaims.APPROVER,
     TazamaClaims.PUBLISHER,
   )
+  @Audit() // Audit node deletion actions (critical)
   @ApiOperation({
     summary: 'Delete node by ID',
     description: 'Deletes a specific node by its unique identifier',

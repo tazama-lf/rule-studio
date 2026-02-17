@@ -69,6 +69,7 @@ describe('AuthService', () => {
 
       expect(loggerService.error).toHaveBeenCalledWith(
         'TAZAMA_AUTH_URL is not set in environment variables',
+        'AuthService',
       );
     });
 
@@ -90,7 +91,6 @@ describe('AuthService', () => {
       expect(result).toEqual({
         message: 'Login successful',
         token,
-        expiresIn: 3600,
       });
 
       expect(validateTokenAndClaims).toHaveBeenCalledWith(token, [
@@ -205,6 +205,7 @@ describe('AuthService', () => {
 
       expect(loggerService.warn).toHaveBeenCalledWith(
         'Authentication failed: Invalid credentials',
+        'AuthService',
       );
     });
 
@@ -222,6 +223,7 @@ describe('AuthService', () => {
 
       expect(loggerService.warn).toHaveBeenCalledWith(
         'Account locked (429): Account temporarily locked due to too many failed login attempts.',
+        'AuthService',
       );
     });
 
@@ -236,6 +238,7 @@ describe('AuthService', () => {
 
       expect(loggerService.error).toHaveBeenCalledWith(
         'Auth service error during login: Network error',
+        'AuthService',
       );
     });
 
@@ -253,6 +256,7 @@ describe('AuthService', () => {
 
       expect(loggerService.error).toHaveBeenCalledWith(
         'Auth service error during login: Internal Server Error',
+        'AuthService',
       );
     });
   });

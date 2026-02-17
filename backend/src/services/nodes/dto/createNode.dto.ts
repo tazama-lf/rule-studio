@@ -59,6 +59,14 @@ export class RequestQueryNodeDto {
   query: string;
 
   @ApiProperty({
+    description: 'The name of the database to execute the query against',
+    example: 'nodes_db',
+  })
+  @IsString()
+  @IsNotEmpty()
+  dbName: string;
+
+  @ApiProperty({
     description: 'Optional parameters for the query',
     example: ['processor'],
   })

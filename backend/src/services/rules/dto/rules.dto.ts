@@ -8,6 +8,8 @@ import {
   IsObject,
   ValidateNested,
   Matches,
+  IsEnum,
+  IsBoolean,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -16,8 +18,40 @@ import type {
   RuleRequest,
   RuleResult,
 } from '@tazama-lf/frms-coe-lib/lib/interfaces';
+import { RuleCategory, RuleFlowStatus } from 'src/utils/enums/rule.enum';
+
+export class MetaDataDto {
+  @ApiPropertyOptional({ description: 'Sync status', example: true })
+  @IsOptional()
+  @IsBoolean()
+  sync?: boolean;
+
+  @ApiPropertyOptional({ description: 'Deploy status', example: false })
+  @IsOptional()
+  @IsBoolean()
+  deploy?: boolean;
+
+  @ApiPropertyOptional({ description: 'Test status', example: false })
+  @IsOptional()
+  @IsBoolean()
+  test?: boolean;
+
+  @ApiPropertyOptional({ description: 'Simulation status', example: false })
+  @IsOptional()
+  @IsBoolean()
+  simulation?: boolean;
+}
 
 export class RuleBaseDto {
+
+  @ApiProperty({
+    description: 'Rule name',
+    example: 'cbe-rule-061',
+  })
+  @IsString()
+  @IsNotEmpty()
+  ruleName: string;
+
   @ApiProperty({
     description: 'Rule description',
     example: 'Detects transactions above threshold',
@@ -98,6 +132,15 @@ export class Rules extends RuleBaseDto {
   @IsOptional()
   @IsString()
   flow_id?: string;
+
+  @ApiPropertyOptional({
+    description: 'Rule metadata',
+  })
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => MetaDataDto)
+  metadata?: MetaDataDto;
 
   @ApiPropertyOptional({
     description: 'Last update timestamp',
@@ -189,6 +232,15 @@ export class UpdateRuleDto {
   @IsOptional()
   @IsString()
   rule_config_id?: string;
+
+  @ApiPropertyOptional({
+    description: 'Rule metadata',
+  })
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => MetaDataDto)
+  metadata?: MetaDataDto;
 }
 
 export class RuleIdDto {
@@ -258,6 +310,38 @@ export class FlowDto {
   edges: FlowEdgeDto[];
 }
 
+
+export class ResponseUpdatedRuleFlowDto {
+  @ApiProperty({
+    description: 'Unique identifier for the rule flow',
+    example: 'flow-001',
+  })
+  @IsString()
+  id: string;
+
+  
+  @ApiProperty({
+    description: 'Identifier of the associated rule',
+    example: '01',
+  })
+  @IsString()
+  @IsNotEmpty()
+  rule_id: string;
+
+
+  @ApiProperty({ description: 'Flow structure', type: FlowDto })
+  @IsObject()
+  @IsNotEmpty()
+  flow_json: Record<string, unknown>;
+
+  @ApiProperty({
+    description: 'Base64 encoded TypeScript file representing the flow',
+    example:
+      'data:application/typescript;base64,ZXhwb3J0IGNvbnN0Li4u',
+  })
+  @IsString()
+  ts_file_base64: string;
+}
 export class ResponseRuleFlowDto {
   @ApiProperty({
     description: 'Unique identifier for the rule flow',
@@ -274,18 +358,89 @@ export class ResponseRuleFlowDto {
   @IsNotEmpty()
   rule_id: string;
 
-  @ApiProperty({ description: 'Flow structure of the rule', type: FlowDto })
+
+  @ApiProperty({ description: 'Flow structure of the rule builder if no category filter applied', type: FlowDto })
   @IsObject()
-  @IsNotEmpty()
-  flow: FlowDto;
+  @IsOptional()
+  flow_json_rule_builder?: Record<string,unknown>;
+
+  @ApiProperty({ description: 'Flow structure of the test case if no category filter applied', type: FlowDto })
+  @IsObject()
+  @IsOptional()
+  flow_json_test_case?: Record<string,unknown>;
 
   @ApiProperty({
-    description: 'Base64 encoded TypeScript file representing the flow',
+    description: 'Base64 encoded TypeScript file representing the flow of the rule builder if no filter applied',
     example:
       'data:application/typescript;base64,ZXhwb3J0IGNvbnN0Li4u',
   })
   @IsString()
-  ts_file_base64: string;
+  @IsOptional()
+  ts_file_base64_rule_builder?: string;
+
+  @ApiProperty({
+    description: 'Base64 encoded TypeScript file representing the flow of the test case if no filter applied',
+    example:
+      'data:application/typescript;base64,ZXhwb3J0IGNvbnN0Li4u',
+  })
+  @IsString()
+  @IsOptional()
+  ts_file_base64_test_case?: string;
+
+   @ApiProperty({ description: 'Flow structure for category-filtered flow', type: FlowDto })
+  @IsObject()
+  @IsOptional()
+  flow_json: Record<string,unknown>;
+
+  @ApiProperty({
+    description: 'Base64 encoded TypeScript file representing the flow if category filter applied',
+    example:
+      'data:application/typescript;base64,ZXhwb3J0IGNvbnN0Li4u',
+  })
+  @IsString()
+  @IsOptional()
+  ts_file_base64?: string;
+}
+
+export class ResponseRuleFlowStatusDto {
+  @ApiProperty({
+    description: 'Unique identifier for the rule flow',
+    example: 'flow-001',
+  })
+  @IsString()
+  id: string;
+
+  @ApiProperty({
+    description: 'Identifier of the associated rule',
+    example: '01',
+  })
+  @IsString()
+  @IsNotEmpty()
+  rule_id: string;
+
+  @ApiProperty({
+    description: 'rule builder status of the flow',
+    example: 'initial',
+  })
+  @IsString()
+  @IsNotEmpty()
+  status_rule_builder?: string;
+
+  @ApiProperty({
+    description: 'test case generation status of the flow',
+    example: 'initial',
+  })
+  @IsString()
+  @IsNotEmpty()
+  status_test_case?: string;
+
+  @ApiProperty({
+    description: 'test case generation status of the flow',
+    example: 'initial',
+  })
+  @IsString()
+  @IsNotEmpty()
+  status?: string;
 }
 
 export class FlowNodeDto {
@@ -339,6 +494,7 @@ export class RuleStatusArrayDto {
     type: [String],
     example: ['ACTIVE', 'INACTIVE', 'TESTING'],
   })
+  @IsArray()
   statuses: string[];
 }
 
@@ -429,6 +585,22 @@ export class RequestSaveFlow {
   })
   @IsObject()
   flow_json: Record<string, unknown>;
+
+  @ApiProperty({
+    description: 'Category of the flow',
+    example: RuleCategory.RULE_BUILDER,
+  })
+  @IsEnum(RuleCategory)
+  @IsNotEmpty()
+  category: RuleCategory;
+
+  @ApiProperty({
+    description: 'Status of the flow',
+    example: RuleFlowStatus.INITIAL,
+  })
+  @IsEnum(RuleFlowStatus)
+  @IsNotEmpty()
+  status: RuleFlowStatus;
 }
 
 export class RequestFlow {
@@ -437,5 +609,39 @@ export class RequestFlow {
     example: '{"edges": {}, "nodes": {} }',
   })
   @IsObject()
-  flowData: Record<string, unknown>;
+  flow_json_rule_builder: Record<string, unknown>;
+
+  @ApiProperty({
+    description: 'Json of the test case flow',
+    example: '{"edges": {}, "nodes": {} }',
+  })
+  @IsObject()
+  flow_json_test_case: Record<string, unknown>;
+
+
+}
+
+export class RuleFlowFilterDto {
+  @ApiPropertyOptional({
+    description: 'Category filter for the rule flow',
+    example: RuleCategory.RULE_BUILDER,
+  })
+  @IsOptional()
+  @IsEnum(RuleCategory)
+  category?: RuleCategory;
+}
+
+export class ResponseRuleFlow {
+  @ApiProperty({
+    description: 'Status of the API response indicating success or failure',
+  })
+  @IsString()
+  status: string;
+
+  @ApiProperty({
+    description: 'Response of the rule flow retrieval operation',
+    type: ResponseRuleFlowDto,
+  })
+  @IsObject()
+  result: ResponseRuleFlowDto;
 }

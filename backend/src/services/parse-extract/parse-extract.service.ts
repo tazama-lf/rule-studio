@@ -35,106 +35,34 @@ export class ParseExtractService {
       this.logger.log(
         `Processing transactional message for ${request.TxTp} [${correlationId}]`,
       );
-      this.logger.log('tenant id is ', request.TenantId);
-
-      // Fetch schema from database via Admin Service
-      const adminServiceResponse =
-        await this.adminServiceClient.getConfigRowByTxTp(
-          request.TxTp, // needs to be sent for saving ruleRequest in db table
-          token,
-        );
-
-      if (!adminServiceResponse.config?.schema) {
-        const errorMsg = `No schema configuration found for transaction type: ${request.TxTp}`;
-        this.logger.warn(errorMsg);
-
-        return {
-          success: false,
-          message: errorMsg,
-          processedAt: new Date().toISOString(),
-          transactionType: request.TxTp,
-          correlationId,
-        };
-      }
-
-      this.logger.log(`Found schema configuration for: ${request.TxTp}`);
-
-      // Extract payload to validate - exclude TxTp and TenantId from request
-      const extractedData = this.extractPayloadFromRequest(request);
-
-      if (!extractedData?.payloadToValidate) {
-        return {
-          success: false,
-          message: 'No payload found to validate',
-          processedAt: new Date().toISOString(),
-          transactionType: request.TxTp,
-          correlationId,
-        };
-      }
-
-      const { TxTp, TenantId, payloadToValidate } = extractedData;
-
-      // Validate payload against schema thru AJV
-      const validationResult = await this.validatePayload(
-        payloadToValidate,
-        adminServiceResponse.config.schema,
-        request.TxTp,
-        correlationId,
-      );
-
-      if (!validationResult.isValid) {
-        return {
-          success: false,
-          message: 'Payload validation failed',
-          processedAt: new Date().toISOString(),
-          transactionType: request.TxTp,
-          correlationId,
-          validationErrors: validationResult.differences,
-          configPayload: adminServiceResponse,
-        };
-      }
-
-      // after validation now, I will fetch mappings from config Table
-      // and create the DataCache object based on that
-      // we will utilize the TCS-LIB process mappings over here
-
-      // Process mappings to extract dataCache and transaction relationship
-      payloadToValidate.TxTp = TxTp;
-      payloadToValidate.TenantId = TenantId;
-      const mappingResult = processMappings(
-        payloadToValidate,
-        adminServiceResponse.config.mapping ?? [],
-        request.TxTp,
-      );
-
-      // Fetch active network map for the tenant
-      const activeNetworkMap =
-        await this.adminServiceClient.getActiveNetworkMap(token);
-
-      const networkMap: NetworkMap = activeNetworkMap ?? {};
-
-      this.logger.log(
-        `Processed mappings for ${request.TxTp}: extracted ${Object.keys(mappingResult.dataCache).length} data cache entries`,
-      );
-
-      // we create the RuleRequest object here
-      const ruleRequest: RuleRequest = this.createRuleRequest(
-        payloadToValidate,
+      this.logger.log(`tenant id is ${request.TenantId}`);
+      const result = await this.processTransactionPayload(
         request,
+        token,
         correlationId,
-        mappingResult.dataCache,
-        networkMap,
       );
+
+      if (!result.success) {
+        return {
+          success: false,
+          message: result.message,
+          processedAt: new Date().toISOString(),
+          transactionType: request.TxTp,
+          correlationId,
+          validationErrors: result.validationErrors,
+          configPayload: result.configPayload,
+        };
+      }
 
       const response: ParseExtractResponse = {
         success: true,
         message: `Successfully validated and processed ${request.TxTp} message`,
         processedAt: new Date().toISOString(),
-        configPayload: adminServiceResponse,
+        configPayload: result.configPayload,
         transactionType: request.TxTp,
         correlationId,
-        validatedPayload: payloadToValidate,
-        ruleRequest,
+        validatedPayload: result.validatedPayload,
+        ruleRequest: result.ruleRequest,
       };
 
       this.logger.log(
@@ -154,6 +82,182 @@ export class ParseExtractService {
         message: `Failed to process message: ${err.message}`,
         processedAt: new Date().toISOString(),
         transactionType: request.TxTp,
+        correlationId,
+      };
+    }
+  }
+
+  /**
+   * Core logic - fetch schema -> validate payload -> process mappings -> create RuleRequest
+   * @param request The transactional message request
+   * @param token Authentication token
+   * @param correlationId Correlation ID for tracking
+   * @returns Processing result with all necessary data
+   */
+  async processTransactionPayload(
+    request: TransactionalMessage,
+    token: string,
+    correlationId: string,
+  ): Promise<{
+    success: boolean;
+    message: string;
+    validationErrors?: string[];
+    configPayload?: any;
+    validatedPayload?: any;
+    ruleRequest?: RuleRequest;
+  }> {
+    // 1. Fetch schema from database via Admin Service
+    console.log("0. Starting processTransactionPayload for TxTp:", request.TxTp, "with correlationId:", correlationId);
+    const adminServiceResponse =
+      await this.adminServiceClient.getConfigRowByTxTp(
+        request.TxTp, // needs to be sent for saving ruleRequest in db table
+        token,
+      );
+
+    console.log("1. fetch schema from admin service | adminServiceResponse is ", adminServiceResponse)
+
+    if (!adminServiceResponse.config?.schema) {
+      const errorMsg = `No schema configuration found for transaction type: ${request.TxTp}`;
+      this.logger.warn(errorMsg);
+
+      return {
+        success: false,
+        message: errorMsg,
+      };
+    }
+
+    this.logger.log(`Found schema configuration for: ${request.TxTp}`);
+    console.log("whole request is ", request)
+
+    // 2. Extract payload to validate - exclude TxTp and TenantId from request
+    const extractedData = this.extractPayloadFromRequest(request);
+
+    if (!extractedData?.payloadToValidate) {
+      return {
+        success: false,
+        message: 'No payload found to validate',
+      };
+    }
+
+    const { TxTp, TenantId, payloadToValidate } = extractedData;
+    console.log("2. Extracted payload to validate:", extractedData);
+
+    // 3. Validate payload against schema thru AJV
+    const validationResult = await this.validatePayload(
+      payloadToValidate,
+      adminServiceResponse.config.schema,
+      request.TxTp,
+      correlationId,
+    );
+
+    if (!validationResult.isValid) {
+      return {
+        success: false,
+        message: 'Payload validation failed',
+        validationErrors: validationResult.differences,
+        configPayload: adminServiceResponse,
+      };
+    }
+
+    // 4. After validation now, I will fetch mappings from config Table
+    // and create the DataCache object based on that
+    // we will utilize the TCS-LIB process mappings over here
+
+    // Process mappings to extract dataCache and transaction relationship
+    payloadToValidate.TxTp = TxTp;
+    payloadToValidate.TenantId = TenantId;
+
+    console.log("3a. Sending payloadToValidate to processMappings:", payloadToValidate);
+    console.log("3b. Mappings from admin service config:", adminServiceResponse.config.mapping); 
+   
+    const mappingResult = processMappings(
+      payloadToValidate,
+      adminServiceResponse.config.mapping ?? [], // where is this coming form?
+      request.TxTp,
+    );
+
+    console.log("4. Mapping result from TCS-LIB processMappings:", mappingResult);
+
+    // Fetch active network map for the tenant
+    const activeNetworkMap =
+      await this.adminServiceClient.getActiveNetworkMap(token);
+
+    const networkMap: NetworkMap = activeNetworkMap ?? {};
+
+    this.logger.log(
+      `Processed mappings for ${request.TxTp}: extracted ${Object.keys(mappingResult.dataCache).length} data cache entries`,
+    );
+
+    // we create the RuleRequest object here
+    const ruleRequest: RuleRequest = this.createRuleRequest(
+      payloadToValidate,
+      request,
+      correlationId,
+      mappingResult.dataCache,
+      networkMap,
+    );
+
+    return {
+      success: true,
+      message: `Successfully validated and processed ${request.TxTp} message`,
+      configPayload: adminServiceResponse,
+      validatedPayload: payloadToValidate,
+      ruleRequest,
+    };
+  }
+
+  /**
+   * Core logic = calls processTransactionPayload - fetch schema -> validate payload -> process mappings -> create RuleRequest
+   * @param request The transactional message request
+   * @param token Authentication token
+   * @returns Processing result optimized for rule creation
+   */
+  async processForRuleCreation(
+    request: TransactionalMessage,
+    token: string,
+  ): Promise<{
+    success: boolean;
+    message: string;
+    correlationId: string;
+    ruleRequest?: RuleRequest;
+    validatedPayload?: any;
+    configPayload?: any;
+    validationErrors?: string[];
+  }> {
+    const correlationId = randomUUID();
+
+    try {
+      this.logger.log(
+        `Processing transaction data for rule creation - TxTp: ${request.TxTp} [${correlationId}]`,
+      );
+
+      // CstmrCdtTrfInitn should be the root
+
+      const result = await this.processTransactionPayload(
+        request,
+        token,
+        correlationId,
+      );
+
+      return {
+        success: result.success,
+        message: result.message,
+        correlationId,
+        ruleRequest: result.ruleRequest,
+        validatedPayload: result.validatedPayload,
+        configPayload: result.configPayload,
+        validationErrors: result.validationErrors,
+      };
+    } catch (error) {
+      const err = error as Error;
+      this.logger.error(
+        `Error processing transaction data for rule creation [${correlationId}]: ${err.message}`,
+        err.stack,
+      );
+
+      return {
+        success: false,
+        message: `Failed to process transaction data: ${err.message}`,
         correlationId,
       };
     }
