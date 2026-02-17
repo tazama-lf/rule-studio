@@ -12,6 +12,7 @@ import {
 import { getNodeTemplate } from '../../../utils/Flow/nodeTemplateService';
 import { usesDynamicParameters } from '../../../utils/Flow/functionParameterUtils';
 import { transformRuleRequestToCode } from '../../../utils/Flow/transformRuleRequest';
+import { transformRuleResultToCode } from '../../../utils/Flow/transformRuleResult';
 import {
   NodeHeader,
   BasicPropertiesSection,
@@ -68,6 +69,8 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
   const [editingParams, setEditingParams] = useState<Record<string, string> | null>(null);
   const [mockRequestModalOpen, setMockRequestModalOpen] = useState<boolean>(false);
   const [mockRequestCode, setMockRequestCode] = useState<string>('');
+  const [ruleResultModalOpen, setRuleResultModalOpen] = useState<boolean>(false);
+  const [ruleResultCode, setRuleResultCode] = useState<string>('');
   const [beforeEachModalOpen, setBeforeEachModalOpen] = useState<boolean>(false);
   const [beforeEachCode, setBeforeEachCode] = useState<string>('');
   const [beforeAllModalOpen, setBeforeAllModalOpen] = useState<boolean>(false);
@@ -344,7 +347,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
     if (selectedNode) {
       updateTimeoutRef.current = setTimeout(() => {
         onUpdateNode(selectedNode.id, { params: updatedParams });
-        // Notify React Flow that handles have changed
         if (updateNodeInternals) {
           updateNodeInternals(selectedNode.id);
         }
@@ -375,7 +377,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
       if (selectedNode) {
         updateTimeoutRef.current = setTimeout(() => {
           onUpdateNode(selectedNode.id, { params: updatedParams });
-          // Notify React Flow that handles have changed
           if (updateNodeInternals) {
             updateNodeInternals(selectedNode.id);
           }
@@ -407,7 +408,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         if (selectedNode) {
           updateTimeoutRef.current = setTimeout(() => {
             onUpdateNode(selectedNode.id, { params: updatedParams });
-            // Notify React Flow that handles have changed
             if (updateNodeInternals) {
               updateNodeInternals(selectedNode.id);
             }
@@ -474,6 +474,49 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
 
   const handleCloseMockRequestModal = useCallback(() => {
     setMockRequestModalOpen(false);
+  }, []);
+
+  const handleEditRuleResult = useCallback(() => {
+    const existingData = currentParamsRef.current.ruleResultData;
+    let codeToEdit = '';
+    
+    if (existingData) {
+      try {
+        if (existingData.includes('const ruleResult')) {
+          codeToEdit = existingData;
+        } else {
+          const parsed = JSON.parse(existingData);
+          codeToEdit = transformRuleResultToCode(parsed);
+        }
+      } catch {
+        codeToEdit = existingData;
+      }
+    } else {
+      const defaultRuleResult = {
+        id: '021@1.0.0',
+        tenantId: 'DEFAULT',
+        cfg: '1.0.0',
+        subRuleRef: '.err',
+        reason: 'Unhandled rule result outcome',
+      };
+      codeToEdit = transformRuleResultToCode(defaultRuleResult);
+    }
+    
+    setRuleResultCode(codeToEdit);
+    setRuleResultModalOpen(true);
+  }, []);
+
+  const handleSaveRuleResult = useCallback(() => {
+    if (selectedNode) {
+      const updatedParams = { ...currentParamsRef.current, ruleResultData: ruleResultCode };
+      setEditingParams(updatedParams);
+      onUpdateNode(selectedNode.id, { params: updatedParams });
+      setRuleResultModalOpen(false);
+    }
+  }, [selectedNode, ruleResultCode, onUpdateNode]);
+
+  const handleCloseRuleResultModal = useCallback(() => {
+    setRuleResultModalOpen(false);
   }, []);
 
   const handleEditBeforeEach = useCallback(() => {
@@ -739,32 +782,44 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
           selectedNodeId={selectedNode?.id}
         />
       ) : nodeData?.nodeType === 'RuleResultFactory' ? (
-        <ParameterSection
-          inputs={[
-            {
-              key: 'factoryName',
-              label: 'Factory Name',
-              type: 'text',
-              required: true,
-              defaultValue: 'getRuleResult',
-            }
-          ]}
-          currentParams={currentParams}
-          onParamChange={handleParamChange}
-          onParamBlur={handleParamBlur}
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          inputRefs={inputRefs}
-          variableError={null}
-          isReadOnly={isReadOnly}
-          viewOnly={viewOnly}
-          nodeType={nodeData?.nodeType}
-          allNodes={allNodes}
-          getFieldError={getFieldError}
-          ruleId={ruleId}
-          edges={edges}
-          selectedNodeId={selectedNode?.id}
-        />
+        <>
+          <ParameterSection
+            inputs={[
+              {
+                key: 'factoryName',
+                label: 'Factory Name',
+                type: 'text',
+                required: true,
+                defaultValue: 'ruleResult',
+              }
+            ]}
+            currentParams={currentParams}
+            onParamChange={handleParamChange}
+            onParamBlur={handleParamBlur}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            inputRefs={inputRefs}
+            variableError={null}
+            isReadOnly={isReadOnly}
+            viewOnly={viewOnly}
+            nodeType={nodeData?.nodeType}
+            allNodes={allNodes}
+            getFieldError={getFieldError}
+            ruleId={ruleId}
+            edges={edges}
+            selectedNodeId={selectedNode?.id}
+          />
+          <Button
+            variant="outlined"
+            startIcon={<EditIcon />}
+            onClick={handleEditRuleResult}
+            fullWidth
+            sx={{ mt: 2 }}
+            disabled={viewOnly}
+          >
+            Edit Rule Result
+          </Button>
+        </>
       ) : nodeData?.nodeType === 'DataCacheFactory' ? (
         <ParameterSection
           inputs={[
@@ -895,6 +950,15 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         onChange={setMockRequestCode}
         onSave={handleSaveMockRequest}
         onClose={handleCloseMockRequestModal}
+      />
+
+      <CodeEditorDialog
+        open={ruleResultModalOpen}
+        title="Edit Rule Result"
+        value={ruleResultCode}
+        onChange={setRuleResultCode}
+        onSave={handleSaveRuleResult}
+        onClose={handleCloseRuleResultModal}
       />
 
       <CodeEditorDialog
