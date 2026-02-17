@@ -36,6 +36,10 @@ export class SimulationLogsDto {
     @IsString()
     created_by?: string;
 
+    @ApiProperty({ description: 'Email of the user who created the log', example: 'john.doe@example.com' })
+    @IsString()
+    created_by_email?: string;
+
     @ApiProperty({ description: 'Timestamp when the log was created', example: '2024-10-01T12:00:00Z' })
     @IsDateString()
     created_at?: Date;
