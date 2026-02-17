@@ -12,7 +12,7 @@ import { useUpdateMetadataMutation } from "../../../redux/Api/Rules";
 import { useLazyGetReportStatusQuery, useMergeBranchMutation, useUploadCodeMutation } from "../../../redux/Api/Simulation";
 import { LocalStorage } from "../../../utils/Common/enums";
 import { extractData } from "../../../utils/Common/storage";
-import { claims, ruleCode, sampelRuleRequest, samplePayload, testCode } from "../../../utils/Constants/data";
+import { claims, sampelRuleRequest, samplePayload } from "../../../utils/Constants/data";
 import ViewNetworkMap from "../Modals/ViewNetworkMap";
 import ViewReport from "../Modals/ViewReport";
 import { useAddSimulationlogsMutation } from "../../../redux/Api/SimulationLogs";
@@ -88,10 +88,8 @@ const useSimulationController = (props: ISimulation) => {
     const handleUpload = useCallback(() => {
         const body = {
             ruleId: data?.id,
-            // ruleCode: flowData?.result?.ts_file_base64_rule_builder,
-            // testCode: flowData?.result?.ts_file_base64_test_case
-            ruleCode,
-            testCode
+            ruleCode: flowData?.result?.ts_file_base64_rule_builder,
+            testCode: flowData?.result?.ts_file_base64_test_case
         }
         upload(body).unwrap()
             .then((res) => {

@@ -14,6 +14,8 @@ const useRuleBuilderController = (props: IRuleBuilder) => {
         () => extractData('trs_rule', LocalStorage, true) ?? props.data,
         [props.data]
     )
+    
+    const statusInProgress = data?.status.includes('IN_PROGRESS')
 
     const { data: flowData, isLoading: isLoadingFlow } = useGetRuleFlowStatusQuery(
         { ruleId: (data?.id || '') as string | number, category: 'rule_builder' },
@@ -23,7 +25,7 @@ const useRuleBuilderController = (props: IRuleBuilder) => {
     const { enableNextTab, enablePreviousTab } = useTab()
 
     const handleBuilder = () => {
-        if(data.status.includes('IN_PROGRESS')){
+        if(statusInProgress){
             window.location.href = `/rule-builder/${data?.id}`
         }
         else {
@@ -49,7 +51,7 @@ const useRuleBuilderController = (props: IRuleBuilder) => {
                 return {
                     title: 'Rule Not Created Yet',
                     description: 'Your rule is in initial mode. Click the button below to start building your rule.',
-                    buttonText: 'Open Rule Builder',
+                    buttonText: `${statusInProgress ? 'Open Rule Builder' : 'View Rule'}`,
                     color: '#FFA726',
                     bgColor: '#FFF3E0',
                     icon: '🚀'
@@ -58,7 +60,7 @@ const useRuleBuilderController = (props: IRuleBuilder) => {
                 return {
                     title: 'Rule Validated Successfully',
                     description: 'Your rule has been validated and is ready to use. You can edit it anytime.',
-                    buttonText: 'Edit Rule',
+                    buttonText: `${statusInProgress ? 'Edit Rule' : 'View Rule'}`,
                     color: '#66BB6A',
                     bgColor: '#E8F5E9',
                     icon: '✅'
@@ -67,7 +69,7 @@ const useRuleBuilderController = (props: IRuleBuilder) => {
                 return {
                     title: 'Validation Failed',
                     description: 'Your rule contains errors and needs to be fixed. Click below to review and correct the issues.',
-                    buttonText: 'Edit Rule',
+                    buttonText: `${statusInProgress ? 'Edit Rule' : 'View Rule'}`,
                     color: '#EF5350',
                     bgColor: '#FFEBEE',
                     icon: '⚠️'
@@ -76,7 +78,7 @@ const useRuleBuilderController = (props: IRuleBuilder) => {
                 return {
                     title: 'Rule Builder',
                     description: 'Create your rule',
-                    buttonText: 'Open Rule Builder',
+                    buttonText: `${statusInProgress ? 'Open Rule Builder' : 'View Rule'}`,
                     color: '#42A5F5',
                     bgColor: '#E3F2FD',
                     icon: '📝'
