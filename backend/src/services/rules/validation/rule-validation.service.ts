@@ -153,18 +153,17 @@ export class RuleValidationService {
 
     try {
       // Check if txtp exists
-      const txtpData = await this.adminServiceClient.getPayloadByTransactionType(txtp, token);
+      const listOfValidTxtps = await this.adminServiceClient.getTransactionTypes(token);
+      console.log('Validating txtp against list of valid transaction types:', listOfValidTxtps);
       
-      if (!txtpData) {
+      if (!listOfValidTxtps.includes(txtp)) {
         result.isValid = false;
         result.errors.push(`Transaction type '${txtp}' does not exist`);
         return result;
       }
-
-      // Check if txtp is in correct state (deployed and accepted)
-      // This would need actual status checking from the admin service
-      // For now, if we can fetch it, we assume it's in acceptable state
       
+      // atp we have valid txtp
+      // now we want to check txtp version for validitiy      
     } catch (error) {
       result.isValid = false;
       result.errors.push(`Transaction type '${txtp}' does not exist or is not accessible`);
