@@ -205,70 +205,85 @@ export class RulesService {
     }
   }
 
-   async cloneRule(ruleId: string, token: string, payload: any): Promise<Rules> {
+   async cloneRule(ruleId: string, user: AuthenticatedUser, payload: any): Promise<Rules> {
     try {
       const transactionType = payload.txtp ?? "";
+      console.log(`Cloning rule with ID ${ruleId} for transaction type ${transactionType} and payload:`, JSON.stringify(payload, null, 2));
       
-      const result = await this.adminServiceClient.getPayloadByTransactionType(
-        transactionType,
-        token,
-      );
-      console.log("getPayloadByTransactionType in rules.service:", JSON.stringify(result, null, 2)); 
+      // const result = await this.adminServiceClient.getPayloadByTransactionType(
+      //   transactionType,
+      //   token,
+      // );
+      // console.log("getPayloadByTransactionType in rules.service:", JSON.stringify(result, null, 2)); 
 
-      let typedPayload = result.payload as Record<string, unknown>;  
+      // let typedPayload = result.payload as Record<string, unknown>;  
 
-      if(result.type === 'xml') {
-        // Convert XML to JSON
-        const result = await this.adminServiceClient.getConfigRowByTxTp(transactionType, token); 
-        console.log("having fetched the payload, now getConfigRowByTxTp result:", result);
+      // // 43 lines
+      // if(result.type === 'xml') {
+      //   // Convert XML to JSON
+      //   const result = await this.adminServiceClient.getConfigRowByTxTp(transactionType, token); 
+      //   console.log("having fetched the payload, now getConfigRowByTxTp result:", result);
 
-        const configuredSchema = result.config.schema;
+      //   const configuredSchema = result.config.schema;
 
-        console.log("the configured scehma is :", JSON.stringify(configuredSchema, null, 2));
+      //   console.log("the configured scehma is :", JSON.stringify(configuredSchema, null, 2));
 
        
-        const { stringFields, arrayFields } = returnArrayFieldsFromSchema(configuredSchema);
+      //   const { stringFields, arrayFields } = returnArrayFieldsFromSchema(configuredSchema);
 
-        console.log("String fields identified for number processing:", stringFields.length );
-        console.log("Array fields identified for replacement:", arrayFields.length);
+      //   console.log("String fields identified for number processing:", stringFields.length );
+      //   console.log("Array fields identified for replacement:", arrayFields.length);
 
-        const options: ParserOptions = {
-          explicitArray: false, // Don't wrap single values in arrays
-          ignoreAttrs: false, // Include attributes
-          mergeAttrs: true, // Merge attributes with element content
-          explicitRoot: true, // Don't include root wrapper
-          explicitChildren: true,
-          normalize: true,
-          valueProcessors: [createSchemaAwareNumberProcessor(stringFields)], 
-        };
+      //   const options: ParserOptions = {
+      //     explicitArray: false, // Don't wrap single values in arrays
+      //     ignoreAttrs: false, // Include attributes
+      //     mergeAttrs: true, // Merge attributes with element content
+      //     explicitRoot: true, // Don't include root wrapper
+      //     explicitChildren: true,
+      //     normalize: true,
+      //     valueProcessors: [createSchemaAwareNumberProcessor(stringFields)], 
+      //   };
 
-        console.log("Starting XML to JSON conversion with xml2js...");
+      //   console.log("Starting XML to JSON conversion with xml2js...");
 
-        // eslint-disable-next-line promise/avoid-new -- we need to wrap xml2js parseString in a promise
-        const transformedPayload = await new Promise((resolve, reject) => {
-          parseString(payload, options, (err, result) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(result);
-            }
-          });
-        });
+      //   // eslint-disable-next-line promise/avoid-new -- we need to wrap xml2js parseString in a promise
+      //   const transformedPayload = await new Promise((resolve, reject) => {
+      //     parseString(payload, options, (err, result) => {
+      //       if (err) {
+      //         reject(err);
+      //       } else {
+      //         resolve(result);
+      //       }
+      //     });
+      //   });
 
-        console.log("XML to JSON conversion completed")
+      //   console.log("XML to JSON conversion completed")
 
-        // conversion done 
-        typedPayload = replaceObjectsWithArrays(transformedPayload, arrayFields, stringFields);
-        console.log("Final converted payload:", JSON.stringify(typedPayload, null, 2));
-      }
+      //   // conversion done 
+      //   typedPayload = replaceObjectsWithArrays(transformedPayload, arrayFields, stringFields);
+      //   console.log("Final converted payload:", JSON.stringify(typedPayload, null, 2));
+      // }
       
-      // if it was XML, now its JSON
-      const parseResult = await this.parseExtractService.processForRuleCreation(
-        {TxTp: transactionType, TenantId:"default", ...typedPayload},
-        token,
+      // // if it was XML, now its JSON
+      // const parseResult = await this.parseExtractService.processForRuleCreation(
+      //   {TxTp: transactionType, TenantId:"default", ...typedPayload},
+      //   token,
+      // );
+      // // const payloadWithoutName = { ruleName, ...payload };
+
+      // console.log(`Cloning rule with ID ${ruleId} and payload:`, JSON.stringify(payload, null, 2));
+
+      // fetch ruleRequest and forward it
+      const ruleRequest = await this.adminServiceClient.fetchRuleRequest(
+        {RuleId: ruleId, TenantId:user.tenantId},
+        user.token.tokenString,
       );
-      console.log(`Cloning rule with ID ${ruleId} and payload:`, JSON.stringify(payload, null, 2));
-      return await this.adminServiceClient.cloneRule(ruleId, token, payload, parseResult.ruleRequest);
+
+      console.log(`Fetched rule request for cloning:`, JSON.stringify(ruleRequest, null, 2)); 
+
+
+
+      return await this.adminServiceClient.cloneRule(ruleId, user.token.tokenString, payload, ruleRequest);
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Error cloning rule ${ruleId}: ${err.message}`);

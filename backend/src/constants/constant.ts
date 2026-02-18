@@ -10,6 +10,7 @@ export const RULE_CONFIGURATION = `${RULES_BASE_URL}/rule-configuration`;
 export const CLONE_RULE = `${RULE}/clone`;
 export const UPDATE_RULE_STATUS = `${RULES_BASE_URL}/rule/updateStatus`;
 export const SAVE_RULE_REQUEST = `${RULES_BASE_URL}/saveRuleRequest`;
+export const GET_RULE_REQUEST = `${RULES_BASE_URL}/getRuleRequest`;
 
 // Config
 export const CONFIG = '/v1/admin/config';

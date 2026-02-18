@@ -468,7 +468,7 @@ export class RulesController {
     @Body() payload: any, // add type here 
     @User() user: AuthenticatedUser,
   ): Promise<Rules> {
-    return await this.rulesService.cloneRule(ruleId, user.token.tokenString, payload);
+    return await this.rulesService.cloneRule(ruleId, user, payload);
   }
 
   // update rule status

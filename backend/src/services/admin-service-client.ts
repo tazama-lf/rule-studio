@@ -45,6 +45,7 @@ import {
   BASE_URL,
   GET_SIMULATION_LOGS,
   INSERT_SIMULATION_LOGS,
+  GET_RULE_REQUEST,
 } from '../constants/constant';
 import { ResponseQueryNodeDto } from './nodes/dto/responseNode.dto';
 import { RuleRequest } from '../services/parse-extract/dto/message.dto';
@@ -202,6 +203,26 @@ export class AdminServiceClient {
       token,
       { txTp, tenantId, ruleRequest },
     );
+  }
+
+  async fetchRuleRequest(
+    params: { RuleId: string; TenantId: string },
+    token: string,
+  ): Promise<RuleRequest | undefined> {
+    try {
+      console.log(`Fetching rule request for RuleId: ${params.RuleId} and TenantId: ${params.TenantId}`);
+      console.log(`Constructed URL: ${this.adminServiceUrl}${GET_RULE_REQUEST}?${new URLSearchParams(params).toString()}`);
+      const response = await this.executeHttpRequest<{ ruleRequest?: RuleRequest }>(
+        'GET',
+        `${GET_RULE_REQUEST}?${new URLSearchParams(params).toString()}`,
+        token,
+      );
+      // console.log(`Received response for rule request: ${JSON.stringify(response, null, 2)}`);
+      return response.ruleRequest;
+    } catch (error) {
+      this.logger.error(`Error fetching rule request for RuleId ${params.RuleId} and TenantId ${params.TenantId}: ${(error as Error).message}`);
+      return undefined; // Return undefined if there's an error fetching the rule request
+    }
   }
 
   async createRule(ruleData: Partial<Rules>, token: string, ruleRequest: RuleRequest | undefined): Promise<Rules> {
