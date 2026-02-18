@@ -153,14 +153,14 @@ const useSimulationController = (props: ISimulation) => {
     }, [codeSynced, data?.id, data?.metadata?.simulation, deploy, toggleCodeDeployed, updateMetadata])
 
     const handleSelect = (id: number) => {
-        // if (!codeDeployed && claims.editor === user?.claims) {
-        //     toast.error('Deploy rule first to run simulation')
-        //     return;
-        // } else {
-        //     setSelected(id)
-        // }
+        if (!codeDeployed && claims.editor === user?.claims) {
+            toast.error('Deploy rule first to run simulation')
+            return;
+        } else {
+            setSelected(id)
+        }
 
-        setSelected(id)
+        // setSelected(id)
 
         if (id === 1) {
             getRuleRequest(data?.id).unwrap()
