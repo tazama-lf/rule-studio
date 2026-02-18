@@ -210,7 +210,7 @@ export class RulesService {
       const transactionType = payload.txtp ?? "";
       console.log(`Cloning rule with ID ${ruleId} for transaction type ${transactionType} and payload:`, JSON.stringify(payload, null, 2));
 
-      const updatedRuleName = `${user.tenantId}-rule-${payload.rule_config_id.split('@')[0]} `;
+      const updatedRuleName = `${user.tenantId}-rule-${payload.rule_config_id.split('@')[0]}`;
       payload.ruleName = updatedRuleName; 
       
       // const result = await this.adminServiceClient.getPayloadByTransactionType(
