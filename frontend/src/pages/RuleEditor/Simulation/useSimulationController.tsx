@@ -50,7 +50,7 @@ const useSimulationController = (props: ISimulation) => {
     const toggleViewReport = useCallback(() => setViewReport((prev: boolean) => !prev), [])
     const toggleCodeSynced = useCallback(() => setCodeSynced((prev: boolean) => !prev), [])
     const toggleCodeDeployed = useCallback(() => setCodeDeployed((prev: boolean) => !prev), [])
-    const toggleSimulationExecuted = useCallback(() => setSimulationExecuted((prev: boolean) => !prev), [])
+    const toggleSimulationExecuted = useCallback(() => setSimulationExecuted((prev: boolean) => true), [])
 
     useEffect(() => {
         if (data?.metadata) {
