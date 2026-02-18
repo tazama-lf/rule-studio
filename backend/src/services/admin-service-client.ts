@@ -206,8 +206,8 @@ export class AdminServiceClient {
 
   async createRule(ruleData: Partial<Rules>, token: string, ruleRequest: RuleRequest | undefined): Promise<Rules> {
 
-    console.log("I have reached admin service client")
-    console.log("Rule Request:", ruleRequest);
+    // console.log("I have reached admin service client")
+    // console.log("Rule Request:", ruleRequest);
     const response = await this.executeHttpRequest<{ rule: Rules }>(
       'POST',
       RULE,
@@ -238,11 +238,15 @@ export class AdminServiceClient {
   }
 
   async getTransactionTypes(token: string): Promise<string[]> {
+
+    console.log("reached admin service client - getTransactionTypes method");
     const response = await this.executeHttpRequest<{ transactionTypes: string[] }>(
       'GET',
       CONFIG_TRANSACTION_TYPES,
       token,
     );
+
+    console.log("Response from getTransactionTypes at admin-service-client:", response);
     return response.transactionTypes;
   }
 
@@ -268,7 +272,7 @@ export class AdminServiceClient {
       `${CONFIG_PAYLOAD}/${transactionType}`,
       token,
     );
-    console.log("Response from getPayloadByTransactionType:", response);
+    // console.log("Response from getPayloadByTransactionType:", response);
     return response.payload;
   }
 

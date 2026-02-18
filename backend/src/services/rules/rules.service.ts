@@ -72,7 +72,9 @@ export class RulesService {
   ): Promise<any> {
     try {
       // Step 1: Validate all rule creation requirements
+      console.log("reaching step 1")
       this.logger.log(`Starting rule validation for tenant: ${tenantId}`);
+      console.log("Rule data received for creation:", JSON.stringify(ruleData, null, 2));
       const validationResult = await this.ruleValidationService.validateRuleCreation(
         ruleData, 
         token, 
@@ -87,6 +89,8 @@ export class RulesService {
         });
       }
 
+      console.log("reaching step 2")
+
       // Step 2: Apply default values and generate rule name if needed
       const processedRuleData = this.ruleValidationService.applyDefaults(ruleData);
       
@@ -98,6 +102,7 @@ export class RulesService {
         this.logger.log(`Generated rule name: ${processedRuleData.ruleName}`);
       }
 
+      console.log("reaching step 3")
       // Step 3: Process transaction type payload (existing logic)
       const transactionType = processedRuleData.txtp ?? "";
       
@@ -105,7 +110,7 @@ export class RulesService {
         transactionType,
         token,
       );
-      console.log("getPayloadByTransactionType in rules.service:", JSON.stringify(result, null, 2)); 
+      // console.log("getPayloadByTransactionType in rules.service:", JSON.stringify(result, null, 2)); 
 
       const payload = result.payload;
       let typedPayload = payload as Record<string, unknown>;  

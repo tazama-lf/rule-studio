@@ -104,9 +104,9 @@ export class RuleBaseDto {
     default: 'INACTIVE',
   })
   @IsOptional()
-  @IsEnum(PublishingStatus, {
-    message: `publishing_status must be one of: ${Object.values(PublishingStatus).join(', ')}`,
-  })
+  // @IsEnum(PublishingStatus, {
+  //   message: `publishing_status must be one of: ${Object.values(PublishingStatus).join(', ')}`,
+  // }) controller is only supposed to have guards. baaki sab at service
   publishing_status?: PublishingStatus;
 
   @ApiProperty({

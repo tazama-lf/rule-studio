@@ -76,11 +76,11 @@ export class RuleValidationService {
 
     // Validate publishing_status
     if (ruleData.publishing_status) {
-      const publishingValidation = this.validatePublishingStatus(ruleData.publishing_status);
-      if (!publishingValidation.isValid) {
-        result.isValid = false;
-        result.errors.push(...publishingValidation.errors);
-      }
+      // const publishingValidation = this.validatePublishingStatus(ruleData.publishing_status);
+      // if (!publishingValidation.isValid) {
+      //   result.isValid = false;
+      //   result.errors.push(...publishingValidation.errors);
+      // }
     }
 
     // Validate rule_type
@@ -153,6 +153,7 @@ export class RuleValidationService {
 
     try {
       // Check if txtp exists
+      console.log('making the call validateTxtp - Validating txtp existence for:', txtp);
       const listOfValidTxtps = await this.adminServiceClient.getTransactionTypes(token);
       console.log('Validating txtp against list of valid transaction types:', listOfValidTxtps);
       
@@ -236,17 +237,21 @@ export class RuleValidationService {
   private validatePublishingStatus(publishingStatus: string): RuleValidationResult {
     const result: RuleValidationResult = { isValid: true, errors: [] };
 
-    const validStatuses = Object.values(PublishingStatus);
-    if (!validStatuses.includes(publishingStatus as PublishingStatus)) {
-      result.isValid = false;
-      result.errors.push(`publishing_status must be one of: ${validStatuses.join(', ')}`);
-    }
+    console.log('Validating publishing_status:', publishingStatus);
 
-    // According to requirements, default should be INACTIVE, not ACTIVE
-    if (publishingStatus === PublishingStatus.ACTIVE) {
-      result.errors.push('publishing_status should default to INACTIVE for new rules, not ACTIVE');
-      // Not failing validation, just warning
-    }
+    // const validStatuses = Object.values(PublishingStatus);
+    // if (!validStatuses.includes(publishingStatus as PublishingStatus)) {
+    //   result.isValid = false;
+    //   result.errors.push(`publishing_status must be one of: ${validStatuses.join(', ')}`);
+    //   return result;
+    // }
+
+    // // According to requirements, default should be INACTIVE, not ACTIVE
+    // if (publishingStatus === PublishingStatus.ACTIVE) {
+    //   result.isValid = false;
+    //   result.errors.push('publishing_status should default to INACTIVE for new rules, not ACTIVE');
+    //   return result;
+    // }
 
     return result;
   }
@@ -299,10 +304,7 @@ export class RuleValidationService {
    * Constructs a default rule name if not provided
    */
   generateDefaultRuleName(tenantId: string, ruleConfigId?: string): string {
-    const timestamp = Date.now();
-    return ruleConfigId 
-      ? `${tenantId}-rule-${ruleConfigId}-${timestamp}`
-      : `${tenantId}-rule-${timestamp}`;
+    return `${tenantId}-rule-${ruleConfigId?.split('@')[0]}`;
   }
 
   /**
@@ -311,8 +313,8 @@ export class RuleValidationService {
   applyDefaults(ruleData: any): any {
     return {
       ...ruleData,
-      status: ruleData.status || RuleStatus.STATUS_01_IN_PROGRESS,
-      publishing_status: ruleData.publishing_status || PublishingStatus.INACTIVE, // Should be INACTIVE by default
+      status: RuleStatus.STATUS_01_IN_PROGRESS,
+      publishing_status: PublishingStatus.INACTIVE, 
     };
   }
 }
