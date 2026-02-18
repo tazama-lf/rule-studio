@@ -209,6 +209,9 @@ export class RulesService {
     try {
       const transactionType = payload.txtp ?? "";
       console.log(`Cloning rule with ID ${ruleId} for transaction type ${transactionType} and payload:`, JSON.stringify(payload, null, 2));
+
+      const updatedRuleName = `${user.tenantId}-rule-${payload.rule_config_id.split('@')[0]} `;
+      payload.ruleName = updatedRuleName; 
       
       // const result = await this.adminServiceClient.getPayloadByTransactionType(
       //   transactionType,
@@ -279,7 +282,7 @@ export class RulesService {
         user.token.tokenString,
       );
 
-      console.log(`Fetched rule request for cloning:`, JSON.stringify(ruleRequest, null, 2)); 
+      // console.log(`Fetched rule request for cloning:`, JSON.stringify(ruleRequest, null, 2)); 
 
 
 
