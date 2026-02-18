@@ -215,11 +215,10 @@ const useSimulationController = (props: ISimulation) => {
     }, [getReportStatus, data?.id, data?.metadata?.simulation, toggleViewReport, updateMetadata])
 
 
-    const addSimulationLog = (payload: Record<string, unknown>, category: 'read_only' | 'end_to_end') => {
+    const addSimulationLog = (payload: Record<string, unknown>, result: unknown, category: 'read_only' | 'end_to_end') => {
         const body = {
-            new_data: {
-                ...payload,
-            },
+            old_data: payload,
+            new_data: result,
             category
         }
         addLogs({ body, id: data?.id }).unwrap()
@@ -258,7 +257,7 @@ const useSimulationController = (props: ISimulation) => {
                         simulation: true
                     });
                 }
-                addSimulationLog(body, logCategory);
+                addSimulationLog(body, res, logCategory);
             };
         } else {
             body = {
@@ -281,7 +280,7 @@ const useSimulationController = (props: ISimulation) => {
                         simulation: true
                     });
                 }
-                addSimulationLog(body, logCategory);
+                addSimulationLog(body, res, logCategory);
             };
         }
         mutation(body).unwrap()
