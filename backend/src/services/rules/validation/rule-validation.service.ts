@@ -291,10 +291,10 @@ export class RuleValidationService {
     // For now, we'll accept both scenarios but log warnings
     if (ruleConfigId) {
       // Validate format if provided
-      if (ruleConfigId.length > 10) {
-        result.isValid = false;
-        result.errors.push('rule_config_id must not exceed 10 characters');
-      }
+      // if (ruleConfigId.length > 10) {
+      //   result.isValid = false;
+      //   result.errors.push('rule_config_id must not exceed 10 characters');
+      // }
     }
 
     return result;

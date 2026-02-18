@@ -126,7 +126,7 @@ export class RuleBaseDto {
   })
   @IsOptional()
   @IsString()
-  @MaxLength(10, { message: 'rule_config_id must not exceed 10 characters' })
+  // @MaxLength(10, { message: 'rule_config_id must not exceed 10 characters' })
   rule_config_id?: string;
 }
 
