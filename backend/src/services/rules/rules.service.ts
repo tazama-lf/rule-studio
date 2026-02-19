@@ -110,10 +110,12 @@ export class RulesService {
         transactionType,
         token,
       );
-      // console.log("getPayloadByTransactionType in rules.service:", JSON.stringify(result, null, 2)); 
+      console.log("getPayloadByTransactionType in rules.service:", JSON.stringify(result, null, 2)); 
 
-      const payload = result.payload;
+      const payload = result;
       let typedPayload = payload as Record<string, unknown>;  
+      
+      console.log("the payload after typed is:", JSON.stringify(typedPayload, null, 2));
 
       if(result.type === 'xml') {
         // Convert XML to JSON
@@ -165,7 +167,7 @@ export class RulesService {
         {TxTp: transactionType, TenantId:tenantId, ...typedPayload},
         token,
       );
-      // console.log("Parse result for transactional message:", parseResult);
+      console.log("Parse result for transactional message:", parseResult);
 
       // Step 4: Create rule via admin service client
       this.logger.log(`Creating rule with validated data: ${JSON.stringify(processedRuleData)}`);
