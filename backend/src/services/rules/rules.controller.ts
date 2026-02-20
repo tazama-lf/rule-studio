@@ -220,7 +220,7 @@ export class RulesController {
     return await this.rulesService.updateRule(
       ruleId,
       updateData,
-      user.token.tokenString,
+      user,
     );
   }
 
@@ -280,9 +280,7 @@ export class RulesController {
   // create rule flow configuration
   @Post('/api/:ruleId/flow')
   @RequireAnyClaims(
-    TazamaClaims.EDITOR,
-    TazamaClaims.APPROVER,
-    TazamaClaims.PUBLISHER,
+    TazamaClaims.EDITOR
   )
   @Audit() // Audit rule flow creation
   @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: '001' })
@@ -307,7 +305,7 @@ export class RulesController {
     return await this.rulesService.createRuleFlow(
       ruleId,
       body,
-      user.token.tokenString,
+      user,
     );
   }
 
@@ -523,6 +521,6 @@ export class RulesController {
     @Body() updateData: UpdateRuleDto,
     @User() user: AuthenticatedUser,
   ): Promise<Rules> {
-    return await this.rulesService.updateRule(ruleId, updateData, user.token.tokenString);
+    return await this.rulesService.updateRule(ruleId, updateData, user);
   }
 }

@@ -337,13 +337,13 @@ export class RulesService {
   async updateRule(
     ruleId: string,
     updateData: Partial<Rules>,
-    token: string,
+    user: AuthenticatedUser,
   ): Promise<Rules> {
     try {
       return await this.adminServiceClient.updateRule(
         ruleId,
         updateData,
-        token,
+        user.token.tokenString,
       );
     } catch (error) {
       const err = error as Error;
@@ -396,13 +396,13 @@ export class RulesService {
   async createRuleFlow(
     ruleId: string,
     body: RequestFlow,
-    token: string,
+    user: AuthenticatedUser,
   ): Promise<ResponseRuleFlowDto> {
     try {
       return await this.adminServiceClient.createRuleFlow(
         ruleId,
         body,
-        token,
+        user.token.tokenString,
       );
     } catch (error) {
       const err = error as Error;
