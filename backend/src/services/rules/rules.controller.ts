@@ -49,7 +49,7 @@ import {
 @Controller('rules')
 @UseGuards(TazamaAuthGuard)
 export class RulesController {
-  constructor(private readonly rulesService: RulesService) {}
+  constructor(private readonly rulesService: RulesService) { }
 
   // get available rule statuses
   @Get('/api/status')
@@ -63,7 +63,7 @@ export class RulesController {
     description: 'Retrieves available rule statuses based on user role and permissions',
     responses: CommonResponses.SUCCESS_200([String], 'Rule statuses retrieved successfully')
   })
-  getRulesStatus(@User() user: AuthenticatedUser): string[] {
+  getRulesStatus(@User() user: AuthenticatedUser): Promise<string[]> {
     const allowedStatuses = this.rulesService.getRulesStatusbyRole(user);
     return allowedStatuses;
   }
@@ -107,20 +107,11 @@ export class RulesController {
     @User() user: AuthenticatedUser,
     @Body() filters?: RuleFiltersDto,
   ): Promise<Rules[]> {
-    const updatedFilters = filters ?? {};
-
-    if (!updatedFilters.status || updatedFilters.status === '') {
-      const allowedStatuses = this.rulesService.getRulesStatusbyRole(user);
-    if (allowedStatuses.length > 0) {
-        updatedFilters.status = allowedStatuses.join(',');
-      }
-    }
-
     return await this.rulesService.getAllRules(
       offset,
       limit,
-      updatedFilters,
-      user.token.tokenString,
+      filters || {},
+      user,
     );
   }
 
@@ -256,14 +247,13 @@ export class RulesController {
       CommonResponses.NOT_FOUND_404('Rule not found')
     )
   })
-  async getRulesById(
+  async getRuleById(
     @Param('id', ParseIntPipe) id: number,
     @User() user: AuthenticatedUser,
   ): Promise<Rules> {
-    return await this.rulesService.getRulesById(
+    return await this.rulesService.getRuleById(
       id,
-      user.tenantId,
-      user.token.tokenString,
+      user,
     );
   }
 
@@ -504,7 +494,7 @@ export class RulesController {
       ruleId,
       body.status,
       body.comment ?? '',
-      user.token.tokenString,
+      user,
     );
   }
 

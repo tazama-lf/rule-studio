@@ -49,6 +49,7 @@ import {
 import { ResponseQueryNodeDto } from './nodes/dto/responseNode.dto';
 import { RuleRequest } from '../services/parse-extract/dto/message.dto';
 import { SimulationLogsDto } from './simulation-logs/dto';
+import { TazamaToken } from '@tazama-lf/auth-lib';
 
 @Injectable()
 export class AdminServiceClient {
@@ -166,7 +167,7 @@ export class AdminServiceClient {
     );
   }
 
-  async getRulesById(id: number, token: string): Promise<Rules> {
+  async getRulesById(id: number, token): Promise<Rules> {
     return await this.executeHttpRequest<Rules>('GET', `${RULES_WITH_ID}/${id}`, token);
   }
 

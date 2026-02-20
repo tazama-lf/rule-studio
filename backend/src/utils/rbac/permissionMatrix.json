@@ -1,0 +1,105 @@
+{
+  "_meta": {
+    "version": "0.1.1",
+    "description": "Tier 2 & 3 RBAC permission matrix. Tier 1 (endpoint + HTTP method role gating) is enforced at the controller level and is not represented here.",
+    "statusCodes": {
+      "STATUS_01_IN_PROGRESS":    "STATUS_01_IN_PROGRESS",
+      "STATUS_02_ON_HOLD":        "STATUS_02_ON_HOLD",
+      "STATUS_03_UNDER_REVIEW":   "STATUS_03_UNDER_REVIEW",
+      "STATUS_04_APPROVED":       "STATUS_04_APPROVED",
+      "STATUS_05_REJECTED":       "STATUS_05_REJECTED",
+      "STATUS_08_DEPLOYED":       "STATUS_08_DEPLOYED"
+    },
+    "roles": {
+      "editor":    { "bypassAllTiers": false },
+      "approver":  { "bypassAllTiers": false },
+      "publisher": { "bypassAllTiers": false }
+    }
+  },
+
+  "endpoints": {
+    "GET /rules/api/status": {
+      "tier2": {
+        "description": "Retrieves available rule statuses based on user role and permissions",
+        "rolePermissions": {
+          "editor": {
+            "allowedCurrentStatuses": ["STATUS_01_IN_PROGRESS", "STATUS_02_ON_HOLD", "STATUS_03_UNDER_REVIEW", "STATUS_04_APPROVED", "STATUS_05_REJECTED", "STATUS_08_DEPLOYED"]
+          },
+          "approver": {
+            "allowedCurrentStatuses": ["STATUS_03_UNDER_REVIEW", "STATUS_04_APPROVED", "STATUS_08_DEPLOYED"]
+          },
+          "publisher": {
+            "allowedCurrentStatuses": ["STATUS_04_APPROVED", "STATUS_08_DEPLOYED"]
+          }
+        }
+      }
+    },
+    
+    "POST /rules/api/all": {
+      "tier2": {
+        "description": "Retrieves paginated list of rules with optional filters for status, transaction type, etc.",
+        "rolePermissions": {
+          "editor": {
+            "allowedCurrentStatuses": ["STATUS_01_IN_PROGRESS", "STATUS_02_ON_HOLD", "STATUS_03_UNDER_REVIEW", "STATUS_04_APPROVED", "STATUS_05_REJECTED", "STATUS_08_DEPLOYED"]
+          },
+          "approver": {
+            "allowedCurrentStatuses": ["STATUS_03_UNDER_REVIEW", "STATUS_04_APPROVED", "STATUS_08_DEPLOYED"]
+          },
+          "publisher": {
+            "allowedCurrentStatuses": ["STATUS_04_APPROVED", "STATUS_08_DEPLOYED"]
+          }
+        }
+      }
+    },
+
+    "GET /rules/api/:id": {
+      "tier2": {
+        "description": "Retrieves a specific rule by its numeric database ID",
+        "rolePermissions": {
+          "editor": {
+            "allowedCurrentStatuses": ["STATUS_01_IN_PROGRESS", "STATUS_02_ON_HOLD", "STATUS_03_UNDER_REVIEW", "STATUS_04_APPROVED", "STATUS_05_REJECTED", "STATUS_08_DEPLOYED"]
+          },
+          "approver": {
+            "allowedCurrentStatuses": ["STATUS_03_UNDER_REVIEW", "STATUS_04_APPROVED", "STATUS_08_DEPLOYED"]
+          },
+          "publisher": {
+            "allowedCurrentStatuses": ["STATUS_04_APPROVED", "STATUS_08_DEPLOYED"]
+          }
+        }
+      }
+    },
+
+    "PUT /api/:id/status": {
+      "tier2": {
+        "description": "Controls which current resource statuses each role may act upon",
+        "rolePermissions": {
+          "editor": {
+            "allowedCurrentStatuses": ["STATUS_01_IN_PROGRESS", "STATUS_02_ON_HOLD", "STATUS_05_REJECTED"]
+          },
+          "approver": {
+            "allowedCurrentStatuses": ["STATUS_03_UNDER_REVIEW"]
+          },
+          "publisher": {
+            "allowedCurrentStatuses": ["STATUS_04_APPROVED"]
+          }
+        }
+      },
+      "tier3": {
+        "description": "Allowed status transitions per role, keyed by currentStatus → [targetStatusCode]",
+        "transitions": {
+          "editor": {
+            "STATUS_01_IN_PROGRESS": ["STATUS_02_ON_HOLD", "STATUS_03_UNDER_REVIEW"],
+            "STATUS_02_ON_HOLD":     ["STATUS_01_IN_PROGRESS"],
+            "STATUS_05_REJECTED":    ["STATUS_01_IN_PROGRESS"]
+          },
+          "approver": {
+            "STATUS_03_UNDER_REVIEW": ["STATUS_04_APPROVED", "STATUS_05_REJECTED"]
+          },
+          "publisher": {
+            "STATUS_04_APPROVED": ["STATUS_08_DEPLOYED"]
+          }
+        }
+      }
+    }
+  }
+}

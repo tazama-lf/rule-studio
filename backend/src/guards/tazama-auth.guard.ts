@@ -24,7 +24,7 @@ import {
 export class TazamaAuthGuard implements CanActivate {
   private readonly logger = new Logger(TazamaAuthGuard.name);
 
-  constructor(private readonly reflector: Reflector) {}
+  constructor(private readonly reflector: Reflector) { }
 
   canActivate(context: ExecutionContext): boolean {
     const logContext = 'TazamaAuthGuard.canActivate()';
@@ -80,9 +80,9 @@ export class TazamaAuthGuard implements CanActivate {
     const innerDecoded = this.extractInnerToken(token);
     const allowedStatuses = innerDecoded?.status
       ? (innerDecoded.status as string)
-          .split(',')
-          .map((s) => s.trim())
-          .filter((s) => s.length > 0)
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0)
       : undefined;
 
     if (allowedStatuses) {
@@ -94,12 +94,39 @@ export class TazamaAuthGuard implements CanActivate {
       this.logger.warn('No status field found in token', logContext);
     }
 
+    const actorEmail = innerDecoded?.preferred_username as string | undefined;
+
+    const actorName = innerDecoded?.preferred_username as string | undefined;
+
+    const realmAccess = innerDecoded?.realm_access as
+      | { roles?: string[] }
+      | undefined;
+    const realmRoles = realmAccess?.roles;
+    const actorRole =
+      realmRoles?.find((role: string) =>
+        ['editor', 'approver', 'publisher'].includes(
+          role.toLowerCase(),
+        ),
+      ) ?? valid[0];
+
+    const sourceIP =
+      request.ip ??
+      (request.headers['x-forwarded-for'] as string | undefined)
+        ?.split(',')[0]
+        .trim() ??
+      request.socket.remoteAddress;
+
+
     const authenticatedUser: AuthenticatedUser = {
       token: { ...decoded, tokenString: token },
       validated,
       validClaims: valid,
       tenantId: decoded.tenantId,
       userId: decoded.clientId,
+      actorName,
+      actorRole,
+      actorEmail,
+      sourceIP,
       allowedStatuses,
     };
 
