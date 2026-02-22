@@ -339,6 +339,10 @@
           }
         }
       }
-    }
+    },
+    "POST /parse/api/validatePayload": {},
+    "GET /config/api/transaction-types": {},
+    "GET /config/api/versions/:transactionType": {},
+    "GET /config/api/payload/:transactionType": {}  
   }
 }

@@ -20,7 +20,7 @@ import type { AuthenticatedUser } from '../auth/auth.types';
 @Controller('config')
 @UseGuards(TazamaAuthGuard)
 export class ConfigController {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly configService: ConfigService) { }
 
   @Get('/api/transaction-types')
   @RequireAnyClaims(
@@ -53,7 +53,12 @@ export class ConfigController {
   async getTransactionTypes(
     @User() user: AuthenticatedUser,
   ): Promise<string[]> {
-    return await this.configService.getTransactionTypes(user.token.tokenString);
+    const endpointKey = 'GET /config/api/transaction-types';
+
+    return await this.configService.getTransactionTypes(
+      user,
+      endpointKey,
+    );
   }
 
   // at this point, we need another API to get all versions for a transaction type
@@ -94,9 +99,12 @@ export class ConfigController {
     @Param('transactionType') transactionType: string,
     @User() user: AuthenticatedUser,
   ): Promise<string[]> {
+    const endpointKey = 'GET /config/api/versions/:transactionType';
+
     return await this.configService.getVersionsOfTransactionType(
       transactionType,
-      user.token.tokenString,
+      user,
+      endpointKey,
     );
   }
 
@@ -139,9 +147,12 @@ export class ConfigController {
     @Param('transactionType') transactionType: string,
     @User() user: AuthenticatedUser,
   ): Promise<any> {
+    const endpointKey = 'GET /config/api/payload/:transactionType';
+
     const response = await this.configService.getPayloadByTransactionType(
       transactionType,
-      user.token.tokenString,
+      user,
+      endpointKey,
     );
 
     return {

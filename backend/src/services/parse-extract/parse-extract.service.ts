@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
+import { RbacService } from '../../utils/rbac/rbacHelper';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import { randomUUID } from 'node:crypto';
@@ -13,10 +14,12 @@ import {
 } from './dto/message.dto';
 import { AdminServiceClient } from '../admin-service-client';
 import { formatValidationErrors } from '../../utils/validation.utils';
+import type { AuthenticatedUser } from '../auth/auth.types';
 
 @Injectable()
 export class ParseExtractService {
   private readonly logger = new Logger(ParseExtractService.name);
+  private readonly rbacService = new RbacService();
   private readonly ajv: Ajv;
 
   constructor(private readonly adminServiceClient: AdminServiceClient) {
@@ -27,11 +30,26 @@ export class ParseExtractService {
 
   async processTransactionalMessage(
     request: TransactionalMessage,
-    token: string,
+    user: AuthenticatedUser,
+    endpointKey: string,
   ): Promise<ParseExtractResponse> {
     const correlationId = randomUUID();
-
     try {
+
+      const normalizedRole = user.actorRole?.toLowerCase() ?? '';
+      if (!this.rbacService.isRole(normalizedRole)) {
+        throw new ForbiddenException(`Role ${normalizedRole} is not authorized to process transactional messages`);
+      }
+
+      const tier2 = this.rbacService.getTier2({
+        role: normalizedRole,
+        endpointKey,
+      });
+
+      if (!tier2.allowed) {
+        throw new ForbiddenException(tier2.reason ?? `Role ${normalizedRole} is not authorized to process transactional messages`);
+      }
+
       this.logger.log(
         `Processing transactional message for ${request.TxTp} [${correlationId}]`,
       );
@@ -39,7 +57,7 @@ export class ParseExtractService {
 
       const result = await this.processTransactionPayload(
         request,
-        token,
+        user.token.tokenString,
         correlationId,
       );
 
@@ -169,8 +187,8 @@ export class ParseExtractService {
     payloadToValidate.TenantId = TenantId;
 
     console.log("3a. Sending payloadToValidate to processMappings:", payloadToValidate);
-    console.log("3b. Mappings from admin service config:", adminServiceResponse.config.mapping); 
-   
+    console.log("3b. Mappings from admin service config:", adminServiceResponse.config.mapping);
+
     const mappingResult = processMappings(
       payloadToValidate,
       adminServiceResponse.config.mapping ?? [], // where is this coming form?

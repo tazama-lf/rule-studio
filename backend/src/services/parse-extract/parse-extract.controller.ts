@@ -73,10 +73,12 @@ export class ParseExtractController {
     @User() user: AuthenticatedUser,
   ): Promise<ParseExtractResponse> {
     this.logger.log(`Processing transaction type: ${request.TxTp}`);
+    const endpointKey = 'POST /parse/api/validatePayload';
 
     return await this.parseExtractService.processTransactionalMessage(
       request,
-      user.token.tokenString,
+      user,
+      endpointKey,
     );
   }
 }
