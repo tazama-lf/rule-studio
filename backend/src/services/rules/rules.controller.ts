@@ -8,6 +8,7 @@ import {
   Get,
   Query,
   Put,
+  Request,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -43,6 +44,8 @@ import {
   ResponseUpdatedRuleFlowDto,
   ResponseRuleFlowStatusDto,
 } from './dto/rules.dto';
+import { Req } from '@nestjs/common';
+//import { Request as ExpressRequest } from 'express';
 
 @ApiTags('Rules')
 @ApiBearerAuth('JWT-auth')
@@ -130,7 +133,7 @@ export class RulesController {
   async getRuleIds(
     @User() user: AuthenticatedUser,
   ): Promise<RuleIdResponseDto[]> {
-    return await this.rulesService.getRuleIds(user.token.tokenString);
+    return await this.rulesService.getRuleIds(user);
   }
 
   // create a new rule
@@ -152,13 +155,27 @@ export class RulesController {
   async createRule(
     @Body() ruleData: CreateRuleDto,
     @User() user: AuthenticatedUser,
+    @Req() req: {
+      method?: string;                      // HTTP method (common)
+      url?: string;                         // full requested path (common)
+      originalUrl?: string;                 // full path (express adapter)
+      route?: { path?: string };            // route template (express adapter)
+      routeOptions?: { url?: string };      // route template (fastify adapter)
+    },
   ): Promise<Rules> {
     const ruleDataWithUser = {
       ...ruleData,
       userID: user.userId
     };
     console.log('Creating rule with data at controller', ruleData);
-    return await this.rulesService.createRule(ruleDataWithUser, user.token.tokenString, user.tenantId);
+
+    // const fullPath = req.originalUrl ?? req.url ?? '';
+    // const method = (req.method ?? '').toUpperCase();
+    // const endpointKey = `${method} ${fullPath}`;
+    const endpointKey = `${(req.method ?? '').toUpperCase()} ${req.originalUrl ?? req.url ?? ''}`;
+    console.log('endpointKey:', endpointKey); // POST /rules/api/create
+
+    return await this.rulesService.createRule(ruleDataWithUser, user, endpointKey);
   }
 
   // get rule configuration by rule ID
@@ -184,10 +201,22 @@ export class RulesController {
   async getRuleConfiguration(
     @Param('ruleId') ruleId: string,
     @User() user: AuthenticatedUser,
+    @Req() req: {
+      method?: string;                      // HTTP method (common)
+      url?: string;                         // full requested path (common)
+      originalUrl?: string;                 // full path (express adapter)
+      route?: { path?: string };            // route template (express adapter)
+      routeOptions?: { url?: string };      // route template (fastify adapter)
+    },
   ): Promise<any> {
+    //const endpointKey = `${(req.method ?? '').toUpperCase()} ${req.originalUrl ?? req.url ?? ''}`;
+    const endpointKey = 'GET /rules/api/configuration/:ruleId';
+    
+    console.log('Fetching rule configuration for endpointKey:', endpointKey);
     return await this.rulesService.getRuleConfiguration(
       ruleId,
-      user.token.tokenString,
+      user,
+      endpointKey,
     );
   }
 
@@ -217,10 +246,13 @@ export class RulesController {
     @Body() updateData: UpdateRuleDto,
     @User() user: AuthenticatedUser,
   ): Promise<Rules> {
+    const endpointKey = 'PUT /rules/api/:ruleId';
+    console.log('Updating rule with ID:', ruleId, 'at endpointKey:', endpointKey);
     return await this.rulesService.updateRule(
       ruleId,
       updateData,
       user,
+        endpointKey,
     );
   }
 
@@ -330,10 +362,12 @@ export class RulesController {
     @Query() query: RuleFlowFilterDto,
     @User() user: AuthenticatedUser,
   ): Promise<ResponseRuleFlow> {
+    const endpointKey = 'GET /rules/api/:ruleId/flow';
     const result = await this.rulesService.getRuleFlow(
       ruleId,
-      user.token.tokenString,
-      query
+      user,
+      endpointKey,
+      query,
     );
     return result;
   }
@@ -359,9 +393,12 @@ export class RulesController {
     @Query() query: RuleFlowFilterDto,
     @User() user: AuthenticatedUser,
   ): Promise<ResponseRuleFlowStatusDto> {
+    const endpointKey = 'GET /rules/api/:ruleId/flow/status';
+
     const result = await this.rulesService.getRuleFlowStatus(
       ruleId,
-      user.token.tokenString,
+      user,
+      endpointKey,
       query
     );
     return result;
@@ -390,10 +427,12 @@ export class RulesController {
     @Body() payload: RequestSaveFlow,
     @User() user: AuthenticatedUser,
   ): Promise<ResponseUpdatedRuleFlowDto> {
+    const endpointKey = 'PUT /rules/api/:ruleId/flow';
     return await this.rulesService.updateRuleFlow(
       ruleId,
       payload,
-      user.token.tokenString,
+      user,
+      endpointKey,
     );
   }
 
@@ -421,10 +460,12 @@ export class RulesController {
     @Param('ruleId') ruleId: string,
     @User() user: AuthenticatedUser,
   ): Promise<GlobalVariableDto> {
+    const endpointKey = 'GET /rules/api/global-variables/:ruleId';
+
     return await this.rulesService.getGlobalVariables(
       ruleId,
-      user.tenantId,
-      user.token.tokenString,
+      user,
+      endpointKey,
     );
   }
 
@@ -454,7 +495,14 @@ export class RulesController {
     @Body() payload: any, // add type here 
     @User() user: AuthenticatedUser,
   ): Promise<Rules> {
-    return await this.rulesService.cloneRule(ruleId, user.token.tokenString, payload);
+    const endpointKey = 'POST /rules/api/clone/:ruleId';
+
+    return await this.rulesService.cloneRule(
+      ruleId, 
+      user,
+      payload,
+      endpointKey,
+    );
   }
 
   // update rule status
@@ -488,11 +536,14 @@ export class RulesController {
     @Body() body: UpdateRuleStatusDto,
     @User() user: AuthenticatedUser,
   ): Promise<Rules> {
+    const endpointKey = 'PUT /rules/api/:ruleId/status';
+
     return await this.rulesService.updateRuleStatus(
       ruleId,
       body.status,
       body.comment ?? '',
       user,
+      endpointKey,
     );
   }
 
@@ -521,6 +572,8 @@ export class RulesController {
     @Body() updateData: UpdateRuleDto,
     @User() user: AuthenticatedUser,
   ): Promise<Rules> {
-    return await this.rulesService.updateRule(ruleId, updateData, user);
+    const endpointKey = 'PUT /rules/api/:ruleId/metadata';
+    
+    return await this.rulesService.updateRule(ruleId, updateData, user, endpointKey);
   }
 }

@@ -83,6 +83,9 @@
         }
       }
     },
+    "GET /rules/api/ids": {},
+    "POST /rules/api/create": {},
+    "GET /rules/api/configuration/:ruleId": {},
     "PUT /rules/api/:ruleId": {
       "tier2": {
         "description": "Updates an existing rule with partial data (only provided fields will be updated)",
@@ -114,6 +117,37 @@
         }
       }
     },
+    "GET /rules/api/:ruleId": {
+      "tier2": {
+        "description": "Retrieves a specific rule by its numeric database ID",
+        "rolePermissions": {
+          "editor": {
+            "allowedCurrentStatuses": [
+              "STATUS_01_IN_PROGRESS",
+              "STATUS_02_ON_HOLD",
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED",
+              "STATUS_05_REJECTED",
+              "STATUS_08_DEPLOYED"
+            ]
+          },
+          "approver": {
+            "allowedCurrentStatuses": [
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED",
+              "STATUS_08_DEPLOYED"
+            ]
+          },
+          "publisher": {
+            "allowedCurrentStatuses": [
+              "STATUS_04_APPROVED",
+              "STATUS_08_DEPLOYED"
+            ]
+          }
+        }
+      }
+    },
+    "GET /rules/api/network-map/active": {},
     "POST /rules/api/:ruleId/flow": {
       "tier2": {
         "description": "Creates a new flow configuration for a specific rule with nodes and connections",
@@ -128,11 +162,29 @@
     },
     "GET /rules/api/:ruleId/flow": {
       "tier2": {
-        "description": "Creates a new flow configuration for a specific rule with nodes and connections",
+        "description": "Retrieves the flow configuration for a specific rule showing nodes and connections",
         "rolePermissions": {
           "editor": {
             "allowedCurrentStatuses": [
-              "STATUS_01_IN_PROGRESS"
+              "STATUS_01_IN_PROGRESS",
+              "STATUS_02_ON_HOLD",
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED",
+              "STATUS_05_REJECTED",
+              "STATUS_08_DEPLOYED"
+            ]
+          },
+          "approver": {
+            "allowedCurrentStatuses": [
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED",
+              "STATUS_08_DEPLOYED"
+            ]
+          },
+          "publisher": {
+            "allowedCurrentStatuses": [
+              "STATUS_04_APPROVED",
+              "STATUS_08_DEPLOYED"
             ]
           }
         }
@@ -150,7 +202,81 @@
         }
       }
     },
-    "PUT /api/:id/status": {
+    "GET /rules/api/:ruleId/flow/status": {
+      "tier2": {
+        "description": "Retrieves the current status of the rule flow configuration (e.g., active, draft, error)",
+        "rolePermissions": {
+          "editor": {
+            "allowedCurrentStatuses": [
+              "STATUS_01_IN_PROGRESS",
+              "STATUS_02_ON_HOLD",
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED",
+              "STATUS_05_REJECTED",
+              "STATUS_08_DEPLOYED"
+            ]
+          },
+          "approver": {
+            "allowedCurrentStatuses": [
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED",
+              "STATUS_08_DEPLOYED"
+            ]
+          },
+          "publisher": {
+            "allowedCurrentStatuses": [
+              "STATUS_04_APPROVED",
+              "STATUS_08_DEPLOYED"
+            ]
+          }
+        }
+      }
+    },
+    "GET /rules/api/global-variables/:ruleId": {
+      "tier2": {
+        "description": "Retrieves the global variables used in a specific rule editor",
+        "rolePermissions": {
+          "editor": {
+            "allowedCurrentStatuses": [
+              "STATUS_01_IN_PROGRESS",
+              "STATUS_02_ON_HOLD",
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED",
+              "STATUS_05_REJECTED",
+              "STATUS_08_DEPLOYED"
+            ]
+          },
+          "approver": {
+            "allowedCurrentStatuses": [
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED",
+              "STATUS_08_DEPLOYED"
+            ]
+          },
+          "publisher": {
+            "allowedCurrentStatuses": [
+              "STATUS_04_APPROVED",
+              "STATUS_08_DEPLOYED"
+            ]
+          }
+        }
+      }
+    },
+    "POST /rules/api/clone/:ruleId": {
+      "tier2": {
+        "description": "Creates a copy of an existing rule for modification and customization",
+        "rolePermissions": {
+          "editor": {
+            "allowedCurrentStatuses": [
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED",
+              "STATUS_08_DEPLOYED"
+            ]
+          }
+        }
+      }
+    },
+    "PUT /rules/api/:ruleId/status": {
       "tier2": {
         "description": "Controls which current resource statuses each role may act upon",
         "rolePermissions": {
@@ -202,31 +328,13 @@
         }
       }
     },
-    "GET /rules/api/:id": {
+    "PUT /rules/api/:ruleId/metadata": {
       "tier2": {
-        "description": "Retrieves a specific rule by its numeric database ID",
+        "description": "Updates an existing rule with partial metadata (only provided fields will be updated)",
         "rolePermissions": {
           "editor": {
             "allowedCurrentStatuses": [
-              "STATUS_01_IN_PROGRESS",
-              "STATUS_02_ON_HOLD",
-              "STATUS_03_UNDER_REVIEW",
-              "STATUS_04_APPROVED",
-              "STATUS_05_REJECTED",
-              "STATUS_08_DEPLOYED"
-            ]
-          },
-          "approver": {
-            "allowedCurrentStatuses": [
-              "STATUS_03_UNDER_REVIEW",
-              "STATUS_04_APPROVED",
-              "STATUS_08_DEPLOYED"
-            ]
-          },
-          "publisher": {
-            "allowedCurrentStatuses": [
-              "STATUS_04_APPROVED",
-              "STATUS_08_DEPLOYED"
+              "STATUS_01_IN_PROGRESS"
             ]
           }
         }
