@@ -7,11 +7,13 @@ import {
   InternalServerErrorException,
   HttpCode,
   ValidationPipe,
+  Req,
 } from '@nestjs/common';
+import express from 'express';
 import { LoggerService } from '@tazama-lf/frms-coe-lib';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
-import { Audit } from '../../decorators/audit.decorator';
+// import { Audit } from '../../decorators/audit.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -22,13 +24,14 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(200)
-  @Audit() // Audit user authentication attempts
+  // @Audit() // Audit user authentication attempts
   async login(
+    @Req() req: express.Request,
     @Body(new ValidationPipe({ whitelist: true, transform: true }))
     body: LoginDto,
   ): Promise<{ message: string; token: string }> {
     try {
-      const result = await this.authService.login(body.username, body.password);
+      const result = await this.authService.login(body.username, body.password, req.ip);
 
       const response: { token: string; message: string; expiresIn?: number } = {
         message: 'Login successful',

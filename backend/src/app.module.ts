@@ -9,10 +9,11 @@ import { NodesModule } from './services/nodes/nodes.module';
 import { ParseExtractModule } from './services/parse-extract/parse-extract.module';
 import { SimulationLogsModule } from './services/simulation-logs/simulation-logs.module';
 import { AuditModule } from './audit/audit.module';
+import { createAuditProvider } from '@tazama-lf/audit-lib';
 
 @Module({
   imports: [AuditModule, AuthModule, LoggerModule, RulesModule, ConfigModule, NodesModule, ParseExtractModule, SimulationLogsModule],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, createAuditProvider('rule-studio'),],
 })
 export class AppModule {}

@@ -3,13 +3,15 @@ import { Injectable, UnauthorizedException, ServiceUnavailableException } from '
 import { LoggerService } from '@tazama-lf/frms-coe-lib';
 import { validateTokenAndClaims } from '@tazama-lf/auth-lib';
 import { firstValueFrom } from 'rxjs';
+import type { IAuditService } from '@tazama-lf/audit-lib';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly httpService: HttpService,
     private readonly loggerService: LoggerService,
-  ) {}
+    @Inject('AUDIT_LOGGER') private readonly auditService: IAuditService,
+  ) { }
 
   private extractToken(data): string {
     const token = typeof data === 'string' ? data : (data?.token ?? data?.access_token ?? data?.jwt ?? data?.user?.token);
@@ -45,13 +47,30 @@ export class AuthService {
       this.loggerService.error('TAZAMA_AUTH_URL is not set in environment variables', AuthService.name);
       throw new ServiceUnavailableException('Authentication service unavailable');
     }
+    this.loggerService.log('Audit log sent', AuthService.name);
+
+    // 🔹 INFO (authentication attempt)
+    await this.auditService.log({
+      eventType: 'USER_LOGIN',
+      description: 'User authentication attempt',
+      status: 'info',
+      actorId: username,
+      actorRole: 'anonymous',
+      actorName: username,
+      resourceType: 'authentication',
+      sourceIp,
+      tenantId,
+      actionPerformed: {
+        method: 'password',
+      },
+    });
+
     try {
       const response = await firstValueFrom(this.httpService.post(`${authUrl}/login`, { username, password }, { timeout: 5000 }));
       if (!response.data) {
         this.loggerService.error('Auth service did not return a valid response', AuthService.name);
         throw new ServiceUnavailableException('Authentication service unavailable');
       }
-      this.loggerService.log('Auth service responded', AuthService.name);
 
       const token = this.extractToken(response.data);
       this.validateUserToken(token, username);
@@ -62,7 +81,25 @@ export class AuthService {
         message: 'Login successful',
         token,
       };
+
     } catch (error) {
+
+      // 🔹 FAILURE
+      await this.auditService.log({
+        eventType: 'USER_LOGIN',
+        description: 'User authentication failed',
+        status: 'failure',
+        actorId: username,
+        actorRole: 'anonymous',
+        actorName: username,
+        resourceType: 'authentication',
+        sourceIp,
+        tenantId,
+        outcome: {
+          errorMessage: (error as Error).message,
+        },
+      });
+
       if (error instanceof UnauthorizedException) {
         throw error;
       }
