@@ -7,6 +7,10 @@ export interface AuthenticatedUser {
   validClaims: string[];
   tenantId: string;
   userId: string;
+  actorName?: string;
+  actorRole?: string;
+  actorEmail?: string;
+  sourceIP?: string;
   allowedStatuses?: string[];
 }
 

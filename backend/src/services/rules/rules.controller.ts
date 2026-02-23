@@ -391,7 +391,13 @@ export class RulesController {
     @Body() body: UpdateRuleStatusDto,
     @User() user: AuthenticatedUser,
   ): Promise<Rules> {
-    return await this.rulesService.updateRuleStatus(ruleId, body.status, body.comment ?? '', user.token.tokenString);
+    return await this.rulesService.updateRuleStatus(
+      ruleId,
+      body.status,
+      body.comment ?? '',
+      user.token.tokenString,
+      user,
+    );
   }
 
   // update rule metadata

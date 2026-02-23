@@ -148,7 +148,6 @@ describe('AuthService', () => {
           editor: true,
           approver: false,
           publisher: false,
-          exporter: false,
         });
       });
 

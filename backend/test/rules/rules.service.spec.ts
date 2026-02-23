@@ -5,10 +5,21 @@ import { ParseExtractService } from '../../src/services/parse-extract/parse-extr
 import { Logger } from '@nestjs/common';
 import { RuleCategory } from '../../src/utils/enums/rule.enum';
 
+// Mock notification service to avoid helpers.ts module-level ENCRYPTION_KEY dependency
+jest.mock('../../src/services/notification/notification.service', () => ({
+  NotificationService: jest.fn().mockImplementation(() => ({
+    sendWorkflowNotification: jest.fn().mockResolvedValue(undefined),
+  })),
+}));
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { NotificationService } = require('../../src/services/notification/notification.service');
+
 describe('RulesService', () => {
   let service: RulesService;
   let adminServiceClient: jest.Mocked<AdminServiceClient>;
   let parseExtractService: jest.Mocked<ParseExtractService>;
+  let notificationService: jest.Mocked<NotificationService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -40,16 +51,24 @@ describe('RulesService', () => {
             processTransactionalMessage: jest.fn(),
           },
         },
+        {
+          provide: NotificationService,
+          useValue: {
+            sendWorkflowNotification: jest.fn().mockResolvedValue(undefined),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<RulesService>(RulesService);
     adminServiceClient = module.get(AdminServiceClient);
     parseExtractService = module.get(ParseExtractService);
+    notificationService = module.get(NotificationService);
 
     jest.spyOn(Logger.prototype, 'log').mockImplementation(jest.fn());
     jest.spyOn(Logger.prototype, 'warn').mockImplementation(jest.fn());
     jest.spyOn(Logger.prototype, 'error').mockImplementation(jest.fn());
+    jest.spyOn(Logger.prototype, 'debug').mockImplementation(jest.fn());
   });
 
   afterEach(() => {
@@ -597,11 +616,21 @@ describe('RulesService', () => {
   });
 
   describe('updateRuleStatus', () => {
-    it('should update rule status', async () => {
+    const mockUser = {
+      token: { tokenString: 'test-token', tenantId: 'default' },
+      validated: {},
+      validClaims: [],
+      tenantId: 'default',
+      userId: 'test-user',
+    } as any;
+
+    it('should update rule status and send notification', async () => {
       const mockUpdatedRule = {
         id: 1,
         status: 'active',
         statusReason: 'Approved',
+        txtp: 'pain.001.001.11',
+        version: '1.0.0',
       } as any;
 
       adminServiceClient.updateRuleStatus.mockResolvedValue(mockUpdatedRule);
@@ -611,6 +640,7 @@ describe('RulesService', () => {
         'active',
         'Approved',
         'test-token',
+        mockUser,
       );
 
       expect(adminServiceClient.updateRuleStatus).toHaveBeenCalledWith(
@@ -633,6 +663,7 @@ describe('RulesService', () => {
           'active',
           'Approved',
           'test-token',
+          mockUser,
         ),
       ).rejects.toThrow('Status update failed');
       expect(Logger.prototype.error).toHaveBeenCalledWith(

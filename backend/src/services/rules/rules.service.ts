@@ -13,9 +13,11 @@ import {
   ResponseRuleFlowStatusDto,
 } from './dto/rules.dto';
 import { ParseExtractService } from '../parse-extract/parse-extract.service';
+import { NotificationService } from '../notification/notification.service';
 import { BASE_RULE_ID } from '../../constants/constant';
 import { AuthenticatedUser } from '../auth/auth.types';
-
+import { EventType } from '../../utils/enums/events.enum';
+// import * as xml2js from 'xml2js';
 import { parseString, ParserOptions } from 'xml2js';
 
 import { createSchemaAwareNumberProcessor, replaceObjectsWithArrays, returnArrayFieldsFromSchema } from '../../utils/xml2js.utils';
@@ -27,7 +29,8 @@ export class RulesService {
   constructor(
     private readonly adminServiceClient: AdminServiceClient,
     private readonly parseExtractService: ParseExtractService,
-  ) {}
+    private readonly notificationService: NotificationService,
+  ) { }
   private async getRuleOrThrow(id: number, token: string): Promise<Rules> {
     try {
       return await this.adminServiceClient.getRulesById(id, token);
@@ -51,14 +54,18 @@ export class RulesService {
     return rules;
   }
 
-  async createRule(ruleData: Partial<Rules>, token: string, tenantId: string): Promise<any> {
+  async createRule(
+    ruleData: Partial<Rules>,
+    token: string,
+    tenantId: string,
+  ): Promise<any> {
     try {
       const transactionType = ruleData.txtp ?? '';
 
       const result = await this.adminServiceClient.getPayloadByTransactionType(transactionType, token);
 
-      const payload = result.payload;
-      let typedPayload = result;  
+      let {payload} = result;
+      // let typedPayload = result;  
 
       if (result.type === 'xml') {
         // Convert XML to JSON
@@ -67,6 +74,7 @@ export class RulesService {
         const configuredSchema = configResult.config.schema;
 
         const { stringFields, arrayFields } = returnArrayFieldsFromSchema(configuredSchema);
+
 
         const options: ParserOptions = {
           explicitArray: false, // Don't wrap single values in arrays
@@ -90,7 +98,7 @@ export class RulesService {
         });
 
         // conversion done
-        typedPayload = replaceObjectsWithArrays(transformedPayload, arrayFields, stringFields);
+        payload = replaceObjectsWithArrays(transformedPayload, arrayFields, stringFields);
       }
 
       // if it was XML, now its JSON
@@ -101,7 +109,7 @@ export class RulesService {
       // console.log('Parse result for transactional message:', parseResult);
 
       // admin service client ko aagay derha hun ruleRequest
-      console.log("============THIS IS HERE=================", parseResult.ruleRequest);
+      
       const rule = await this.adminServiceClient.createRule(ruleData, token, parseResult.ruleRequest);
       if (rule.id) {
         const baseRuleFlow = await this.getRuleFlow(BASE_RULE_ID, token);
@@ -276,9 +284,104 @@ export class RulesService {
     }
   }
 
-  async updateRuleStatus(ruleId: string, status: string, reason: string, token: string): Promise<Rules> {
+  /**
+   * Maps a rule status string to the corresponding EventType for notifications.
+   * Supports both short forms (SUBMITTED, APPROVED) and full status codes (STATUS_03_UNDER_REVIEW, etc.)
+   */
+  private mapStatusToEventType(status: string): EventType | null {
+    const normalizedStatus = status.toUpperCase();
+    switch (normalizedStatus) {
+      // Editor submits for review
+      case 'SUBMITTED':
+      case 'STATUS_03_UNDER_REVIEW':
+        return EventType.EditorSubmit;
+      // Approver approves
+      case 'APPROVED':
+      case 'STATUS_04_APPROVED':
+        return EventType.ApproverApprove;
+      // Approver rejects
+      case 'REJECTED':
+      case 'STATUS_05_REJECTED':
+        return EventType.ApproverReject;
+      // Publisher deploys
+      case 'DEPLOYED':
+      case 'STATUS_08_DEPLOYED':
+        return EventType.PublisherDeploy;
+      // Publisher activates
+      case 'ACTIVE':
+        return EventType.PublisherActivate;
+      // Publisher deactivates
+      case 'INACTIVE':
+        return EventType.PublisherDeactivate;
+      default:
+        return null;
+    }
+  }
+
+  async updateRuleStatus(
+    ruleId: string,
+    status: string,
+    reason: string,
+    token: string,
+    user: AuthenticatedUser,
+  ): Promise<Rules> {
     try {
-      return await this.adminServiceClient.updateRuleStatus(ruleId, status, reason, token);
+      const existingRule = await this.getRuleOrThrow(Number(ruleId), token);
+      const previousStatus = (existingRule as any)?.rules?.status ?? existingRule.status;
+
+      if (previousStatus === status) {
+        this.logger.debug(
+          `Rule ${ruleId} already in status '${status}'. Skipping notification.`,
+        );
+
+        return await this.adminServiceClient.updateRuleStatus(
+          ruleId,
+          status,
+          reason,
+          token,
+        );
+      }
+      const updatedRule = await this.adminServiceClient.updateRuleStatus(
+        ruleId,
+        status,
+        reason,
+        token,
+      );
+      const ruleData = await this.getRuleOrThrow(Number(ruleId), token);
+      this.logger.log(`Rule Data ${JSON.stringify(ruleData)}`);
+
+      // Send notification after successful status update
+      const eventType = this.mapStatusToEventType(status);
+      if (eventType) {
+        try {
+          // Get the full rule data from admin service for the email template
+          const fullRule = (ruleData as any)?.rules ?? ruleData;
+
+          await this.notificationService.sendRuleWorkflowNotification(
+            eventType,
+            user,
+            fullRule,
+            token,
+            reason,
+          );
+
+          this.logger.log(
+            `Notification sent for rule ${ruleId} status change to '${status}'`,
+          );
+        } catch (notificationError) {
+          // Log but don't fail the status update if notification fails
+          const notifErr = notificationError as Error;
+          this.logger.warn(
+            `Failed to send notification for rule ${ruleId} status change: ${notifErr.message}`,
+          );
+        }
+      } else {
+        this.logger.debug(
+          `No notification event mapped for status '${status}' on rule ${ruleId}`,
+        );
+      }
+
+      return updatedRule;
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Error updating status for rule ${ruleId}: ${err.message}`);
