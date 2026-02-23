@@ -134,13 +134,12 @@ export class RulesService {
 
       // admin service client ko aagay derha hun ruleRequest
       const rule = await this.adminServiceClient.createRule(ruleData, token, parseResult.ruleRequest);
-      let updatedRule = rule;
       if (rule.id) {
         const baseRuleFlow = await this.getRuleFlow(
           BASE_RULE_ID,
           token,
         );
-        const newRuleFlow = await this.adminServiceClient.createRuleFlow(
+        await this.adminServiceClient.createRuleFlow(
           rule.id,
           {
             flow_json_rule_builder: baseRuleFlow.result.flow_json_rule_builder ? baseRuleFlow.result.flow_json_rule_builder : {},
@@ -148,20 +147,9 @@ export class RulesService {
           },
           token,
         );
-        if (newRuleFlow) {
-          updatedRule = await this.adminServiceClient.updateRule(
-            rule.id,
-            { flow_id: newRuleFlow.id },
-            token,
-          );
-        } else {
-          this.logger.warn(
-            `No flow ID returned when creating rule flow for rule ${rule.id}`,
-          );
-        }
       }
 
-      return updatedRule;
+      return rule;
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Error creating rule: ${err.message}`);

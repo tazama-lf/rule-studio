@@ -126,14 +126,6 @@ export class Rules extends RuleBaseDto {
   id?: string;
 
   @ApiPropertyOptional({
-    description: 'Flow identifier',
-    example: '123',
-  })
-  @IsOptional()
-  @IsString()
-  flow_id?: string;
-
-  @ApiPropertyOptional({
     description: 'Rule metadata',
   })
   @IsOptional()
