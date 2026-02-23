@@ -1,0 +1,28 @@
+#!/usr/bin/env sh
+echo "Running pre-push checks..."
+
+# Run linting for both backend and frontend
+echo "Running linting checks..."
+npm run lint
+if [ $? -ne 0 ]; then
+  echo "Linting failed. Please fix the issues before pushing."
+  exit 1
+fi
+
+# Run tests for both backend and frontend
+echo "Running tests..."
+npm run test
+if [ $? -ne 0 ]; then
+  echo "Tests failed. Please fix the failing tests before pushing."
+  exit 1
+fi
+
+# Run build to ensure everything compiles
+echo "Running build checks..."
+npm run build
+if [ $? -ne 0 ]; then
+  echo "Build failed. Please fix the build errors before pushing."
+  exit 1
+fi
+
+echo "All pre-push checks passed! Pushing to remote..."
