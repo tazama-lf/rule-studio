@@ -290,8 +290,6 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
 
   const mode = extractData('mode', LocalStorage)
 
-  console.log("MODEEEEEEEEEEEEEE", mode)
-
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       <Header

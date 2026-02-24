@@ -57,8 +57,8 @@ const useRuleEditorController = () => {
                 return <Simulation data={ruleData?.rules ?? data?.rules} />
             case 'test_cases':
                 return <TestCases />
-            case 'History':
-                return <History data={data} />
+            case 'history':
+                return <History data={data?.rules} />
             default:
                 return null;
         }
