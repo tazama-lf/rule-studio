@@ -127,17 +127,13 @@ const useApprovalController = (props: IApproval) => {
                 branchName: "prod"
             }
             deploy(deployBody).unwrap()
-                .then((res) => {
-                    if (res) {
-                        toast.success('Code Deployed Successfully')
-                        submit({ id, body })
-                            .then((res: unknown) => {
-                                if (res) {
-                                    close()
-                                    navigate('/home')
-                                }
-                            })
-                    }
+                .then(() => {
+                    return submit({ id, body }).unwrap()
+                })
+                .then(() => {
+                    toast.success('Code Deployed Successfully')
+                    close()
+                    navigate('/home')
                 })
                 .catch(() => {
                     toast.error('Failed to deploy code')

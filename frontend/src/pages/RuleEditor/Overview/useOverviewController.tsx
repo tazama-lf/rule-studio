@@ -34,8 +34,8 @@ export interface IOverviewProps {
 const useOverviewController = (props: IOverviewProps) => {
 
     const data = useMemo(
-        () => extractData('trs_rule', LocalStorage, true) ?? props?.data,
-        [props?.data]
+        () => extractData('trs_rule', LocalStorage, true) ?? props.data,
+        [props.data]
     )
 
     const { enableNextTab } = useTab()
@@ -50,6 +50,18 @@ const useOverviewController = (props: IOverviewProps) => {
 
     const { open } = useModal()
     const user = extractData('user') || {}
+
+    const getTxtpVersions = useCallback((type: string | number) => {
+        getVersions({ type }).unwrap()
+            .then((res) => {
+                if (res) {
+                    setVersions(res)
+                }
+            })
+            .catch(() => {
+                toast.error('Failed to load transaction type versions')
+            })
+    }, [getVersions])
 
     const initial: RuleFormValues = {
         rule_name: (data?.ruleName as string) ?? '',
@@ -136,31 +148,18 @@ const useOverviewController = (props: IOverviewProps) => {
         setValue('rule_name', name)
     }
 
-    const getTxtpVersions = useCallback((type: string | number) => {
-        getVersions({ type }).unwrap()
-            .then((res) => {
-                if (res) {
-                    setVersions(res)
-                }
-            })
-            .catch(() => {
-                toast.error('Failed to load transaction type versions')
-            })
-    }, [])
-
-
     useEffect(() => {
         if (mode === 'clone' && data?.txtp_version) {
             getTxtpVersions(data?.txtp)
         }
-    }, [mode, data?.txtp_version])
+    }, [mode, data?.txtp_version, getTxtpVersions])
 
     useEffect(() => {
         if (data) {
-            const name = getRuleName(data?.rule_config_id)
+            const name = getRuleName(data?.rule_config_id as string)
             setValue('rule_name', name)
         }
-    }, [data])
+    }, [data, setValue])
 
     const handleTxTp = (val: DropdownOption) => {
         setValue('txtp', val as { label: string, value: string })

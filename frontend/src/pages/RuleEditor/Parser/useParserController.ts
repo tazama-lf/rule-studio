@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useTab } from "../../../contexts/TabContext/useTab";
 import { useLazyGetSamplePayloadQuery } from "../../../redux/Api/Config";
 import { useGetGlobalVariablesQuery } from "../../../redux/Api/Rule-builder";
@@ -15,12 +14,11 @@ export interface IParseProps {
 const useParserController = (props: IParseProps) => {
 
     const data = useMemo(
-        () => extractData('trs_rule', LocalStorage, true) ?? props?.data,
-        [props?.data]
+        () => extractData('trs_rule', LocalStorage, true) ?? props.data,
+        [props.data]
     )
 
     const { enablePreviousTab, enableNextTab } = useTab()
-    const navigate = useNavigate()
 
     const { mode } = props
 
@@ -46,12 +44,12 @@ const useParserController = (props: IParseProps) => {
             .then((res) => {
                 setPayload(JSON.stringify(res, null, 4))
             })
-    }, [data?.txtp, getPayload])
+    }, [data.txtp, getPayload])
 
     useEffect(() => {
         if (!data?.txtp) return
         getData()
-    }, [data?.txtp])
+    }, [data?.txtp, getData])
 
     const fetchJson = () => {
         getData()

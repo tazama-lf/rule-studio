@@ -26,7 +26,7 @@ const useHistoryController = (props: IHistory) => {
 
     interface Log {
         category?: string;
-        [key: string]: any;
+        [key: string]: unknown;
     }
 
     const readOnlyLogs = useMemo(() => {

@@ -32,7 +32,7 @@ const useRuleEditorController = () => {
                         console.log('Rule data refreshed for simulation tab')
                     }
                 })
-                .catch((error: any) => {
+                .catch((error: unknown) => {
                     console.error('Failed to refetch rule data', error)
                 })
         }

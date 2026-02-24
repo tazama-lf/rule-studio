@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import StatusCard from "../../components/Cards/StatusCard";
 import type { DropdownOption } from "../../components/DropDown";
@@ -41,7 +41,7 @@ const useHomeController = () => {
         setSearchTerm('')
     }
 
-    const fetchRules = async () => {
+    const fetchRules = useCallback(async () => {
         try {
             const params = {
                 offset,
@@ -59,12 +59,12 @@ const useHomeController = () => {
         } catch (err) {
             console.error(err);
         }
-    };
+    }, [getRules, offset, limit, searchTerm, status, ruleType]);
 
 
     useEffect(() => {
         fetchRules();
-    }, [getRules, offset, limit, searchTerm, status, ruleType]);
+    }, [fetchRules]);
 
     useEffect(() => {
         setOffset(0);

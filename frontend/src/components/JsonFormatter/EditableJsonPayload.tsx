@@ -11,6 +11,14 @@ interface IEditableJsonPayload {
     error?: string;
 }
 
+interface IJsonEditEvent {
+    existing_value: unknown;
+    updated_src: unknown;
+    name: string | null;
+    namespace: (string | null)[];
+    new_value?: unknown;
+}
+
 const EditableJsonPayload = ({ value, onChange, label, error }: IEditableJsonPayload) => {
 
     const safeJsonParse = useCallback((
@@ -24,7 +32,7 @@ const EditableJsonPayload = ({ value, onChange, label, error }: IEditableJsonPay
         }
     }, []);
 
-    const validateEdit = useCallback((edit: any) => {
+    const validateEdit = useCallback((edit: IJsonEditEvent) => {
         if (edit.existing_value !== undefined) {
             if (onChange) {
                 onChange(JSON.stringify(edit.updated_src, null, 2));

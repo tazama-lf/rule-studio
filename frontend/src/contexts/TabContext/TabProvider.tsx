@@ -51,15 +51,15 @@ export const TabProvider = ({ children }: TabProviderProps) => {
 
     const enablePreviousTab = useCallback(() => {
         const currentIndex = filteredTabs.findIndex(t => t.value === selectedTab)
-        if (currentIndex >= 0 && currentIndex < filteredTabs.length) {
-            const nextTab = filteredTabs[currentIndex - 1]
+        if (currentIndex > 0 && currentIndex < filteredTabs.length) {
+            const prevTab = filteredTabs[currentIndex - 1]
             setEnabledTabs(prev => {
-                if (!prev.includes(nextTab.value)) {
-                    return [...prev, nextTab.value]
+                if (!prev.includes(prevTab.value)) {
+                    return [...prev, prevTab.value]
                 }
                 return prev
             })
-            handleSetSelectedTab(nextTab.value)
+            handleSetSelectedTab(prevTab.value)
         }
     }, [selectedTab, handleSetSelectedTab, filteredTabs])
 
