@@ -130,7 +130,6 @@ describe('RulesService', () => {
       const mockUpdatedRule = {
         id: 1,
         ...mockRuleData,
-        flow_id: 'new-flow-1',
       } as any;
       const mockParseResult = {
         success: true,
@@ -165,7 +164,7 @@ describe('RulesService', () => {
       );
 
       await expect(
-        service.createRule(mockRuleData, 'test-token'),
+        service.createRule(mockRuleData, 'test-token', 'cbe'),
       ).rejects.toThrow('Creation failed');
       expect(Logger.prototype.error).toHaveBeenCalledWith(
         'Error creating rule: Creation failed',
