@@ -41,7 +41,7 @@ const useHistoryController = (props: IHistory) => {
 
 
     const onView = (data: Record<string, unknown>) => {
-        open('View Payload', <ViewPayload data={data} />, null, { maxWidth: 'md' })
+        open('View Payload', <ViewPayload data={data} />, null, { maxWidth: 'xl' })
     }
 
     const logs_columns = [

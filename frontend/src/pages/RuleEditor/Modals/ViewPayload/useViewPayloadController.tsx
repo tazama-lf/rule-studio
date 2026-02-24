@@ -6,7 +6,8 @@ export interface IViewPayload {
 const useViewPayloadController = (props: IViewPayload) => {
     return {
         values: {
-            json: props.data
+            payload: props.data.old_data,
+            result: props.data.new_data
         }
     }
 }

@@ -15,6 +15,9 @@ import { setApiNodes } from '../../utils/Flow/nodeTemplateService';
 import { transformApiFlowData, type ApiNode as ApiFlowNode, type ApiEdge } from '../../utils/Flow/FlowTransformers';
 import { validateTypeScriptCode } from '../../utils/Flow/codeValidator';
 import { useFlowState } from '../../hooks/RuleBuilder';
+import { extractData } from '../../utils/Common/storage';
+import { LocalStorage } from '../../utils/Common/enums';
+import { useUpdateMetadataMutation } from '../../redux/Api/Rules';
 
 interface TestCaseGenerateProps {
   viewOnly?: boolean;
@@ -22,7 +25,7 @@ interface TestCaseGenerateProps {
 
 const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false }) => {
   const { ruleId } = useParams<{ ruleId: string }>();
-  
+
   const { data: nodesData, isLoading: isLoadingNodes, error: nodesError } = useGetNodesQuery('test_case_generation');
   const { data: globalVariablesData } = useGetGlobalVariablesQuery(ruleId || '', {
     skip: !ruleId,
@@ -33,9 +36,10 @@ const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false })
   );
 
   const [saveFlow, { isLoading: isSaving }] = useSaveFlowMutation();
-  
+  const [update] = useUpdateMetadataMutation()
+
   const flowState = useFlowState();
-  
+
   const updateNodeInternalsRef = useRef<((nodeId: string) => void) | null>(null);
   // Initialize API nodes synchronously using useMemo
   const apiNodesInitialized = useMemo(() => {
@@ -46,9 +50,9 @@ const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false })
 
   const transformedFlowData = useMemo(() => {
     if (!flowData?.result || !apiNodesInitialized) return null;
-    
+
     const flowJson = flowData.result.flow_json || flowData.flow;
-    
+
     return transformApiFlowData(
       flowJson.nodes as ApiFlowNode[] || [],
       flowJson.edges as ApiEdge[] || []
@@ -130,7 +134,21 @@ const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false })
         ruleId,
         flowData: payload,
         category: 'test_case_generation',
-      }).unwrap();
+      }).unwrap().then((res) => {
+        if (res) {
+          update({
+            id: ruleId,
+            body: {
+              metadata: {
+                sync: true,
+                test: false,
+                deploy: false,
+                simulation: false
+              }
+            }
+          }).unwrap()
+        }
+      });
 
       flowState.setJsonModalOpen(false);
       setShowSaveSuccessModal(true);
@@ -164,19 +182,22 @@ const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false })
   }, []);
 
   const handleFlowStateUpdate = useCallback((
-    nodes: Node[], 
+    nodes: Node[],
     edges: Edge[]
   ) => {
     flowState.setAllNodes(nodes);
     flowState.setEdges(edges);
   }, [flowState]);
 
+  const mode = extractData('mode', LocalStorage)
+
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       <Header
         hidePlayControls={true}
-        onPlayClick={() => {}}
-        onStopClick={() => {}}
+        onPlayClick={() => { }}
+        onStopClick={() => { }}
         onDisplayJson={handleDisplayJson}
         onGenerateCode={handleGenerateCode}
         onViewErrors={() => setShowErrorModal(true)}
@@ -184,7 +205,7 @@ const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false })
         isSaving={isSaving}
         viewOnly={viewOnly}
         title="Test Cases Generation"
-        backUrl="/editor?tab=test_cases"
+        backUrl={mode === 'view' ? `/editor?mode=view&tab=test_cases` : `/editor?tab=test_cases`}
       />
       {nodesError ? (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, flexDirection: 'column', gap: 2 }}>
@@ -210,8 +231,8 @@ const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false })
       ) : (
         <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
           {!viewOnly && (
-            <LeftSidebar 
-              mode="main" 
+            <LeftSidebar
+              mode="main"
               collapsed={flowState.sidebarCollapsed}
               onToggleCollapse={flowState.handleToggleSidebar}
               hideCustomFunctions={false}
@@ -281,24 +302,25 @@ const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false })
           <Typography>Your test case flow has been saved. What would you like to do next?</Typography>
         </DialogContent>
         <DialogActions>
-          <Button 
+          <Button
             onClick={() => {
               setShowSaveSuccessModal(false);
               // Keep code modal open when staying on editor
-            }} 
+            }}
             variant="outlined"
           >
             Stay on Editor
           </Button>
-          <Button 
+          <Button
             onClick={() => {
               setShowSaveSuccessModal(false);
               flowState.setCodeModalOpen(false);
               setAllowNavigation(true);
               setTimeout(() => {
-                window.location.href = '/editor?tab=test_cases';
+                window.location.href = mode === 'view' ? `/editor?mode=view&tab=test_cases` : `/editor?tab=test_cases`;
+
               }, 0);
-            }} 
+            }}
             variant="contained"
           >
             Proceed to Next Step

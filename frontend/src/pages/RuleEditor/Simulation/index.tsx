@@ -78,7 +78,7 @@ const Simulation = (props: ISimulation) => {
                     </Grid>
                 </Box>
                 <Box display={'flex'} gap={2}>
-                    {claims.editor === values?.claim && values?.status === Status.STATUS_01_IN_PROGRESS &&
+                    {claims.editor === values?.claim && values?.status === Status.STATUS_01_IN_PROGRESS && values?.mode !== 'view' &&
                         <>
                             <Button
                                 height="40px"

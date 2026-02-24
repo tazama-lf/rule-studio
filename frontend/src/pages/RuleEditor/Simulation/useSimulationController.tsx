@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import Approval from "../../../components/Modals/Approval";
@@ -13,9 +13,10 @@ import { useLazyGetReportStatusQuery, useMergeBranchMutation, useUploadCodeMutat
 import { useAddSimulationlogsMutation } from "../../../redux/Api/SimulationLogs";
 import { LocalStorage } from "../../../utils/Common/enums";
 import { extractData } from "../../../utils/Common/storage";
-import { claims } from "../../../utils/Constants/data";
+import { claims, sampelRuleRequest, samplePayload } from "../../../utils/Constants/data";
 import ViewNetworkMap from "../Modals/ViewNetworkMap";
 import ViewReport from "../Modals/ViewReport";
+import { useSearchParams } from "react-router-dom";
 
 export interface ISimulation {
     data?: Record<string, unknown> | undefined
@@ -30,6 +31,9 @@ const useSimulationController = (props: ISimulation) => {
 
     const user = useMemo(() => extractData('user'), [])
 
+    const [searchParams] = useSearchParams();
+    const mode = searchParams.get('mode') ?? null
+
     const { handleSubmit, formState: { errors }, control, setValue } = useForm({
         defaultValues: { payload: '' }
     })
@@ -40,11 +44,25 @@ const useSimulationController = (props: ISimulation) => {
     const [update] = useUpdateMetadataMutation()
 
     const [loader, toggleLoader] = useToggle()
-    const [viewReport, toggleViewReport] = useToggle(data?.metadata?.test ?? false)
-    const [codeSynced, toggleCodeSynced] = useToggle(data?.metadata?.sync ?? true)
-    const [codeDeployed, toggleCodeDeployed] = useToggle(data?.metadata?.deploy ?? false)
-    const [simulationExecuted, toggleSimulationExecuted] = useToggle(data?.metadata?.test ?? false)
+    const [viewReport, setViewReport] = useState(data?.metadata?.test ?? false)
+    const [codeSynced, setCodeSynced] = useState(data?.metadata?.sync ?? true)
+    const [codeDeployed, setCodeDeployed] = useState(data?.metadata?.deploy ?? false)
+    const [simulationExecuted, setSimulationExecuted] = useState(data?.metadata?.test ?? false)
     const [isReportFailed, setIsReportFailed] = useState(false);
+
+    const toggleViewReport = useCallback(() => setViewReport((prev: boolean) => !prev), [])
+    const toggleCodeSynced = useCallback(() => setCodeSynced((prev: boolean) => !prev), [])
+    const toggleCodeDeployed = useCallback(() => setCodeDeployed((prev: boolean) => !prev), [])
+    const toggleSimulationExecuted = useCallback(() => setSimulationExecuted((prev: boolean) => true), [])
+
+    useEffect(() => {
+        if (data?.metadata) {
+            setViewReport(data.metadata.test ?? false)
+            setCodeSynced(data.metadata.sync ?? true)
+            setCodeDeployed(data.metadata.deploy ?? false)
+            setSimulationExecuted(data.metadata.test ?? false)
+        }
+    }, [data?.metadata])
 
     const [selected, setSelected] = useState<number | null>(null)
 
@@ -85,6 +103,84 @@ const useSimulationController = (props: ISimulation) => {
         enablePreviousTab()
     }
 
+    const handleUpload = useCallback(() => {
+        const body = {
+            ruleId: data?.id,
+            ruleCode: flowData?.result?.ts_file_base64_rule_builder,
+            testCode: flowData?.result?.ts_file_base64_test_case
+        }
+        upload(body).unwrap()
+            .then((res) => {
+                if (res) {
+                    toast.success('Code Uploaded Successfully')
+                    toggleCodeSynced()
+                    updateMetadata({
+                        sync: false,
+                        test: false,
+                        deploy: false,
+                        simulation: false
+                    })
+                    handleLoader()
+                }
+            })
+            .catch(() => {
+                toast.error('Failed to upload code')
+            })
+    }, [data?.id, data?.metadata?.test, data?.metadata?.deploy, data?.metadata?.simulation, upload, toggleCodeSynced, updateMetadata, flowData])
+
+    const handleDeploy = useCallback(() => {
+        if (codeSynced) {
+            toast.error('Please sync code on GitHub before deploying')
+            return
+        }
+        const body = {
+            ruleId: data?.id,
+            branchName: "dev"
+        }
+        deploy(body).unwrap()
+            .then((res) => {
+                if (res) {
+                    toast.success('Code Deployed Successfully')
+                    toggleCodeDeployed()
+                    updateMetadata({
+                        sync: false,
+                        test: true,
+                        deploy: true,
+                        simulation: true
+                    })
+                }
+            })
+            .catch(() => {
+                toast.error('Failed to deploy code')
+            })
+    }, [codeSynced, data?.id, data?.metadata?.simulation, deploy, toggleCodeDeployed, updateMetadata])
+
+    const handleSelect = (id: number) => {
+        if (!codeDeployed && claims.editor === user?.claims) {
+            toast.error('Deploy rule first to run simulation')
+            return;
+        } else {
+            setSelected(id)
+        }
+
+        // setSelected(id)
+
+        if (id === 1) {
+            getRuleRequest(data?.id).unwrap()
+                .then((res) => {
+                    if (res) {
+                        setValue('payload', JSON.stringify(res?.RuleRequest, null, 4))
+                    }
+                })
+        } else {
+            getPayload({ type: data.txtp })
+                .unwrap()
+                .then((res) => {
+                    setValue('payload', JSON.stringify(res, null, 4))
+                })
+        }
+    }
+
     const handleReportStatus = useCallback(() => {
         const body = {
             ruleId: data?.id,
@@ -100,7 +196,7 @@ const useSimulationController = (props: ISimulation) => {
                         updateMetadata({
                             sync: false,
                             test: true,
-                            deploy: true,
+                            deploy: false,
                             simulation: false
                         })
                     } else if (res?.status === 'failed') {
@@ -129,87 +225,10 @@ const useSimulationController = (props: ISimulation) => {
         }, 40000)
     }, [toggleLoader, handleReportStatus])
 
-    const handleUpload = useCallback(() => {
+    const addSimulationLog = (payload: Record<string, unknown>, result: unknown, category: 'read_only' | 'end_to_end') => {
         const body = {
-            ruleId: data?.id,
-            ruleCode: flowData?.result?.ts_file_base64_rule_builder,
-            testCode: flowData?.result?.ts_file_base64_test_case
-        }
-        upload(body).unwrap()
-            .then((res) => {
-                if (res) {
-                    toast.success('Code Uploaded Successfully')
-                    toggleCodeSynced()
-                    updateMetadata({
-                        sync: false,
-                        test: false,
-                        deploy: false,
-                        simulation: false
-                    })
-                    handleLoader()
-                }
-            })
-            .catch(() => {
-                toast.error('Failed to upload code')
-            })
-    }, [data?.id, upload, toggleCodeSynced, updateMetadata, flowData, handleLoader])
-
-    const handleDeploy = useCallback(() => {
-        if (codeSynced) {
-            toast.error('Please sync code on GitHub before deploying')
-            return
-        }
-        const body = {
-            ruleId: data?.id,
-            branchName: "dev"
-        }
-        deploy(body).unwrap()
-            .then((res) => {
-                if (res) {
-                    toast.success('Code Deployed Successfully')
-                    toggleCodeDeployed()
-                    updateMetadata({
-                        sync: false,
-                        test: true,
-                        deploy: false,
-                        simulation: true
-                    })
-                }
-            })
-            .catch(() => {
-                toast.error('Failed to deploy code')
-            })
-    }, [codeSynced, data?.id, deploy, toggleCodeDeployed, updateMetadata])
-
-    const handleSelect = (id: number) => {
-        if (!codeDeployed && claims.editor === user?.claims) {
-            toast.error('Deploy rule first to run simulation')
-            return;
-        } else {
-            setSelected(id)
-        }
-
-        if (id === 1) {
-            getRuleRequest(data?.id).unwrap()
-                .then((res) => {
-                    if (res) {
-                        setValue('payload', JSON.stringify(res?.RuleRequest, null, 4))
-                    }
-                })
-        } else {
-            getPayload({ type: data.txtp })
-                .unwrap()
-                .then((res) => {
-                    setValue('payload', JSON.stringify(res, null, 4))
-                })
-        }
-    }
-
-    const addSimulationLog = useCallback((payload: Record<string, unknown>, category: 'read_only' | 'end_to_end') => {
-        const body = {
-            new_data: {
-                ...payload,
-            },
+            old_data: payload,
+            new_data: result,
             category
         }
         addLogs({ body, id: data?.id }).unwrap()
@@ -231,9 +250,9 @@ const useSimulationController = (props: ISimulation) => {
             body = {
                 functionName: '',
                 awaitReply: true,
-                destination: `sub-rule-${data?.rule_config_id}`,
-                consumer: `pub-rule-${data?.rule_config_id}`,
-                message: parsedPayload
+                destination: `sub-rule-901@1.0.0`,
+                consumer: `pub-rule-901@1.0.0`,
+                message: sampelRuleRequest
             };
             mutation = ruleOnly;
             logCategory = 'read_only';
@@ -248,7 +267,7 @@ const useSimulationController = (props: ISimulation) => {
                         simulation: true
                     });
                 }
-                addSimulationLog(body, logCategory);
+                addSimulationLog(body, res, logCategory);
             };
         } else {
             body = {
@@ -256,7 +275,7 @@ const useSimulationController = (props: ISimulation) => {
                 natsConsumer: "investigation-service",
                 functionName: "TMS",
                 awaitReply: true,
-                transaction: parsedPayload
+                transaction: samplePayload
             };
             mutation = endToEnd;
             logCategory = 'end_to_end';
@@ -271,7 +290,7 @@ const useSimulationController = (props: ISimulation) => {
                         simulation: true
                     });
                 }
-                addSimulationLog(body, logCategory);
+                addSimulationLog(body, res, logCategory);
             };
         }
         mutation(body).unwrap()
@@ -309,6 +328,7 @@ const useSimulationController = (props: ISimulation) => {
             simulating: ruleOnlyLoading || endToEndLoading,
             payloadLoading: variablesLoading || sampleLoading,
             isReportFailed,
+            mode
         },
         functions: {
             handleApproval,
