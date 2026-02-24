@@ -53,7 +53,7 @@ const useSimulationController = (props: ISimulation) => {
     const toggleViewReport = useCallback(() => setViewReport((prev: boolean) => !prev), [])
     const toggleCodeSynced = useCallback(() => setCodeSynced((prev: boolean) => !prev), [])
     const toggleCodeDeployed = useCallback(() => setCodeDeployed((prev: boolean) => !prev), [])
-    const toggleSimulationExecuted = useCallback(() => setSimulationExecuted((prev: boolean) => true), [])
+    const toggleSimulationExecuted = useCallback(() => setSimulationExecuted(() => true), [])
 
     useEffect(() => {
         if (data?.metadata) {
@@ -225,7 +225,7 @@ const useSimulationController = (props: ISimulation) => {
         }, 40000)
     }, [toggleLoader, handleReportStatus])
 
-    const addSimulationLog = (payload: Record<string, unknown>, result: unknown, category: 'read_only' | 'end_to_end') => {
+    const addSimulationLog = useCallback((payload: Record<string, unknown>, result: unknown, category: 'read_only' | 'end_to_end') => {
         const body = {
             old_data: payload,
             new_data: result,
@@ -234,7 +234,7 @@ const useSimulationController = (props: ISimulation) => {
         addLogs({ body, id: data?.id }).unwrap()
     }, [addLogs, data?.id])
 
-    const handleSimulation = useCallback((values: Record<string, unknown>) => {
+    const handleSimulation = useCallback((_values: Record<string, unknown>) => {
 
         const isReadOnly = selected === 1;
         let body: Record<string, unknown>;
@@ -242,9 +242,10 @@ const useSimulationController = (props: ISimulation) => {
         let logCategory: 'read_only' | 'end_to_end';
         let onSuccess;
 
-        const parsedPayload = typeof values?.payload === 'string'
-            ? JSON.parse(values.payload)
-            : values?.payload || {};
+        // const parsedPayload = typeof 
+        // _values?.payload === 'string'
+        //     ? JSON.parse(values.payload)
+        //     : _values?.payload || {};
         if (isReadOnly) {
 
             body = {
