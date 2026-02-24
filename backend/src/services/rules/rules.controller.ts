@@ -1,5 +1,23 @@
-import { Controller, Post, Body, Param, UseGuards, ParseIntPipe, Get, Query, Put, Logger } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiQuery, ApiParam, ApiBody } from '@nestjs/swagger';
+/* eslint-disable max-lines */
+import {
+  Controller,
+  Post,
+  Body,
+  Param,
+  UseGuards,
+  ParseIntPipe,
+  Get,
+  Query,
+  Put,
+  Logger,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiQuery,
+  ApiParam,
+  ApiBody,
+} from '@nestjs/swagger';
 import { ApiSwagger, CommonResponses, mergeResponses } from '../../decorators/swagger.decorator';
 import { TazamaAuthGuard } from '../../guards/tazama-auth.guard';
 // import { StatusValidationGuard } from '../../guards/status-validation.guard';
@@ -36,7 +54,12 @@ export class RulesController {
 
   // get available rule statuses
   @Get('/api/status')
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @RequireAnyClaims(
+    TazamaClaims.EDITOR,
+    TazamaClaims.APPROVER,
+    TazamaClaims.PUBLISHER,
+  )
+  @Audit() // Audit access to rule status information (important for compliance and monitoring)
   @ApiSwagger({
     summary: 'Get available rule statuses',
     description: 'Retrieves available rule statuses based on user role and permissions',
@@ -50,7 +73,12 @@ export class RulesController {
   // get all rules with pagination and filters
   @Post('/api/all')
   // @UseGuards(StatusValidationGuard)
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @RequireAnyClaims(
+    TazamaClaims.EDITOR,
+    TazamaClaims.APPROVER,
+    TazamaClaims.PUBLISHER,
+  )
+  @Audit() // Audit access to all rules (important for compliance and monitoring)
   @ApiQuery({
     name: 'offset',
     required: true,
@@ -96,7 +124,12 @@ export class RulesController {
 
   // get rule IDs
   @Get('/api/ids')
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @RequireAnyClaims(
+    TazamaClaims.EDITOR,
+    TazamaClaims.APPROVER,
+    TazamaClaims.PUBLISHER,
+  )
+  @Audit() // Audit access to rule ID information (important for compliance and monitoring)
   @ApiSwagger({
     summary: 'Get rule IDs',
     description: 'Retrieves all available rule IDs for the authenticated user',
@@ -140,7 +173,12 @@ export class RulesController {
 
   // get rule configuration by rule ID
   @Get('/api/configuration/:ruleId')
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @RequireAnyClaims(
+    TazamaClaims.EDITOR,
+    TazamaClaims.APPROVER,
+    TazamaClaims.PUBLISHER,
+  )
+  @Audit()
   @ApiParam({
     name: 'ruleId',
     description: 'Rule identifier',
@@ -185,7 +223,12 @@ export class RulesController {
 
   // get rule by ID
   @Get('/api/:id')
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @RequireAnyClaims(
+    TazamaClaims.EDITOR,
+    TazamaClaims.APPROVER,
+    TazamaClaims.PUBLISHER,
+  )
+  @Audit() // Audit access to specific rule details (important for compliance and monitoring)
   @ApiParam({
     name: 'id',
     description: 'Numeric rule ID (integer)',
@@ -207,7 +250,12 @@ export class RulesController {
 
   // get active network map
   @Get('/api/network-map/active')
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @RequireAnyClaims(
+    TazamaClaims.EDITOR,
+    TazamaClaims.APPROVER,
+    TazamaClaims.PUBLISHER,
+  )
+  @Audit() // Audit access to network map information (important for compliance and monitoring)
   @ApiSwagger({
     summary: 'Get active network map',
     description: 'Retrieves the active network map configuration showing rule relationships and processing flow',
@@ -249,7 +297,12 @@ export class RulesController {
 
   // get rule flow configuration
   @Get('/api/:ruleId/flow')
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @RequireAnyClaims(
+    TazamaClaims.EDITOR,
+    TazamaClaims.APPROVER,
+    TazamaClaims.PUBLISHER,
+  )
+  @Audit() // Audit access to rule flow information (important for compliance and monitoring)
   @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: '001' })
   @ApiSwagger({
     summary: 'Get rule flow',
@@ -270,7 +323,12 @@ export class RulesController {
 
   //get rule flow status based on rule ID:
   @Get('/api/:ruleId/flow/status')
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @RequireAnyClaims(
+    TazamaClaims.EDITOR,
+    TazamaClaims.APPROVER,
+    TazamaClaims.PUBLISHER,
+  )
+  @Audit() // Audit access to rule flow status information (important for compliance and monitoring)
   @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: '001' })
   @ApiSwagger({
     summary: 'Get rule flow status',
@@ -317,7 +375,12 @@ export class RulesController {
 
   // get global variables for a rule
   @Get('/api/global-variables/:ruleId')
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @RequireAnyClaims(
+    TazamaClaims.EDITOR,
+    TazamaClaims.APPROVER,
+    TazamaClaims.PUBLISHER,
+  )
+  @Audit() // Audit access to global variable information (important for compliance and monitoring)
   @ApiParam({
     name: 'ruleId',
     description: 'Rule identifier',
@@ -403,6 +466,7 @@ export class RulesController {
   // update rule metadata
   @Put('/api/:ruleId/metadata')
   @RequireAnyClaims(TazamaClaims.EDITOR)
+  @Audit() // Audit rule metadata updates (important for compliance and monitoring)
   @ApiParam({
     name: 'ruleId',
     description: 'Rule identifier to update',

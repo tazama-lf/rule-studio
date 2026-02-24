@@ -1,11 +1,5 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-  Inject,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Inject, Logger } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import type { IAuditService, AuditLogInput } from '@tazama-lf/audit-lib';
@@ -28,44 +22,45 @@ import { randomUUID } from 'node:crypto';
    */
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest<Request & { user?: AuthenticatedUser }>();
-    const response = context.switchToHttp().getResponse<Response>();
-    const user = request.user;
+    const response = context.switchToHttp().getResponse<{ statusCode: number }>();
+    const { user } = request;
     const startTime = Date.now();
+
     const correlationId = randomUUID();
 
+    const baseAuditData = this.buildBaseAuditData(context, request, user);
+
+    this.logAuditAsync(baseAuditData, 'INTENT', correlationId);
 //     // from request context
 //     const baseAuditData = this.buildBaseAuditData(context, request, user);
 
     return next.handle().pipe(
       tap((responseData) => {
-        const auditData: AuditLogInput = {
-          correlationId,
-          eventPhase: 'SUCCESS',
+        const auditData = {
           ...baseAuditData,
-          durationMs: Date.now() - startTime,
           outcome: {
             statusCode: response.statusCode,
-            responseSize: JSON.stringify(responseData || {}).length,
+            executionTimeMs: Date.now() - startTime,
+            responseSize: JSON.stringify(responseData ?? {}).length,
           },
         };
 
-        this.logAuditAsync(auditData);
+        this.logAuditAsync(auditData, 'SUCCESS', correlationId);
       }),
       catchError((error) => {
-        const auditData: AuditLogInput = {
-          correlationId,
-          eventPhase: 'FAILED',
+        const auditData = {
           ...baseAuditData,
-          durationMs: Date.now() - startTime,
           outcome: {
-            errorMessage: error.message,
-            statusCode: error.status || 500,
+            error: error.message,
+            statusCode: error.status ?? 500,
+            executionTimeMs: Date.now() - startTime,
           },
         };
 
+        this.logAuditAsync(auditData, 'FAILED', correlationId);
 //         this.logAuditAsync(auditData, 'FAILED');
 
-        throw error;
+        throw new Error(error);
       }),
     );
   }
@@ -78,17 +73,16 @@ import { randomUUID } from 'node:crypto';
     context: ExecutionContext,
     request: Request,
     user?: AuthenticatedUser,
-  ): Omit<AuditLogInput, 'correlationId' | 'eventPhase'> {
-    const method = request.method;
-    const url = request.url;
+  ): Omit<AuditLogInput, 'correlationId' | 'eventPhase' | 'outcome'> {
+    const { method, url, body, params, query, headers } = request;
     const handler = context.getHandler().name;
     const controller = context.getClass().name;
 
     return {
       // User identification
-      actorId: user?.userId || user?.token?.sid || 'anonymous',
-      actorRole: this.extractUserRole(user),
+      actorId: user?.userId ?? 'anonymous',
       actorName: this.extractUserName(user),
+      actorRole: this.extractUserRole(user),
 
       // Resource information
       resourceId: this.extractResourceId(request),
@@ -98,17 +92,17 @@ import { randomUUID } from 'node:crypto';
       sourceIp: this.extractSourceIp(request),
       description: this.buildDescription(method, url, handler),
       eventType: this.determineEventType(method, handler),
-      tenantId: user?.tenantId || 'default',
+      tenantId: user?.tenantId ?? 'default',
 
       actionPerformed: {
         method,
         endpoint: url,
         handler,
         controller,
-        userAgent: request.headers['user-agent'],
-        requestBody: this.sanitizeRequestBody(request.body),
-        pathParameters: request.params,
-        queryParameters: request.query,
+        userAgent: headers['user-agent'],
+        requestBody: this.sanitizeRequestBody(body),
+        pathParameters: params,
+        queryParameters: query,
         timestamp: new Date().toISOString(),
       },
     };
@@ -121,12 +115,11 @@ import { randomUUID } from 'node:crypto';
   private extractUserRole(user?: AuthenticatedUser): string {
     if (!user) return 'anonymous';
 
-
-    if (user.validClaims?.length > 0) {
+    if (user.validClaims.length > 0) {
       return user.validClaims[0];
     }
 
-    if (user.token?.claims?.length > 0) {
+    if (user.token.claims.length > 0) {
       return user.token.claims[0];
     }
 
@@ -140,7 +133,7 @@ import { randomUUID } from 'node:crypto';
   private extractUserName(user?: AuthenticatedUser): string {
     if (!user) return 'Anonymous User';
 
-    return user.userId ?? user.token?.sid ?? 'Unknown User';
+    return user.userId;
   }
 
   /**
@@ -168,6 +161,8 @@ import { randomUUID } from 'node:crypto';
 //       SimulationLogsController: 'simulation-logs',
 //     };
 
+    return resourceMapping[controllerName] ?? 'unknown';
+  }
 //     return resourceMapping[controllerName] ?? 'unknown';
 //   }
 
@@ -188,7 +183,11 @@ import { randomUUID } from 'node:crypto';
       return xRealIp;
     }
 
-    return request.ip || request.socket?.remoteAddress || 'unknown';
+    if (request.ip) {
+      return request.ip;
+    }
+
+    return request.socket.remoteAddress ?? 'unknown';
   }
 
   /**
@@ -221,7 +220,9 @@ import { randomUUID } from 'node:crypto';
 
     // CRUD operations
     if (method === 'POST' || handler.includes('create')) return 'creation';
-    if (method === 'PUT' || handler.includes('update') || handler.includes('modify')) return 'modification';
+    if (method === 'PUT' || handler.includes('update') || handler.includes('modify')) {
+      return 'modification';
+    }
     if (method === 'DELETE' || handler.includes('delete')) return 'deletion';
     if (handler.includes('clone')) return 'replication';
 
@@ -240,21 +241,22 @@ import { randomUUID } from 'node:crypto';
       return body;
     }
 
-    const sanitized = { ...body };
-
     // Remove sensitive fields that should never be logged
-    const sensitiveFields = ['password', 'token', 'secret', 'key', 'auth', 'credential'];
+    const { password, token, secret, key, auth, credential, ...cleanBody } = body;
 
-    sensitiveFields.forEach(field => {
-      delete sanitized[field];
-    });
-
+    // Truncate large payloads to prevent storage bloat
+    const serialized = JSON.stringify(cleanBody);
+    if (serialized.length > 10000) {
+      return { _truncated: true, _originalSize: serialized.length };
+    }
 //     // Truncate large payloads to prevent storage bloat
 //     const serialized = JSON.stringify(cleanBody);
 //     if (serialized.length > 10000) {
 //       return { _truncated: true, _originalSize: serialized.length };
 //     }
 
+    return cleanBody;
+  }
 //     return cleanBody;
 //   }
 
@@ -262,24 +264,19 @@ import { randomUUID } from 'node:crypto';
    * Logs audit data asynchronously without blocking the main operation
    * @private
    */
-  private logAuditAsync(auditData: AuditLogInput): void {
-    // Fire-and-forget: Don't await this promise
-    this.auditService
-      .log(auditData)
-      .catch((error) => {
-        // Log audit service errors for monitoring but don't propagate
-        this.logger.error(
-          `Audit logging failed for ${auditData.eventType} by ${auditData.actorName}`,
-          {
-            error: error.message,
-            auditData: {
-              eventType: auditData.eventType,
-              actorId: auditData.actorId,
-              resourceType: auditData.resourceType,
-              resourceId: auditData.resourceId,
-            },
-          },
-        );
-      });
+  private logAuditAsync(auditData: Omit<AuditLogInput, 'correlationId' | 'eventPhase'>,eventPhase: 'INTENT' | 'SUCCESS' | 'FAILED',correlationId: string,): void {
+    const auditInput: AuditLogInput = {...auditData,correlationId,eventPhase,};
+
+    this.auditService.log(auditInput).catch((error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      this.logger.error(`Audit logging failed for ${auditData.eventType} by ${auditData.actorName}`,
+        {
+          error: errorMessage,
+          eventPhase,
+          correlationId,
+        },
+      );
+    });
   }
 }

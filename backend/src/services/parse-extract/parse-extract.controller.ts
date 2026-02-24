@@ -5,7 +5,13 @@ import { User } from '../../decorators/user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { TazamaClaims, RequireAnyClaims } from '../../decorators/auth.decorator';
 import { ParseExtractService } from './parse-extract.service';
-import { type TransactionalMessage, type ParseExtractResponse, TransactionalMessageDto, ParseExtractResponseDto } from './dto/message.dto';
+import {
+  type TransactionalMessage,
+  type ParseExtractResponse,
+  TransactionalMessageDto,
+  ParseExtractResponseDto,
+} from './dto/message.dto';
+import { Audit } from 'src/decorators/audit.decorator';
 
 @ApiTags('Parse & Extract')
 @ApiBearerAuth('JWT-auth')
@@ -19,6 +25,7 @@ export class ParseExtractController {
   @Post('/api/validatePayload')
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
   @HttpCode(HttpStatus.OK)
+  @Audit() // Audit processing of transactional messages (important for compliance and monitoring)
   @ApiOperation({
     summary: 'Validate ISO 20022 payload',
     description: 'Validates and processes ISO 20022 transactional message payloads for structure and content compliance',

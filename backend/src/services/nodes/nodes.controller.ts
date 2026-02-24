@@ -47,7 +47,12 @@ export class NodesController {
     description: 'Retrieves all nodes with optional query parameters for filtering, sorting and pagination',
   })
   @Get()
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @RequireAnyClaims(
+    TazamaClaims.EDITOR,
+    TazamaClaims.APPROVER,
+    TazamaClaims.PUBLISHER,
+  )
+  @Audit()
   @ApiQuery({
     name: 'limit',
     required: false,
@@ -137,7 +142,12 @@ export class NodesController {
   }
 
   @Post('execute-query')
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @RequireAnyClaims(
+    TazamaClaims.EDITOR,
+    TazamaClaims.APPROVER,
+    TazamaClaims.PUBLISHER,
+  )
+  @Audit() // Audit execution of query nodes (important for monitoring and debugging)
   @ApiOperation({
     summary: 'Execute query node',
     description: 'Executes a query node and returns the result',
