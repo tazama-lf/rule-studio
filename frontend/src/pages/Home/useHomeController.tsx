@@ -61,9 +61,10 @@ const useHomeController = () => {
         }
     }, [getRules, offset, limit, searchTerm, status, ruleType]);
 
-
+    // Call fetchRules when dependencies change
     useEffect(() => {
-        fetchRules();
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        void fetchRules();
     }, [fetchRules]);
 
     useEffect(() => {

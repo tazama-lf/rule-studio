@@ -10,6 +10,7 @@ import { LocalStorage } from "../../utils/Common/enums"
 import { useTab } from "../../contexts/TabContext/useTab"
 import TestCases from "./TestCases"
 import History from "./History"
+import type { RuleResponse } from "../../utils/Common/types"
 
 const useRuleEditorController = () => {
 
@@ -27,9 +28,9 @@ const useRuleEditorController = () => {
         if (selectedTab === 'simulation' && (id || rule?.id)) {
             getRuleById({ id: id ?? rule?.id })
                 .unwrap()
-                .then((updatedRule: any) => {
+                .then((updatedRule: RuleResponse) => {
                     if (updatedRule?.rules) {
-                        insertData('trs_rule', updatedRule.rules, LocalStorage, true)
+                        insertData(updatedRule.rules, 'trs_rule', LocalStorage, true)
                         console.log('Rule data refreshed for simulation tab')
                     }
                 })

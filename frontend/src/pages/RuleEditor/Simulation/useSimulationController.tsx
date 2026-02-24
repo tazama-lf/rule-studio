@@ -56,8 +56,10 @@ const useSimulationController = (props: ISimulation) => {
     const toggleCodeDeployed = useCallback(() => setCodeDeployed((prev: boolean) => !prev), [])
     const toggleSimulationExecuted = useCallback(() => setSimulationExecuted(() => true), [])
 
+    // Initialize metadata state
     useEffect(() => {
         if (data?.metadata) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setViewReport(data.metadata.test ?? false)
             setCodeSynced(data.metadata.sync ?? true)
             setCodeDeployed(data.metadata.deploy ?? false)
@@ -270,7 +272,8 @@ const useSimulationController = (props: ISimulation) => {
             })
     }, [addLogs, data?.id])
 
-    const handleSimulation = useCallback((_values: Record<string, unknown>) => {
+     
+    const handleSimulation = useCallback(() => {
 
         const isReadOnly = selected === 1;
         let body: Record<string, unknown>;
@@ -341,7 +344,7 @@ const useSimulationController = (props: ISimulation) => {
                 toast.error('Failed to run simulation. Please try again.');
                 setResult(null);
             });
-    }, [selected, data?.rule_config_id, user?.claims, ruleOnly, endToEnd, toggleSimulationExecuted, updateMetadata, addSimulationLog])
+    }, [selected, user?.claims, ruleOnly, endToEnd, toggleSimulationExecuted, updateMetadata, addSimulationLog])
 
     const handleReport = () => {
         open('Test Report', <ViewReport data={data} />, null, { maxWidth: 'xl' })
