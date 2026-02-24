@@ -288,36 +288,6 @@ export class RulesService {
    * Maps a rule status string to the corresponding EventType for notifications.
    * Supports both short forms (SUBMITTED, APPROVED) and full status codes (STATUS_03_UNDER_REVIEW, etc.)
    */
-  private mapStatusToEventType(status: string): EventType | null {
-    const normalizedStatus = status.toUpperCase();
-    switch (normalizedStatus) {
-      // Editor submits for review
-      case 'SUBMITTED':
-      case 'STATUS_03_UNDER_REVIEW':
-        return EventType.EditorSubmit;
-      // Approver approves
-      case 'APPROVED':
-      case 'STATUS_04_APPROVED':
-        return EventType.ApproverApprove;
-      // Approver rejects
-      case 'REJECTED':
-      case 'STATUS_05_REJECTED':
-        return EventType.ApproverReject;
-      // Publisher deploys
-      case 'DEPLOYED':
-      case 'STATUS_08_DEPLOYED':
-        return EventType.PublisherDeploy;
-      // Publisher activates
-      case 'ACTIVE':
-        return EventType.PublisherActivate;
-      // Publisher deactivates
-      case 'INACTIVE':
-        return EventType.PublisherDeactivate;
-      default:
-        return null;
-    }
-  }
-
   async updateRuleStatus(
     ruleId: string,
     status: string,
@@ -325,9 +295,44 @@ export class RulesService {
     token: string,
     user: AuthenticatedUser,
   ): Promise<Rules> {
+    // Local mapping function
+    const mapStatusToEventType = (status: string): EventType | null => {
+      const normalizedStatus = status.toUpperCase();
+
+      switch (normalizedStatus) {
+        // Editor submits for review
+        case 'STATUS_03_UNDER_REVIEW':
+          return EventType.EditorSubmit;
+
+        // Approver approves
+        case 'STATUS_04_APPROVED':
+          return EventType.ApproverApprove;
+
+        // Approver rejects
+        case 'STATUS_05_REJECTED':
+          return EventType.ApproverReject;
+
+        // Publisher deploys
+        case 'STATUS_08_DEPLOYED':
+          return EventType.PublisherDeploy;
+
+        // Publisher activates
+        case 'ACTIVE':
+          return EventType.PublisherActivate;
+
+        // Publisher deactivates
+        case 'INACTIVE':
+          return EventType.PublisherDeactivate;
+
+        default:
+          return null;
+      }
+    };
+
     try {
       const existingRule = await this.getRuleOrThrow(Number(ruleId), token);
-      const previousStatus = (existingRule as any)?.rules?.status ?? existingRule.status;
+      const previousStatus =
+        (existingRule as any)?.rules?.status ?? existingRule.status;
 
       if (previousStatus === status) {
         this.logger.debug(
@@ -341,20 +346,22 @@ export class RulesService {
           token,
         );
       }
+
       const updatedRule = await this.adminServiceClient.updateRuleStatus(
         ruleId,
         status,
         reason,
         token,
       );
+
       const ruleData = await this.getRuleOrThrow(Number(ruleId), token);
       this.logger.log(`Rule Data ${JSON.stringify(ruleData)}`);
 
       // Send notification after successful status update
-      const eventType = this.mapStatusToEventType(status);
+      const eventType = mapStatusToEventType(status);
+
       if (eventType) {
         try {
-          // Get the full rule data from admin service for the email template
           const fullRule = (ruleData as any)?.rules ?? ruleData;
 
           await this.notificationService.sendRuleWorkflowNotification(
@@ -369,7 +376,6 @@ export class RulesService {
             `Notification sent for rule ${ruleId} status change to '${status}'`,
           );
         } catch (notificationError) {
-          // Log but don't fail the status update if notification fails
           const notifErr = notificationError as Error;
           this.logger.warn(
             `Failed to send notification for rule ${ruleId} status change: ${notifErr.message}`,

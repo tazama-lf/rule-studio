@@ -4,12 +4,14 @@ import { LoggerService } from '@tazama-lf/frms-coe-lib';
 import { validateTokenAndClaims } from '@tazama-lf/auth-lib';
 import { firstValueFrom } from 'rxjs';
 import type { IAuditService } from '@tazama-lf/audit-lib';
+import { AuditExecutorService } from 'src/audit/audit-executor.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly httpService: HttpService,
     private readonly loggerService: LoggerService,
+    private readonly auditExecutor: AuditExecutorService,
     @Inject('AUDIT_LOGGER') private readonly auditService: IAuditService,
   ) { }
 
@@ -52,13 +54,12 @@ export class AuthService {
     // 🔹 INFO (authentication attempt)
     await this.auditService.log({
       eventType: 'USER_LOGIN',
-      description: 'User authentication attempt',
-      status: 'info',
       actorId: username,
       actorRole: 'anonymous',
       actorName: username,
       resourceType: 'authentication',
       sourceIp,
+      description: 'User authentication',
       tenantId,
       actionPerformed: {
         method: 'password',
@@ -81,32 +82,9 @@ export class AuthService {
         message: 'Login successful',
         token,
       };
-
-    } catch (error) {
-
-      // 🔹 FAILURE
-      await this.auditService.log({
-        eventType: 'USER_LOGIN',
-        description: 'User authentication failed',
-        status: 'failure',
-        actorId: username,
-        actorRole: 'anonymous',
-        actorName: username,
-        resourceType: 'authentication',
-        sourceIp,
-        tenantId,
-        outcome: {
-          errorMessage: (error as Error).message,
-        },
-      });
-
-      if (error instanceof UnauthorizedException) {
-        throw error;
-      }
-
-      this.handleLoginError(error);
-    }
-  }
+    },
+  );
+}
 
   private handleLoginError(error: unknown): never {
     const axiosError = error as {
