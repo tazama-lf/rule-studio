@@ -147,7 +147,10 @@ describe('NodesService', () => {
 
     it('should successfully execute a query', async () => {
       const token = 'test-token';
-      const data: RequestQueryNodeDto = { query: 'SELECT * FROM users', dbName: 'test_db' };
+      const data: RequestQueryNodeDto = {
+        query: 'SELECT * FROM users',
+        dbName: 'test_db',
+      };
       const expectedResult = { result: [{ id: 1, name: 'Test User' }] };
 
       mockAdminServiceClient.executeQueryNode.mockResolvedValue(expectedResult);
@@ -163,7 +166,10 @@ describe('NodesService', () => {
 
     it('should throw an error if adminServiceClient fails', async () => {
       const token = 'test-token';
-      const data: RequestQueryNodeDto = { query: 'SELECT * FROM users', dbName: 'test_db' };
+      const data: RequestQueryNodeDto = {
+        query: 'SELECT * FROM users',
+        dbName: 'test_db',
+      };
       const error = new Error('Failed to execute query');
 
       mockAdminServiceClient.executeQueryNode.mockRejectedValue(error);

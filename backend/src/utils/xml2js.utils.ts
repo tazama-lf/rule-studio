@@ -93,7 +93,9 @@ export function returnArrayFieldsFromSchema(schema: any, loggerService?: LoggerS
   } catch (error) {
     if (loggerService) {
       loggerService.error(
-        `Error in returnArrayFieldsFromSchema: ${String(error)}. Schema path or field causing issue: ${(error as Error).stack ?? 'Unknown'}`,
+        `Error in returnArrayFieldsFromSchema: ${String(error)}. Schema path or field causing issue: ${
+          (error as Error).stack ?? 'Unknown'
+        }`,
       );
     }
     throw error;
@@ -139,7 +141,9 @@ export function replaceObjectsWithArrays(payload: any, arrayFields: string[], st
   } catch (error) {
     if (loggerService) {
       loggerService.error(
-        `Error in replaceObjectsWithArrays: ${String(error)}. Field paths: arrays=${arrayFields.join(',')}, strings=${stringFields.join(',')}`,
+        `Error in replaceObjectsWithArrays: ${String(error)}. Field paths: arrays=${arrayFields.join(
+          ',',
+        )}, strings=${stringFields.join(',')}`,
       );
     }
     throw error;
@@ -161,7 +165,7 @@ export function convertNumberToStringAtPath(obj: any, path: string, loggerServic
     const pathParts = path.split('.');
     let current = obj;
 
-    for (let i = 0; i < pathParts.length - 1; i++) {
+    for (let i = 0; i < pathParts.length - 1; i += 1) {
       if (current && typeof current === 'object' && !Array.isArray(current) && current[pathParts[i]]) {
         current = current[pathParts[i]];
       } else {
@@ -201,7 +205,7 @@ export function convertObjectToArrayAtPath(obj: any, path: string, loggerService
     const pathParts = path.split('.');
     let current = obj;
 
-    for (let i = 0; i < pathParts.length - 1; i++) {
+    for (let i = 0; i < pathParts.length - 1; i += 1) {
       if (current && typeof current === 'object' && !Array.isArray(current) && current[pathParts[i]]) {
         current = current[pathParts[i]];
       } else {

@@ -1,16 +1,10 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-  Inject,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Inject, Logger } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
-import type { IAuditService, AuditLogData } from '@tazama-lf/audit-lib';
+import type { IAuditService, AuditLogData, AuditLogInput } from '@tazama-lf/audit-lib';
 import type { AuthenticatedUser } from '../services/auth/auth.types';
-import type { Request, Response } from 'express';
+import type { Request } from 'express';
 
 /**
  * Audit interceptor for logging critical user actions
@@ -27,8 +21,8 @@ export class AuditInterceptor implements NestInterceptor {
    */
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest<Request & { user?: AuthenticatedUser }>();
-    const response = context.switchToHttp().getResponse<Response>();
-    const user = request.user;
+    const response = context.switchToHttp().getResponse<{ statusCode: number }>();
+    const { user } = request;
     const startTime = Date.now();
 
     // from request context
@@ -39,32 +33,30 @@ export class AuditInterceptor implements NestInterceptor {
         // log successful operation (fire-and-forget)
         const auditData: AuditLogData = {
           ...baseAuditData,
-          status: 'success',
           outcome: {
             statusCode: response.statusCode,
             executionTimeMs: Date.now() - startTime,
-            responseSize: JSON.stringify(responseData || {}).length,
+            responseSize: JSON.stringify(responseData ?? {}).length,
           },
         };
 
-        this.logAuditAsync(auditData);
+        this.logAuditAsync(auditData, 'SUCCESS');
       }),
       catchError((error) => {
         // Log failed operation (fire-and-forget)
         const auditData: AuditLogData = {
           ...baseAuditData,
-          status: 'failure',
           outcome: {
             error: error.message,
-            statusCode: error.status || 500,
+            statusCode: error.status ?? 500,
             executionTimeMs: Date.now() - startTime,
           },
         };
 
-        this.logAuditAsync(auditData);
+        this.logAuditAsync(auditData, 'FAILED');
 
         // Re-throw the error - audit failure must not affect the main operation
-        throw error;
+        throw new Error(error);
       }),
     );
   }
@@ -78,36 +70,35 @@ export class AuditInterceptor implements NestInterceptor {
     request: Request,
     user?: AuthenticatedUser,
   ): Omit<AuditLogData, 'status' | 'outcome'> {
-    const method = request.method;
-    const url = request.url;
+    const { method, url, body, params, query, headers } = request;
     const handler = context.getHandler().name;
     const controller = context.getClass().name;
 
     return {
       // User identification
-      actorId: user?.userId || user?.token?.sid || 'anonymous',
+      actorId: user?.userId ?? 'anonymous',
       actorRole: this.extractUserRole(user),
       actorName: this.extractUserName(user),
-      
+
       // Resource information
       resourceId: this.extractResourceId(request),
       resourceType: this.mapControllerToResourceType(controller),
-      
+
       // Request metadata
       sourceIp: this.extractSourceIp(request),
       description: this.buildDescription(method, url, handler),
       eventType: this.determineEventType(method, handler),
-      tenantId: user?.tenantId || 'default',
-      
+      tenantId: user?.tenantId ?? 'default',
+
       actionPerformed: {
         method,
         endpoint: url,
         handler,
         controller,
-        userAgent: request.headers['user-agent'],
-        requestBody: this.sanitizeRequestBody(request.body),
-        pathParameters: request.params,
-        queryParameters: request.query,
+        userAgent: headers['user-agent'],
+        requestBody: this.sanitizeRequestBody(body),
+        pathParameters: params,
+        queryParameters: query,
         timestamp: new Date().toISOString(),
       },
     };
@@ -119,16 +110,15 @@ export class AuditInterceptor implements NestInterceptor {
    */
   private extractUserRole(user?: AuthenticatedUser): string {
     if (!user) return 'anonymous';
-    
- 
-    if (user.validClaims?.length > 0) {
+
+    if (user.validClaims.length > 0) {
       return user.validClaims[0];
     }
-    
-    if (user.token?.claims?.length > 0) {
+
+    if (user.token.claims.length > 0) {
       return user.token.claims[0];
     }
-    
+
     return 'user';
   }
 
@@ -138,8 +128,8 @@ export class AuditInterceptor implements NestInterceptor {
    */
   private extractUserName(user?: AuthenticatedUser): string {
     if (!user) return 'Anonymous User';
-    
-    return user.userId ?? user.token?.sid ?? 'Unknown User';
+
+    return user.userId;
   }
 
   /**
@@ -148,7 +138,7 @@ export class AuditInterceptor implements NestInterceptor {
    */
   private extractResourceId(request: Request): string | undefined {
     const params = request.params as Record<string, string>;
-    
+
     // Common resource ID parameter names
     return params.ruleId || params.nodeId || params.id || params.resourceId;
   }
@@ -167,7 +157,7 @@ export class AuditInterceptor implements NestInterceptor {
       SimulationLogsController: 'simulation-logs',
     };
 
-    return resourceMapping[controllerName] || 'unknown';
+    return resourceMapping[controllerName] ?? 'unknown';
   }
 
   /**
@@ -178,16 +168,20 @@ export class AuditInterceptor implements NestInterceptor {
     // Check various headers for real IP (load balancer, proxy scenarios)
     const xForwardedFor = request.headers['x-forwarded-for'] as string;
     const xRealIp = request.headers['x-real-ip'] as string;
-    
+
     if (xForwardedFor) {
       return xForwardedFor.split(',')[0].trim();
     }
-    
+
     if (xRealIp) {
       return xRealIp;
     }
-    
-    return request.ip || request.socket?.remoteAddress || 'unknown';
+
+    if (request.ip) {
+      return request.ip;
+    }
+
+    return request.socket.remoteAddress ?? 'unknown';
   }
 
   /**
@@ -217,16 +211,18 @@ export class AuditInterceptor implements NestInterceptor {
   private determineEventType(method: string, handler: string): string {
     // Authentication events
     if (handler.includes('login')) return 'authentication';
-    
+
     // CRUD operations
     if (method === 'POST' || handler.includes('create')) return 'creation';
-    if (method === 'PUT' || handler.includes('update') || handler.includes('modify')) return 'modification';
+    if (method === 'PUT' || handler.includes('update') || handler.includes('modify')) {
+      return 'modification';
+    }
     if (method === 'DELETE' || handler.includes('delete')) return 'deletion';
     if (handler.includes('clone')) return 'replication';
-    
+
     // Status changes are special modifications
     if (handler.includes('status')) return 'status_change';
-    
+
     return 'access';
   }
 
@@ -239,46 +235,42 @@ export class AuditInterceptor implements NestInterceptor {
       return body;
     }
 
-    const sanitized = { ...body };
-    
     // Remove sensitive fields that should never be logged
-    const sensitiveFields = ['password', 'token', 'secret', 'key', 'auth', 'credential'];
-    
-    sensitiveFields.forEach(field => {
-      delete sanitized[field];
-    });
+    const { password, token, secret, key, auth, credential, ...cleanBody } = body;
 
     // Truncate large payloads to prevent storage bloat
-    const serialized = JSON.stringify(sanitized);
+    const serialized = JSON.stringify(cleanBody);
     if (serialized.length > 10000) {
       return { _truncated: true, _originalSize: serialized.length };
     }
 
-    return sanitized;
+    return cleanBody;
   }
 
   /**
    * Logs audit data asynchronously without blocking the main operation
    * @private
    */
-  private logAuditAsync(auditData: AuditLogData): void {
+  private logAuditAsync(auditData: AuditLogData, eventPhase: 'INTENT' | 'SUCCESS' | 'FAILED'): void {
     // Fire-and-forget: Don't await this promise
-    this.auditService
-      .log(auditData)
-      .catch((error) => {
-        // Log audit service errors for monitoring but don't propagate
-        this.logger.error(
-          `Audit logging failed for ${auditData.eventType} by ${auditData.actorName}`,
-          {
-            error: error.message,
-            auditData: {
-              eventType: auditData.eventType,
-              actorId: auditData.actorId,
-              resourceType: auditData.resourceType,
-              resourceId: auditData.resourceId,
-            },
-          },
-        );
+    const auditInput: AuditLogInput = {
+      ...auditData,
+      correlationId: randomUUID(),
+      eventPhase,
+    };
+
+    this.auditService.log(auditInput).catch((error: unknown) => {
+      // Log audit service errors for monitoring but don't propagate
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Audit logging failed for ${auditData.eventType} by ${auditData.actorName}`, {
+        error: errorMessage,
+        auditData: {
+          eventType: auditData.eventType,
+          actorId: auditData.actorId,
+          resourceType: auditData.resourceType,
+          resourceId: auditData.resourceId,
+        },
       });
+    });
   }
 }

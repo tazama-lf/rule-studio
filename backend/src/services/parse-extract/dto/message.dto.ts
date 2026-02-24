@@ -1,4 +1,4 @@
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty } from '@nestjs/swagger';
 
 export interface TransactionalMessage {
   TxTp: string;
@@ -129,7 +129,6 @@ export class TransactionalMessageDto {
     required: false,
   })
   TenantId?: string;
-
 
   [key: string]: any; // Allow for CstmrCdtTrfInitn, FIToFIPmtStsRpt, FIToFICstmrCdtTrf, etc.
 }

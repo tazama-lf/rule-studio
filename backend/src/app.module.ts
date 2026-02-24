@@ -11,16 +11,7 @@ import { SimulationLogsModule } from './services/simulation-logs/simulation-logs
 import { AuditModule } from './audit/audit.module';
 
 @Module({
-  imports: [
-    AuditModule,
-    AuthModule,
-    LoggerModule,
-    RulesModule,
-    ConfigModule,
-    NodesModule,
-    ParseExtractModule,
-    SimulationLogsModule
-  ],
+  imports: [AuditModule, AuthModule, LoggerModule, RulesModule, ConfigModule, NodesModule, ParseExtractModule, SimulationLogsModule],
   controllers: [AppController],
   providers: [AppService],
 })

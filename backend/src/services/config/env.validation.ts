@@ -1,10 +1,5 @@
 import { plainToClass } from 'class-transformer';
-import {
-  IsEnum,
-  IsString,
-  IsNumberString,
-  validateSync,
-} from 'class-validator';
+import { IsEnum, IsString, IsNumberString, validateSync } from 'class-validator';
 enum NodeEnv {
   DEVELOPMENT = 'development',
   PRODUCTION = 'production',
@@ -26,9 +21,7 @@ class EnvironmentVariables {
   @IsString()
   CERT_PATH_PUBLIC: string;
 }
-export const validate = (
-  config: Record<string, unknown>,
-): EnvironmentVariables => {
+export const validate = (config: Record<string, unknown>): EnvironmentVariables => {
   const validatedConfig = plainToClass(EnvironmentVariables, config, {
     enableImplicitConversion: true,
   });

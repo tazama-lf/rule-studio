@@ -4,12 +4,13 @@ import { ApiOperation, ApiResponse, type ApiResponseOptions, type ApiOperationOp
 export interface SwaggerDecoratorOptions {
   summary: string;
   description?: string;
-  responses?: {
-    [statusCode: number]: {
+  responses?: Record<
+    number,
+    {
       description: string;
       type?: any;
-    };
-  };
+    }
+  >;
 }
 
 /**
@@ -17,14 +18,14 @@ export interface SwaggerDecoratorOptions {
  * Automatically includes standard 401 and 403 responses for authenticated endpoints
  * @param options - Configuration options for the API documentation
  */
-export const ApiSwagger = (options: SwaggerDecoratorOptions) => {
+export const ApiSwagger = (options: SwaggerDecoratorOptions): ReturnType<typeof applyDecorators> => {
   const decorators: Array<MethodDecorator | ClassDecorator> = [];
 
   // Add ApiOperation
   const operationOptions: ApiOperationOptions = {
     summary: options.summary,
   };
-  
+
   if (options.description) {
     operationOptions.description = options.description;
   }
@@ -35,7 +36,7 @@ export const ApiSwagger = (options: SwaggerDecoratorOptions) => {
   if (options.responses) {
     Object.entries(options.responses).forEach(([statusCode, responseConfig]) => {
       const responseOptions: ApiResponseOptions = {
-        status: parseInt(statusCode),
+        status: parseInt(statusCode, 10),
         description: responseConfig.description,
       };
 
@@ -56,7 +57,7 @@ export const ApiSwagger = (options: SwaggerDecoratorOptions) => {
     ApiResponse({
       status: 403,
       description: 'Forbidden - Insufficient permissions',
-    })
+    }),
   );
 
   return applyDecorators(...decorators);
@@ -66,23 +67,23 @@ export const ApiSwagger = (options: SwaggerDecoratorOptions) => {
  * Predefined common response configurations
  */
 export const CommonResponses = {
-  SUCCESS_200: (type?: any, description: string = 'Operation completed successfully') => ({
-    200: { description, type }
+  SUCCESS_200: (type?: any, description = 'Operation completed successfully') => ({
+    200: { description, type },
   }),
-  CREATED_201: (type?: any, description: string = 'Resource created successfully') => ({
-    201: { description, type }
+  CREATED_201: (type?: any, description = 'Resource created successfully') => ({
+    201: { description, type },
   }),
-  BAD_REQUEST_400: (description: string = 'Invalid input data') => ({
-    400: { description }
+  BAD_REQUEST_400: (description = 'Invalid input data') => ({
+    400: { description },
   }),
-  NOT_FOUND_404: (description: string = 'Resource not found') => ({
-    404: { description }
+  NOT_FOUND_404: (description = 'Resource not found') => ({
+    404: { description },
   }),
 } as const;
 
 /**
  * Helper function to merge multiple response configurations
  */
-export const mergeResponses = (...responses: Record<number, { description: string; type?: any }>[]): Record<number, { description: string; type?: any }> => {
-  return responses.reduce((acc, curr) => ({ ...acc, ...curr }), {});
-};
+export const mergeResponses = (
+  ...responses: Array<Record<number, { description: string; type?: any }>>
+): Record<number, { description: string; type?: any }> => responses.reduce((acc, curr) => ({ ...acc, ...curr }), {});

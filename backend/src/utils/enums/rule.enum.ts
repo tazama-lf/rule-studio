@@ -1,10 +1,10 @@
 export enum RuleCategory {
-    RULE_BUILDER = 'rule_builder',
-    TEST_CASE = 'test_case_generation',
+  RULE_BUILDER = 'rule_builder',
+  TEST_CASE = 'test_case_generation',
 }
 
 export enum RuleFlowStatus {
-    INITIAL = 'initial',
-    PASS = 'pass',
-    FAIL = 'fail'
+  INITIAL = 'initial',
+  PASS = 'pass',
+  FAIL = 'fail',
 }

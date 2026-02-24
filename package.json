@@ -33,14 +33,8 @@
     "prettier": "^3.6.2"
   },
   "lint-staged": {
-    "backend/**/*.{js,ts}": [
-      "cd backend && npm run fix:eslint",
-      "cd backend && npm run fix:prettier"
-    ],
-    "frontend/**/*.{js,ts,tsx}": [
-      "cd frontend && npx eslint --fix",
-      "cd frontend && npx prettier --write"
-    ],
+    "backend/**/*.{js,ts}": "npm run lint:backend -- --fix",
+    "frontend/**/*.{js,ts,tsx}": "npm run lint:frontend -- --fix",
     "shared/**/*.{js,ts}": [
       "cd shared && npx eslint --fix",
       "cd shared && npx prettier --write"

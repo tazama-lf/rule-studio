@@ -3,14 +3,7 @@ import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import { randomUUID } from 'node:crypto';
 import { processMappings } from '@tazama-lf/tcs-lib';
-import {
-  TransactionalMessage,
-  ParseExtractResponse,
-  RuleRequest,
-  NetworkMap,
-  DataCache,
-  MetaData,
-} from './dto/message.dto';
+import { TransactionalMessage, ParseExtractResponse, RuleRequest, NetworkMap, DataCache, MetaData } from './dto/message.dto';
 import { AdminServiceClient } from '../admin-service-client';
 import { formatValidationErrors } from '../../utils/validation.utils';
 
@@ -25,22 +18,13 @@ export class ParseExtractService {
     addFormats(this.ajv);
   }
 
-  async processTransactionalMessage(
-    request: TransactionalMessage,
-    token: string,
-  ): Promise<ParseExtractResponse> {
+  async processTransactionalMessage(request: TransactionalMessage, token: string): Promise<ParseExtractResponse> {
     const correlationId = randomUUID();
 
     try {
-      this.logger.log(
-        `Processing transactional message for ${request.TxTp} [${correlationId}]`,
-      );
+      this.logger.log(`Processing transactional message for ${request.TxTp} [${correlationId}]`);
       this.logger.log(`tenant id is ${request.TenantId}`);
-      const result = await this.processTransactionPayload(
-        request,
-        token,
-        correlationId,
-      );
+      const result = await this.processTransactionPayload(request, token, correlationId);
 
       if (!result.success) {
         return {
@@ -65,17 +49,12 @@ export class ParseExtractService {
         ruleRequest: result.ruleRequest,
       };
 
-      this.logger.log(
-        `Message processing completed successfully for type: ${request.TxTp} [${correlationId}]`,
-      );
+      this.logger.log(`Message processing completed successfully for type: ${request.TxTp} [${correlationId}]`);
 
       return response;
     } catch (error) {
       const err = error as Error;
-      this.logger.error(
-        `Error processing transactional message [${correlationId}]: ${err.message}`,
-        err.stack,
-      );
+      this.logger.error(`Error processing transactional message [${correlationId}]: ${err.message}`, err.stack);
 
       return {
         success: false,
@@ -107,14 +86,12 @@ export class ParseExtractService {
     ruleRequest?: RuleRequest;
   }> {
     // 1. Fetch schema from database via Admin Service
-    console.log("0. Starting processTransactionPayload for TxTp:", request.TxTp, "with correlationId:", correlationId);
-    const adminServiceResponse =
-      await this.adminServiceClient.getConfigRowByTxTp(
-        request.TxTp, // needs to be sent for saving ruleRequest in db table
-        token,
-      );
+    const adminServiceResponse = await this.adminServiceClient.getConfigRowByTxTp(
+      request.TxTp, // needs to be sent for saving ruleRequest in db table
+      token,
+    );
 
-    console.log("1. fetch schema from admin service | adminServiceResponse is ", adminServiceResponse)
+    this.logger.log(`1. fetch schema from admin service | adminServiceResponse is ${JSON.stringify(adminServiceResponse)}`);
 
     if (!adminServiceResponse.config?.schema) {
       const errorMsg = `No schema configuration found for transaction type: ${request.TxTp}`;
@@ -127,7 +104,6 @@ export class ParseExtractService {
     }
 
     this.logger.log(`Found schema configuration for: ${request.TxTp}`);
-    console.log("whole request is ", request)
 
     // 2. Extract payload to validate - exclude TxTp and TenantId from request
     const extractedData = this.extractPayloadFromRequest(request);
@@ -140,15 +116,9 @@ export class ParseExtractService {
     }
 
     const { TxTp, TenantId, payloadToValidate } = extractedData;
-    console.log("2. Extracted payload to validate:", extractedData);
 
     // 3. Validate payload against schema thru AJV
-    const validationResult = await this.validatePayload(
-      payloadToValidate,
-      adminServiceResponse.config.schema,
-      request.TxTp,
-      correlationId,
-    );
+    const validationResult = this.validatePayload(payloadToValidate, adminServiceResponse.config.schema, request.TxTp, correlationId);
 
     if (!validationResult.isValid) {
       return {
@@ -167,35 +137,21 @@ export class ParseExtractService {
     payloadToValidate.TxTp = TxTp;
     payloadToValidate.TenantId = TenantId;
 
-    console.log("3a. Sending payloadToValidate to processMappings:", payloadToValidate);
-    console.log("3b. Mappings from admin service config:", adminServiceResponse.config.mapping); 
-   
     const mappingResult = processMappings(
       payloadToValidate,
       adminServiceResponse.config.mapping ?? [], // where is this coming form?
       request.TxTp,
     );
 
-    console.log("4. Mapping result from TCS-LIB processMappings:", mappingResult);
-
     // Fetch active network map for the tenant
-    const activeNetworkMap =
-      await this.adminServiceClient.getActiveNetworkMap(token);
+    const activeNetworkMap = await this.adminServiceClient.getActiveNetworkMap(token);
 
     const networkMap: NetworkMap = activeNetworkMap ?? {};
 
-    this.logger.log(
-      `Processed mappings for ${request.TxTp}: extracted ${Object.keys(mappingResult.dataCache).length} data cache entries`,
-    );
+    this.logger.log(`Processed mappings for ${request.TxTp}: extracted ${Object.keys(mappingResult.dataCache).length} data cache entries`);
 
     // we create the RuleRequest object here
-    const ruleRequest: RuleRequest = this.createRuleRequest(
-      payloadToValidate,
-      request,
-      correlationId,
-      mappingResult.dataCache,
-      networkMap,
-    );
+    const ruleRequest: RuleRequest = this.createRuleRequest(payloadToValidate, request, correlationId, mappingResult.dataCache, networkMap);
 
     return {
       success: true,
@@ -227,17 +183,11 @@ export class ParseExtractService {
     const correlationId = randomUUID();
 
     try {
-      this.logger.log(
-        `Processing transaction data for rule creation - TxTp: ${request.TxTp} [${correlationId}]`,
-      );
+      this.logger.log(`Processing transaction data for rule creation - TxTp: ${request.TxTp} [${correlationId}]`);
 
       // CstmrCdtTrfInitn should be the root
 
-      const result = await this.processTransactionPayload(
-        request,
-        token,
-        correlationId,
-      );
+      const result = await this.processTransactionPayload(request, token, correlationId);
 
       return {
         success: result.success,
@@ -250,10 +200,7 @@ export class ParseExtractService {
       };
     } catch (error) {
       const err = error as Error;
-      this.logger.error(
-        `Error processing transaction data for rule creation [${correlationId}]: ${err.message}`,
-        err.stack,
-      );
+      this.logger.error(`Error processing transaction data for rule creation [${correlationId}]: ${err.message}`, err.stack);
 
       return {
         success: false,
@@ -271,20 +218,18 @@ export class ParseExtractService {
    * @param correlationId Correlation ID for tracking
    * @returns Validation result with isValid flag and formatted errors
    */
-  private async validatePayload(
+  private validatePayload(
     payload: any,
     configuredSchema: any,
     transactionType: string,
     correlationId: string,
-  ): Promise<{ isValid: boolean; differences?: string[] }> {
+  ): { isValid: boolean; differences?: string[] } {
     let isValid: boolean;
 
     try {
       isValid = this.ajv.validate(configuredSchema, payload);
     } catch (error) {
-      this.logger.error(
-        `AJV validation error for ${transactionType} [${correlationId}]: ${String(error)}`,
-      );
+      this.logger.error(`AJV validation error for ${transactionType} [${correlationId}]: ${String(error)}`);
 
       return {
         isValid: false,
@@ -295,9 +240,7 @@ export class ParseExtractService {
     if (!isValid) {
       const differences: string[] = formatValidationErrors(this.ajv.errors);
 
-      this.logger.warn(
-        `Schema validation failed for ${transactionType} [${correlationId}]:`,
-      );
+      this.logger.warn(`Schema validation failed for ${transactionType} [${correlationId}]:`);
       differences.forEach((difference, index) => {
         this.logger.warn(`  ${index + 1}. ${difference}`);
       });
@@ -305,9 +248,7 @@ export class ParseExtractService {
       return { isValid: false, differences };
     }
 
-    this.logger.log(
-      `Payload validation successful for ${transactionType} [${correlationId}]`,
-    );
+    this.logger.log(`Payload validation successful for ${transactionType} [${correlationId}]`);
     return { isValid: true };
   }
 
@@ -364,15 +305,9 @@ export class ParseExtractService {
       metaData,
     };
 
-    this.logger.log(
-      `Created RuleRequest for ${originalRequest.TxTp} with correlation ID: ${correlationId}`,
-    );
-    this.logger.log(
-      `RuleRequest DataCache entries: ${Object.keys(dataCache).length}`,
-    );
-    this.logger.log(
-      `RuleRequest NetworkMap populated: ${Object.keys(networkMap).length > 0}`,
-    );
+    this.logger.log(`Created RuleRequest for ${originalRequest.TxTp} with correlation ID: ${correlationId}`);
+    this.logger.log(`RuleRequest DataCache entries: ${Object.keys(dataCache).length}`);
+    this.logger.log(`RuleRequest NetworkMap populated: ${Object.keys(networkMap).length > 0}`);
 
     return ruleRequest;
   }

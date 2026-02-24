@@ -38,10 +38,7 @@ describe('ParseExtractService - AJV Validation', () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ParseExtractService,
-        { provide: AdminServiceClient, useValue: mockAdminService },
-      ],
+      providers: [ParseExtractService, { provide: AdminServiceClient, useValue: mockAdminService }],
     }).compile();
 
     service = module.get<ParseExtractService>(ParseExtractService);
@@ -89,16 +86,11 @@ describe('ParseExtractService - AJV Validation', () => {
 
       mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockSchema);
 
-      const result = await service.processTransactionalMessage(
-        { TxTp: 'pacs.008.001.10', Payload: invalidPayload },
-        'Bearer token',
-      );
+      const result = await service.processTransactionalMessage({ TxTp: 'pacs.008.001.10', Payload: invalidPayload }, 'Bearer token');
 
       expect(result.success).toBe(false);
       expect(result.validationErrors).toBeDefined();
-      expect(result.validationErrors).toContain(
-        expect.stringContaining("Missing required property 'CreDtTm'"),
-      );
+      expect(result.validationErrors).toContain(expect.stringContaining("Missing required property 'CreDtTm'"));
     });
 
     it('should handle payload with incorrect data types', async () => {
@@ -123,18 +115,13 @@ describe('ParseExtractService - AJV Validation', () => {
 
       expect(result.success).toBe(false);
       expect(result.validationErrors).toBeDefined();
-      expect(result.validationErrors).toContain(
-        expect.stringContaining('Should be a string'),
-      );
+      expect(result.validationErrors).toContain(expect.stringContaining('Should be a string'));
     });
 
     it('should handle missing schema configuration', async () => {
       mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(null);
 
-      const result = await service.processTransactionalMessage(
-        { TxTp: 'unknown.transaction', SomeData: {} },
-        'Bearer token',
-      );
+      const result = await service.processTransactionalMessage({ TxTp: 'unknown.transaction', SomeData: {} }, 'Bearer token');
 
       expect(result.success).toBe(false);
       expect(result.message).toContain('No schema configuration found');
@@ -153,10 +140,7 @@ describe('ParseExtractService - AJV Validation', () => {
 
       mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockSchema);
 
-      const result = await service.processTransactionalMessage(
-        requestWithEmbeddedPayload,
-        'Bearer token',
-      );
+      const result = await service.processTransactionalMessage(requestWithEmbeddedPayload, 'Bearer token');
 
       expect(result.success).toBe(true);
       expect(result.validatedPayload).toEqual({
@@ -223,10 +207,7 @@ describe('ParseExtractService - AJV Validation', () => {
 
       mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockSchema);
 
-      const result = await service.processTransactionalMessage(
-        { TxTp: 'pacs.008.001.10', Payload: invalidPayload },
-        'Bearer token',
-      );
+      const result = await service.processTransactionalMessage({ TxTp: 'pacs.008.001.10', Payload: invalidPayload }, 'Bearer token');
 
       expect(result.success).toBe(false);
       expect(result.ruleRequest).toBeUndefined();

@@ -5,15 +5,14 @@ import { ApiSwagger, CommonResponses, mergeResponses } from '../decorators/swagg
 
 @Controller('example')
 export class ExampleController {
-
   // Simple usage with just success response
   @Get('simple')
   @ApiSwagger({
     summary: 'Simple endpoint',
     description: 'A simple endpoint that returns success',
-    responses: CommonResponses.SUCCESS_200(String, 'Simple response returned')
+    responses: CommonResponses.SUCCESS_200(String, 'Simple response returned'),
   })
-  async simpleEndpoint(): Promise<string> {
+  simpleEndpoint(): string {
     return 'success';
   }
 
@@ -25,10 +24,10 @@ export class ExampleController {
     responses: mergeResponses(
       CommonResponses.CREATED_201(Object, 'Resource created successfully'),
       CommonResponses.BAD_REQUEST_400('Invalid input data'),
-      CommonResponses.NOT_FOUND_404('Related resource not found')
-    )
+      CommonResponses.NOT_FOUND_404('Related resource not found'),
+    ),
   })
-  async createResource(): Promise<any> {
+  createResource(): any {
     return {};
   }
 
@@ -40,10 +39,10 @@ export class ExampleController {
     responses: {
       200: { description: 'Custom success message', type: Array },
       422: { description: 'Unprocessable entity' },
-      500: { description: 'Internal server error' }
-    }
+      500: { description: 'Internal server error' },
+    },
   })
-  async customResponses(): Promise<any[]> {
+  customResponses(): any[] {
     return [];
   }
 
@@ -55,10 +54,10 @@ export class ExampleController {
     responses: mergeResponses(
       CommonResponses.SUCCESS_200(Object, 'Resource updated successfully'),
       CommonResponses.NOT_FOUND_404('Resource not found'),
-      { 422: { description: 'Validation failed' } }
-    )
+      { 422: { description: 'Validation failed' } },
+    ),
   })
-  async updateResource(): Promise<any> {
+  updateResource(): any {
     return {};
   }
 
@@ -68,8 +67,8 @@ export class ExampleController {
     summary: 'Delete resource',
     responses: mergeResponses(
       { 204: { description: 'Resource deleted successfully' } },
-      CommonResponses.NOT_FOUND_404('Resource not found')
-    )
+      CommonResponses.NOT_FOUND_404('Resource not found'),
+    ),
   })
   async deleteResource(): Promise<void> {
     // implementation

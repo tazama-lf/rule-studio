@@ -15,8 +15,7 @@ import {
 import { ParseExtractService } from '../parse-extract/parse-extract.service';
 import { BASE_RULE_ID } from '../../constants/constant';
 import { AuthenticatedUser } from '../auth/auth.types';
-import { RuleCategory } from '../../utils/enums/rule.enum';
-// import * as xml2js from 'xml2js';
+
 import { parseString, ParserOptions } from 'xml2js';
 
 import { createSchemaAwareNumberProcessor, replaceObjectsWithArrays, returnArrayFieldsFromSchema } from '../../utils/xml2js.utils';
@@ -34,24 +33,13 @@ export class RulesService {
       return await this.adminServiceClient.getRulesById(id, token);
     } catch (error) {
       const err = error as Error;
-      console.log(error);
       this.logger.error(`Error finding rules by ID ${id}: ${err.message}`);
       throw error;
     }
   }
 
-  async getAllRules(
-    offset: number,
-    limit: number,
-    filters: RuleFiltersDto,
-    token: string,
-  ): Promise<Rules[]> {
-    return await this.adminServiceClient.getAllRulesWithFilters(
-      offset,
-      limit,
-      filters,
-      token,
-    );
+  async getAllRules(offset: number, limit: number, filters: RuleFiltersDto, token: string): Promise<Rules[]> {
+    return await this.adminServiceClient.getAllRulesWithFilters(offset, limit, filters, token);
   }
 
   async getRulesById(
@@ -63,37 +51,22 @@ export class RulesService {
     return rules;
   }
 
-  async createRule(
-    ruleData: Partial<Rules> ,
-    token: string,
-    tenantId: string,
-  ): Promise<any> {
+  async createRule(ruleData: Partial<Rules>, token: string, tenantId: string): Promise<any> {
     try {
-      const transactionType = ruleData.txtp ?? "";
-      
-      const result = await this.adminServiceClient.getPayloadByTransactionType(
-        transactionType,
-        token,
-      );
-      console.log("getPayloadByTransactionType in rules.service:", JSON.stringify(result, null, 2)); 
+      const transactionType = ruleData.txtp ?? '';
 
-      const payload = result.payload;
-      let typedPayload = payload as Record<string, unknown>;  
+      const result = await this.adminServiceClient.getPayloadByTransactionType(transactionType, token);
 
-      if(result.type === 'xml') {
+      const { payload } = result;
+      let typedPayload = payload as Record<string, unknown>;
+
+      if (result.type === 'xml') {
         // Convert XML to JSON
-        const result = await this.adminServiceClient.getConfigRowByTxTp(transactionType, token); 
-        console.log("having fetched the payload, now getConfigRowByTxTp result:", result);
+        const configResult = await this.adminServiceClient.getConfigRowByTxTp(transactionType, token);
 
-        const configuredSchema = result.config.schema;
+        const configuredSchema = configResult.config.schema;
 
-        console.log("the configured scehma is :", JSON.stringify(configuredSchema, null, 2));
-
-       
         const { stringFields, arrayFields } = returnArrayFieldsFromSchema(configuredSchema);
-
-        console.log("String fields identified for number processing:", stringFields.length );
-        console.log("Array fields identified for replacement:", arrayFields.length);
 
         const options: ParserOptions = {
           explicitArray: false, // Don't wrap single values in arrays
@@ -102,48 +75,40 @@ export class RulesService {
           explicitRoot: true, // Don't include root wrapper
           explicitChildren: true,
           normalize: true,
-          valueProcessors: [createSchemaAwareNumberProcessor(stringFields)], 
+          valueProcessors: [createSchemaAwareNumberProcessor(stringFields)],
         };
-
-        console.log("Starting XML to JSON conversion with xml2js...");
 
         // eslint-disable-next-line promise/avoid-new -- we need to wrap xml2js parseString in a promise
         const transformedPayload = await new Promise((resolve, reject) => {
-          parseString(payload, options, (err, result) => {
+          parseString(payload, options, (err, res) => {
             if (err) {
-              reject(err);
+              reject(new Error(err.message));
             } else {
-              resolve(result);
+              resolve(res);
             }
           });
         });
 
-        console.log("XML to JSON conversion completed")
-
-        // conversion done 
+        // conversion done
         typedPayload = replaceObjectsWithArrays(transformedPayload, arrayFields, stringFields);
-        console.log("Final converted payload:", JSON.stringify(typedPayload, null, 2));
       }
-      
+
       // if it was XML, now its JSON
       const parseResult = await this.parseExtractService.processForRuleCreation(
-        {TxTp: transactionType, TenantId:tenantId, ...typedPayload},
+        { TxTp: transactionType, TenantId: tenantId, ...typedPayload },
         token,
       );
-      // console.log("Parse result for transactional message:", parseResult);
+      // console.log('Parse result for transactional message:', parseResult);
 
       // admin service client ko aagay derha hun ruleRequest
       const rule = await this.adminServiceClient.createRule(ruleData, token, parseResult.ruleRequest);
       if (rule.id) {
-        const baseRuleFlow = await this.getRuleFlow(
-          BASE_RULE_ID,
-          token,
-        );
+        const baseRuleFlow = await this.getRuleFlow(BASE_RULE_ID, token);
         await this.adminServiceClient.createRuleFlow(
           rule.id,
           {
-            flow_json_rule_builder: baseRuleFlow.result.flow_json_rule_builder ? baseRuleFlow.result.flow_json_rule_builder : {},
-            flow_json_test_case: baseRuleFlow.result.flow_json_test_case ? baseRuleFlow.result.flow_json_test_case : {},
+            flow_json_rule_builder: baseRuleFlow.result.flow_json_rule_builder ?? {},
+            flow_json_test_case: baseRuleFlow.result.flow_json_test_case ?? {},
           },
           token,
         );
@@ -157,32 +122,21 @@ export class RulesService {
     }
   }
 
-   async cloneRule(ruleId: string, token: string, payload: any): Promise<Rules> {
+  async cloneRule(ruleId: string, token: string, payload: any): Promise<Rules> {
     try {
-      const transactionType = payload.txtp ?? "";
-      
-      const result = await this.adminServiceClient.getPayloadByTransactionType(
-        transactionType,
-        token,
-      );
-      console.log("getPayloadByTransactionType in rules.service:", JSON.stringify(result, null, 2)); 
+      const transactionType = payload.txtp ?? '';
 
-      let typedPayload = result.payload as Record<string, unknown>;  
+      const result = await this.adminServiceClient.getPayloadByTransactionType(transactionType, token);
 
-      if(result.type === 'xml') {
+      let typedPayload = result.payload as Record<string, unknown>;
+
+      if (result.type === 'xml') {
         // Convert XML to JSON
-        const result = await this.adminServiceClient.getConfigRowByTxTp(transactionType, token); 
-        console.log("having fetched the payload, now getConfigRowByTxTp result:", result);
+        const configResult = await this.adminServiceClient.getConfigRowByTxTp(transactionType, token);
 
-        const configuredSchema = result.config.schema;
+        const configuredSchema = configResult.config.schema;
 
-        console.log("the configured scehma is :", JSON.stringify(configuredSchema, null, 2));
-
-       
         const { stringFields, arrayFields } = returnArrayFieldsFromSchema(configuredSchema);
-
-        console.log("String fields identified for number processing:", stringFields.length );
-        console.log("Array fields identified for replacement:", arrayFields.length);
 
         const options: ParserOptions = {
           explicitArray: false, // Don't wrap single values in arrays
@@ -191,35 +145,29 @@ export class RulesService {
           explicitRoot: true, // Don't include root wrapper
           explicitChildren: true,
           normalize: true,
-          valueProcessors: [createSchemaAwareNumberProcessor(stringFields)], 
+          valueProcessors: [createSchemaAwareNumberProcessor(stringFields)],
         };
-
-        console.log("Starting XML to JSON conversion with xml2js...");
 
         // eslint-disable-next-line promise/avoid-new -- we need to wrap xml2js parseString in a promise
         const transformedPayload = await new Promise((resolve, reject) => {
-          parseString(payload, options, (err, result) => {
+          parseString(payload, options, (err, res) => {
             if (err) {
-              reject(err);
+              reject(new Error(err.message));
             } else {
-              resolve(result);
+              resolve(res);
             }
           });
         });
 
-        console.log("XML to JSON conversion completed")
-
-        // conversion done 
+        // conversion done
         typedPayload = replaceObjectsWithArrays(transformedPayload, arrayFields, stringFields);
-        console.log("Final converted payload:", JSON.stringify(typedPayload, null, 2));
       }
-      
+
       // if it was XML, now its JSON
       const parseResult = await this.parseExtractService.processForRuleCreation(
-        {TxTp: transactionType, TenantId:"default", ...typedPayload},
+        { TxTp: transactionType, TenantId: 'default', ...typedPayload },
         token,
       );
-      console.log(`Cloning rule with ID ${ruleId} and payload:`, JSON.stringify(payload, null, 2));
       return await this.adminServiceClient.cloneRule(ruleId, token, payload, parseResult.ruleRequest);
     } catch (error) {
       const err = error as Error;
@@ -243,24 +191,14 @@ export class RulesService {
       return await this.adminServiceClient.getRuleConfiguration(ruleId, token);
     } catch (error) {
       const err = error as Error;
-      this.logger.error(
-        `Error fetching configuration for rule ${ruleId}: ${err.message}`,
-      );
+      this.logger.error(`Error fetching configuration for rule ${ruleId}: ${err.message}`);
       throw error;
     }
   }
 
-  async updateRule(
-    ruleId: string,
-    updateData: Partial<Rules>,
-    token: string,
-  ): Promise<Rules> {
+  async updateRule(ruleId: string, updateData: Partial<Rules>, token: string): Promise<Rules> {
     try {
-      return await this.adminServiceClient.updateRule(
-        ruleId,
-        updateData,
-        token,
-      );
+      return await this.adminServiceClient.updateRule(ruleId, updateData, token);
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Error updating rule ${ruleId}: ${err.message}`);
@@ -279,20 +217,13 @@ export class RulesService {
     }
   }
 
-  async getRuleFlow(
-    ruleId: string,
-    token: string,
-    filters?: RuleFlowFilterDto,
-  ): Promise<ResponseRuleFlow>
-   {
+  async getRuleFlow(ruleId: string, token: string, filters?: RuleFlowFilterDto): Promise<ResponseRuleFlow> {
     try {
       const ruleFlow = await this.adminServiceClient.getRuleFlow(ruleId, token, filters);
       return ruleFlow;
     } catch (error) {
       const err = error as Error;
-      this.logger.error(
-        `Error fetching flow for rule ${ruleId}: ${err.message}`,
-      );
+      this.logger.error(`Error fetching flow for rule ${ruleId}: ${err.message}`);
       throw error;
     }
   }
@@ -303,50 +234,28 @@ export class RulesService {
       return status;
     } catch (error) {
       const err = error as Error;
-      this.logger.error(
-        `Error fetching flow status for rule ${ruleId}: ${err.message}`,
-      );
+      this.logger.error(`Error fetching flow status for rule ${ruleId}: ${err.message}`);
       throw error;
     }
   }
 
-  async createRuleFlow(
-    ruleId: string,
-    body: RequestFlow,
-    token: string,
-  ): Promise<ResponseRuleFlowDto> {
+  async createRuleFlow(ruleId: string, body: RequestFlow, token: string): Promise<ResponseRuleFlowDto> {
     try {
-      return await this.adminServiceClient.createRuleFlow(
-        ruleId,
-        body,
-        token,
-      );
+      return await this.adminServiceClient.createRuleFlow(ruleId, body, token);
     } catch (error) {
       const err = error as Error;
-      this.logger.error(
-        `Error creating flow for rule ${ruleId}: ${err.message}`,
-      );
+      this.logger.error(`Error creating flow for rule ${ruleId}: ${err.message}`);
       throw error;
     }
   }
 
-  async updateRuleFlow(
-    ruleId: string,
-    payload: RequestSaveFlow,
-    token: string,
-  ): Promise<ResponseUpdatedRuleFlowDto> {
+  async updateRuleFlow(ruleId: string, payload: RequestSaveFlow, token: string): Promise<ResponseUpdatedRuleFlowDto> {
     try {
-      return await this.adminServiceClient.updateRuleFlow(
-        ruleId,
-        payload,
-        token,
-      );
+      return await this.adminServiceClient.updateRuleFlow(ruleId, payload, token);
     } catch (error) {
       const err = error as Error;
       // console.log(error);
-      this.logger.error(
-        `Error updating flow for rule ${ruleId}: ${err.message}`,
-      );
+      this.logger.error(`Error updating flow for rule ${ruleId}: ${err.message}`);
       throw error;
     }
   }
@@ -355,47 +264,23 @@ export class RulesService {
     return user.allowedStatuses ?? [];
   }
 
-  async getGlobalVariables(
-    ruleId: string,
-    tenantId: string,
-    token: string,
-  ): Promise<GlobalVariableDto> {
+  async getGlobalVariables(ruleId: string, tenantId: string, token: string): Promise<GlobalVariableDto> {
     try {
-      const ruleData = await this.adminServiceClient.getGlobalVariables(
-        ruleId,
-        tenantId,
-        token,
-      );
+      const ruleData = await this.adminServiceClient.getGlobalVariables(ruleId, tenantId, token);
       return ruleData;
     } catch (error) {
       const err = error as Error;
-      this.logger.error(
-        `Error fetching global variables for rule ${ruleId}: ${err.message}`,
-      );
+      this.logger.error(`Error fetching global variables for rule ${ruleId}: ${err.message}`);
       throw error;
     }
   }
 
- 
-
-  async updateRuleStatus(
-    ruleId: string,
-    status: string,
-    reason: string,
-    token: string,
-  ): Promise<Rules> {
+  async updateRuleStatus(ruleId: string, status: string, reason: string, token: string): Promise<Rules> {
     try {
-      return await this.adminServiceClient.updateRuleStatus(
-        ruleId,
-        status,
-        reason,
-        token,
-      );
+      return await this.adminServiceClient.updateRuleStatus(ruleId, status, reason, token);
     } catch (error) {
       const err = error as Error;
-      this.logger.error(
-        `Error updating status for rule ${ruleId}: ${err.message}`,
-      );
+      this.logger.error(`Error updating status for rule ${ruleId}: ${err.message}`);
       throw error;
     }
   }

@@ -33,9 +33,7 @@ async function bootstrap(): Promise<void> {
     .map((origin) => origin.trim())
     .filter(Boolean);
 
-  const isDev = ['dev', 'development'].includes(
-    (process.env.NODE_ENV ?? '').toLowerCase(),
-  );
+  const isDev = ['dev', 'development'].includes((process.env.NODE_ENV ?? '').toLowerCase());
 
   app.enableCors({
     origin: isDev ? true : allowedOrigins,
@@ -49,9 +47,7 @@ async function bootstrap(): Promise<void> {
 
   const config = new DocumentBuilder()
     .setTitle('Tazama Model Management API')
-    .setDescription(
-      'Complete API documentation for Tazama Model Management Backend organized by service modules',
-    )
+    .setDescription('Complete API documentation for Tazama Model Management Backend organized by service modules')
     .setVersion('1.0.0')
     .addServer(baseUrl, 'API Server')
     .addBearerAuth(
@@ -60,16 +56,12 @@ async function bootstrap(): Promise<void> {
         scheme: 'bearer',
         bearerFormat: 'JWT',
         name: 'JWT',
-        description:
-          `Enter JWT token (Login at: ${baseUrl}/auth/login)`,
+        description: `Enter JWT token (Login at: ${baseUrl}/auth/login)`,
         in: 'header',
       },
       'JWT-auth',
     )
-    .addTag(
-      'Authentication',
-      `JWT token management - Login URL: ${baseUrl}/auth/login`,
-    )
+    .addTag('Authentication', `JWT token management - Login URL: ${baseUrl}/auth/login`)
     .addTag('Configuration', 'System configuration and transaction types')
     .addTag('Nodes', 'Node management operations')
     .addTag('Parse & Extract', 'ISO 20022 message parsing and validation')
@@ -90,10 +82,7 @@ async function bootstrap(): Promise<void> {
       if (!fs.existsSync(docsDir)) {
         fs.mkdirSync(docsDir, { recursive: true });
       }
-      fs.writeFileSync(
-        path.join(docsDir, 'swagger.json'),
-        JSON.stringify(document, null, 2),
-      );
+      fs.writeFileSync(path.join(docsDir, 'swagger.json'), JSON.stringify(document, null, 2));
     } catch (err) {
       logger.warn(`Swagger JSON write skipped: ${String(err)}`);
     }
@@ -101,11 +90,7 @@ async function bootstrap(): Promise<void> {
   const port = process.env.PORT ?? 3005;
   await app.listen(port);
 
-  logger.log(
-    `🚀 Application started on port ${port} (env=${process.env.NODE_ENV})`,
-  );
-  logger.log(
-    `📚 API Documentation available at: http://10.10.80.37:${port}/api/docs`,
-  );
+  logger.log(`🚀 Application started on port ${port} (env=${process.env.NODE_ENV})`);
+  logger.log(`📚 API Documentation available at: http://10.10.80.37:${port}/api/docs`);
 }
 bootstrap();

@@ -114,9 +114,18 @@ describe('RulesService', () => {
 
   describe('createRule', () => {
     it('should create a new rule', async () => {
-      const mockRuleData = { name: 'New Rule', description: 'Test rule', txtp: 'pain.001.001.11' };
+      const mockRuleData = {
+        name: 'New Rule',
+        description: 'Test rule',
+        txtp: 'pain.001.001.11',
+      };
       const mockCreatedRule = { id: 1, ...mockRuleData } as any;
-      const mockBaseFlow = { result: { flow_json_rule_builder: { nodes: [], edges: [] }, flow_json_test_case: { nodes: [], edges: [] } } };
+      const mockBaseFlow = {
+        result: {
+          flow_json_rule_builder: { nodes: [], edges: [] },
+          flow_json_test_case: { nodes: [], edges: [] },
+        },
+      };
       const mockNewRuleFlow = { id: 'new-flow-1' };
       const mockUpdatedRule = {
         id: 1,
@@ -125,11 +134,18 @@ describe('RulesService', () => {
       } as any;
       const mockParseResult = {
         success: true,
-        ruleRequest: { transaction: {}, metaData: {}, networkMap: {}, DataCache: {} },
+        ruleRequest: {
+          transaction: {},
+          metaData: {},
+          networkMap: {},
+          DataCache: {},
+        },
       };
 
       adminServiceClient.getPayloadByTransactionType.mockResolvedValue({});
-      parseExtractService.processForRuleCreation.mockResolvedValue(mockParseResult);
+      parseExtractService.processForRuleCreation.mockResolvedValue(
+        mockParseResult,
+      );
       adminServiceClient.createRule.mockResolvedValue(mockCreatedRule);
       adminServiceClient.getRuleFlow.mockResolvedValue(mockBaseFlow);
       adminServiceClient.createRuleFlow.mockResolvedValue(mockNewRuleFlow);
@@ -144,27 +160,40 @@ describe('RulesService', () => {
       const mockRuleData = { txtp: 'pain.001.001.11' };
       const mockError = new Error('Creation failed');
 
-      adminServiceClient.getPayloadByTransactionType.mockRejectedValue(mockError);
-
-      await expect(service.createRule(mockRuleData, 'test-token')).rejects.toThrow(
-        'Creation failed',
+      adminServiceClient.getPayloadByTransactionType.mockRejectedValue(
+        mockError,
       );
+
+      await expect(
+        service.createRule(mockRuleData, 'test-token'),
+      ).rejects.toThrow('Creation failed');
       expect(Logger.prototype.error).toHaveBeenCalledWith(
         'Error creating rule: Creation failed',
       );
     });
 
     it('should create rule without flow when base flow has no flow property', async () => {
-      const mockRuleData = { name: 'New Rule', description: 'Test rule', txtp: 'pain.001.001.11' };
+      const mockRuleData = {
+        name: 'New Rule',
+        description: 'Test rule',
+        txtp: 'pain.001.001.11',
+      };
       const mockCreatedRule = { id: 1, ...mockRuleData } as any;
       const mockBaseFlow = { result: {} }; // No flow property
       const mockParseResult = {
         success: true,
-        ruleRequest: { transaction: {}, metaData: {}, networkMap: {}, DataCache: {} },
+        ruleRequest: {
+          transaction: {},
+          metaData: {},
+          networkMap: {},
+          DataCache: {},
+        },
       };
 
       adminServiceClient.getPayloadByTransactionType.mockResolvedValue({});
-      parseExtractService.processForRuleCreation.mockResolvedValue(mockParseResult);
+      parseExtractService.processForRuleCreation.mockResolvedValue(
+        mockParseResult,
+      );
       adminServiceClient.createRule.mockResolvedValue(mockCreatedRule);
       adminServiceClient.getRuleFlow.mockResolvedValue(mockBaseFlow);
 
@@ -299,7 +328,17 @@ describe('RulesService', () => {
 
   describe('getRuleFlow', () => {
     it('should return rule flow', async () => {
-      const mockRuleFlow = { id: 'flow-123', flow_json_rule_builder: { steps: [], connections: [] }, rule_id: 'rule-123', tenant_id: 'tenant-123', ts_file_base64_rule_builder: 'dGVzdC1maWxlLWRhdGE=', flow_json_test_case: { cases: [] }, ts_file_base64_test_case: 'dGVzdC1maWxlLWRhdGE=', flow_json: {}, ts_file_base64: '' };
+      const mockRuleFlow = {
+        id: 'flow-123',
+        flow_json_rule_builder: { steps: [], connections: [] },
+        rule_id: 'rule-123',
+        tenant_id: 'tenant-123',
+        ts_file_base64_rule_builder: 'dGVzdC1maWxlLWRhdGE=',
+        flow_json_test_case: { cases: [] },
+        ts_file_base64_test_case: 'dGVzdC1maWxlLWRhdGE=',
+        flow_json: {},
+        ts_file_base64: '',
+      };
       const mockResponseRuleFlow = {
         status: '200',
         result: mockRuleFlow,
@@ -332,9 +371,22 @@ describe('RulesService', () => {
 
   describe('createRuleFlow', () => {
     it('should create rule flow', async () => {
-      const mockFlowData = { flow_json_rule_builder: { steps: ['step1', 'step2'], connections: [] }, flow_json_test_case: { cases: [] } };
-      const mockRuleFlow = { id: 'flow-123', flow_json_rule_builder: { steps: [], connections: [] }, rule_id: 'rule-123', tenant_id: 'tenant-123', ts_file_base64_rule_builder: 'dGVzdC1maWxlLWRhdGE=', flow_json_test_case: { cases: [] }, ts_file_base64_test_case: 'dGVzdC1maWxlLWRhdGE=', flow_json: {}, ts_file_base64: '' };
-      
+      const mockFlowData = {
+        flow_json_rule_builder: { steps: ['step1', 'step2'], connections: [] },
+        flow_json_test_case: { cases: [] },
+      };
+      const mockRuleFlow = {
+        id: 'flow-123',
+        flow_json_rule_builder: { steps: [], connections: [] },
+        rule_id: 'rule-123',
+        tenant_id: 'tenant-123',
+        ts_file_base64_rule_builder: 'dGVzdC1maWxlLWRhdGE=',
+        flow_json_test_case: { cases: [] },
+        ts_file_base64_test_case: 'dGVzdC1maWxlLWRhdGE=',
+        flow_json: {},
+        ts_file_base64: '',
+      };
+
       adminServiceClient.createRuleFlow.mockResolvedValue(mockRuleFlow);
 
       const result = await service.createRuleFlow(
@@ -357,7 +409,17 @@ describe('RulesService', () => {
       adminServiceClient.createRuleFlow.mockRejectedValue(mockError);
 
       await expect(
-        service.createRuleFlow('rule-123', { flow_json_rule_builder: { steps: ['step1', 'step2'], connections: [] }, flow_json_test_case: { cases: [] } }, 'test-token'),
+        service.createRuleFlow(
+          'rule-123',
+          {
+            flow_json_rule_builder: {
+              steps: ['step1', 'step2'],
+              connections: [],
+            },
+            flow_json_test_case: { cases: [] },
+          },
+          'test-token',
+        ),
       ).rejects.toThrow('Flow creation failed');
       expect(Logger.prototype.error).toHaveBeenCalledWith(
         'Error creating flow for rule rule-123: Flow creation failed',
@@ -376,7 +438,12 @@ describe('RulesService', () => {
         },
         ts_file_base64: 'dGVzdC1maWxlLWRhdGE=',
       };
-      const mockUpdatedFlow = { ...mockPayload, id: '1', tenant_id: 'tenant-123', rule_id: 'rule-123' };
+      const mockUpdatedFlow = {
+        ...mockPayload,
+        id: '1',
+        tenant_id: 'tenant-123',
+        rule_id: 'rule-123',
+      };
 
       adminServiceClient.updateRuleFlow.mockResolvedValue(mockUpdatedFlow);
 
@@ -400,15 +467,19 @@ describe('RulesService', () => {
       adminServiceClient.updateRuleFlow.mockRejectedValue(mockError);
 
       await expect(
-        service.updateRuleFlow('rule-123', {
-          category: RuleCategory.RULE_BUILDER,
-          flow_json: {
-            flowId: 'flow-123',
-            steps: ['updated-step'],
-            connections: [],
+        service.updateRuleFlow(
+          'rule-123',
+          {
+            category: RuleCategory.RULE_BUILDER,
+            flow_json: {
+              flowId: 'flow-123',
+              steps: ['updated-step'],
+              connections: [],
+            },
+            ts_file_base64: 'dGVzdC1maWxlLWRhdGE=',
           },
-          ts_file_base64: 'dGVzdC1maWxlLWRhdGE=',
-        }, 'test-token'),
+          'test-token',
+        ),
       ).rejects.toThrow('Flow update failed');
       expect(Logger.prototype.error).toHaveBeenCalledWith(
         'Error updating flow for rule rule-123: Flow update failed',
@@ -486,14 +557,25 @@ describe('RulesService', () => {
       } as any;
       const mockParseResult = {
         success: true,
-        ruleRequest: { transaction: {}, metaData: {}, networkMap: {}, DataCache: {} },
+        ruleRequest: {
+          transaction: {},
+          metaData: {},
+          networkMap: {},
+          DataCache: {},
+        },
       };
 
       adminServiceClient.getPayloadByTransactionType.mockResolvedValue({});
-      parseExtractService.processForRuleCreation.mockResolvedValue(mockParseResult);
+      parseExtractService.processForRuleCreation.mockResolvedValue(
+        mockParseResult,
+      );
       adminServiceClient.cloneRule.mockResolvedValue(mockClonedRule);
 
-      const result = await service.cloneRule('rule-123', 'test-token', mockPayload);
+      const result = await service.cloneRule(
+        'rule-123',
+        'test-token',
+        mockPayload,
+      );
 
       expect(result).toEqual(mockClonedRule);
     });
@@ -502,11 +584,13 @@ describe('RulesService', () => {
       const mockPayload = { txtp: 'pain.001.001.11' };
       const mockError = new Error('Clone failed');
 
-      adminServiceClient.getPayloadByTransactionType.mockRejectedValue(mockError);
-
-      await expect(service.cloneRule('rule-123', 'test-token', mockPayload)).rejects.toThrow(
-        'Clone failed',
+      adminServiceClient.getPayloadByTransactionType.mockRejectedValue(
+        mockError,
       );
+
+      await expect(
+        service.cloneRule('rule-123', 'test-token', mockPayload),
+      ).rejects.toThrow('Clone failed');
       expect(Logger.prototype.error).toHaveBeenCalledWith(
         'Error cloning rule rule-123: Clone failed',
       );
