@@ -49,7 +49,7 @@ const useParserController = (props: IParseProps) => {
                 console.error('Failed to fetch sample payload:', error)
                 setPayload(null)
             })
-    }, [data?.txtp, getPayload])
+    }, [data, getPayload])
 
     useEffect(() => {
         if (!data?.txtp) return

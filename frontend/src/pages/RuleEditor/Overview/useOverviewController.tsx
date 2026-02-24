@@ -133,12 +133,12 @@ const useOverviewController = (props: IOverviewProps) => {
         enableNextTab()
     }
 
-    const getRuleName = (id: string) => {
+    const getRuleName = useCallback((id: string) => {
         if (!id) return ''
         const rule_no = id.toString().split('@')
         const tenantId = user?.tenantId ?? ''
         return `${tenantId}-rule-${rule_no?.[0]}`
-    }
+    }, [user?.tenantId])
 
     const handleRuleValue = (val: DropdownOption) => {
         setValue('rule_config_id', val as { label: string, value: string })
@@ -157,7 +157,7 @@ const useOverviewController = (props: IOverviewProps) => {
             const name = getRuleName(data?.rule_config_id as string)
             setValue('rule_name', name)
         }
-    }, [data, setValue])
+    }, [data, setValue, getRuleName])
 
     const handleTxTp = (val: DropdownOption) => {
         setValue('txtp', val as { label: string, value: string })

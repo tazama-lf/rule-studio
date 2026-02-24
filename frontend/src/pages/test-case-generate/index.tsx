@@ -156,7 +156,7 @@ const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false })
       const errorMessage = (error as { data?: { message?: string } })?.data?.message || 'Failed to save test case';
       toast.error(errorMessage);
     }
-  }, [ruleId, saveFlow, flowState]);
+  }, [ruleId, saveFlow, flowState, update]);
 
   const handleNodeSelect = useCallback((node: Node | null) => {
     if (node?.data.nodeType === 'Start' || node?.data.nodeType === 'End') {
