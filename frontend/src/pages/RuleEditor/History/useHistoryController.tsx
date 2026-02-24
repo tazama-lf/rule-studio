@@ -22,7 +22,7 @@ const useHistoryController = (props: IHistory) => {
     const { open } = useModal()
 
 
-    const { data: logs, isLoading } = useGetSimulationLogsQuery({ ruleId: data?.id }, { refetchOnMountOrArgChange: true })
+    const { data: logs, isLoading } = useGetSimulationLogsQuery({ ruleId: data?.id }, { skip: !data?.id, refetchOnMountOrArgChange: true })
 
     interface Log {
         category?: string;
@@ -40,8 +40,8 @@ const useHistoryController = (props: IHistory) => {
     }, [logs])
 
 
-    const onView = (data: Record<string, unknown>) => {
-        open('View Payload', <ViewPayload data={data} />, null, { maxWidth: 'xl' })
+    const onView = (rowData: Record<string, unknown>) => {
+        open('View Payload', <ViewPayload data={rowData} />, null, { maxWidth: 'xl' })
     }
 
     const logs_columns = [

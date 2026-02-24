@@ -148,7 +148,7 @@ const useOverviewController = (props: IOverviewProps) => {
 
     useEffect(() => {
         if (mode === 'clone' && data?.txtp_version) {
-            getTxtpVersions(data?.txtp)
+            getTxtpVersions(data?.txtp as string | number)
         }
     }, [mode, data?.txtp_version, data?.txtp, getTxtpVersions])
 

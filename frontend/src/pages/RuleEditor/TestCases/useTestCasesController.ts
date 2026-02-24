@@ -12,15 +12,15 @@ export interface ITestCases {
 const useTestCasesController = (props: ITestCases) => {
 
     const data = useMemo(
-        () => extractData('trs_rule', LocalStorage, true) ?? props?.data,
+        () => props?.data ?? extractData('trs_rule', LocalStorage, true),
         [props?.data]
     )
 
     const statusInProgress = data?.status?.includes('IN_PROGRESS')
 
     const { data: flowData, isLoading: isLoadingFlow } = useGetRuleFlowStatusQuery(
-        { ruleId: (data?.id || '') as string | number, category: 'test_case_generation' },
-        { skip: !data?.id, refetchOnMountOrArgChange: true }
+        { ruleId: (data?.id ?? '') as string | number, category: 'test_case_generation' },
+        { skip: data?.id == null, refetchOnMountOrArgChange: true }
     );
 
     const { enableNextTab, enablePreviousTab } = useTab()

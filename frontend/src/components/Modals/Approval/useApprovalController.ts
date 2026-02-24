@@ -8,7 +8,7 @@ import toast from "react-hot-toast";
 
 export interface IApproval {
     type: 'review' | 'approve' | 'reject' | 'pause' | 'resume' | 'deploy',
-    id: string | unknown,
+    id: string,
     onSuccess?: () => void
 }
 
@@ -129,11 +129,14 @@ const useApprovalController = (props: IApproval) => {
             deploy(deployBody).unwrap()
                 .then(() => {
                     return submit({ id, body }).unwrap()
-                })
-                .then(() => {
-                    toast.success('Code Deployed Successfully')
-                    close()
-                    navigate('/home')
+                        .then(() => {
+                            toast.success('Code Deployed Successfully')
+                            close()
+                            navigate('/home')
+                        })
+                        .catch(() => {
+                            toast.error('Deployment succeeded but updating status failed')
+                        })
                 })
                 .catch(() => {
                     toast.error('Failed to deploy code')

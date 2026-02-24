@@ -14,7 +14,7 @@ export interface IParseProps {
 const useParserController = (props: IParseProps) => {
 
     const data = useMemo(
-        () => extractData('trs_rule', LocalStorage, true) ?? props.data,
+        () => props.data ?? extractData('trs_rule', LocalStorage, true),
         [props.data]
     )
 
@@ -26,7 +26,7 @@ const useParserController = (props: IParseProps) => {
     const isView = mode === 'view'
 
     const [getPayload, { isFetching: sampleLoader }] = useLazyGetSamplePayloadQuery()
-    const { data: globalVariables } = useGetGlobalVariablesQuery(data?.id, { refetchOnMountOrArgChange: true })
+    const { data: globalVariables } = useGetGlobalVariablesQuery(data?.id, { skip: !data?.id, refetchOnMountOrArgChange: true })
     const [payload, setPayload] = useState<string | null>(null)
 
     const handleNext = () => {

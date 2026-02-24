@@ -21,7 +21,7 @@ export const simulations = [
     },
 ]
 
-export const sampelRuleRequest = {
+export const sampleRuleRequest = {
     "transaction": {
         "TenantId": "DEFAULT",
         "TxTp": "pacs.002.001.12",
@@ -259,6 +259,9 @@ export const RoleStatusMap: Record<string, string[]> = {
         Status.STATUS_08_DEPLOYED,
     ],
 };
+
+// Backward compatibility alias
+export { sampleRuleRequest as sampelRuleRequest };
 
 
 export const getStatusOptionsForRole = (role: string) => {

@@ -91,7 +91,7 @@ const useHomeController = () => {
         open(
             `${row?.status === Status.STATUS_01_IN_PROGRESS ? 'Pause' : 'Resume'} Confirmation Required!`,
             <Approval
-                id={row?.id}
+                id={row?.id as string}
                 type={row?.status === Status.STATUS_01_IN_PROGRESS ? 'pause' : 'resume'}
                 onSuccess={fetchRules}
             />,

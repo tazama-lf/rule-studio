@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import Approval from "../../../components/Modals/Approval";
@@ -49,6 +49,7 @@ const useSimulationController = (props: ISimulation) => {
     const [codeDeployed, setCodeDeployed] = useState(data?.metadata?.deploy ?? false)
     const [simulationExecuted, setSimulationExecuted] = useState(data?.metadata?.test ?? false)
     const [isReportFailed, setIsReportFailed] = useState(false);
+    const loaderTimeoutRef = useRef<number | null>(null);
 
     const toggleViewReport = useCallback(() => setViewReport((prev: boolean) => !prev), [])
     const toggleCodeSynced = useCallback(() => setCodeSynced((prev: boolean) => !prev), [])
@@ -71,7 +72,7 @@ const useSimulationController = (props: ISimulation) => {
     const [getReportStatus, { isLoading: statusLoading }] = useLazyGetReportStatusQuery()
     const [getRuleRequest, { isFetching: variablesLoading }] = useLazyGetGlobalVariablesQuery()
     const [getPayload, { isFetching: sampleLoading }] = useLazyGetSamplePayloadQuery()
-    const { data: flowData, isFetching: flowLoading } = useGetAllFlowQuery({ ruleId: data?.id })
+    const { data: flowData, isFetching: flowLoading } = useGetAllFlowQuery({ ruleId: data?.id }, { skip: !data?.id })
 
     const [ruleOnly, { isLoading: ruleOnlyLoading }] = useRuleOnlyMutation()
     const [endToEnd, { isLoading: endToEndLoading }] = useEndToEndMutation()
@@ -84,7 +85,7 @@ const useSimulationController = (props: ISimulation) => {
         }
         update(body).unwrap()
             .then(() => {
-                console.log('Metadata updated successfully', metadata)
+                // Metadata updated successfully
             })
             .catch((error) => {
                 console.error('Failed to update metadata', error)
@@ -99,7 +100,7 @@ const useSimulationController = (props: ISimulation) => {
             deploy: 'Deployment'
         }
         const title = titles[type]
-        open(`${title} Confirmation Required!`, <Approval id={data?.id} type={type} />, null, { maxWidth: 'sm' })
+        open(`${title} Confirmation Required!`, <Approval id={data?.id as string} type={type} />, null, { maxWidth: 'sm' })
     }
 
     const handleNext = () => {
@@ -109,6 +110,61 @@ const useSimulationController = (props: ISimulation) => {
     const handleBack = () => {
         enablePreviousTab()
     }
+
+    const handleReportStatus = useCallback(() => {
+        const body = {
+            ruleId: data?.id,
+            branchName: 'staging'
+        }
+        getReportStatus({ ...body })
+            .unwrap()
+            .then((res) => {
+                if (res && res?.success) {
+                    toggleViewReport()
+                    if (res?.status === 'completed') {
+                        setIsReportFailed(false);
+                        updateMetadata({
+                            sync: false,
+                            test: true,
+                            deploy: false,
+                            simulation: false
+                        })
+                    } else if (res?.status === 'failed') {
+                        setIsReportFailed(true);
+                        updateMetadata({
+                            sync: false,
+                            test: true,
+                            deploy: false,
+                            simulation: false
+                        })
+                    } else {
+                        setIsReportFailed(false);
+                    }
+                }
+            })
+            .catch(() => {
+                toast.error('Failed to fetch report')
+            })
+    }, [getReportStatus, data?.id, toggleViewReport, updateMetadata])
+
+    const handleLoader = useCallback(() => {
+        if (loaderTimeoutRef.current) {
+            clearTimeout(loaderTimeoutRef.current)
+        }
+        toggleLoader()
+        loaderTimeoutRef.current = setTimeout(() => {
+            toggleLoader()
+            handleReportStatus()
+        }, 40000)
+    }, [toggleLoader, handleReportStatus])
+
+    useEffect(() => {
+        return () => {
+            if (loaderTimeoutRef.current) {
+                clearTimeout(loaderTimeoutRef.current)
+            }
+        }
+    }, [])
 
     const handleUpload = useCallback(() => {
         const body = {
@@ -133,7 +189,7 @@ const useSimulationController = (props: ISimulation) => {
             .catch(() => {
                 toast.error('Failed to upload code')
             })
-    }, [data?.id, data?.metadata?.test, data?.metadata?.deploy, data?.metadata?.simulation, upload, toggleCodeSynced, updateMetadata, flowData])
+    }, [data?.id, upload, toggleCodeSynced, updateMetadata, flowData, handleLoader])
 
     const handleDeploy = useCallback(() => {
         if (codeSynced) {
@@ -160,7 +216,7 @@ const useSimulationController = (props: ISimulation) => {
             .catch(() => {
                 toast.error('Failed to deploy code')
             })
-    }, [codeSynced, data?.id, data?.metadata?.simulation, deploy, toggleCodeDeployed, updateMetadata])
+    }, [codeSynced, data?.id, deploy, toggleCodeDeployed, updateMetadata])
 
     const handleSelect = (id: number) => {
         if (!codeDeployed && claims.editor === user?.claims) {
@@ -202,50 +258,6 @@ const useSimulationController = (props: ISimulation) => {
         }
     }
 
-    const handleReportStatus = useCallback(() => {
-        const body = {
-            ruleId: data?.id,
-            branchName: 'staging'
-        }
-        getReportStatus({ ...body })
-            .unwrap()
-            .then((res) => {
-                if (res && res?.success) {
-                    toggleViewReport()
-                    if (res?.status === 'completed') {
-                        setIsReportFailed(false);
-                        updateMetadata({
-                            sync: false,
-                            test: true,
-                            deploy: false,
-                            simulation: false
-                        })
-                    } else if (res?.status === 'failed') {
-                        setIsReportFailed(true);
-                        updateMetadata({
-                            sync: false,
-                            test: true,
-                            deploy: false,
-                            simulation: false
-                        })
-                    } else {
-                        setIsReportFailed(false);
-                    }
-                }
-            })
-            .catch(() => {
-                toast.error('Failed to fetch report')
-            })
-    }, [getReportStatus, data?.id, toggleViewReport, updateMetadata])
-
-    const handleLoader = useCallback(() => {
-        toggleLoader()
-        setTimeout(() => {
-            toggleLoader()
-            handleReportStatus()
-        }, 40000)
-    }, [toggleLoader, handleReportStatus])
-
     const addSimulationLog = useCallback((payload: Record<string, unknown>, result: unknown, category: 'read_only' | 'end_to_end') => {
         const body = {
             old_data: payload,
@@ -253,6 +265,9 @@ const useSimulationController = (props: ISimulation) => {
             category
         }
         addLogs({ body, id: data?.id }).unwrap()
+            .catch((error) => {
+                console.error('Failed to add simulation log:', error)
+            })
     }, [addLogs, data?.id])
 
     const handleSimulation = useCallback((_values: Record<string, unknown>) => {

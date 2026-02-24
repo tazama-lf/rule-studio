@@ -40,10 +40,10 @@ const useRuleBuilderController = (props: IRuleBuilder) => {
         enablePreviousTab()
     }
 
-    const flowStatus = flowData?.result?.status || 'initial'
-    const isInitial = flowStatus === 'initial'
-    const isPassed = flowStatus === 'pass'
-    const isFailed = flowStatus === 'fail'
+    const flowStatus = isLoadingFlow ? undefined : (flowData?.result?.status || 'initial')
+    const isInitial = !isLoadingFlow && flowStatus === 'initial'
+    const isPassed = !isLoadingFlow && flowStatus === 'pass'
+    const isFailed = !isLoadingFlow && flowStatus === 'fail'
 
     const getStatusConfig = () => {
         switch (flowStatus) {
