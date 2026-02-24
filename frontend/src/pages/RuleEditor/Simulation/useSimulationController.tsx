@@ -92,7 +92,14 @@ const useSimulationController = (props: ISimulation) => {
     }, [data?.id, update])
 
     const handleApproval = (type: 'review' | 'approve' | 'reject' | 'deploy') => {
-        open(`${type === 'reject' ? 'Rejection' : type === 'approve' ? 'Approval' : 'Deployment'} Confirmation Required!`, <Approval id={data?.id} type={type} />, null, { maxWidth: 'sm' })
+        const titles = {
+            review: 'Review',
+            approve: 'Approval',
+            reject: 'Rejection',
+            deploy: 'Deployment'
+        }
+        const title = titles[type]
+        open(`${title} Confirmation Required!`, <Approval id={data?.id} type={type} />, null, { maxWidth: 'sm' })
     }
 
     const handleNext = () => {
@@ -172,11 +179,25 @@ const useSimulationController = (props: ISimulation) => {
                         setValue('payload', JSON.stringify(res?.RuleRequest, null, 4))
                     }
                 })
+                .catch((error) => {
+                    console.error('Failed to fetch rule request:', error)
+                    toast.error('Failed to load rule request payload')
+                })
         } else {
+            if (!data?.txtp) {
+                toast.error('Transaction type not found')
+                return
+            }
             getPayload({ type: data.txtp })
                 .unwrap()
                 .then((res) => {
-                    setValue('payload', JSON.stringify(res, null, 4))
+                    if (res) {
+                        setValue('payload', JSON.stringify(res, null, 4))
+                    }
+                })
+                .catch((error) => {
+                    console.error('Failed to fetch sample payload:', error)
+                    toast.error('Failed to load sample payload')
                 })
         }
     }
@@ -272,7 +293,7 @@ const useSimulationController = (props: ISimulation) => {
             };
         } else {
             body = {
-                endpoint: "http://10.10.80.37:5000/v1/evaluate/iso20022/pacs.002.001.12",
+                endpoint: import.meta.env.VITE_SIMULATION_ENDPOINT,
                 natsConsumer: "investigation-service",
                 functionName: "TMS",
                 awaitReply: true,
@@ -299,6 +320,11 @@ const useSimulationController = (props: ISimulation) => {
                 if (res) {
                     onSuccess(res);
                 }
+            })
+            .catch((error: unknown) => {
+                console.error('Simulation failed:', error);
+                toast.error('Failed to run simulation. Please try again.');
+                setResult(null);
             });
     }, [selected, data?.rule_config_id, user?.claims, ruleOnly, endToEnd, toggleSimulationExecuted, updateMetadata, addSimulationLog])
 

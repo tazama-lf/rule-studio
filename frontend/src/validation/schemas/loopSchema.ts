@@ -10,12 +10,27 @@ export const loopSchema = yup.object({
     ),
   arrayVariable: yup
     .string()
-    .required('Array variable is required')
-    .test('is-valid', 'Must be a valid variable name or template', (value) => {
-      if (!value) return false;
-      if (value.includes('{{') && value.includes('}}')) return true;
-      if (/^[a-zA-Z_][a-zA-Z0-9_.]*$/.test(value)) return true;
-      return false;
+    .when(['loopType', 'loopCondition'], {
+      is: (loopType: string, loopCondition: string | undefined) => {
+        const arrayIterationTypes = ['forEach', 'map', 'filter', 'every', 'some', 'reduce', 'find'];
+        return arrayIterationTypes.includes(loopType) || !loopCondition;
+      },
+      then: (schema) => schema
+        .required('Array variable is required')
+        .test('is-valid', 'Must be a valid variable name or template', (value) => {
+          if (!value) return false;
+          if (value.includes('{{') && value.includes('}}')) return true;
+          if (/^[a-zA-Z_][a-zA-Z0-9_.]*$/.test(value)) return true;
+          return false;
+        }),
+      otherwise: (schema) => schema
+        .optional()
+        .test('is-valid', 'Must be a valid variable name or template', (value) => {
+          if (!value) return true;
+          if (value.includes('{{') && value.includes('}}')) return true;
+          if (/^[a-zA-Z_][a-zA-Z0-9_.]*$/.test(value)) return true;
+          return false;
+        }),
     }),
   itemVariable: yup.string().optional(),
   indexVariable: yup.string().optional(),

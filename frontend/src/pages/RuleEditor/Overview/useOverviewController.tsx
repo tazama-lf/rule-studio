@@ -117,11 +117,8 @@ const useOverviewController = (props: IOverviewProps) => {
                 organization: 'psl-copilot',
             }
 
-            const repoRes = await createRepo(repoBody)
-
-            if (repoRes) {
-                enableNextTab()
-            }
+            await createRepo(repoBody).unwrap()
+            enableNextTab()
         } catch (error: unknown) {
             const errorMessage =
                 (error as { data?: { message?: string } })?.data?.message ||
@@ -137,7 +134,8 @@ const useOverviewController = (props: IOverviewProps) => {
     }
 
     const getRuleName = (id: string) => {
-        const rule_no = id?.toString().split('@')
+        if (!id) return ''
+        const rule_no = id.toString().split('@')
         const tenantId = user?.tenantId ?? ''
         return `${tenantId}-rule-${rule_no?.[0]}`
     }
@@ -152,7 +150,7 @@ const useOverviewController = (props: IOverviewProps) => {
         if (mode === 'clone' && data?.txtp_version) {
             getTxtpVersions(data?.txtp)
         }
-    }, [mode, data?.txtp_version, getTxtpVersions])
+    }, [mode, data?.txtp_version, data?.txtp, getTxtpVersions])
 
     useEffect(() => {
         if (data) {

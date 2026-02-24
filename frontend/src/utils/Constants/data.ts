@@ -235,7 +235,7 @@ export const Tabs = [
     },
     {
         label: 'History',
-        value: 'History',
+        value: 'history',
         enabled: false
     },
 ]

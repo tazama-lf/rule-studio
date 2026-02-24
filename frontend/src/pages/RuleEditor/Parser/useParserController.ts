@@ -39,12 +39,17 @@ const useParserController = (props: IParseProps) => {
     }
 
     const getData = useCallback(() => {
+        if (!data?.txtp) return
         getPayload({ type: data.txtp })
             .unwrap()
             .then((res) => {
                 setPayload(JSON.stringify(res, null, 4))
             })
-    }, [data.txtp, getPayload])
+            .catch((error) => {
+                console.error('Failed to fetch sample payload:', error)
+                setPayload(null)
+            })
+    }, [data?.txtp, getPayload])
 
     useEffect(() => {
         if (!data?.txtp) return

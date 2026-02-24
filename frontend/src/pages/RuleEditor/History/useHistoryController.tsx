@@ -8,7 +8,7 @@ import ViewPayload from "../Modals/ViewPayload";
 import { useModal } from "../../../contexts/ModalContext";
 
 export interface IHistory {
-    data: Record<string, unknown>
+    data?: Record<string, unknown> | undefined
 }
 
 const useHistoryController = (props: IHistory) => {

@@ -16,7 +16,7 @@ const useTestCasesController = (props: ITestCases) => {
         [props?.data]
     )
 
-    const statusInProgress = data?.status.includes('IN_PROGRESS')
+    const statusInProgress = data?.status?.includes('IN_PROGRESS')
 
     const { data: flowData, isLoading: isLoadingFlow } = useGetRuleFlowStatusQuery(
         { ruleId: (data?.id || '') as string | number, category: 'test_case_generation' },

@@ -139,16 +139,17 @@ const useApprovalController = (props: IApproval) => {
                     toast.error('Failed to deploy code')
                 })
         } else {
-            submit({ id, body })
-                .then((res: unknown) => {
-                    if (res) {
-                        close()
-                        if (type === 'pause' || type === 'resume') {
-                            onSuccess?.()
-                        } else {
-                            navigate('/home')
-                        }
+            submit({ id, body }).unwrap()
+                .then(() => {
+                    close()
+                    if (type === 'pause' || type === 'resume') {
+                        onSuccess?.()
+                    } else {
+                        navigate('/home')
                     }
+                })
+                .catch(() => {
+                    toast.error('Failed to update rule status')
                 })
         }
     }
