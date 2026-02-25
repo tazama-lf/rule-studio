@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { TextField, Typography } from '@mui/material';
 import type { NodeInput } from '../../../../../types/nodeInput';
 import { PropertyRow } from '../../styles';
+import { withCursorPreservation } from '../../../../../utils/cursorPreservation';
 
 interface TextInputFieldProps {
   input: NodeInput;
@@ -55,7 +56,7 @@ const TextInputField: React.FC<TextInputFieldProps> = ({
           </>
         }
         value={currentValue}
-        onChange={onParamChange(input.key)}
+        onChange={withCursorPreservation(onParamChange(input.key))}
         onBlur={onParamBlur}
         size="small"
         variant="outlined"

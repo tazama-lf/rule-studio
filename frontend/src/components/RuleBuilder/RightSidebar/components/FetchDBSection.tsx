@@ -8,6 +8,7 @@ import QueryEditorModal from './QueryEditorModal';
 import QueryExecutionResultModal from './QueryExecutionResultModal';
 import { useParams } from 'react-router-dom';
 import { useVariableData, useQueryExecution } from '../../../../hooks/RuleBuilder';
+import { withCursorPreservation } from '../../../../utils/cursorPreservation';
 import {
   FormControl,
   InputLabel,
@@ -210,7 +211,7 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
           <TextField
             fullWidth
             value={currentParams.queryVar ?? 'query'}
-            onChange={onParamChange('queryVar')}
+            onChange={withCursorPreservation(onParamChange('queryVar'))}
             onBlur={() => onParamBlur?.()}
             disabled={isDisabled}
             placeholder="Variable name (e.g., query)"
@@ -241,7 +242,7 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
           <TextField
             fullWidth
             value={currentParams.resultVar ?? currentParams.variable ?? ''}
-            onChange={onParamChange('resultVar')}
+            onChange={withCursorPreservation(onParamChange('resultVar'))}
             onBlur={() => onParamBlur?.()}
             disabled={isDisabled}
             placeholder="Variable name (e.g., dbResult)"
