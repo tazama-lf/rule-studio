@@ -54,7 +54,7 @@ const useRuleBuilderController = (props: IRuleBuilder) => {
                     buttonText: `${statusInProgress ? 'Open Rule Builder' : 'View Rule'}`,
                     color: '#FFA726',
                     bgColor: '#FFF3E0',
-                    icon: '🚀'
+                    icon: '🔧'
                 }
             case 'pass':
                 return {
