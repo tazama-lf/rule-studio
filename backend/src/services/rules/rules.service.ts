@@ -57,8 +57,8 @@ export class RulesService {
 
       const result = await this.adminServiceClient.getPayloadByTransactionType(transactionType, token);
 
-      const { payload } = result;
-      let typedPayload = payload as Record<string, unknown>;
+      const payload = result.payload;
+      let typedPayload = result;  
 
       if (result.type === 'xml') {
         // Convert XML to JSON
@@ -95,12 +95,13 @@ export class RulesService {
 
       // if it was XML, now its JSON
       const parseResult = await this.parseExtractService.processForRuleCreation(
-        { TxTp: transactionType, TenantId: tenantId, ...typedPayload },
+        {TxTp: transactionType, TenantId:tenantId, ...result},
         token,
       );
       // console.log('Parse result for transactional message:', parseResult);
 
       // admin service client ko aagay derha hun ruleRequest
+      console.log("============THIS IS HERE=================", parseResult.ruleRequest);
       const rule = await this.adminServiceClient.createRule(ruleData, token, parseResult.ruleRequest);
       if (rule.id) {
         const baseRuleFlow = await this.getRuleFlow(BASE_RULE_ID, token);
