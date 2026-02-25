@@ -202,6 +202,10 @@ const generateNodeCode = (
     return generateObjectOpCode(params, indent, generationMode);
   }
 
+  if (nodeType === 'DetermineOutcome') {
+    return generateDetermineOutcomeCode(params, indent, generationMode);
+  }
+
   if (mode === 'call' && (nodeData.function_name || params.function_name)) {
     const dynamicCode = generateFunctionCallCode(node, allNodes || [], indent);
     if (dynamicCode) {
@@ -659,6 +663,14 @@ const generateObjectOpCode = (params: Record<string, string>, indent: string, mo
   }
   
   return `${indent}const ${resultVar} = Object.${operation}(${obj});`;
+};
+
+const generateDetermineOutcomeCode = (params: Record<string, string>, indent: string, mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
+  const arg1 = stripVariableIndicators(params.argument1 || 'countOfMatchingAmounts', mode);
+  const arg2 = stripVariableIndicators(params.argument2 || 'ruleConfig', mode);
+  const arg3 = stripVariableIndicators(params.argument3 || 'ruleRes', mode);
+  
+  return `${indent}return determineOutcome(${arg1}, ${arg2}, ${arg3});`;
 };
 
 const generateFetchDBCode = (params: Record<string, string>, indent: string, mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
@@ -1342,7 +1354,6 @@ export async function handleTransaction(
   
 ${nestedCode}
   
-  return determineOutcome(countOfMatchingAmounts, ruleConfig, ruleRes);
 }`;
   
   return code;
