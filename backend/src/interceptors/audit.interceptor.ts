@@ -25,6 +25,7 @@ export class AuditInterceptor implements NestInterceptor {
    * Intercepts HTTP requests to critical endpoints and logs audit information
    */
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    this.logger.log('AuditInterceptor triggered');
     const request = context.switchToHttp().getRequest<Request & { user?: AuthenticatedUser }>();
     const response = context.switchToHttp().getResponse<{ statusCode: number }>();
     const { user } = request;
@@ -35,8 +36,6 @@ export class AuditInterceptor implements NestInterceptor {
     const baseAuditData = this.buildBaseAuditData(context, request, user);
 
     this.logAuditAsync(baseAuditData, 'INTENT', correlationId);
-//     // from request context
-//     const baseAuditData = this.buildBaseAuditData(context, request, user);
 
     return next.handle().pipe(
       tap((responseData) => {
@@ -62,7 +61,6 @@ export class AuditInterceptor implements NestInterceptor {
         };
 
         this.logAuditAsync(auditData, 'FAILED', correlationId);
-//         this.logAuditAsync(auditData, 'FAILED');
 
         throw new Error(error);
       }),
@@ -148,29 +146,26 @@ export class AuditInterceptor implements NestInterceptor {
    */
   private extractResourceId(request: Request): string | undefined {
     const params = request.params as Record<string, string>;
-    
+
     // Common resource ID parameter names
     return params.ruleId || params.nodeId || params.id || params.resourceId;
   }
 
-//   /**
-//    * Maps controller class names to resource types
-//    * @private
-//    */
-//   private mapControllerToResourceType(controllerName: string): string {
-//     const resourceMapping: Record<string, string> = {
-//       AuthController: 'authentication',
-//       RulesController: 'rule',
-//       NodesController: 'node',
-//       ConfigController: 'configuration',
-//       ParseExtractController: 'parse-extract',
-//       SimulationLogsController: 'simulation-logs',
-//     };
-
+  /**
+   * Maps controller class names to resource types
+   * @private
+   */
+  private mapControllerToResourceType(controllerName: string): string {
+    const resourceMapping: Record<string, string> = {
+      AuthController: 'authentication',
+      RulesController: 'rule',
+      NodesController: 'node',
+      ConfigController: 'configuration',
+      ParseExtractController: 'parse-extract',
+      SimulationLogsController: 'simulation-logs',
+    };
     return resourceMapping[controllerName] ?? 'unknown';
   }
-//     return resourceMapping[controllerName] ?? 'unknown';
-//   }
 
   /**
    * Extracts the real client IP address
@@ -381,24 +376,15 @@ export class AuditInterceptor implements NestInterceptor {
     }
 
     // Remove sensitive fields that should never be logged
-    const { password, token, secret, key, auth, credential, ...cleanBody } = body;
+    const { password, token, secret, key, auth, credential, ...cleanBody } = body as Record<string, unknown>;;
 
     // Truncate large payloads to prevent storage bloat
     const serialized = JSON.stringify(cleanBody);
     if (serialized.length > 10000) {
       return { _truncated: true, _originalSize: serialized.length };
     }
-//     // Truncate large payloads to prevent storage bloat
-//     const serialized = JSON.stringify(cleanBody);
-//     if (serialized.length > 10000) {
-//       return { _truncated: true, _originalSize: serialized.length };
-//     }
-
     return cleanBody;
   }
-//     return cleanBody;
-//   }
-
   /**
    * Logs audit data asynchronously without blocking the main operation
    * @private
