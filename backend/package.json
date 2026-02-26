@@ -21,7 +21,7 @@
     "lint:eslint-no-inline": "eslint --no-inline-config",
     "lint:prettier": "prettier --check \"**/*.ts\"",
     "dry": "npm publish --dry-run",
-    "prepare": "husky install",
+    "prepare": "husky",
     "test": "jest --config ./jest.config.ts",
     "test:watch": "jest --watch --config ./jest.config.ts",
     "test:cov": "jest --coverage --config ./jest.config.ts",
