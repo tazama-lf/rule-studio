@@ -56,7 +56,7 @@ const useTestCasesController = (props: ITestCases) => {
                     buttonText: `${statusInProgress ? 'Open Test Case Generator' : 'View Test Cases'}`,
                     color: '#FFA726',
                     bgColor: '#FFF3E0',
-                    icon: '🚀'
+                    icon: '🔧'
                 }
             case 'pass':
                 return {

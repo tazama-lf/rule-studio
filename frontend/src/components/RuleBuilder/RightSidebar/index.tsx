@@ -79,6 +79,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
   const updateTimeoutRef = React.useRef<number | null>(null);
   const validationTimeoutRef = React.useRef<number | null>(null);
   const currentParamsRef = React.useRef<Record<string, string>>({});
+  const selectionRef = React.useRef<{ key: string; start: number; end: number } | null>(null);
 
   const nodeData = selectedNode?.data as NodeData | undefined;
   
@@ -118,6 +119,24 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
   
   React.useEffect(() => {
     currentParamsRef.current = currentParams;
+  }, [currentParams]);
+
+  // Restore cursor position after re-render to maintain undo functionality
+  React.useEffect(() => {
+    if (selectionRef.current) {
+      const { key, start, end } = selectionRef.current;
+      const input = inputRefs.current[key];
+      if (input && document.activeElement === input) {
+        requestAnimationFrame(() => {
+          try {
+            input.setSelectionRange(start, end);
+          } catch {
+            // Ignore errors for inputs that don't support selection
+          }
+        });
+      }
+      selectionRef.current = null;
+    }
   }, [currentParams]);
 
   React.useEffect(() => {
@@ -217,13 +236,23 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
   const handleParamChange = useCallback(
     (paramKey: string) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const newValue = event.target.value;
+      const target = event.target as HTMLInputElement | HTMLTextAreaElement;
       
-      const target = event.target as HTMLInputElement & { dataset?: { multiUpdate?: string } };
+      // Capture selection position to restore after re-render (enables undo/redo)
+      if (target.selectionStart !== null && target.selectionEnd !== null) {
+        selectionRef.current = {
+          key: paramKey,
+          start: target.selectionStart,
+          end: target.selectionEnd,
+        };
+      }
+      
+      const targetWithDataset = target as HTMLInputElement & { dataset?: { multiUpdate?: string } };
       let updatedParams: Record<string, string>;
       
-      if (target.dataset?.multiUpdate) {
+      if (targetWithDataset.dataset?.multiUpdate) {
         try {
-          const multiUpdate = JSON.parse(target.dataset.multiUpdate);
+          const multiUpdate = JSON.parse(targetWithDataset.dataset.multiUpdate);
           updatedParams = { ...currentParamsRef.current, ...multiUpdate };
         } catch {
           updatedParams = { ...currentParamsRef.current, [paramKey]: newValue };

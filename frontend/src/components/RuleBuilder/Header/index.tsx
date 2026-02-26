@@ -17,6 +17,7 @@ import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { useNavigate } from 'react-router-dom';
 import { StyledToolbar, ButtonGroup, ActionButton } from './styles';
 import { useValidationContext } from '../../../validation/context';
@@ -32,6 +33,7 @@ interface HeaderProps {
   onGenerateCode: () => void;
   onViewErrors?: () => void;
   onSave?: () => void;
+  onReset?: () => void;
   isSaving?: boolean;
   disabled?: boolean;
   viewOnly?: boolean;
@@ -51,6 +53,7 @@ const Header: React.FC<HeaderProps> = ({
   onGenerateCode,
   onViewErrors,
   onSave,
+  onReset,
   isSaving = false,
   disabled = false,
   viewOnly = false,
@@ -173,6 +176,23 @@ const Header: React.FC<HeaderProps> = ({
                   </ActionButton>
                 </span>
               </Tooltip>
+              
+              {onReset && (
+                <Tooltip title="Reset flow to default template">
+                  <span>
+                    <ActionButton
+                      variant="outlined"
+                      color="warning"
+                      startIcon={<RestartAltIcon />}
+                      onClick={onReset}
+                      disabled={isPlaying || isSaving}
+                    >
+                      Reset
+                    </ActionButton>
+                  </span>
+                </Tooltip>
+              )}
+              
               <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
             </>
           )}

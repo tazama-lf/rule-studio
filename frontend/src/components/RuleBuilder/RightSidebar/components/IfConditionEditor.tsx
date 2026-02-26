@@ -5,6 +5,7 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import type { IfCondition } from '../../../../hooks/RuleBuilder/useIfConditions';
 import { PropertyRow, SectionContainer, SectionTitle } from '../styles';
+import { withCursorPreservation } from '../../../../utils/cursorPreservation';
 
 interface IfConditionEditorProps {
   conditions: IfCondition[];
@@ -77,9 +78,12 @@ const IfConditionEditor: React.FC<IfConditionEditorProps> = ({
               <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', width: '100%' }}>
                 <TextField
                   fullWidth
+                  multiline
+                  minRows={3}
+                  maxRows={8}
                   label={cond.type === 'else' ? 'Else (no condition)' : `${cond.type === 'if' ? 'If' : 'Else If'} Condition`}
                   value={cond.condition || ''}
-                  onChange={(e) => onConditionChange(index, e.target.value)}
+                  onChange={withCursorPreservation((e) => onConditionChange(index, e.target.value))}
                   size="small"
                   variant="outlined"
                   disabled={cond.type === 'else' || viewOnly}
@@ -100,7 +104,7 @@ const IfConditionEditor: React.FC<IfConditionEditorProps> = ({
                       backgroundColor: 'background.paper',
                       transition: 'all 0.2s',
                     },
-                    '& .MuiOutlinedInput-input': {
+                    '& .MuiInputBase-input': {
                       ...((cond.condition && (cond.condition.includes('RuleRequest.') || cond.condition.includes('RuleConfig.'))) && {
                         background: `linear-gradient(to bottom, 
                           transparent 0%, 

@@ -18,6 +18,7 @@ import { arrayOpSchema } from './arrayOpSchema';
 import { typeDefinitionSchema } from './typeDefinitionSchema';
 import { customTestSchema } from './customTestSchema';
 import { describeSchema } from './describeSchema';
+import { determineOutcomeSchema } from './determineOutcomeSchema';
 import {
   testNodeSchema,
   testNodeNoDbDataSchema,
@@ -56,6 +57,7 @@ export const nodeSchemas: Record<string, ObjectSchema<Record<string, unknown>>> 
   HaversineDistance: customFunctionSchema,
   CustomTest: customTestSchema,
   Describe: describeSchema,
+  DetermineOutcome: determineOutcomeSchema,
   OutcomeTestBand01: testNodeSchema,
   OutcomeTestBand02: testNodeSchema,
   OutcomeTestBand02MaxQueryRangeOmitted: testNodeSchema,
@@ -118,3 +120,4 @@ export * from './describeSchema';
 export * from './testNodeSchema';
 export * from './factorySchema';
 export * from './serviceSchema';
+export * from './determineOutcomeSchema';

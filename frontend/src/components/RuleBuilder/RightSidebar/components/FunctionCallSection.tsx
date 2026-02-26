@@ -3,6 +3,7 @@ import { TextField, Typography, Divider, Checkbox, FormControlLabel, Select, Men
 import type { Node } from '@xyflow/react';
 import { PropertyRow, SectionContainer, SectionTitle } from '../styles';
 import { getFunctionParameters, generateFunctionArgs, type FunctionParameter } from '../../../../utils/Flow/functionParameterUtils';
+import { withCursorPreservation } from '../../../../utils/cursorPreservation';
 
 interface FunctionCallSectionProps {
   functionName: string;
@@ -213,7 +214,7 @@ const FunctionCallSection: React.FC<FunctionCallSectionProps> = ({
               size="small"
               label="Result Variable Name"
               value={'resultVariable' in currentParams ? currentParams['resultVariable'] : 'result'}
-              onChange={onParamChange('resultVariable')}
+              onChange={withCursorPreservation(onParamChange('resultVariable'))}
               onBlur={onParamBlur}
               onDrop={onDrop('resultVariable')}
               onDragOver={onDragOver}
@@ -245,7 +246,7 @@ const FunctionCallSection: React.FC<FunctionCallSectionProps> = ({
                 size="small"
                 label={`${param.label} (${param.type})`}
                 value={currentValue}
-                onChange={onParamChange(param.name)}
+                onChange={withCursorPreservation(onParamChange(param.name))}
                 onBlur={onParamBlur}
                 onDrop={onDrop(param.name)}
                 onDragOver={onDragOver}

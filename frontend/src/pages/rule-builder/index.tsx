@@ -23,6 +23,7 @@ import {
 import { extractData } from '../../utils/Common/storage';
 import { LocalStorage } from '../../utils/Common/enums';
 import { useUpdateMetadataMutation } from '../../redux/Api/Rules';
+import { RESET_FLOW_PAYLOAD } from '../../utils/Constants';
 
 interface RuleBuilderProps {
   viewOnly?: boolean;
@@ -81,6 +82,7 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
 
   const [showErrorModal, setShowErrorModal] = React.useState(false);
   const [showSaveSuccessModal, setShowSaveSuccessModal] = React.useState(false);
+  const [showResetConfirmDialog, setShowResetConfirmDialog] = React.useState(false);
   const [allowNavigation, setAllowNavigation] = React.useState(false);
 
   useEffect(() => {
@@ -151,6 +153,65 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
 
   const handleGenerateCode = () => {
     window.generateFlowCode?.();
+  };
+
+  const handleReset = async () => {
+    if (!ruleId) {
+      toast.error('Rule ID not found');
+      return;
+    }
+
+    try {
+      // Generate TypeScript code from the reset payload
+      const tsCode = window.generateFlowCode?.();
+      if (!tsCode) {
+        toast.error('Failed to generate TypeScript code');
+        return;
+      }
+
+      const validationResult = validateTypeScriptCode(tsCode);
+      const status = validationResult.isValid ? 'pass' : 'fail';
+      const tsFileBase64 = btoa(unescape(encodeURIComponent(tsCode)));
+
+      const payload = {
+        flow_json: RESET_FLOW_PAYLOAD,
+        ts_file_base64: tsFileBase64,
+        status,
+      };
+
+      await saveFlow({
+        ruleId,
+        flowData: payload,
+        category: 'rule_builder',
+      }).unwrap().then((res) => {
+        if (res) {
+          update({
+            id: ruleId,
+            body: {
+              metadata: {
+                sync: true,
+                test: false,
+                deploy: false,
+                simulation: false
+              }
+            }
+          }).unwrap();
+        }
+      });
+
+      toast.success('Flow reset to default template successfully');
+      setShowResetConfirmDialog(false);
+      
+      // Allow navigation and reload the page to reflect the reset
+      setAllowNavigation(true);
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
+    } catch (error: unknown) {
+      console.error('Reset flow error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to reset flow';
+      toast.error(errorMessage);
+    }
   };
 
   const handleSave = async () => {
@@ -303,6 +364,7 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
         onGenerateCode={handleGenerateCode}
         onViewErrors={() => setShowErrorModal(true)}
         onSave={handleSave}
+        onReset={() => setShowResetConfirmDialog(true)}
         isSaving={isSaving}
         viewOnly={viewOnly}
         hidePlayControls={true}
@@ -448,6 +510,37 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
             variant="contained"
           >
             Proceed to Next Step
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog 
+        open={showResetConfirmDialog} 
+        onClose={() => setShowResetConfirmDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ color: 'warning.main' }}>Reset Flow Confirmation</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure? All changes will be lost and the rule will be updated.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setShowResetConfirmDialog(false)}
+            variant="outlined"
+            color="inherit"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleReset}
+            variant="contained"
+            color="warning"
+            disabled={isSaving}
+          >
+            {isSaving ? 'Resetting...' : 'Yes, Reset'}
           </Button>
         </DialogActions>
       </Dialog>

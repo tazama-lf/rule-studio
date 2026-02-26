@@ -1,11 +1,12 @@
 import React, { useCallback } from 'react';
-import { Box, TextField, Button, Divider, Typography, Checkbox, FormControlLabel, Paper, Chip } from '@mui/material';
+import { Box, TextField, Button, Divider, Typography, Checkbox, FormControlLabel, Paper, Chip, Tooltip } from '@mui/material';
 import type { Node } from '@xyflow/react';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import { PropertyRow, SectionContainer, SectionTitle } from '../styles';
+import { withCursorPreservation } from '../../../../utils/cursorPreservation';
 import {
   getNodeOrBranchAtPath,
   updateFieldAtPath,
@@ -145,6 +146,8 @@ const TernaryConditionEditor: React.FC<TernaryConditionEditorProps> = ({
     const icon = branchType === 'true' ? <CheckCircleIcon fontSize="small" /> : <CancelIcon fontSize="small" />;
     const label = branchType === 'true' ? 'IF TRUE' : 'IF FALSE';
     const color = branchType === 'true' ? 'success' : 'error';
+    const MAX_NESTING_DEPTH = 1;
+    const isMaxDepthReached = depth >= MAX_NESTING_DEPTH;
 
     return (
       <Box sx={{ ml: depth * 2, mt: 1.5 }}>
@@ -168,16 +171,24 @@ const TernaryConditionEditor: React.FC<TernaryConditionEditorProps> = ({
               />
             </Box>
             {!viewOnly && branch.type === 'value' && (
-              <Button
-                size="small"
-                variant="contained"
-                color={color as 'success' | 'error'}
-                startIcon={<AddIcon />}
-                onClick={() => handleBranchUpdate(path, branchType, createEmptyNestedCondition())}
-                fullWidth
+              <Tooltip 
+                title={isMaxDepthReached ? "Maximum nesting depth (1 level) reached due to panel width constraints" : ""}
+                arrow
               >
-                Add Nested Condition
-              </Button>
+                <span>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    color={color as 'success' | 'error'}
+                    startIcon={<AddIcon />}
+                    onClick={() => handleBranchUpdate(path, branchType, createEmptyNestedCondition())}
+                    disabled={isMaxDepthReached}
+                    fullWidth
+                  >
+                    Add Nested Condition
+                  </Button>
+                </span>
+              </Tooltip>
             )}
             {!viewOnly && branch.type === 'nested' && (
               <Button
@@ -199,11 +210,11 @@ const TernaryConditionEditor: React.FC<TernaryConditionEditorProps> = ({
                 fullWidth
                 label="Return Value"
                 value={branch.value || ''}
-                onChange={(e) => {
+                onChange={withCursorPreservation((e) => {
                   if (!viewOnly) {
                     handleBranchUpdate(path, branchType, { type: 'value', value: e.target.value });
                   }
-                }}
+                })}
                 size="small"
                 variant="outlined"
                 disabled={viewOnly}
@@ -248,7 +259,7 @@ const TernaryConditionEditor: React.FC<TernaryConditionEditorProps> = ({
               fullWidth
               label="Condition"
               value={node.condition}
-              onChange={(e) => handleConditionChange(path, e.target.value)}
+              onChange={withCursorPreservation((e) => handleConditionChange(path, e.target.value))}
               size="small"
               variant="outlined"
               disabled={viewOnly}
@@ -294,7 +305,7 @@ const TernaryConditionEditor: React.FC<TernaryConditionEditorProps> = ({
             fullWidth
             label="Result Variable"
             value={resultVar}
-            onChange={handleResultVarChange}
+            onChange={withCursorPreservation(handleResultVarChange)}
             size="small"
             variant="outlined"
             disabled={viewOnly}
