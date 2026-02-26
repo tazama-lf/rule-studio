@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
+import { useSearchParams } from "react-router-dom";
 import Approval from "../../../components/Modals/Approval";
 import { useModal } from "../../../contexts/ModalContext";
 import { useTab } from "../../../contexts/TabContext/useTab";
@@ -13,10 +14,9 @@ import { useLazyGetReportStatusQuery, useMergeBranchMutation, useUploadCodeMutat
 import { useAddSimulationlogsMutation } from "../../../redux/Api/SimulationLogs";
 import { LocalStorage } from "../../../utils/Common/enums";
 import { extractData } from "../../../utils/Common/storage";
-import { claims, sampelRuleRequest, samplePayload } from "../../../utils/Constants/data";
+import { claims, samplePayload } from "../../../utils/Constants/data";
 import ViewNetworkMap from "../Modals/ViewNetworkMap";
 import ViewReport from "../Modals/ViewReport";
-import { useSearchParams } from "react-router-dom";
 
 export interface ISimulation {
     data?: Record<string, unknown> | undefined
@@ -49,7 +49,6 @@ const useSimulationController = (props: ISimulation) => {
     const [codeDeployed, setCodeDeployed] = useState(data?.metadata?.deploy ?? false)
     const [simulationExecuted, setSimulationExecuted] = useState(data?.metadata?.test ?? false)
     const [isReportFailed, setIsReportFailed] = useState(false);
-    const loaderTimeoutRef = useRef<number | null>(null);
 
     const toggleViewReport = useCallback(() => setViewReport((prev: boolean) => !prev), [])
     const toggleCodeSynced = useCallback(() => setCodeSynced((prev: boolean) => !prev), [])
@@ -74,7 +73,7 @@ const useSimulationController = (props: ISimulation) => {
     const [getReportStatus, { isLoading: statusLoading }] = useLazyGetReportStatusQuery()
     const [getRuleRequest, { isFetching: variablesLoading }] = useLazyGetGlobalVariablesQuery()
     const [getPayload, { isFetching: sampleLoading }] = useLazyGetSamplePayloadQuery()
-    const { data: flowData, isFetching: flowLoading } = useGetAllFlowQuery({ ruleId: data?.id }, { skip: !data?.id })
+    const { data: flowData, isFetching: flowLoading } = useGetAllFlowQuery({ ruleId: data?.id })
 
     const [ruleOnly, { isLoading: ruleOnlyLoading }] = useRuleOnlyMutation()
     const [endToEnd, { isLoading: endToEndLoading }] = useEndToEndMutation()
@@ -87,7 +86,7 @@ const useSimulationController = (props: ISimulation) => {
         }
         update(body).unwrap()
             .then(() => {
-                // Metadata updated successfully
+                console.log('Metadata updated successfully', metadata)
             })
             .catch((error) => {
                 console.error('Failed to update metadata', error)
@@ -102,7 +101,7 @@ const useSimulationController = (props: ISimulation) => {
             deploy: 'Deployment'
         }
         const title = titles[type]
-        open(`${title} Confirmation Required!`, <Approval id={data?.id as string} type={type} />, null, { maxWidth: 'sm' })
+        open(`${title} Confirmation Required!`, <Approval id={data?.id} type={type} />, null, { maxWidth: 'sm' })
     }
 
     const handleNext = () => {
@@ -150,23 +149,12 @@ const useSimulationController = (props: ISimulation) => {
     }, [getReportStatus, data?.id, toggleViewReport, updateMetadata])
 
     const handleLoader = useCallback(() => {
-        if (loaderTimeoutRef.current) {
-            clearTimeout(loaderTimeoutRef.current)
-        }
         toggleLoader()
-        loaderTimeoutRef.current = setTimeout(() => {
+        setTimeout(() => {
             toggleLoader()
             handleReportStatus()
         }, 40000)
     }, [toggleLoader, handleReportStatus])
-
-    useEffect(() => {
-        return () => {
-            if (loaderTimeoutRef.current) {
-                clearTimeout(loaderTimeoutRef.current)
-            }
-        }
-    }, [])
 
     const handleUpload = useCallback(() => {
         const body = {
@@ -267,13 +255,10 @@ const useSimulationController = (props: ISimulation) => {
             category
         }
         addLogs({ body, id: data?.id }).unwrap()
-            .catch(() => {
-                toast.error('Failed to save simulation log')
-            })
     }, [addLogs, data?.id])
 
-     
-    const handleSimulation = useCallback(() => {
+
+    const handleSimulation = useCallback((_values: Record<string, unknown>) => {
 
         const isReadOnly = selected === 1;
         let body: Record<string, unknown>;
@@ -281,18 +266,18 @@ const useSimulationController = (props: ISimulation) => {
         let logCategory: 'read_only' | 'end_to_end';
         let onSuccess;
 
-        // const parsedPayload = typeof 
-        // _values?.payload === 'string'
-        //     ? JSON.parse(values.payload)
-        //     : _values?.payload || {};
+        const parsedPayload = typeof
+            _values?.payload === 'string'
+            ? JSON.parse(_values.payload)
+            : _values?.payload || {};
         if (isReadOnly) {
 
             body = {
                 functionName: '',
                 awaitReply: true,
-                destination: `sub-rule-901@1.0.0`,
-                consumer: `pub-rule-901@1.0.0`,
-                message: sampelRuleRequest
+                destination: `sub-rule-${data.id}@${data.version}`,
+                consumer: `pub-rule-${data.id}@${data.version}`,
+                message: parsedPayload
             };
             mutation = ruleOnly;
             logCategory = 'read_only';
