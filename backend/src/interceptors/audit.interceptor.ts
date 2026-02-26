@@ -2,7 +2,7 @@ import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Inject, Log
 import { randomUUID } from 'node:crypto';
 import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
-import type { IAuditService, AuditLogInput } from '@tazama-lf/audit-lib';
+import { type IAuditService, IAuditLogInput, EventPhase } from '@tazama-lf/audit-lib';
 import type { AuthenticatedUser } from '../services/auth/auth.types';
 import type { Request } from 'express';
 
@@ -35,7 +35,7 @@ export class AuditInterceptor implements NestInterceptor {
 
     const baseAuditData = this.buildBaseAuditData(context, request, user);
 
-    this.logAuditAsync(baseAuditData, 'INTENT', correlationId);
+    this.logAuditAsync(baseAuditData, EventPhase.INTENT, correlationId);
 
     return next.handle().pipe(
       tap((responseData) => {
@@ -48,7 +48,7 @@ export class AuditInterceptor implements NestInterceptor {
           },
         };
 
-        this.logAuditAsync(auditData, 'SUCCESS', correlationId);
+        this.logAuditAsync(auditData, EventPhase.SUCCESS, correlationId);
       }),
       catchError((error) => {
         const auditData = {
@@ -60,7 +60,7 @@ export class AuditInterceptor implements NestInterceptor {
           },
         };
 
-        this.logAuditAsync(auditData, 'FAILED', correlationId);
+        this.logAuditAsync(auditData, EventPhase.FAILED, correlationId);
 
         throw new Error(error);
       }),
@@ -75,7 +75,7 @@ export class AuditInterceptor implements NestInterceptor {
     context: ExecutionContext,
     request: Request,
     user?: AuthenticatedUser,
-  ): Omit<AuditLogInput, 'correlationId' | 'eventPhase' | 'outcome'> {
+  ): Omit<IAuditLogInput, 'correlationId' | 'eventPhase' | 'outcome'> {
     const { method, url, body, params, query, headers } = request;
     const handler = context.getHandler().name;
     const controller = context.getClass().name;
@@ -389,8 +389,8 @@ export class AuditInterceptor implements NestInterceptor {
    * Logs audit data asynchronously without blocking the main operation
    * @private
    */
-  private logAuditAsync(auditData: Omit<AuditLogInput, 'correlationId' | 'eventPhase'>, eventPhase: 'INTENT' | 'SUCCESS' | 'FAILED', correlationId: string,): void {
-    const auditInput: AuditLogInput = { ...auditData, correlationId, eventPhase, };
+  private logAuditAsync(auditData: Omit<IAuditLogInput, 'correlationId' | 'eventPhase'>, eventPhase: EventPhase, correlationId: string,): void {
+    const auditInput: IAuditLogInput = { ...auditData, correlationId, eventPhase, };
 
     this.auditService.log(auditInput).catch((error: unknown) => {
       const errorMessage = error instanceof Error ? error.message : String(error);
