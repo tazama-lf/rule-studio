@@ -34,6 +34,8 @@ const useTestCasesController = (props: ITestCases) => {
     }
 
     const handleCanvas = () => {
+        if (!data?.id) return;
+        
         if(statusInProgress){
             window.location.href = `/test-case-generate/${data?.id}`
         }
@@ -53,7 +55,7 @@ const useTestCasesController = (props: ITestCases) => {
                 return {
                     title: 'Test Cases Not Created Yet',
                     description: 'Your test cases are in initial mode. Click the button below to start generating test cases.',
-                    buttonText: `${statusInProgress ? 'Open Test Case Generator' : 'View Test Cases'}`,
+                    buttonText: 'Open Test Case Generator',
                     color: '#FFA726',
                     bgColor: '#FFF3E0',
                     icon: '🔧'

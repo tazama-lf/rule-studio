@@ -11,7 +11,7 @@ export interface IRuleBuilder {
 const useRuleBuilderController = (props: IRuleBuilder) => {
 
     const data = useMemo(
-        () => extractData('trs_rule', LocalStorage, true) ?? props.data,
+        () => props.data ?? extractData('trs_rule', LocalStorage, true),
         [props.data]
     )
     
@@ -25,6 +25,8 @@ const useRuleBuilderController = (props: IRuleBuilder) => {
     const { enableNextTab, enablePreviousTab } = useTab()
 
     const handleBuilder = () => {
+        if (data?.id === undefined || data?.id === null) return;
+        
         if(statusInProgress){
             window.location.href = `/rule-builder/${data?.id}`
         }

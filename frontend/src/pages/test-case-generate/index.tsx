@@ -36,7 +36,7 @@ const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false })
   );
 
   const [saveFlow, { isLoading: isSaving }] = useSaveFlowMutation();
-  const [update] = useUpdateMetadataMutation()
+  const [update] = useUpdateMetadataMutation();
 
   const flowState = useFlowState();
 
@@ -318,7 +318,6 @@ const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false })
               setAllowNavigation(true);
               setTimeout(() => {
                 window.location.href = mode === 'view' ? `/editor?mode=view&tab=test_cases` : `/editor?tab=test_cases`;
-
               }, 0);
             }}
             variant="contained"

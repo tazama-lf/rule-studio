@@ -47,11 +47,11 @@ export const nodeSchemas: Record<string, ObjectSchema<Record<string, unknown>>> 
   Exit: exitSchema,
   Import: importSchema,
   Ternary: ternarySchema,
-  objectOp: objectOpSchema,
-  stringFunc: stringFuncSchema,
-  destructure: destructureSchema,
-  math: mathSchema,
-  arrayOp: arrayOpSchema,
+  ObjectOp: objectOpSchema,
+  StringFunc: stringFuncSchema,
+  Destructure: destructureSchema,
+  Math: mathSchema,
+  ArrayOp: arrayOpSchema,
   TypeDefinition: typeDefinitionSchema,
   StandardDeviation: customFunctionSchema,
   HaversineDistance: customFunctionSchema,
@@ -86,12 +86,25 @@ export const ruleSchemas: Record<string, unknown> = {
 
 export type ValidatableNodeType = keyof typeof nodeSchemas;
 
+const normalizeNodeType = (nodeType: string): string => {
+  // Map lowercase variants to PascalCase
+  const caseMap: Record<string, string> = {
+    'objectOp': 'ObjectOp',
+    'stringFunc': 'StringFunc',
+    'destructure': 'Destructure',
+    'math': 'Math',
+    'arrayOp': 'ArrayOp',
+  };
+  
+  return caseMap[nodeType] || nodeType;
+};
+
 export const hasValidation = (nodeType: string): boolean => {
-  return nodeType in nodeSchemas;
+  return normalizeNodeType(nodeType) in nodeSchemas;
 };
 
 export const getSchemaForNode = (nodeType: string): ObjectSchema<Record<string, unknown>> | null => {
-  return nodeSchemas[nodeType] || null;
+  return nodeSchemas[normalizeNodeType(nodeType)] || null;
 };
 
 export const getSchemaForRules = (ruleType: string): unknown => {

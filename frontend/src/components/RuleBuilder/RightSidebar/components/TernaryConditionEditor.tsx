@@ -17,6 +17,8 @@ import {
   hasVariableReference,
 } from '../../../../utils/Flow/TernaryTreeUtils';
 
+const MAX_NESTING_DEPTH = 1;
+
 export interface TernaryBranch {
   type: 'value' | 'nested';
   value?: string;
@@ -146,7 +148,6 @@ const TernaryConditionEditor: React.FC<TernaryConditionEditorProps> = ({
     const icon = branchType === 'true' ? <CheckCircleIcon fontSize="small" /> : <CancelIcon fontSize="small" />;
     const label = branchType === 'true' ? 'IF TRUE' : 'IF FALSE';
     const color = branchType === 'true' ? 'success' : 'error';
-    const MAX_NESTING_DEPTH = 1;
     const isMaxDepthReached = depth >= MAX_NESTING_DEPTH;
 
     return (

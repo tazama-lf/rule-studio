@@ -15,6 +15,7 @@ import { useGetFlowQuery, useSaveFlowMutation, useGetNodesQuery } from '../../re
 import { transformApiFlowData, type ApiNode, type ApiEdge } from '../../utils/Flow/FlowTransformers';
 import { setApiNodes } from '../../utils/Flow/nodeTemplateService';
 import { validateTypeScriptCode } from '../../utils/Flow/codeValidator';
+import { generateTypeScriptCode } from '../../utils/Flow/CodeGenerator';
 import {
   useFlowAnimation,
   useFlowState,
@@ -58,7 +59,7 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
 
   const transformedFlowData = useMemo(() => {
 
-    if (!flowData?.result || !apiNodesInitialized) return null;
+    if ((!flowData?.result && !flowData?.flow) || !apiNodesInitialized) return null;
 
     const flowJson = flowData.result.flow_json || flowData.flow;
 
@@ -162,8 +163,17 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
     }
 
     try {
-      // Generate TypeScript code from the reset payload
-      const tsCode = window.generateFlowCode?.();
+      const transformedResetFlow = transformApiFlowData(
+        RESET_FLOW_PAYLOAD.nodes as ApiNode[],
+        RESET_FLOW_PAYLOAD.edges as ApiEdge[]
+      );
+
+      const tsCode = generateTypeScriptCode(
+        transformedResetFlow.nodes,
+        transformedResetFlow.edges,
+        transformedResetFlow.nestedFlows
+      );
+      
       if (!tsCode) {
         toast.error('Failed to generate TypeScript code');
         return;

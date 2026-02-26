@@ -88,7 +88,6 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
   }, [clearError]);
 
   const handleSaveQuery = useCallback((query: string) => {
-    console.log('📝 handleSaveQuery received:', query);
     const syntheticEvent = {
       target: { value: query }
     } as React.ChangeEvent<HTMLInputElement>;

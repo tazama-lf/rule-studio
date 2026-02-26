@@ -179,7 +179,7 @@ const useOverviewController = (props: IOverviewProps) => {
     return {
         values: {
             control,
-            isEdit: mode === 'edit' || mode == 'view' || (data && !mode),
+            isEdit: mode === 'edit' || mode === 'view' || (data && !mode),
             errors,
             isLoading,
             rule_config_id: getValues('rule_config_id'),

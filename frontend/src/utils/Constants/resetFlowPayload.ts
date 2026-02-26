@@ -1,4 +1,3 @@
-
 export const RESET_FLOW_PAYLOAD = {
   nodes: [
     {
