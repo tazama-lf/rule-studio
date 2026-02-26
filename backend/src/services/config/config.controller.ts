@@ -20,7 +20,7 @@ export class ConfigController {
     TazamaClaims.APPROVER,
     TazamaClaims.PUBLISHER,
   )
-  @Audit()
+  @Audit() // Audit access to transaction type configuration (important for compliance and monitoring)
   @ApiOperation({
     summary: 'Get transaction types',
     description:
@@ -54,7 +54,7 @@ export class ConfigController {
     TazamaClaims.APPROVER,
     TazamaClaims.PUBLISHER,
   )
-  @Audit()
+  @Audit() // Audit access to transaction type version details (important for compliance and monitoring)
   @ApiOperation({
     summary: 'Get versions by transaction type',
     description: 'Retrieve all available versions for a specific transaction type',
@@ -94,7 +94,7 @@ export class ConfigController {
     TazamaClaims.APPROVER,
     TazamaClaims.PUBLISHER,
   )
-  @Audit()
+  @Audit() // Audit access to transaction type payload details (important for compliance and monitoring)
   @ApiOperation({
     summary: 'Get payload schema by transaction type',
     description: 'Retrieve the payload schema structure for a specific transaction type',

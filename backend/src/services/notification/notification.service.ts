@@ -19,7 +19,9 @@ import {
   getTenantId,
 } from '../../utils/helpers';
 import { EventType } from '../../utils/enums/events.enum';
+import { Rules } from '../rules/dto/rules.dto';
 
+// it should be place at interface file.
 export interface EmailOptions {
   to: string | string[];
   subject: string;
@@ -37,7 +39,7 @@ export class NotificationService implements OnModuleInit {
   constructor(
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
-  ) {}
+  ) { }
 
   onModuleInit(): void {
     this.initializeTransporter();
@@ -108,7 +110,7 @@ export class NotificationService implements OnModuleInit {
       }
       const fromName =
         this.configService.get<string>('SMTP_FROM_NAME') ??
-        'Tazama Connection Studio';
+        'Tazama Connection Studio'; //change this
 
       const mailOptions: nodemailer.SendMailOptions = {
         from: `"${fromName}" <${fromEmail}>`,
@@ -132,15 +134,15 @@ export class NotificationService implements OnModuleInit {
       return false;
     }
   }
-
+  // write interface for this function.
   async fetchRecipientEmails(
     event: EventType,
     tenantId: string,
     authToken: string,
     groupName: string,
-  ): Promise<any> {
+  ): Promise<any> { // write appropriate type instead of any.
     try {
-      let role: string | null = null;
+      let role: string | null = null; // why role is null
       let fetchAll = false;
 
       switch (event) {
@@ -193,7 +195,7 @@ export class NotificationService implements OnModuleInit {
       return [];
     }
   }
-
+  // write interface for this function.
   async getUserGroupMembers(
     token: string,
     groupName: string,
@@ -217,8 +219,7 @@ export class NotificationService implements OnModuleInit {
 
       this.logger.debug('Response from Auth Service: ', response.data);
 
-      const responseArr =
-        response.data && Array.isArray(response.data) ? response.data : [];
+      const responseArr = response.data && Array.isArray(response.data) ? response.data : [];
       const emailList = responseArr.map((obj) => obj?.username);
       this.logger.debug('Fetched user emails: ', emailList);
       return emailList;
@@ -240,7 +241,7 @@ export class NotificationService implements OnModuleInit {
   async sendRuleWorkflowNotification(
     event: EventType,
     user: AuthenticatedUser,
-    ruleData: any,
+    ruleData: Rules,
     authToken: string,
     comment?: string,
   ): Promise<void> {
@@ -250,6 +251,7 @@ export class NotificationService implements OnModuleInit {
       const actorName = actorEmail;
       const tenantId = getTenantId(user);
       const groupName = getGroupNameFromToken(decodedToken);
+      this.logger.log(`Rule Information: ${JSON.stringify(ruleData.ruleName)}, Transaction Type Version: ${JSON.stringify(ruleData.txtpVersion)}`);
 
       if (!groupName) {
         this.logger.error('Group name not found in token. Cannot send rule notification.');
@@ -271,8 +273,7 @@ export class NotificationService implements OnModuleInit {
         return;
       }
 
-      const ruleName = ruleData.rule_name ?? ruleData.ruleName ?? 'Rule';
-      const version = ruleData.version ?? '1.0.0';
+      const {ruleName, version} = ruleData;
       const theme = getEmailTheme(event, ruleName, version);
 
       const htmlContent = `<div style="font-family: Arial, sans-serif; max-width: 750px; padding: 24px; background-color: #f4f6f8;">
@@ -288,10 +289,10 @@ export class NotificationService implements OnModuleInit {
           <h3 style="margin-top: 0; color: ${theme.themeColor};">Rule Information</h3>
           <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
             ${this.emailRow('Rule ID', ruleData.id)}
-            ${this.emailRow('Rule Name', ruleData.rule_name)}
+            ${this.emailRow('Rule Name', ruleData.ruleName)}
             ${this.emailRow('Description', ruleData.description)}
             ${this.emailRow('Transaction Type', ruleData.txtp)}
-            ${this.emailRow('Transaction Type Version', ruleData.txtp_version)}
+            ${this.emailRow('Transaction Type Version', ruleData.txtpVersion)}
             ${this.emailRow('Rule Version', ruleData.version)}
             ${this.emailRow('Rule Type', ruleData.rule_type)}
             ${this.emailRow('Rule Config ID', ruleData.rule_config_id)}
@@ -307,7 +308,7 @@ export class NotificationService implements OnModuleInit {
         </p>
       </div>`;
 
-      const textContent = `${theme.emailTitle}\n\nFrom: ${actorName}\nEmail: ${actorEmail}\n\nRule ID: ${ruleData.id}\nRule Name: ${ruleData.rule_name}\nDescription: ${ruleData.description}\nTransaction Type: ${ruleData.txtp}\nTransaction Type Version: ${ruleData.txtp_version}\nVersion: ${ruleData.version}\nRule Type: ${ruleData.rule_type}\nRule Config ID: ${ruleData.rule_config_id}\nStatus: ${ruleData.status}\n\nCreated At: ${ruleData.created_at}\nUpdated At: ${ruleData.updated_at}\n${comment ? `Comment:\n${comment}\n` : ''}\nTenant: ${tenantId}`;
+      const textContent = `${theme.emailTitle}\n\nFrom: ${actorName}\nEmail: ${actorEmail}\n\nRule ID: ${ruleData.id}\nRule Name: ${ruleData.ruleName}\nDescription: ${ruleData.description}\nTransaction Type: ${ruleData.txtp}\nTransaction Type Version: ${ruleData.txtpVersion}\nVersion: ${ruleData.version}\nRule Type: ${ruleData.rule_type}\nRule Config ID: ${ruleData.rule_config_id}\nStatus: ${ruleData.status}\n\nCreated At: ${ruleData.created_at}\nUpdated At: ${ruleData.updated_at}\n${comment ? `Comment:\n${comment}\n` : ''}\nTenant: ${tenantId}`;
 
       this.logger.log(`Sending rule notification email to ${recipientEmails.length} recipient(s)`);
 

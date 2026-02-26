@@ -52,7 +52,7 @@ export class NodesController {
     TazamaClaims.APPROVER,
     TazamaClaims.PUBLISHER,
   )
-  @Audit()
+  @Audit() // Audit retrieval of nodes (important for monitoring access to critical data)
   @ApiQuery({
     name: 'limit',
     required: false,

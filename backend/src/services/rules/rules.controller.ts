@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import {
   Controller,
   Post,
@@ -178,7 +177,7 @@ export class RulesController {
     TazamaClaims.APPROVER,
     TazamaClaims.PUBLISHER,
   )
-  @Audit()
+  @Audit() // Audit access to rule configuration details (important for compliance and monitoring)
   @ApiParam({
     name: 'ruleId',
     description: 'Rule identifier',

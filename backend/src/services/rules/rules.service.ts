@@ -362,12 +362,28 @@ export class RulesService {
 
       if (eventType) {
         try {
-          const fullRule = (ruleData as any)?.rules ?? ruleData;
+          const apiRule = (ruleData as any)?.rules ?? ruleData;
+
+          const mappedRule: Rules = {
+            id: apiRule.id?.toString(),
+            ruleName: apiRule.rule_name,
+            description: apiRule.description,
+            txtp: apiRule.txtp,
+            txtpVersion: apiRule.txtp_version,
+            version: apiRule.version,
+            status: apiRule.status,
+            publishing_status: apiRule.publishing_status,
+            rule_type: apiRule.rule_type,
+            rule_config_id: apiRule.rule_config_id,
+            metadata: apiRule.metadata,
+            created_at: apiRule.created_at,
+            updated_at: apiRule.updated_at,
+          };
 
           await this.notificationService.sendRuleWorkflowNotification(
             eventType,
             user,
-            fullRule,
+            mappedRule,
             token,
             reason,
           );

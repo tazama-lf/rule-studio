@@ -4,16 +4,20 @@ import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import type { IAuditService, AuditLogInput } from '@tazama-lf/audit-lib';
 import type { AuthenticatedUser } from '../services/auth/auth.types';
-import type { Request, Response } from 'express';
-import { randomUUID } from 'node:crypto';
+import type { Request } from 'express';
 
-// /**
-//  * Audit interceptor for logging critical user actions
-//  * Implements fire-and-forget pattern to ensure audit failures don't block operations
-//  */
-// @Injectable()
-// export class AuditInterceptor implements NestInterceptor {
-//   private readonly logger = new Logger(AuditInterceptor.name);
+/**
+ * Audit interceptor for logging critical user actions
+ * Implements fire-and-forget pattern to ensure audit failures don't block operations
+ */
+interface EventMetadata {
+  description: string;
+  eventType: string;
+}
+
+@Injectable()
+export class AuditInterceptor implements NestInterceptor {
+  private readonly logger = new Logger(AuditInterceptor.name);
 
   constructor(@Inject('AUDIT_LOGGER') private readonly auditService: IAuditService) { }
 
@@ -77,6 +81,7 @@ import { randomUUID } from 'node:crypto';
     const { method, url, body, params, query, headers } = request;
     const handler = context.getHandler().name;
     const controller = context.getClass().name;
+    const eventMeta = this.buildEventMetadata(method, url, handler);
 
     return {
       // User identification
@@ -90,8 +95,9 @@ import { randomUUID } from 'node:crypto';
 
       // Request metadata
       sourceIp: this.extractSourceIp(request),
-      description: this.buildDescription(method, url, handler),
-      eventType: this.determineEventType(method, handler),
+
+      description: eventMeta.description,
+      eventType: eventMeta.eventType,
       tenantId: user?.tenantId ?? 'default',
 
       actionPerformed: {
@@ -142,7 +148,7 @@ import { randomUUID } from 'node:crypto';
    */
   private extractResourceId(request: Request): string | undefined {
     const params = request.params as Record<string, string>;
-
+    
     // Common resource ID parameter names
     return params.ruleId || params.nodeId || params.id || params.resourceId;
   }
@@ -194,21 +200,153 @@ import { randomUUID } from 'node:crypto';
    * Builds human-readable description of the action
    * @private
    */
-  private buildDescription(method: string, url: string, handler: string): string {
-    const actionMap: Record<string, string> = {
-      login: 'User authentication attempt',
-      createRule: 'Created new rule',
-      updateRule: 'Modified existing rule',
-      updateRuleStatus: 'Changed rule status',
-      saveRuleFlow: 'Created rule flow',
-      updateRuleFlow: 'Modified rule flow',
-      cloneRule: 'Cloned existing rule',
-      createNodes: 'Created new nodes',
-      deleteNode: 'Deleted node',
-    };
+  private buildEventMetadata(method: string, url: string, handler: string): EventMetadata {
+    const actionMap: Record<string, EventMetadata | undefined> = {
+      login: {
+        description: 'User authentication attempt',
+        eventType: 'USER_AUTHENTICATION_ATTEMPT',
+      },
 
-//     return actionMap[handler] || `${method} request to ${url}`;
-//   }
+      getTransactionTypes: {
+        description: 'Retrieved transaction types',
+        eventType: 'TRANSACTION_TYPES_RETRIEVED',
+      },
+
+      getVersionsOfTransactionType: {
+        description: 'Retrieved versions for transaction type',
+        eventType: 'TRANSACTION_TYPE_VERSIONS_RETRIEVED',
+      },
+
+      getPayloadByTransactionType: {
+        description: 'Retrieved payload for transaction type',
+        eventType: 'TRANSACTION_TYPE_PAYLOAD_RETRIEVED',
+      },
+
+      createNode: {
+        description: 'Created new node',
+        eventType: 'NODE_CREATED',
+      },
+
+      getAllNodes: {
+        description: 'Retrieved all nodes',
+        eventType: 'NODES_RETRIEVED',
+      },
+
+      deleteNodeById: {
+        description: 'Deleted node by ID',
+        eventType: 'NODE_DELETED',
+      },
+
+      executeQueryNode: {
+        description: 'Executed query node',
+        eventType: 'NODE_QUERY_EXECUTED',
+      },
+
+      processTransactionalMessage: {
+        description: 'Processed transactional message',
+        eventType: 'TRANSACTIONAL_MESSAGE_PROCESSED',
+      },
+
+      getRulesStatus: {
+        description: 'Retrieved rule statuses',
+        eventType: 'RULE_STATUSES_RETRIEVED',
+      },
+
+      getAllRules: {
+        description: 'Retrieved all rules',
+        eventType: 'RULES_RETRIEVED',
+      },
+
+      getRuleIds: {
+        description: 'Retrieved rule IDs',
+        eventType: 'RULE_IDS_RETRIEVED',
+      },
+
+      createRule: {
+        description: 'Created new rule',
+        eventType: 'RULE_CREATED',
+      },
+
+      getRuleConfiguration: {
+        description: 'Retrieved rule configuration',
+        eventType: 'RULE_CONFIGURATION_RETRIEVED',
+      },
+
+      updateRule: {
+        description: 'Modified existing rule',
+        eventType: 'RULE_UPDATED',
+      },
+
+      getRulesById: {
+        description: 'Retrieved rule by ID',
+        eventType: 'RULE_RETRIEVED_BY_ID',
+      },
+
+      getActiveNetworkMap: {
+        description: 'Retrieved active network map',
+        eventType: 'ACTIVE_NETWORK_MAP_RETRIEVED',
+      },
+
+      createRuleFlow: {
+        description: 'Created new rule flow',
+        eventType: 'RULE_FLOW_CREATED',
+      },
+
+      getRuleFlow: {
+        description: 'Retrieved rule flows',
+        eventType: 'RULE_FLOW_RETRIEVED',
+      },
+
+      getRuleFlowStatus: {
+        description: 'Retrieved rule flow statuses',
+        eventType: 'RULE_FLOW_STATUSES_RETRIEVED',
+      },
+
+      updateRuleFlow: {
+        description: 'Modified rule flow',
+        eventType: 'RULE_FLOW_UPDATED',
+      },
+
+      getGlobalVariables: {
+        description: 'Retrieved global variables',
+        eventType: 'GLOBAL_VARIABLES_RETRIEVED',
+      },
+
+      cloneRule: {
+        description: 'Cloned existing rule',
+        eventType: 'RULE_CLONED',
+      },
+
+      updateRuleStatus: {
+        description: 'Changed rule status',
+        eventType: 'RULE_STATUS_CHANGED',
+      },
+
+      updateRuleMetadata: {
+        description: 'Updated rule metadata',
+        eventType: 'RULE_METADATA_UPDATED',
+      },
+
+      getSimulationLogs: {
+        description: 'Retrieved simulation logs',
+        eventType: 'SIMULATION_LOGS_RETRIEVED',
+      },
+
+      insertSimulationLogs: {
+        description: 'Inserted simulation logs',
+        eventType: 'SIMULATION_LOGS_INSERTED',
+      },
+
+    } as const satisfies Record<string, EventMetadata>;
+
+    if (actionMap[handler]) { return actionMap[handler]; }
+
+    // Fallback logic if handler not mapped
+    return {
+      description: `${method} request to ${url}`,
+      eventType: this.determineEventType(method, handler),
+    };
+  }
 
   /**
    * Determines the event type based on HTTP method and handler
@@ -219,11 +357,12 @@ import { randomUUID } from 'node:crypto';
     if (handler.includes('login')) return 'authentication';
 
     // CRUD operations
+    if (method === 'GET' || handler.includes('get') || handler.includes('list') || handler.includes('fetch')) return 'read';
     if (method === 'POST' || handler.includes('create')) return 'creation';
-    if (method === 'PUT' || handler.includes('update') || handler.includes('modify')) {
-      return 'modification';
-    }
+    if (method === 'PUT' || handler.includes('update') || handler.includes('modify')) return 'modification';
     if (method === 'DELETE' || handler.includes('delete')) return 'deletion';
+
+    // Cloning operations
     if (handler.includes('clone')) return 'replication';
 
     // Status changes are special modifications
@@ -264,8 +403,8 @@ import { randomUUID } from 'node:crypto';
    * Logs audit data asynchronously without blocking the main operation
    * @private
    */
-  private logAuditAsync(auditData: Omit<AuditLogInput, 'correlationId' | 'eventPhase'>,eventPhase: 'INTENT' | 'SUCCESS' | 'FAILED',correlationId: string,): void {
-    const auditInput: AuditLogInput = {...auditData,correlationId,eventPhase,};
+  private logAuditAsync(auditData: Omit<AuditLogInput, 'correlationId' | 'eventPhase'>, eventPhase: 'INTENT' | 'SUCCESS' | 'FAILED', correlationId: string,): void {
+    const auditInput: AuditLogInput = { ...auditData, correlationId, eventPhase, };
 
     this.auditService.log(auditInput).catch((error: unknown) => {
       const errorMessage = error instanceof Error ? error.message : String(error);
