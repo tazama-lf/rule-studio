@@ -267,8 +267,8 @@ const useSimulationController = (props: ISimulation) => {
             category
         }
         addLogs({ body, id: data?.id }).unwrap()
-            .catch((error) => {
-                console.error('Failed to add simulation log:', error)
+            .catch(() => {
+                toast.error('Failed to save simulation log')
             })
     }, [addLogs, data?.id])
 
