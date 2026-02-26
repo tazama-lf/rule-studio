@@ -39,7 +39,13 @@ export class RulesService {
   }
 
   async getAllRules(offset: number, limit: number, filters: RuleFiltersDto, token: string): Promise<Rules[]> {
-    return await this.adminServiceClient.getAllRulesWithFilters(offset, limit, filters, token);
+    // Set default sort order to DESC (newest first) if not provided
+    const updatedFilters = {
+      ...filters,
+      sortOrder: filters.sortOrder || 'DESC' as 'DESC',
+    };
+    
+    return await this.adminServiceClient.getAllRulesWithFilters(offset, limit, updatedFilters, token);
   }
 
   async getRulesById(

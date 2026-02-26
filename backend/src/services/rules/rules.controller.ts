@@ -70,7 +70,7 @@ export class RulesController {
   })
   @ApiSwagger({
     summary: 'Get all rules (paginated)',
-    description: 'Retrieves paginated list of rules with optional filters for status, transaction type, etc.',
+    description: 'Retrieves paginated list of rules with optional filters for status, transaction type, etc. Results are sorted by updated_at timestamp (DESC by default = newest first).',
     responses: mergeResponses(
       CommonResponses.SUCCESS_200([Rules], 'Rules retrieved successfully'),
       CommonResponses.BAD_REQUEST_400('Invalid pagination parameters'),

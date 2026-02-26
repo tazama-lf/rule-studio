@@ -539,6 +539,18 @@ export class RuleFiltersDto {
   @IsOptional()
   @IsString()
   ruleType?: string;
+
+  @ApiPropertyOptional({
+    description: 'Sort order for updated_at field (DESC = newest first, ASC = oldest first)',
+    example: 'DESC',
+    enum: ['ASC', 'DESC'],
+    default: 'DESC',
+  })
+  @IsOptional()
+  @IsEnum(['ASC', 'DESC'], {
+    message: 'sortOrder must be either ASC or DESC',
+  })
+  sortOrder?: 'ASC' | 'DESC';
 }
 
 export class UpdateRuleStatusDto {
