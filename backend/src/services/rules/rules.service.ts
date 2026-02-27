@@ -19,6 +19,8 @@ import { AuthenticatedUser } from '../auth/auth.types';
 import { parseString, ParserOptions } from 'xml2js';
 
 import { createSchemaAwareNumberProcessor, replaceObjectsWithArrays, returnArrayFieldsFromSchema } from '../../utils/xml2js.utils';
+import { EventType } from 'src/utils/enums/events.enum';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class RulesService {
@@ -27,7 +29,8 @@ export class RulesService {
   constructor(
     private readonly adminServiceClient: AdminServiceClient,
     private readonly parseExtractService: ParseExtractService,
-  ) {}
+    private readonly notificationService: NotificationService,
+  ) { }
   private async getRuleOrThrow(id: number, token: string): Promise<Rules> {
     try {
       return await this.adminServiceClient.getRulesById(id, token);
@@ -44,7 +47,7 @@ export class RulesService {
       ...filters,
       sortOrder: filters.sortOrder || 'DESC' as 'DESC',
     };
-    
+
     return await this.adminServiceClient.getAllRulesWithFilters(offset, limit, updatedFilters, token);
   }
 
@@ -64,7 +67,7 @@ export class RulesService {
       const result = await this.adminServiceClient.getPayloadByTransactionType(transactionType, token);
 
       const payload = result.payload;
-      let typedPayload = result;  
+      let typedPayload = result;
 
       if (result.type === 'xml') {
         // Convert XML to JSON
@@ -101,7 +104,7 @@ export class RulesService {
 
       // if it was XML, now its JSON
       const parseResult = await this.parseExtractService.processForRuleCreation(
-        {TxTp: transactionType, TenantId:tenantId, ...result},
+        { TxTp: transactionType, TenantId: tenantId, ...result },
         token,
       );
       // console.log('Parse result for transactional message:', parseResult);
@@ -282,9 +285,104 @@ export class RulesService {
     }
   }
 
-  async updateRuleStatus(ruleId: string, status: string, reason: string, token: string): Promise<Rules> {
+  async updateRuleStatus(
+    ruleId: string,
+    status: string,
+    reason: string,
+    user: AuthenticatedUser,
+  ): Promise<Rules> {
+
+    const token = user.token.tokenString || '';
+    const mapStatusToEventType = (status: string): EventType | null => {
+      const normalizedStatus = status.toUpperCase();
+
+      switch (normalizedStatus) {
+        // Editor submits for review
+        case 'STATUS_03_UNDER_REVIEW':
+          return EventType.EditorSubmit;
+
+        // Approver approves
+        case 'STATUS_04_APPROVED':
+          return EventType.ApproverApprove;
+
+        // Approver rejects
+        case 'STATUS_05_REJECTED':
+          return EventType.ApproverReject;
+
+        // Publisher deploys
+        case 'STATUS_08_DEPLOYED':
+          return EventType.PublisherDeploy;
+
+        // Publisher activates
+        case 'ACTIVE':
+          return EventType.PublisherActivate;
+
+        // Publisher deactivates
+        case 'INACTIVE':
+          return EventType.PublisherDeactivate;
+
+        default:
+          return null;
+      }
+    };
+
     try {
-      return await this.adminServiceClient.updateRuleStatus(ruleId, status, reason, token);
+      const existingRule = await this.getRuleOrThrow(Number(ruleId), token);
+      const previousStatus = (existingRule as any)?.rules?.status ?? existingRule.status;
+
+      if (previousStatus === status) {
+        this.logger.debug(`Rule ${ruleId} already in status '${status}'. Skipping notification.`);
+
+        return await this.adminServiceClient.updateRuleStatus(ruleId, status, reason, token,);
+      }
+
+      const updatedRule = await this.adminServiceClient.updateRuleStatus(ruleId, status, reason, token,);
+
+      const ruleData = await this.getRuleOrThrow(Number(ruleId), token);
+      this.logger.log(`Rule Data ${JSON.stringify(ruleData)}`);
+
+      // Send notification after successful status update
+      const eventType = mapStatusToEventType(status);
+
+      if (eventType) {
+        try {
+          const apiRule = (ruleData as any)?.rules ?? ruleData;
+
+          const mappedRule: Rules = {
+            id: apiRule.id?.toString(),
+            ruleName: apiRule.rule_name,
+            description: apiRule.description,
+            txtp: apiRule.txtp,
+            txtpVersion: apiRule.txtp_version,
+            version: apiRule.version,
+            status: apiRule.status,
+            publishing_status: apiRule.publishing_status,
+            rule_type: apiRule.rule_type,
+            rule_config_id: apiRule.rule_config_id,
+            metadata: apiRule.metadata,
+            created_at: apiRule.created_at,
+            updated_at: apiRule.updated_at,
+          };
+
+          await this.notificationService.sendRuleWorkflowNotification(eventType, user, mappedRule, token, reason,
+          );
+
+          this.logger.log(
+            `Notification sent for rule ${ruleId} status change to '${status}'`,
+          );
+        } catch (notificationError) {
+          const notifErr = notificationError as Error;
+          this.logger.warn(
+            `Failed to send notification for rule ${ruleId} status change: ${notifErr.message}`,
+          );
+        }
+      } else {
+        this.logger.debug(
+          `No notification event mapped for status '${status}' on rule ${ruleId}`,
+        );
+      }
+
+      return updatedRule;
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Error updating status for rule ${ruleId}: ${err.message}`);
