@@ -53,7 +53,7 @@ const CodeTemplateButton: React.FC<CodeTemplateButtonProps> = ({
         >
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1 }}>
             <Typography variant="body2" fontWeight={500}>
-              Edit Function Code
+              {input.key === 'code_template' ? 'Edit Function Code' : `Edit ${input.label}`}
             </Typography>
             <Typography variant="caption" color="text.secondary">
               {lineCount} lines of code

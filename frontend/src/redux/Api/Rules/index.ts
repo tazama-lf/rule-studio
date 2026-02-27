@@ -31,6 +31,14 @@ export const rulesApi = createApi({
             }),
             invalidatesTags: ['rule']
         }),
+        cloneRule: builder.mutation({
+            query: ({ id, body }) => ({
+                url: `clone/${id}`,
+                method: "POST",
+                body
+            }),
+            invalidatesTags: ['rule']
+        }),
         updateRule: builder.mutation({
             query: ({ id, body }) => ({
                 url: `${id}`,
@@ -41,6 +49,14 @@ export const rulesApi = createApi({
         updateStatus: builder.mutation({
             query: ({ id, body }) => ({
                 url: `${id}/status`,
+                method: "PUT",
+                body: { ...body },
+            }),
+            invalidatesTags: ['rule']
+        }),
+        updateMetadata: builder.mutation({
+            query: ({ id, body }) => ({
+                url: `${id}/metadata`,
                 method: "PUT",
                 body: { ...body },
             }),
@@ -77,17 +93,22 @@ export const rulesApi = createApi({
                 method: "GET",
             }),
         }),
+
     }),
 })
 
 export const {
     useGetRulesMutation,
     useGetRuleByIdQuery,
+    useLazyGetRuleByIdQuery,
     useGetRuleConfigsIdsQuery,
     useLazyGetRuleConfigQuery,
     useGetNetworkMapQuery,
     useCreateRuleMutation,
     useGetStatusQuery,
     useUpdateRuleMutation,
-    useUpdateStatusMutation
+    useUpdateStatusMutation,
+    useCloneRuleMutation,
+    useUpdateMetadataMutation,
+   
 } = rulesApi

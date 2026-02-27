@@ -2,6 +2,7 @@ import React from 'react';
 import { TextField, Divider } from '@mui/material';
 import type { Node } from '@xyflow/react';
 import { PropertyRow, SectionContainer, SectionTitle } from '../styles';
+import { withCursorPreservation } from '../../../../utils/cursorPreservation';
 
 interface BasicPropertiesSectionProps {
   selectedNode: Node | null;
@@ -34,7 +35,7 @@ const BasicPropertiesSection: React.FC<BasicPropertiesSectionProps> = ({
             fullWidth
             label="Label"
             value={currentLabel}
-            onChange={onLabelChange}
+            onChange={withCursorPreservation(onLabelChange)}
             onBlur={onLabelBlur}
             size="small"
             variant="outlined"

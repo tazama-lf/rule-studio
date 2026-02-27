@@ -41,10 +41,22 @@ const NodePalette: React.FC<NodePaletteProps> = ({ nodes, onDragStart }) => {
           <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 }, boxSizing: 'border-box' }}>
             <Box display="flex" alignItems="flex-start" justifyContent="space-between" gap={0.5}>
               <Box flex={1} minWidth={0} sx={{ overflow: 'hidden' }}>
-                <Box display="flex" alignItems="center" gap={0.5} mb={0.5}>
+                <Box display="flex" alignItems="center" gap={0.5} mb={0.5} flexWrap="wrap">
                   <Typography variant="body2" fontWeight={500} color="text.primary" sx={{ wordBreak: 'break-word' }}>
                     {node.label}
                   </Typography>
+                  {node.isPredefined && (
+                    <Chip
+                      label="Predefined Function"
+                      size="small"
+                      color="primary"
+                      sx={{
+                        height: 18,
+                        fontSize: '0.65rem',
+                        '& .MuiChip-label': { px: 0.75 },
+                      }}
+                    />
+                  )}
                   {nonDraggable && (
                     <Chip
                       label="Already present"

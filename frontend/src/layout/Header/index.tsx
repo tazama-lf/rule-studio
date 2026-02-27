@@ -12,7 +12,7 @@ const Header = ({ expanded, setExpanded }: { expanded: boolean; setExpanded: (v:
         width: '25px',
         height: '25px',
         "&:hover": {
-            bgcolor: "#f3f4f6",
+            bgcolor: "static.lightGrey",
         },
     };
 

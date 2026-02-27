@@ -2,10 +2,12 @@ import React, { useMemo, useRef, useImperativeHandle, forwardRef, useCallback } 
 import { Box, Alert, Typography } from '@mui/material';
 import Editor from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
+import type { Monaco } from '@monaco-editor/react';
 
 export interface EditorSectionHandle {
   getValue: () => string;
   setValue: (value: string) => void;
+  editor: editor.IStandaloneCodeEditor | null;
 }
 
 interface EditorSectionProps {
@@ -15,6 +17,7 @@ interface EditorSectionProps {
   onDragOver: (event: React.DragEvent<HTMLDivElement>) => void;
   onDragEnter?: (event: React.DragEvent<HTMLDivElement>) => void;
   onDragLeave?: (event: React.DragEvent<HTMLDivElement>) => void;
+  onEditorMount?: (editor: editor.IStandaloneCodeEditor, monaco: Monaco) => void;
 }
 
 const EditorSection = forwardRef<EditorSectionHandle, EditorSectionProps>(({
@@ -24,6 +27,7 @@ const EditorSection = forwardRef<EditorSectionHandle, EditorSectionProps>(({
   onDragOver,
   onDragEnter,
   onDragLeave,
+  onEditorMount,
 }, ref) => {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
@@ -35,9 +39,10 @@ const EditorSection = forwardRef<EditorSectionHandle, EditorSectionProps>(({
     setValue: (value: string) => {
       editorRef.current?.setValue(value);
     },
+    editor: editorRef.current,
   }), []);
 
-  const handleEditorMount = useCallback((editor: Parameters<NonNullable<React.ComponentProps<typeof Editor>['onMount']>>[0]) => {
+  const handleEditorMount = useCallback((editor: Parameters<NonNullable<React.ComponentProps<typeof Editor>['onMount']>>[0], monaco: Monaco) => {
     editorRef.current = editor;
 
     editor.updateOptions({
@@ -51,7 +56,12 @@ const EditorSection = forwardRef<EditorSectionHandle, EditorSectionProps>(({
       formatOnType: false,
       autoIndent: 'none',
     });
-  }, []);
+
+    // Call the parent's onEditorMount if provided
+    if (onEditorMount) {
+      onEditorMount(editor, monaco);
+    }
+  }, [onEditorMount]);
 
   const editorOptions = useMemo(() => ({
     minimap: { enabled: false },

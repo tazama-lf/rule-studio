@@ -14,6 +14,7 @@ import {
   Checkbox,
   FormControlLabel,
 } from '@mui/material';
+import { withCursorPreservation } from '../../../../utils/cursorPreservation';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CodeIcon from '@mui/icons-material/Code';
@@ -148,40 +149,41 @@ const ParameterConfigSection: React.FC<ParameterConfigSectionProps> = ({
     [onParamChange, onParamBlur]
   );
 
-  const updateParameters = useCallback(
-    (newParams: FunctionParameter[]) => {
-      setLocalParameters(newParams);
-      syncToParent(newParams);
+  const handleAddParameter = useCallback(() => {
+    setLocalParameters(prevParams => {
+      const newParam: FunctionParameter = {
+        name: `param${prevParams.length + 1}`,
+        type: 'any',
+        label: `Parameter ${prevParams.length + 1}`,
+        required: false,
+      };
+      const newParams = [...prevParams, newParam];
+      queueMicrotask(() => syncToParent(newParams));
+      return newParams;
+    });
+  }, [syncToParent]);
+
+  const handleRemoveParameter = useCallback(
+    (index: number) => {
+      setLocalParameters(prevParams => {
+        const newParams = prevParams.filter((_, i) => i !== index);
+        queueMicrotask(() => syncToParent(newParams));
+        return newParams;
+      });
     },
     [syncToParent]
   );
 
-  const handleAddParameter = useCallback(() => {
-    const newParam: FunctionParameter = {
-      name: `param${localParameters.length + 1}`,
-      type: 'any',
-      label: `Parameter ${localParameters.length + 1}`,
-      required: false,
-    };
-    updateParameters([...localParameters, newParam]);
-  }, [localParameters, updateParameters]);
-
-  const handleRemoveParameter = useCallback(
-    (index: number) => {
-      const newParams = localParameters.filter((_, i) => i !== index);
-      updateParameters(newParams);
-    },
-    [localParameters, updateParameters]
-  );
-
   const handleParameterChange = useCallback(
     (index: number, field: keyof FunctionParameter, value: string | boolean) => {
-      const newParams = [...localParameters];
-      newParams[index] = { ...newParams[index], [field]: value };
-      setLocalParameters(newParams);
-      syncToParent(newParams);
+      setLocalParameters(prevParams => {
+        const newParams = [...prevParams];
+        newParams[index] = { ...newParams[index], [field]: value };
+        queueMicrotask(() => syncToParent(newParams));
+        return newParams;
+      });
     },
-    [localParameters, syncToParent]
+    [syncToParent]
   );
 
   const handleOpenCodeModal = useCallback(() => {
@@ -239,7 +241,7 @@ const ParameterConfigSection: React.FC<ParameterConfigSectionProps> = ({
             size="small"
             label="Function Name"
             value={functionName}
-            onChange={onParamChange('function_name')}
+            onChange={withCursorPreservation(onParamChange('function_name'))}
             onBlur={onParamBlur}
             disabled={isReadOnly || viewOnly}
             error={!!getFieldError?.('function_name')}
@@ -272,6 +274,7 @@ const ParameterConfigSection: React.FC<ParameterConfigSectionProps> = ({
             </Paper>
           ) : (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              {/* eslint-disable-next-line react-hooks/refs -- The callbacks use queueMicrotask to defer ref access outside render phase */}
               {localParameters.map((param, index) => (
                 <Paper
                   key={index}
@@ -289,7 +292,7 @@ const ParameterConfigSection: React.FC<ParameterConfigSectionProps> = ({
                         size="small"
                         label="Name"
                         value={param.name}
-                        onChange={(e) => handleParameterChange(index, 'name', e.target.value)}
+                        onChange={withCursorPreservation((e) => handleParameterChange(index, 'name', e.target.value))}
                         disabled={isReadOnly || viewOnly}
                         placeholder="paramName"
                         sx={{ flex: 1 }}
@@ -324,7 +327,7 @@ const ParameterConfigSection: React.FC<ParameterConfigSectionProps> = ({
                         size="small"
                         label="Display Label"
                         value={param.label}
-                        onChange={(e) => handleParameterChange(index, 'label', e.target.value)}
+                        onChange={withCursorPreservation((e) => handleParameterChange(index, 'label', e.target.value))}
                         disabled={isReadOnly || viewOnly}
                         placeholder="Parameter Label"
                         sx={{ flex: 1 }}

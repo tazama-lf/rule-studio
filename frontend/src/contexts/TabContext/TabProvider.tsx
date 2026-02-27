@@ -49,6 +49,20 @@ export const TabProvider = ({ children }: TabProviderProps) => {
         }
     }, [selectedTab, handleSetSelectedTab, filteredTabs])
 
+    const enablePreviousTab = useCallback(() => {
+        const currentIndex = filteredTabs.findIndex(t => t.value === selectedTab)
+        if (currentIndex > 0 && currentIndex < filteredTabs.length) {
+            const prevTab = filteredTabs[currentIndex - 1]
+            setEnabledTabs(prev => {
+                if (!prev.includes(prevTab.value)) {
+                    return [...prev, prevTab.value]
+                }
+                return prev
+            })
+            handleSetSelectedTab(prevTab.value)
+        }
+    }, [selectedTab, handleSetSelectedTab, filteredTabs])
+
     const enableAllTabs = useCallback(() => {
         setEnabledTabs(filteredTabs.map(t => t.value))
     }, [filteredTabs])
@@ -65,7 +79,8 @@ export const TabProvider = ({ children }: TabProviderProps) => {
             tabs: tabsWithEnabled,
             setSelectedTab: handleSetSelectedTab,
             enableNextTab,
-            enableAllTabs
+            enableAllTabs,
+            enablePreviousTab
         }}>
             {children}
         </TabContext.Provider>
