@@ -51,6 +51,7 @@ export class RulesController {
   @Post('/api/all')
   // @UseGuards(StatusValidationGuard)
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @Audit() // Audit rule retrieval actions (important for monitoring access to sensitive rule data)
   @ApiQuery({
     name: 'offset',
     required: true,
@@ -397,6 +398,7 @@ export class RulesController {
   // update rule metadata
   @Put('/api/:ruleId/metadata')
   @RequireAnyClaims(TazamaClaims.EDITOR)
+  @Audit() // Audit rule metadata changes
   @ApiParam({
     name: 'ruleId',
     description: 'Rule identifier to update',

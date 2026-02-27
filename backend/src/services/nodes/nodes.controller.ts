@@ -138,6 +138,7 @@ export class NodesController {
 
   @Post('execute-query')
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @Audit() // Audit query execution actions (critical)
   @ApiOperation({
     summary: 'Execute query node',
     description: 'Executes a query node and returns the result',
