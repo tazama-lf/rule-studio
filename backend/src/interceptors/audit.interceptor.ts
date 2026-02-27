@@ -336,36 +336,11 @@ export class AuditInterceptor implements NestInterceptor {
 
     if (actionMap[handler]) { return actionMap[handler]; }
 
-    // Fallback logic if handler not mapped
     return {
       description: `${method} request to ${url}`,
-      eventType: this.determineEventType(method, handler),
+      eventType: 'UNKNOWN_EVENT',
     };
   }
-
-  /**
-   * Determines the event type based on HTTP method and handler
-   * @private
-   */
-  private determineEventType(method: string, handler: string): string {
-    // Authentication events
-    if (handler.includes('login')) return 'authentication';
-
-    // CRUD operations
-    if (method === 'GET' || handler.includes('get') || handler.includes('list') || handler.includes('fetch')) return 'read';
-    if (method === 'POST' || handler.includes('create')) return 'creation';
-    if (method === 'PUT' || handler.includes('update') || handler.includes('modify')) return 'modification';
-    if (method === 'DELETE' || handler.includes('delete')) return 'deletion';
-
-    // Cloning operations
-    if (handler.includes('clone')) return 'replication';
-
-    // Status changes are special modifications
-    if (handler.includes('status')) return 'status_change';
-
-    return 'access';
-  }
-
   /**
    * Removes sensitive information from request body
    * @private

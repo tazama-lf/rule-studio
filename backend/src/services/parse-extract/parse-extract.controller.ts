@@ -19,7 +19,7 @@ export class ParseExtractController {
 
   @Post('/api/validatePayload')
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
-  @Audit() // Audit payload validation actions (critical for compliance)
+  @Audit()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Validate ISO 20022 payload',

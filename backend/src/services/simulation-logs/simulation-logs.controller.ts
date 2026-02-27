@@ -41,7 +41,7 @@ export class SimulationLogsController {
 
   @Post('insert/:ruleId')
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
-  @Audit() // Audit simulation log insertions (critical for tracking changes to rule simulations)
+  @Audit()
   @ApiBody({
     type: RequestSimulationLogsDto,
     description: 'Simulation logs to be inserted',

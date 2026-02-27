@@ -22,7 +22,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(200)
-  @Audit() // Audit user authentication attempts
+  @Audit()
   async login(
     @Body(new ValidationPipe({ whitelist: true, transform: true }))
     body: LoginDto,

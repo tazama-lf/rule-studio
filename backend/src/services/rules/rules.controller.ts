@@ -51,7 +51,7 @@ export class RulesController {
   @Post('/api/all')
   // @UseGuards(StatusValidationGuard)
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
-  @Audit() // Audit rule retrieval actions (important for monitoring access to sensitive rule data)
+  @Audit()
   @ApiQuery({
     name: 'offset',
     required: true,
@@ -110,7 +110,7 @@ export class RulesController {
   // create a new rule
   @Post('/api/create')
   @RequireAnyClaims(TazamaClaims.EDITOR)
-  @Audit() // Audit rule creation actions
+  @Audit()
   @ApiBody({
     type: Rules,
     description: 'Rule data for creation',
@@ -162,7 +162,7 @@ export class RulesController {
   // update an existing rule
   @Put('/api/:ruleId')
   @RequireAnyClaims(TazamaClaims.EDITOR)
-  @Audit() // Audit rule modification actions
+  @Audit()
   @ApiParam({
     name: 'ruleId',
     description: 'Rule identifier to update',
@@ -225,7 +225,7 @@ export class RulesController {
   // create rule flow configuration
   @Post('/api/:ruleId/flow')
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
-  @Audit() // Audit rule flow creation
+  @Audit()
   @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: '001' })
   @ApiBody({
     type: RequestFlow,
@@ -293,7 +293,7 @@ export class RulesController {
   // update rule flow configuration
   @Put('/api/:ruleId/flow')
   @RequireAnyClaims(TazamaClaims.EDITOR)
-  @Audit() // Audit rule flow modification
+  @Audit()
   @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: '001' })
   @ApiBody({
     type: RequestSaveFlow,
@@ -339,7 +339,7 @@ export class RulesController {
   // clone an existing rule
   @Post('/api/clone/:ruleId')
   @RequireAnyClaims(TazamaClaims.EDITOR)
-  @Audit() // Audit rule cloning actions
+  @Audit()
   @ApiParam({
     name: 'ruleId',
     description: 'Source rule identifier to clone',
@@ -368,7 +368,7 @@ export class RulesController {
   // update rule status
   @Put('/api/:ruleId/status')
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
-  @Audit() // Audit rule status changes (critical for compliance)
+  @Audit()
   @ApiParam({
     name: 'ruleId',
     description: 'Rule identifier',
@@ -398,7 +398,7 @@ export class RulesController {
   // update rule metadata
   @Put('/api/:ruleId/metadata')
   @RequireAnyClaims(TazamaClaims.EDITOR)
-  @Audit() // Audit rule metadata changes
+  @Audit()
   @ApiParam({
     name: 'ruleId',
     description: 'Rule identifier to update',
