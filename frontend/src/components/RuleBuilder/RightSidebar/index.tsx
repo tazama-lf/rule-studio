@@ -4,6 +4,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import EditIcon from '@mui/icons-material/Edit';
 import type { Node } from '@xyflow/react';
+import toast from 'react-hot-toast';
 import {
   SidebarContainer,
   CloseButton,
@@ -482,7 +483,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
 
   const handleEditMockRequest = useCallback(() => {
     if (!window.globalVariablesData) {
-      alert('No global variables data available. Please load the test case first.');
+      toast.error('No global variables data available. Please load the test case first.');
       return;
     }
     

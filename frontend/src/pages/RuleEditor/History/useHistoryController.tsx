@@ -7,6 +7,11 @@ import TableActions from "../../../components/TableActions";
 import ViewPayload from "../Modals/ViewPayload";
 import { useModal } from "../../../contexts/ModalContext";
 
+interface Log {
+    category?: string;
+    [key: string]: unknown;
+}
+
 export interface IHistory {
     data?: Record<string, unknown> | undefined
 }
@@ -23,11 +28,6 @@ const useHistoryController = (props: IHistory) => {
 
 
     const { data: logs, isLoading } = useGetSimulationLogsQuery({ ruleId: data?.id }, { skip: !data?.id, refetchOnMountOrArgChange: true })
-
-    interface Log {
-        category?: string;
-        [key: string]: unknown;
-    }
 
     const readOnlyLogs = useMemo(() => {
         if (!logs?.result || !Array.isArray(logs?.result)) return []

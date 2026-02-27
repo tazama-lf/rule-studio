@@ -14,10 +14,13 @@ import { useGetNodesQuery, useSaveFlowMutation, useGetGlobalVariablesQuery, useG
 import { setApiNodes } from '../../utils/Flow/nodeTemplateService';
 import { transformApiFlowData, type ApiNode as ApiFlowNode, type ApiEdge } from '../../utils/Flow/FlowTransformers';
 import { validateTypeScriptCode } from '../../utils/Flow/codeValidator';
+import { generateTestCaseCode } from '../../utils/Flow/CodeGenerator';
 import { useFlowState } from '../../hooks/RuleBuilder';
 import { extractData } from '../../utils/Common/storage';
 import { LocalStorage } from '../../utils/Common/enums';
 import { useUpdateMetadataMutation } from '../../redux/Api/Rules';
+import { transformRuleRequestToCode } from '../../utils/Flow/transformRuleRequest';
+import { RESET_TEST_CASE_PAYLOAD } from '../../utils/Constants';
 
 interface TestCaseGenerateProps {
   viewOnly?: boolean;
@@ -53,11 +56,60 @@ const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false })
 
     const flowJson = flowData.result.flow_json || flowData.flow;
 
-    return transformApiFlowData(
+    const transformedData = transformApiFlowData(
       flowJson.nodes as ApiFlowNode[] || [],
       flowJson.edges as ApiEdge[] || []
     );
-  }, [flowData, apiNodesInitialized]);
+
+    if (globalVariablesData && transformedData?.nodes) {
+      const globalVars = globalVariablesData as { RuleConfig?: unknown; RuleRequest?: unknown };
+
+      transformedData.nodes = transformedData.nodes.map((node) => {
+        if (node.data.nodeType === 'RuleConfigFactory') {
+          try {
+            if (globalVars.RuleConfig) {
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  params: {
+                    ...(node.data.params as Record<string, string> || {}),
+                    ruleConfigData: JSON.stringify(globalVars.RuleConfig),
+                  },
+                },
+              };
+            }
+          } catch (error) {
+            console.error('Error updating RuleConfigFactory with global variables:', error);
+          }
+        }
+
+        if (node.data.nodeType === 'RuleRequestFactory') {
+          try {
+            if (globalVars.RuleRequest) {
+              const transformedCode = transformRuleRequestToCode(globalVars.RuleRequest);
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  params: {
+                    ...(node.data.params as Record<string, string> || {}),
+                    ruleRequestData: transformedCode,
+                  },
+                },
+              };
+            }
+          } catch (error) {
+            console.error('Error updating RuleRequestFactory with global variables:', error);
+          }
+        }
+
+        return node;
+      });
+    }
+
+    return transformedData;
+  }, [flowData, apiNodesInitialized, globalVariablesData]);
 
   useEffect(() => {
     window.globalVariablesData = globalVariablesData || null;
@@ -65,6 +117,7 @@ const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false })
 
   const [showErrorModal, setShowErrorModal] = useState<boolean>(false);
   const [showSaveSuccessModal, setShowSaveSuccessModal] = useState<boolean>(false);
+  const [showResetConfirmDialog, setShowResetConfirmDialog] = useState<boolean>(false);
   const [allowNavigation, setAllowNavigation] = useState<boolean>(false);
 
   useEffect(() => {
@@ -158,6 +211,73 @@ const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false })
     }
   }, [ruleId, saveFlow, flowState, update]);
 
+  const handleReset = useCallback(async () => {
+    if (!ruleId) {
+      toast.error('Rule ID not found');
+      return;
+    }
+
+    try {
+      const transformedResetFlow = transformApiFlowData(
+        RESET_TEST_CASE_PAYLOAD.nodes as ApiFlowNode[],
+        RESET_TEST_CASE_PAYLOAD.edges as ApiEdge[]
+      );
+
+      const tsCode = generateTestCaseCode(
+        transformedResetFlow.nodes,
+        transformedResetFlow.edges
+      );
+      
+      if (!tsCode) {
+        toast.error('Failed to generate TypeScript code');
+        return;
+      }
+
+      const validationResult = validateTypeScriptCode(tsCode);
+      const status = validationResult.isValid ? 'pass' : 'fail';
+      const tsFileBase64 = btoa(unescape(encodeURIComponent(tsCode)));
+
+      const payload = {
+        flow_json: RESET_TEST_CASE_PAYLOAD,
+        ts_file_base64: tsFileBase64,
+        status,
+      };
+
+      await saveFlow({
+        ruleId,
+        flowData: payload,
+        category: 'test_case_generation',
+      }).unwrap().then((res) => {
+        if (res) {
+          update({
+            id: ruleId,
+            body: {
+              metadata: {
+                sync: true,
+                test: false,
+                deploy: false,
+                simulation: false
+              }
+            }
+          }).unwrap();
+        }
+      });
+
+      toast.success('Test case flow reset to default template successfully');
+      setShowResetConfirmDialog(false);
+      
+      // Allow navigation and reload the page to reflect the reset
+      setAllowNavigation(true);
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
+    } catch (error: unknown) {
+      console.error('Reset test case flow error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to reset test case flow';
+      toast.error(errorMessage);
+    }
+  }, [ruleId, saveFlow, update]);
+
   const handleNodeSelect = useCallback((node: Node | null) => {
     if (node?.data.nodeType === 'Start' || node?.data.nodeType === 'End') {
       return;
@@ -189,8 +309,10 @@ const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false })
     flowState.setEdges(edges);
   }, [flowState]);
 
-  const mode = extractData('mode', LocalStorage)
+  const mode = extractData('mode', LocalStorage);
 
+  // Hide save and reset buttons when rule ID is 21
+  const isStaticRule = ruleId === '21';
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
@@ -201,7 +323,8 @@ const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false })
         onDisplayJson={handleDisplayJson}
         onGenerateCode={handleGenerateCode}
         onViewErrors={() => setShowErrorModal(true)}
-        onSave={handleSave}
+        onSave={!isStaticRule ? handleSave : undefined}
+        onReset={!isStaticRule ? () => setShowResetConfirmDialog(true) : undefined}
         isSaving={isSaving}
         viewOnly={viewOnly}
         title="Test Cases Generation"
@@ -323,6 +446,37 @@ const TestCaseGenerate: React.FC<TestCaseGenerateProps> = ({ viewOnly = false })
             variant="contained"
           >
             Proceed to Next Step
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog 
+        open={showResetConfirmDialog} 
+        onClose={() => setShowResetConfirmDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ color: 'warning.main' }}>Reset Test Case Flow Confirmation</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure? All changes will be lost and the test case flow will be reset to the default template.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setShowResetConfirmDialog(false)}
+            variant="outlined"
+            color="inherit"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleReset}
+            variant="contained"
+            color="warning"
+            disabled={isSaving}
+          >
+            {isSaving ? 'Resetting...' : 'Yes, Reset'}
           </Button>
         </DialogActions>
       </Dialog>

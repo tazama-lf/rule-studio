@@ -34,7 +34,7 @@ export interface IOverviewProps {
 const useOverviewController = (props: IOverviewProps) => {
 
     const data = useMemo(
-        () => extractData('trs_rule', LocalStorage, true) ?? props.data,
+        () => props.data ?? extractData('trs_rule', LocalStorage, true),
         [props.data]
     )
 
@@ -98,6 +98,11 @@ const useOverviewController = (props: IOverviewProps) => {
         }
 
         try {
+            if (mode === 'clone' && !data?.id) {
+                toast.error('Source rule ID is missing. Cannot clone rule.');
+                return;
+            }
+            
             const res =
                 mode === 'clone'
                     ? await clone({ id: data?.id, body: payload }).unwrap()

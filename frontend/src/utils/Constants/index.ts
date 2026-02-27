@@ -37,3 +37,4 @@ export const baseFontSizes = {
 };
 
 export { RESET_FLOW_PAYLOAD } from './resetFlowPayload';
+export { RESET_TEST_CASE_PAYLOAD } from './resetTestCasePayload';

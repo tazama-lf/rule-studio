@@ -41,7 +41,7 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
   );
 
   const [saveFlow, { isLoading: isSaving }] = useSaveFlowMutation();
-  const [update] = useUpdateMetadataMutation()
+  const [update] = useUpdateMetadataMutation();
 
   const flowState = useFlowState();
   const nestedCanvasManager = useNestedCanvasManager();
@@ -361,6 +361,8 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
 
   const mode = extractData('mode', LocalStorage)
 
+  const isStaticRule = ruleId === '21';
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       <Header
@@ -373,8 +375,8 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
         onDisplayJson={handleDisplayJson}
         onGenerateCode={handleGenerateCode}
         onViewErrors={() => setShowErrorModal(true)}
-        onSave={handleSave}
-        onReset={() => setShowResetConfirmDialog(true)}
+        onSave={!isStaticRule ? handleSave : undefined}
+        onReset={!isStaticRule ? () => setShowResetConfirmDialog(true) : undefined}
         isSaving={isSaving}
         viewOnly={viewOnly}
         hidePlayControls={true}
