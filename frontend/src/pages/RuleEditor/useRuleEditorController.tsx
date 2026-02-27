@@ -23,6 +23,8 @@ const useRuleEditorController = () => {
     const [getRuleById, { data: ruleData }] = useLazyGetRuleByIdQuery()
     const { selectedTab } = useTab()
 
+    const user = extractData('user')
+
     useEffect(() => {
         if (selectedTab === 'simulation' && (id || rule?.id)) {
             getRuleById({ id: id ?? rule?.id })
@@ -68,7 +70,8 @@ const useRuleEditorController = () => {
         values: {
             isLoading,
             mode,
-            data : data?.rules
+            data: data?.rules,
+            user
         },
         functions: {
             renderComponent

@@ -8,7 +8,7 @@ import BoxWrapper from "../../components/Wrappers/BoxWrapper";
 import { TabProvider } from '../../contexts/TabContext/TabProvider';
 import useRuleEditorController from './useRuleEditorController';
 import CommentCard from '../../components/Cards/CommentCard';
-import { Status } from '../../utils/Constants/data';
+import { claims, Status } from '../../utils/Constants/data';
 
 
 const RuleEditorContent = () => {
@@ -28,12 +28,13 @@ const RuleEditorContent = () => {
                 </Box>
             </Box>
 
-
-            <Box display={'flex'} alignItems={'center'} justifyContent={'space-between'} >
-                {(values?.data?.status === Status.STATUS_04_APPROVED || values?.data?.status === Status.STATUS_05_REJECTED) &&
-                    <CommentCard success={values?.data?.status === Status.STATUS_04_APPROVED} message={values?.data?.comments} />
-                }
-            </Box>
+            {values?.user?.claims === claims.editor &&
+                <Box display={'flex'} alignItems={'center'} justifyContent={'space-between'} >
+                    {(values?.data?.status === Status.STATUS_04_APPROVED || values?.data?.status === Status.STATUS_05_REJECTED) &&
+                        <CommentCard success={values?.data?.status === Status.STATUS_04_APPROVED} message={values?.data?.comments} />
+                    }
+                </Box>
+            }
 
             <Tabs />
 
