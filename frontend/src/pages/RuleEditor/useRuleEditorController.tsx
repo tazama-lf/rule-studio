@@ -67,7 +67,8 @@ const useRuleEditorController = () => {
     return {
         values: {
             isLoading,
-            mode
+            mode,
+            data : data?.rules
         },
         functions: {
             renderComponent
