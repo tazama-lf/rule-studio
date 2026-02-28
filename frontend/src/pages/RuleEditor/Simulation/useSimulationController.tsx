@@ -241,7 +241,7 @@ const useSimulationController = (props: ISimulation) => {
                 toast.error('Transaction type not found')
                 return
             }
-            getPayload({ type: data.txtp })
+            getPayload({ type: data.txtp, version: data.txtp_version })
                 .unwrap()
                 .then((res) => {
                     if (res) {
