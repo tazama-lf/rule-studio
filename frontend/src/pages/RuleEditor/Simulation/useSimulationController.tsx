@@ -113,8 +113,10 @@ const useSimulationController = (props: ISimulation) => {
     }
 
     const handleReportStatus = useCallback(() => {
+
+        const rule_config_id = data?.rule_config_id
         const body = {
-            ruleId: data?.id,
+            ruleId: rule_config_id?.toString().split('@')[0],
             branchName: 'staging'
         }
         getReportStatus({ ...body })
