@@ -101,7 +101,8 @@ const useSimulationController = (props: ISimulation) => {
             deploy: 'Deployment'
         }
         const title = titles[type]
-        open(`${title} Confirmation Required!`, <Approval id={data?.id} type={type} />, null, { maxWidth: 'sm' })
+        const rule_config_id = data?.rule_config_id
+        open(`${title} Confirmation Required!`, <Approval rule_config_id={rule_config_id?.toString().split('@')[0]} id={data?.id} type={type} />, null, { maxWidth: 'sm' })
     }
 
     const handleNext = () => {
