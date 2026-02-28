@@ -157,8 +157,11 @@ const useSimulationController = (props: ISimulation) => {
     }, [toggleLoader, handleReportStatus])
 
     const handleUpload = useCallback(() => {
+
+        const rule_config_id = data?.rule_config_id
+
         const body = {
-            ruleId: data?.id,
+            ruleId: rule_config_id?.toString().split('@')[0],
             ruleCode: flowData?.result?.ts_file_base64_rule_builder,
             testCode: flowData?.result?.ts_file_base64_test_case
         }
