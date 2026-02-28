@@ -2,33 +2,53 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ParseExtractService } from '../parse-extract.service';
 import { AdminServiceClient } from '../../admin-service-client';
 import { RuleRequest } from '../dto/message.dto';
+import { AuthenticatedUser } from '../../auth/auth.types';
 
 describe('ParseExtractService - AJV Validation', () => {
   let service: ParseExtractService;
   let mockAdminServiceClient: jest.Mocked<AdminServiceClient>;
 
-  const mockSchema = {
-    config: {
-      type: 'object',
-      properties: {
-        FIToFICstmrCdtTrf: {
-          type: 'object',
-          properties: {
-            GrpHdr: {
-              type: 'object',
-              properties: {
-                MsgId: { type: 'string' },
-                CreDtTm: { type: 'string' },
-                NbOfTxs: { type: 'string' },
-              },
-              required: ['MsgId', 'CreDtTm'],
+  const schema = {
+    type: 'object',
+    properties: {
+      TxTp: { type: 'string' },
+      TenantId: { type: 'string' },
+      FIToFICstmrCdtTrf: {
+        type: 'object',
+        properties: {
+          GrpHdr: {
+            type: 'object',
+            properties: {
+              MsgId: { type: 'string' },
+              CreDtTm: { type: 'string' },
+              NbOfTxs: { type: 'string' },
             },
+            required: ['MsgId', 'CreDtTm'],
           },
-          required: ['GrpHdr'],
         },
+        required: ['GrpHdr'],
       },
-      required: ['FIToFICstmrCdtTrf'],
     },
+    required: ['FIToFICstmrCdtTrf', 'TxTp', 'TenantId'],
+  };
+
+  const mockConfig = {
+    config: {
+      schema,
+      mapping: [],
+      payload: {},
+    },
+  };
+
+  const mockUser: AuthenticatedUser = {
+    token: {
+      tokenString: 'Bearer token',
+      tenantId: 'tenant-123',
+    } as AuthenticatedUser['token'],
+    validated: {} as AuthenticatedUser['validated'],
+    validClaims: [],
+    tenantId: 'tenant-123',
+    userId: 'user-123',
   };
 
   beforeEach(async () => {
@@ -57,19 +77,23 @@ describe('ParseExtractService - AJV Validation', () => {
         },
       };
 
-      mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockSchema);
+      mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockConfig as any);
+      mockAdminServiceClient.getActiveNetworkMap.mockResolvedValue({});
 
-      const result = await service.processTransactionalMessage(
-        {
-          TxTp: 'pacs.008.001.10',
-          FIToFICstmrCdtTrf: validPayload.FIToFICstmrCdtTrf,
-        },
-        'Bearer token',
+      const result = await service.processForRuleCreation(
+        'pacs.008.001.10',
+        '10',
+        schema,
+        [],
+        validPayload,
+        mockUser,
       );
 
       expect(result.success).toBe(true);
       expect(result.validationErrors).toBeUndefined();
       expect(result.validatedPayload).toEqual({
+        TxTp: 'pacs.008.001.10',
+        TenantId: 'tenant-123',
         FIToFICstmrCdtTrf: validPayload.FIToFICstmrCdtTrf,
       });
     });
@@ -84,9 +108,17 @@ describe('ParseExtractService - AJV Validation', () => {
         },
       };
 
-      mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockSchema);
+      mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockConfig as any);
+      mockAdminServiceClient.getActiveNetworkMap.mockResolvedValue({});
 
-      const result = await service.processTransactionalMessage({ TxTp: 'pacs.008.001.10', Payload: invalidPayload }, 'Bearer token');
+      const result = await service.processForRuleCreation(
+        'pacs.008.001.10',
+        '10',
+        schema,
+        [],
+        invalidPayload,
+        mockUser,
+      );
 
       expect(result.success).toBe(false);
       expect(result.validationErrors).toBeDefined();
@@ -103,14 +135,16 @@ describe('ParseExtractService - AJV Validation', () => {
         },
       };
 
-      mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockSchema);
+      mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockConfig as any);
+      mockAdminServiceClient.getActiveNetworkMap.mockResolvedValue({});
 
-      const result = await service.processTransactionalMessage(
-        {
-          TxTp: 'pacs.008.001.10',
-          FIToFICstmrCdtTrf: invalidPayload.FIToFICstmrCdtTrf,
-        },
-        'Bearer token',
+      const result = await service.processForRuleCreation(
+        'pacs.008.001.10',
+        '10',
+        schema,
+        [],
+        invalidPayload,
+        mockUser,
       );
 
       expect(result.success).toBe(false);
@@ -119,12 +153,19 @@ describe('ParseExtractService - AJV Validation', () => {
     });
 
     it('should handle missing schema configuration', async () => {
-      mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(null);
+      mockAdminServiceClient.getActiveNetworkMap.mockResolvedValue({});
 
-      const result = await service.processTransactionalMessage({ TxTp: 'unknown.transaction', SomeData: {} }, 'Bearer token');
+      const result = await service.processForRuleCreation(
+        'unknown.transaction',
+        '1',
+        {},
+        [],
+        { SomeData: {} },
+        mockUser,
+      );
 
       expect(result.success).toBe(false);
-      expect(result.message).toContain('No schema configuration found');
+      expect(result.message).toContain('Failed to process transaction data');
     });
 
     it('should extract payload from request object when Payload field is not provided', async () => {
@@ -138,12 +179,24 @@ describe('ParseExtractService - AJV Validation', () => {
         },
       };
 
-      mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockSchema);
+      mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockConfig as any);
+      mockAdminServiceClient.getActiveNetworkMap.mockResolvedValue({});
 
-      const result = await service.processTransactionalMessage(requestWithEmbeddedPayload, 'Bearer token');
+      const result = await service.processForRuleCreation(
+        requestWithEmbeddedPayload.TxTp,
+        '10',
+        schema,
+        [],
+        {
+          FIToFICstmrCdtTrf: requestWithEmbeddedPayload.FIToFICstmrCdtTrf,
+        },
+        mockUser,
+      );
 
       expect(result.success).toBe(true);
       expect(result.validatedPayload).toEqual({
+        TxTp: 'pacs.008.001.10',
+        TenantId: 'tenant-123',
         FIToFICstmrCdtTrf: {
           GrpHdr: {
             MsgId: 'MSG123',
@@ -166,14 +219,16 @@ describe('ParseExtractService - AJV Validation', () => {
         },
       };
 
-      mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockSchema);
+      mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockConfig as any);
+      mockAdminServiceClient.getActiveNetworkMap.mockResolvedValue({});
 
-      const result = await service.processTransactionalMessage(
-        {
-          TxTp: 'pacs.008.001.10',
-          FIToFICstmrCdtTrf: validPayload.FIToFICstmrCdtTrf,
-        },
-        'Bearer token',
+      const result = await service.processForRuleCreation(
+        'pacs.008.001.10',
+        '10',
+        schema,
+        [],
+        validPayload,
+        mockUser,
       );
 
       expect(result.success).toBe(true);
@@ -183,7 +238,11 @@ describe('ParseExtractService - AJV Validation', () => {
 
       // Verify RuleRequest structure
       expect(ruleRequest.transaction).toBeDefined();
-      expect(ruleRequest.transaction).toEqual(validPayload.FIToFICstmrCdtTrf);
+      expect(ruleRequest.transaction).toEqual({
+        ...validPayload,
+        TxTp: 'pacs.008.001.10',
+        TenantId: 'tenant-123',
+      });
       expect(ruleRequest.networkMap).toEqual({});
       expect(ruleRequest.DataCache).toEqual({});
       expect(ruleRequest.metaData).toBeDefined();
@@ -205,9 +264,17 @@ describe('ParseExtractService - AJV Validation', () => {
         },
       };
 
-      mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockSchema);
+      mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockConfig as any);
+      mockAdminServiceClient.getActiveNetworkMap.mockResolvedValue({});
 
-      const result = await service.processTransactionalMessage({ TxTp: 'pacs.008.001.10', Payload: invalidPayload }, 'Bearer token');
+      const result = await service.processForRuleCreation(
+        'pacs.008.001.10',
+        '10',
+        schema,
+        [],
+        invalidPayload,
+        mockUser,
+      );
 
       expect(result.success).toBe(false);
       expect(result.ruleRequest).toBeUndefined();

@@ -3,7 +3,7 @@ import { RulesService } from '../../src/services/rules/rules.service';
 import { AdminServiceClient } from '../../src/services/admin-service-client';
 import { ParseExtractService } from '../../src/services/parse-extract/parse-extract.service';
 import { Logger } from '@nestjs/common';
-import { RuleCategory } from '../../src/utils/enums/rule.enum';
+import { RuleCategory, RuleFlowStatus } from '../../src/utils/enums/rule.enum';
 
 describe('RulesService', () => {
   let service: RulesService;
@@ -31,6 +31,7 @@ describe('RulesService', () => {
             cloneRule: jest.fn(),
             updateRuleStatus: jest.fn(),
             getPayloadByTransactionType: jest.fn(),
+            getConfigRowByTxTp: jest.fn(),
           },
         },
         {
@@ -76,7 +77,7 @@ describe('RulesService', () => {
       expect(adminServiceClient.getAllRulesWithFilters).toHaveBeenCalledWith(
         0,
         10,
-        mockFilters,
+        { ...mockFilters, sortOrder: 'DESC' },
         'test-token',
       );
       expect(result).toEqual(mockRules);
@@ -119,20 +120,30 @@ describe('RulesService', () => {
         description: 'Test rule',
         txtp: 'pain.001.001.11',
       };
+      const mockUser = {
+        token: { tokenString: 'test-token' },
+        tenantId: 'tenant-123',
+      } as any;
+      const mockConfigRow = {
+        config: {
+          schema: {},
+          mapping: [],
+          payload: {},
+        },
+      };
       const mockCreatedRule = { id: 1, ...mockRuleData } as any;
       const mockBaseFlow = {
+        status: '200',
         result: {
           flow_json_rule_builder: { nodes: [], edges: [] },
           flow_json_test_case: { nodes: [], edges: [] },
         },
       };
       const mockNewRuleFlow = { id: 'new-flow-1' };
-      const mockUpdatedRule = {
-        id: 1,
-        ...mockRuleData,
-      } as any;
       const mockParseResult = {
         success: true,
+        message: 'ok',
+        correlationId: 'corr-123',
         ruleRequest: {
           transaction: {},
           metaData: {},
@@ -141,30 +152,33 @@ describe('RulesService', () => {
         },
       };
 
-      adminServiceClient.getPayloadByTransactionType.mockResolvedValue({});
+      adminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockConfigRow as any);
       parseExtractService.processForRuleCreation.mockResolvedValue(
-        mockParseResult,
+        mockParseResult as any,
       );
       adminServiceClient.createRule.mockResolvedValue(mockCreatedRule);
-      adminServiceClient.getRuleFlow.mockResolvedValue(mockBaseFlow);
-      adminServiceClient.createRuleFlow.mockResolvedValue(mockNewRuleFlow);
-      adminServiceClient.updateRule.mockResolvedValue(mockUpdatedRule);
+      adminServiceClient.getRuleFlow.mockResolvedValue(mockBaseFlow as any);
+      adminServiceClient.createRuleFlow.mockResolvedValue(mockNewRuleFlow as any);
 
-      const result = await service.createRule(mockRuleData, 'test-token');
+      const result = await service.createRule(mockRuleData, mockUser);
 
-      expect(result).toEqual(mockUpdatedRule);
+      expect(result).toEqual(mockCreatedRule);
     });
 
     it('should handle creation error', async () => {
       const mockRuleData = { txtp: 'pain.001.001.11' };
+      const mockUser = {
+        token: { tokenString: 'test-token' },
+        tenantId: 'tenant-123',
+      } as any;
       const mockError = new Error('Creation failed');
 
-      adminServiceClient.getPayloadByTransactionType.mockRejectedValue(
+      adminServiceClient.getConfigRowByTxTp.mockRejectedValue(
         mockError,
       );
 
       await expect(
-        service.createRule(mockRuleData, 'test-token', 'cbe'),
+        service.createRule(mockRuleData, mockUser),
       ).rejects.toThrow('Creation failed');
       expect(Logger.prototype.error).toHaveBeenCalledWith(
         'Error creating rule: Creation failed',
@@ -177,10 +191,23 @@ describe('RulesService', () => {
         description: 'Test rule',
         txtp: 'pain.001.001.11',
       };
+      const mockUser = {
+        token: { tokenString: 'test-token' },
+        tenantId: 'tenant-123',
+      } as any;
+      const mockConfigRow = {
+        config: {
+          schema: {},
+          mapping: [],
+          payload: {},
+        },
+      };
       const mockCreatedRule = { id: 1, ...mockRuleData } as any;
-      const mockBaseFlow = { result: {} }; // No flow property
+      const mockBaseFlow = { status: '200', result: {} }; // No flow property
       const mockParseResult = {
         success: true,
+        message: 'ok',
+        correlationId: 'corr-123',
         ruleRequest: {
           transaction: {},
           metaData: {},
@@ -189,14 +216,14 @@ describe('RulesService', () => {
         },
       };
 
-      adminServiceClient.getPayloadByTransactionType.mockResolvedValue({});
+      adminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockConfigRow as any);
       parseExtractService.processForRuleCreation.mockResolvedValue(
-        mockParseResult,
+        mockParseResult as any,
       );
       adminServiceClient.createRule.mockResolvedValue(mockCreatedRule);
-      adminServiceClient.getRuleFlow.mockResolvedValue(mockBaseFlow);
+      adminServiceClient.getRuleFlow.mockResolvedValue(mockBaseFlow as any);
 
-      const result = await service.createRule(mockRuleData, 'test-token');
+      const result = await service.createRule(mockRuleData, mockUser);
 
       expect(result).toEqual(mockCreatedRule);
     });
@@ -204,9 +231,9 @@ describe('RulesService', () => {
 
   describe('getRuleIds', () => {
     it('should return rule IDs', async () => {
-      const mockRuleIds = [1, 2, 3, 4, 5];
+      const mockRuleIds = [{ id: '1', name: 'Rule 1' }];
 
-      adminServiceClient.getRuleIds.mockResolvedValue(mockRuleIds);
+      adminServiceClient.getRuleIds.mockResolvedValue(mockRuleIds as any);
 
       const result = await service.getRuleIds('test-token');
 
@@ -436,6 +463,7 @@ describe('RulesService', () => {
           connections: [],
         },
         ts_file_base64: 'dGVzdC1maWxlLWRhdGE=',
+        status: RuleFlowStatus.INITIAL,
       };
       const mockUpdatedFlow = {
         ...mockPayload,
@@ -476,6 +504,7 @@ describe('RulesService', () => {
               connections: [],
             },
             ts_file_base64: 'dGVzdC1maWxlLWRhdGE=',
+            status: RuleFlowStatus.INITIAL,
           },
           'test-token',
         ),
@@ -488,7 +517,7 @@ describe('RulesService', () => {
 
   describe('getRulesStatusbyRole', () => {
     it('should return allowed statuses from user', async () => {
-      const mockUser = { allowedStatuses: ['active', 'pending', 'draft'] };
+      const mockUser = { allowedStatuses: ['active', 'pending', 'draft'] } as any;
 
       const result = await service.getRulesStatusbyRole(mockUser);
 
@@ -496,7 +525,7 @@ describe('RulesService', () => {
     });
 
     it('should return empty array when user has no allowed statuses', async () => {
-      const mockUser = {};
+      const mockUser = {} as any;
 
       const result = await service.getRulesStatusbyRole(mockUser);
 
@@ -504,7 +533,7 @@ describe('RulesService', () => {
     });
 
     it('should return empty array when allowedStatuses is null', async () => {
-      const mockUser = { allowedStatuses: null };
+      const mockUser = { allowedStatuses: null } as any;
 
       const result = await service.getRulesStatusbyRole(mockUser);
 
@@ -514,7 +543,11 @@ describe('RulesService', () => {
 
   describe('getGlobalVariables', () => {
     it('should return global variables', async () => {
-      const mockVariables = { variables: { maxAmount: 1000, currency: 'USD' } };
+      const mockVariables = {
+        RuleRequest: {},
+        RuleConfig: {},
+        RuleResult: {},
+      } as any;
 
       adminServiceClient.getGlobalVariables.mockResolvedValue(mockVariables);
 
