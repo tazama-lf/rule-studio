@@ -120,10 +120,10 @@ const useOverviewController = (props: IOverviewProps) => {
 
             const repoBody = {
                 ruleId: currentRuleConfigId?.toString().split('@')[0],
-                ruleVersion: values?.version,
+                ruleVersion: currentRuleConfigId?.toString().split('@')[1],
                 organization: 'psl-copilot',
             }
-            
+
             await createRepo(repoBody).unwrap()
             enableNextTab()
         } catch (error: unknown) {
