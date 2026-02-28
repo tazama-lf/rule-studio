@@ -76,7 +76,7 @@ export class ConfigController {
     return await this.configService.getVersionsOfTransactionType(transactionType, user.token.tokenString);
   }
 
-  @Get('/api/payload/:transactionType')
+  @Get('/api/payload/:transactionType/:transactionVersion')
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
   @ApiOperation({
     summary: 'Get payload schema by transaction type',
