@@ -28,8 +28,8 @@ export const configApi = createApi({
             }),
         }),
         getSamplePayload: builder.query({
-            query: ({ type }) => ({
-                url: `payload/${type}`,
+            query: ({ type, version }) => ({
+                url: `payload/${type}/${version}`,
                 method: "GET",
             }),
         }),
