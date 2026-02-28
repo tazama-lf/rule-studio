@@ -21,7 +21,6 @@ import {
 import { EventType } from '../../utils/enums/events.enum';
 import { Rules } from '../rules/dto/rules.dto';
 
-// it should be place at interface file.
 export interface EmailOptions {
   to: string | string[];
   subject: string;
@@ -110,7 +109,7 @@ export class NotificationService implements OnModuleInit {
       }
       const fromName =
         this.configService.get<string>('SMTP_FROM_NAME') ??
-        'Tazama Connection Studio'; //change this
+        'Tazama Rule Studio';
 
       const mailOptions: nodemailer.SendMailOptions = {
         from: `"${fromName}" <${fromEmail}>`,
@@ -134,15 +133,14 @@ export class NotificationService implements OnModuleInit {
       return false;
     }
   }
-  // write interface for this function.
   async fetchRecipientEmails(
     event: EventType,
     tenantId: string,
     authToken: string,
     groupName: string,
-  ): Promise<any> { // write appropriate type instead of any.
+  ): Promise<any> {
     try {
-      let role: string | null = null; // why role is null
+      let role: string | null = null;
       let fetchAll = false;
 
       switch (event) {
@@ -195,7 +193,6 @@ export class NotificationService implements OnModuleInit {
       return [];
     }
   }
-  // write interface for this function.
   async getUserGroupMembers(
     token: string,
     groupName: string,
@@ -258,7 +255,6 @@ export class NotificationService implements OnModuleInit {
         return;
       }
 
-      // Fetch recipients based on event type
       const recipientEmails = (await this.fetchRecipientEmails(
         event,
         tenantId,
@@ -271,7 +267,7 @@ export class NotificationService implements OnModuleInit {
         return;
       }
 
-      const {ruleName, version} = ruleData;
+      const { ruleName, version } = ruleData;
       const theme = getEmailTheme(event, ruleName, version);
 
       const htmlContent = `<div style="font-family: Arial, sans-serif; max-width: 750px; padding: 24px; background-color: #f4f6f8;">

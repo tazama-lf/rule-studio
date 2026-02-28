@@ -218,7 +218,6 @@ export class RulesService {
 
   async getActiveNetworkMap(token: string): Promise<any> {
     try {
-      // console.log('Fetching active network map via RulesService');
       return await this.adminServiceClient.getActiveNetworkMap(token);
     } catch (error) {
       const err = error as Error;
@@ -264,7 +263,6 @@ export class RulesService {
       return await this.adminServiceClient.updateRuleFlow(ruleId, payload, token);
     } catch (error) {
       const err = error as Error;
-      // console.log(error);
       this.logger.error(`Error updating flow for rule ${ruleId}: ${err.message}`);
       throw error;
     }
@@ -297,27 +295,21 @@ export class RulesService {
       const normalizedStatus = status.toUpperCase();
 
       switch (normalizedStatus) {
-        // Editor submits for review
         case 'STATUS_03_UNDER_REVIEW':
           return EventType.EditorSubmit;
 
-        // Approver approves
         case 'STATUS_04_APPROVED':
           return EventType.ApproverApprove;
 
-        // Approver rejects
         case 'STATUS_05_REJECTED':
           return EventType.ApproverReject;
 
-        // Publisher deploys
         case 'STATUS_08_DEPLOYED':
           return EventType.PublisherDeploy;
 
-        // Publisher activates
         case 'ACTIVE':
           return EventType.PublisherActivate;
 
-        // Publisher deactivates
         case 'INACTIVE':
           return EventType.PublisherDeactivate;
 
@@ -341,7 +333,6 @@ export class RulesService {
       const ruleData = await this.getRuleOrThrow(Number(ruleId), token);
       this.logger.log(`Rule Data ${JSON.stringify(ruleData)}`);
 
-      // Send notification after successful status update
       const eventType = mapStatusToEventType(status);
 
       if (eventType) {
@@ -367,19 +358,13 @@ export class RulesService {
           await this.notificationService.sendRuleWorkflowNotification(eventType, user, mappedRule, token, reason,
           );
 
-          this.logger.log(
-            `Notification sent for rule ${ruleId} status change to '${status}'`,
-          );
+          this.logger.log(`Notification sent for rule ${ruleId} status change to '${status}'`);
         } catch (notificationError) {
           const notifErr = notificationError as Error;
-          this.logger.warn(
-            `Failed to send notification for rule ${ruleId} status change: ${notifErr.message}`,
-          );
+          this.logger.warn(`Failed to send notification for rule ${ruleId} status change: ${notifErr.message}`);
         }
       } else {
-        this.logger.debug(
-          `No notification event mapped for status '${status}' on rule ${ruleId}`,
-        );
+        this.logger.debug(`No notification event mapped for status '${status}' on rule ${ruleId}`);
       }
 
       return updatedRule;
