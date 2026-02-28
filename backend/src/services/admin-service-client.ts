@@ -15,6 +15,7 @@ import {
 import { firstValueFrom } from 'rxjs';
 import { CreateNodeDto, RequestQueryNodeDto, ResponseNodesDto } from './nodes/dto';
 import { GetNodesQuery } from './nodes/interfaces/node.interface';
+import { FieldMapping } from '@tazama-lf/tcs-lib';
 import {
   GLOBAL_VARIABLES,
   NODES,
@@ -188,10 +189,10 @@ export class AdminServiceClient {
   //   );
   //   return [response.schema, response.mapping, response.functions];
   // }
-  async getPayloadByTransactionType(transactionType: string, token: string): Promise<Record<string, unknown>> {
+  async getPayloadByTransactionType(transactionType: string, transactionVersion: string, token: string): Promise<Record<string, unknown>> {
     const response = await this.executeHttpRequest<{
       payload: Record<string, unknown>;
-    }>('GET', `${CONFIG_PAYLOAD}/${transactionType}`, token);
+    }>('GET', `${CONFIG_PAYLOAD}/${transactionType}/${transactionVersion}`, token);
     return response.payload;
   }
 
@@ -208,18 +209,29 @@ export class AdminServiceClient {
     return response.networkMap;
   }
 
-  async getConfigPayloadByTxTp(transactionType: string, token: string): Promise<any> {
-    return await this.executeHttpRequest('GET', `${CONFIG_PAYLOAD}/${encodeURIComponent(transactionType)}`, token);
+  async getConfigPayloadByTxTp(transactionType: string, transactionVersion: string, token: string): Promise<any> {
+    return await this.executeHttpRequest('GET', `${CONFIG_PAYLOAD}/${encodeURIComponent(transactionType)}/${encodeURIComponent(transactionVersion)}`, token);
   }
 
-  async getConfigRowByTxTp(transactionType: string, token: string): Promise<any> {
-    return await this.executeHttpRequest('GET', `${CONFIG}/${encodeURIComponent(transactionType)}`, token);
+  async getConfigRowByTxTp(transactionType: string, transactionVersion: string, token: string): Promise<{
+    config: {
+      schema: Record<string, unknown>;
+      mapping: FieldMapping[];
+      payload: Record<string, unknown>;
+    };
+  }> {
+    return await this.executeHttpRequest<{
+      config: {
+        schema: Record<string, unknown>;
+        mapping: FieldMapping[];
+        payload: Record<string, unknown>;
+      };
+    }>('GET', `${CONFIG}/${encodeURIComponent(transactionType)}/${encodeURIComponent(transactionVersion)}`, token);
   }
 
-  async cloneRule(ruleId: string, token: string, payload: any, ruleRequest: RuleRequest | undefined): Promise<Rules> {
+  async cloneRule(ruleId: string, token: string, payload: Record<string, unknown> & { txtp?: string; txtpVersion?: string }): Promise<Rules> {
     const response = await this.executeHttpRequest<{ rule: Rules }>('POST', `/v1/admin/trs/rule/clone/${ruleId}`, token, {
       payload,
-      ruleRequest,
     });
 
     return response.rule;

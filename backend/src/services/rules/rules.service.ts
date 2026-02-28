@@ -15,10 +15,9 @@ import {
 import { ParseExtractService } from '../parse-extract/parse-extract.service';
 import { BASE_RULE_ID } from '../../constants/constant';
 import { AuthenticatedUser } from '../auth/auth.types';
+import { FieldMapping } from 'node_modules/@tazama-lf/tcs-lib/dist/src/interfaces/schema.interfaces';
 
-import { parseString, ParserOptions } from 'xml2js';
-
-import { createSchemaAwareNumberProcessor, replaceObjectsWithArrays, returnArrayFieldsFromSchema } from '../../utils/xml2js.utils';
+type CloneRulePayload = Record<string, unknown> & { txtp?: string; txtpVersion?: string };
 
 @Injectable()
 export class RulesService {
@@ -57,67 +56,42 @@ export class RulesService {
     return rules;
   }
 
-  async createRule(ruleData: Partial<Rules>, token: string, tenantId: string): Promise<any> {
+  async createRule(ruleData: Partial<Rules>, user: AuthenticatedUser): Promise<Rules> {
     try {
       const transactionType = ruleData.txtp ?? '';
+      const transactionVersion = ruleData.txtpVersion ?? '';
+      const result = await this.adminServiceClient.getConfigRowByTxTp(transactionType, transactionVersion, user.token.tokenString);
+      const schemaResult = result.config.schema;
+      this.logger.log('Fetched config schema for transaction type ' + transactionType + '\n' + JSON.stringify(schemaResult));
+      const mappingResult = result.config.mapping as FieldMapping[];
+      this.logger.log('Fetched config mappings for transaction type ' + transactionType + '\n' + JSON.stringify(mappingResult));
+      const payloadResult = result.config.payload;
+      this.logger.log('Fetched config payload for transaction type ' + transactionType + '\n' + JSON.stringify(payloadResult));
+      const parseResult = await this.parseExtractService.processForRuleCreation(
+        transactionType,
+        transactionVersion,
+        schemaResult,
+        mappingResult,
+        payloadResult,
+        user,
+      );
 
-      const result = await this.adminServiceClient.getPayloadByTransactionType(transactionType, token);
-
-      const payload = result.payload;
-      let typedPayload = result;  
-
-      if (result.type === 'xml') {
-        // Convert XML to JSON
-        const configResult = await this.adminServiceClient.getConfigRowByTxTp(transactionType, token);
-
-        const configuredSchema = configResult.config.schema;
-
-        const { stringFields, arrayFields } = returnArrayFieldsFromSchema(configuredSchema);
-
-        const options: ParserOptions = {
-          explicitArray: false, // Don't wrap single values in arrays
-          ignoreAttrs: false, // Include attributes
-          mergeAttrs: true, // Merge attributes with element content
-          explicitRoot: true, // Don't include root wrapper
-          explicitChildren: true,
-          normalize: true,
-          valueProcessors: [createSchemaAwareNumberProcessor(stringFields)],
-        };
-
-        // eslint-disable-next-line promise/avoid-new -- we need to wrap xml2js parseString in a promise
-        const transformedPayload = await new Promise((resolve, reject) => {
-          parseString(payload, options, (err, res) => {
-            if (err) {
-              reject(new Error(err.message));
-            } else {
-              resolve(res);
-            }
-          });
-        });
-
-        // conversion done
-        typedPayload = replaceObjectsWithArrays(transformedPayload, arrayFields, stringFields);
+      if (!parseResult.ruleRequest) {
+        this.logger.error(`Rule request is missing in parse result for transaction type ${transactionType}`);
+        throw new Error('Failed to generate rule request from payload');
       }
 
-      // if it was XML, now its JSON
-      const parseResult = await this.parseExtractService.processForRuleCreation(
-        {TxTp: transactionType, TenantId:tenantId, ...result},
-        token,
-      );
-      // console.log('Parse result for transactional message:', parseResult);
-
-      // admin service client ko aagay derha hun ruleRequest
-      console.log("============THIS IS HERE=================", parseResult.ruleRequest);
-      const rule = await this.adminServiceClient.createRule(ruleData, token, parseResult.ruleRequest);
+      this.logger.debug('Prepared ruleRequest for transaction type ' + transactionType + '\n' + JSON.stringify(parseResult.ruleRequest));
+      const rule = await this.adminServiceClient.createRule(ruleData, user.token.tokenString, parseResult.ruleRequest);
       if (rule.id) {
-        const baseRuleFlow = await this.getRuleFlow(BASE_RULE_ID, token);
+        const baseRuleFlow = await this.getRuleFlow(BASE_RULE_ID, user.token.tokenString);
         await this.adminServiceClient.createRuleFlow(
           rule.id,
           {
             flow_json_rule_builder: baseRuleFlow.result.flow_json_rule_builder ?? {},
             flow_json_test_case: baseRuleFlow.result.flow_json_test_case ?? {},
           },
-          token,
+          user.token.tokenString,
         );
       }
 
@@ -129,53 +103,9 @@ export class RulesService {
     }
   }
 
-  async cloneRule(ruleId: string, token: string, payload: any): Promise<Rules> {
+  async cloneRule(ruleId: string, user: AuthenticatedUser, payload: CloneRulePayload): Promise<Rules> {
     try {
-      const transactionType = payload.txtp ?? '';
-
-      const result = await this.adminServiceClient.getPayloadByTransactionType(transactionType, token);
-
-      let typedPayload = result.payload as Record<string, unknown>;
-
-      if (result.type === 'xml') {
-        // Convert XML to JSON
-        const configResult = await this.adminServiceClient.getConfigRowByTxTp(transactionType, token);
-
-        const configuredSchema = configResult.config.schema;
-
-        const { stringFields, arrayFields } = returnArrayFieldsFromSchema(configuredSchema);
-
-        const options: ParserOptions = {
-          explicitArray: false, // Don't wrap single values in arrays
-          ignoreAttrs: false, // Include attributes
-          mergeAttrs: true, // Merge attributes with element content
-          explicitRoot: true, // Don't include root wrapper
-          explicitChildren: true,
-          normalize: true,
-          valueProcessors: [createSchemaAwareNumberProcessor(stringFields)],
-        };
-
-        // eslint-disable-next-line promise/avoid-new -- we need to wrap xml2js parseString in a promise
-        const transformedPayload = await new Promise((resolve, reject) => {
-          parseString(payload, options, (err, res) => {
-            if (err) {
-              reject(new Error(err.message));
-            } else {
-              resolve(res);
-            }
-          });
-        });
-
-        // conversion done
-        typedPayload = replaceObjectsWithArrays(transformedPayload, arrayFields, stringFields);
-      }
-
-      // if it was XML, now its JSON
-      const parseResult = await this.parseExtractService.processForRuleCreation(
-        { TxTp: transactionType, TenantId: 'default', ...typedPayload },
-        token,
-      );
-      return await this.adminServiceClient.cloneRule(ruleId, token, payload, parseResult.ruleRequest);
+      return await this.adminServiceClient.cloneRule(ruleId, user.token.tokenString, payload);
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Error cloning rule ${ruleId}: ${err.message}`);
@@ -183,7 +113,7 @@ export class RulesService {
     }
   }
 
-  async getRuleIds(token: string): Promise<any[]> {
+  async getRuleIds(token: string): Promise<Array<Record<string, unknown>>> {
     try {
       return await this.adminServiceClient.getRuleIds(token);
     } catch (error) {
@@ -193,7 +123,7 @@ export class RulesService {
     }
   }
 
-  async getRuleConfiguration(ruleId: string, token: string): Promise<any> {
+  async getRuleConfiguration(ruleId: string, token: string): Promise<Record<string, unknown>> {
     try {
       return await this.adminServiceClient.getRuleConfiguration(ruleId, token);
     } catch (error) {
@@ -213,7 +143,7 @@ export class RulesService {
     }
   }
 
-  async getActiveNetworkMap(token: string): Promise<any> {
+  async getActiveNetworkMap(token: string): Promise<Record<string, unknown>> {
     try {
       // console.log('Fetching active network map via RulesService');
       return await this.adminServiceClient.getActiveNetworkMap(token);

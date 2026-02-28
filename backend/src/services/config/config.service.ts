@@ -17,9 +17,9 @@ export class ConfigService {
     }
   }
 
-  async getPayloadByTransactionType(transactionType: string, token: string): Promise<any> {
+  async getPayloadByTransactionType(transactionType: string, transactionVersion: string, token: string): Promise<any> {
     try {
-      return await this.adminServiceClient.getPayloadByTransactionType(transactionType, token);
+      return await this.adminServiceClient.getPayloadByTransactionType(transactionType, transactionVersion, token);
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Error fetching payload for transaction type ${transactionType}: ${err.message}`);

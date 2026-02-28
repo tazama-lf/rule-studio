@@ -87,6 +87,11 @@ export class ConfigController {
     description: 'ISO 20022 transaction type',
     example: 'pain.001.001.11',
   })
+  @ApiParam({
+    name: 'transactionVersion',
+    description: 'Version of the ISO 20022 transaction type',
+    example: '11',
+  })
   @ApiResponse({
     status: 200,
     description: 'Payload schema retrieved successfully',
@@ -106,8 +111,8 @@ export class ConfigController {
     status: 403,
     description: 'Forbidden - Insufficient permissions',
   })
-  async getPayloadByTransactionType(@Param('transactionType') transactionType: string, @User() user: AuthenticatedUser): Promise<any> {
-    const response = await this.configService.getPayloadByTransactionType(transactionType, user.token.tokenString);
+  async getPayloadByTransactionType(@Param('transactionType') transactionType: string, @Param('transactionVersion') transactionVersion: string, @User() user: AuthenticatedUser): Promise<any> {
+    const response = await this.configService.getPayloadByTransactionType(transactionType, transactionVersion, user.token.tokenString);
 
     return {
       ...response,

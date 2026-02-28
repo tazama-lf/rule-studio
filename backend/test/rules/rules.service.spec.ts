@@ -549,46 +549,37 @@ describe('RulesService', () => {
   describe('cloneRule', () => {
     it('should clone a rule', async () => {
       const mockPayload = { txtp: 'pain.001.001.11' };
+      const mockUser = {
+        token: { tokenString: 'test-token' },
+      } as any;
       const mockClonedRule = {
         id: 2,
         name: 'Cloned Rule',
         originalId: 1,
       } as any;
-      const mockParseResult = {
-        success: true,
-        ruleRequest: {
-          transaction: {},
-          metaData: {},
-          networkMap: {},
-          DataCache: {},
-        },
-      };
-
-      adminServiceClient.getPayloadByTransactionType.mockResolvedValue({});
-      parseExtractService.processForRuleCreation.mockResolvedValue(
-        mockParseResult,
-      );
       adminServiceClient.cloneRule.mockResolvedValue(mockClonedRule);
 
       const result = await service.cloneRule(
         'rule-123',
-        'test-token',
+        mockUser,
         mockPayload,
       );
 
       expect(result).toEqual(mockClonedRule);
+      expect(adminServiceClient.cloneRule).toHaveBeenCalledWith('rule-123', 'test-token', mockPayload);
     });
 
     it('should handle clone error', async () => {
       const mockPayload = { txtp: 'pain.001.001.11' };
+      const mockUser = {
+        token: { tokenString: 'test-token' },
+      } as any;
       const mockError = new Error('Clone failed');
 
-      adminServiceClient.getPayloadByTransactionType.mockRejectedValue(
-        mockError,
-      );
+      adminServiceClient.cloneRule.mockRejectedValue(mockError);
 
       await expect(
-        service.cloneRule('rule-123', 'test-token', mockPayload),
+        service.cloneRule('rule-123', mockUser, mockPayload),
       ).rejects.toThrow('Clone failed');
       expect(Logger.prototype.error).toHaveBeenCalledWith(
         'Error cloning rule rule-123: Clone failed',

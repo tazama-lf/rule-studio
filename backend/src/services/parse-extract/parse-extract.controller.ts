@@ -16,34 +16,34 @@ export class ParseExtractController {
 
   constructor(private readonly parseExtractService: ParseExtractService) {}
 
-  @Post('/api/validatePayload')
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Validate ISO 20022 payload',
-    description: 'Validates and processes ISO 20022 transactional message payloads for structure and content compliance',
-  })
-  @ApiBody({
-    description: 'ISO 20022 transactional message',
-    type: TransactionalMessageDto,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Payload validated successfully',
-    type: ParseExtractResponseDto,
-  })
-  @ApiResponse({ status: 400, description: 'Invalid payload structure' })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Insufficient permissions',
-  })
-  async processTransactionalMessage(@Body() request: TransactionalMessage, @User() user: AuthenticatedUser): Promise<ParseExtractResponse> {
-    this.logger.log(`Processing transaction type: ${request.TxTp}`);
+  // @Post('/api/validatePayload')
+  // @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  // @HttpCode(HttpStatus.OK)
+  // @ApiOperation({
+  //   summary: 'Validate ISO 20022 payload',
+  //   description: 'Validates and processes ISO 20022 transactional message payloads for structure and content compliance',
+  // })
+  // @ApiBody({
+  //   description: 'ISO 20022 transactional message',
+  //   type: TransactionalMessageDto,
+  // })
+  // @ApiResponse({
+  //   status: 200,
+  //   description: 'Payload validated successfully',
+  //   type: ParseExtractResponseDto,
+  // })
+  // @ApiResponse({ status: 400, description: 'Invalid payload structure' })
+  // @ApiResponse({
+  //   status: 401,
+  //   description: 'Unauthorized - Invalid or missing JWT token',
+  // })
+  // @ApiResponse({
+  //   status: 403,
+  //   description: 'Forbidden - Insufficient permissions',
+  // })
+  // async processTransactionalMessage(@Body() request: TransactionalMessage, @User() user: AuthenticatedUser): Promise<ParseExtractResponse> {
+  //   this.logger.log(`Processing transaction type: ${request.TxTp}`);
 
-    return await this.parseExtractService.processTransactionalMessage(request, user.token.tokenString);
-  }
+  //   return await this.parseExtractService.processTransactionalMessage(request, user);
+  // }
 }

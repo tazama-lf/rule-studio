@@ -103,7 +103,23 @@ export class RulesController {
     responses: CommonResponses.SUCCESS_200([RuleIdResponseDto], 'Rule IDs retrieved successfully'),
   })
   async getRuleIds(@User() user: AuthenticatedUser): Promise<RuleIdResponseDto[]> {
-    return await this.rulesService.getRuleIds(user.token.tokenString);
+    const rawRuleIds = await this.rulesService.getRuleIds(user.token.tokenString);
+
+    return rawRuleIds.map((item) => {
+      const source =
+        typeof item === 'object' && item !== null
+          ? (item as Record<string, unknown>)
+          : { value: item };
+
+      const normalizedId = source.id ?? source.ruleId ?? source.ruleid ?? source.rule_id ?? source.value ?? '';
+      const normalizedName = source.name ?? source.ruleName ?? source.rule_name ?? '';
+
+      return {
+        ...source,
+        id: String(normalizedId),
+        name: String(normalizedName),
+      } as RuleIdResponseDto;
+    });
   }
 
   // create a new rule
@@ -135,7 +151,7 @@ export class RulesController {
       rule_config_id: ruleData.rule_config_id,
       userID: user.userId,
     };
-    return await this.rulesService.createRule(ruleDataWithUser, user.token.tokenString, user.tenantId);
+    return await this.rulesService.createRule(ruleDataWithUser, user);
   }
 
   // get rule configuration by rule ID
@@ -361,7 +377,7 @@ export class RulesController {
     @Body() payload: any, // add type here
     @User() user: AuthenticatedUser,
   ): Promise<Rules> {
-    return await this.rulesService.cloneRule(ruleId, user.token.tokenString, payload);
+    return await this.rulesService.cloneRule(ruleId, user, payload);
   }
 
   // update rule status
