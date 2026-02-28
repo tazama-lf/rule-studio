@@ -310,7 +310,7 @@ const useSimulationController = (props: ISimulation) => {
                 natsConsumer: "investigation-service",
                 functionName: "TMS",
                 awaitReply: true,
-                transaction: samplePayload
+                transaction: parsedPayload
             };
             mutation = endToEnd;
             logCategory = 'end_to_end';
