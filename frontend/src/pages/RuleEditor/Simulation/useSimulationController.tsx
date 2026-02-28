@@ -191,8 +191,9 @@ const useSimulationController = (props: ISimulation) => {
             toast.error('Please sync code on GitHub before deploying')
             return
         }
+        const rule_config_id = data?.rule_config_id
         const body = {
-            ruleId: data?.id,
+            ruleId: rule_config_id?.toString().split('@')[0],
             branchName: "dev"
         }
         deploy(body).unwrap()
