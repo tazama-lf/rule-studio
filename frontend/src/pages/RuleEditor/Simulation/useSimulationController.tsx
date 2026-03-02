@@ -216,7 +216,7 @@ const useSimulationController = (props: ISimulation) => {
     }, [codeSynced, data?.id, deploy, toggleCodeDeployed, updateMetadata])
 
     const handleSelect = (id: number) => {
-        if (!codeDeployed && claims.editor === user?.claims) {
+        if (!codeDeployed && claims.editor === user?.claims && mode != 'view') {
             toast.error('Deploy rule first to run simulation')
             return;
         } else {
