@@ -28,6 +28,8 @@ import {
   TransactionalMessageDto,
   ParseExtractResponseDto,
 } from './dto/message.dto';
+import { Endpoint } from '@tazama-lf/tcs-lib';
+import { EndpointKey } from 'src/utils/rbac/rbacHelper';
 
 @ApiTags('Parse & Extract')
 @ApiBearerAuth('JWT-auth')
@@ -73,10 +75,11 @@ export class ParseExtractController {
     @User() user: AuthenticatedUser,
   ): Promise<ParseExtractResponse> {
     this.logger.log(`Processing transaction type: ${request.TxTp}`);
-
+const endpointKey = 'POST /parse/api/validatePayload' as EndpointKey;
     return await this.parseExtractService.processTransactionalMessage(
       request,
-      user.token.tokenString,
+      user,
+      endpointKey,
     );
   }
 }
