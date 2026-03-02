@@ -14,6 +14,7 @@ import {
 } from '../../decorators/auth.decorator';
 import { User } from '../../decorators/user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
+import { EndpointKey } from 'src/utils/rbac/rbacHelper';
 
 @ApiTags('Configuration')
 @ApiBearerAuth('JWT-auth')
@@ -53,7 +54,12 @@ export class ConfigController {
   async getTransactionTypes(
     @User() user: AuthenticatedUser,
   ): Promise<string[]> {
-    return await this.configService.getTransactionTypes(user.token.tokenString);
+    const endpointKey = 'GET /config/api/transaction-types' as EndpointKey;
+
+    return await this.configService.getTransactionTypes(
+      user,
+      endpointKey,
+    );
   }
 
   // at this point, we need another API to get all versions for a transaction type
@@ -94,9 +100,12 @@ export class ConfigController {
     @Param('transactionType') transactionType: string,
     @User() user: AuthenticatedUser,
   ): Promise<string[]> {
+    const endpointKey = 'GET /config/api/versions/:transactionType' as EndpointKey;
+
     return await this.configService.getVersionsOfTransactionType(
       transactionType,
-      user.token.tokenString,
+      user,
+      endpointKey,
     );
   }
 
@@ -139,9 +148,12 @@ export class ConfigController {
     @Param('transactionType') transactionType: string,
     @User() user: AuthenticatedUser,
   ): Promise<any> {
+    const endpointKey = 'GET /config/api/payload/:transactionType' as EndpointKey;
+
     const response = await this.configService.getPayloadByTransactionType(
       transactionType,
-      user.token.tokenString,
+      user,
+      endpointKey,
     );
 
     return {
