@@ -1,20 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ParseExtractService } from '../../src/services/parse-extract/parse-extract.service';
 import { AdminServiceClient } from '../../src/services/admin-service-client';
-import type { AuthenticatedUser } from '../../src/services/auth/auth.types';
+import { makeAuthenticatedUser } from '../helpers/rbac/user.factory';
 
 describe('ParseExtractService RBAC', () => {
   let service: ParseExtractService;
 
-  const makeUser = (role = 'editor'): AuthenticatedUser =>
-    ({
-      actorRole: role,
-      token: { tokenString: 'test-token', tenantId: 'tenant-1' } as any,
-      tenantId: 'tenant-1',
-      userId: 'user-1',
-      validated: {} as any,
-      validClaims: [],
-    }) as AuthenticatedUser;
+  const makeUser = makeAuthenticatedUser;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

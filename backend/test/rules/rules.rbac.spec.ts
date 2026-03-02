@@ -3,23 +3,15 @@ import { ForbiddenException } from '@nestjs/common';
 import { RulesService } from '../../src/services/rules/rules.service';
 import { AdminServiceClient } from '../../src/services/admin-service-client';
 import { ParseExtractService } from '../../src/services/parse-extract/parse-extract.service';
-import type { AuthenticatedUser } from '../../src/services/auth/auth.types';
 import type { EndpointKey } from '../../src/utils/rbac/rbacHelper';
+import { makeAuthenticatedUser } from '../helpers/rbac/user.factory';
 
 describe('RulesService RBAC', () => {
   let service: RulesService;
   let adminServiceClient: jest.Mocked<AdminServiceClient>;
   let parseExtractService: jest.Mocked<ParseExtractService>;
 
-  const makeUser = (role = 'editor'): AuthenticatedUser =>
-    ({
-      actorRole: role,
-      token: { tokenString: 'test-token', tenantId: 'tenant-1' } as any,
-      tenantId: 'tenant-1',
-      userId: 'user-1',
-      validated: {} as any,
-      validClaims: [],
-    }) as AuthenticatedUser;
+  const makeUser = makeAuthenticatedUser;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

@@ -57,6 +57,20 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
+## Test conventions
+
+- Keep active tests under `test/` (Jest `roots` is set to `test`).
+- Put RBAC authorization behavior in service-level endpoint-key specs:
+  - `test/rules/rules.rbac.spec.ts`
+  - `test/config/config.service.rbac.spec.ts`
+  - `test/parse-extract/parse-extract.rbac.spec.ts`
+- Keep controller tests lightweight and wiring-focused (endpoint key propagation and request shaping), for example:
+  - `test/rules/rules.controller.wiring.spec.ts`
+  - `test/config/config.controller.wiring.spec.ts`
+  - `test/parse-extract/parse-extract.controller.wiring.spec.ts`
+- Avoid duplicating RBAC assertions across controller and service tests.
+- Reuse shared helpers from `test/helpers/rbac/` for authenticated test users.
+
 ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
