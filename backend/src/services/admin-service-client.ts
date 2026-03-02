@@ -198,9 +198,6 @@ export class AdminServiceClient {
   }
 
   async createRule(ruleData: Partial<Rules>, token: string, ruleRequest: RuleRequest | undefined): Promise<Rules> {
-
-    console.log("I have reached admin service client")
-    console.log("Rule Request:", ruleRequest);
     const response = await this.executeHttpRequest<{ rule: Rules }>(
       'POST',
       RULE,
@@ -261,7 +258,6 @@ export class AdminServiceClient {
       `${CONFIG_PAYLOAD}/${transactionType}`,
       token,
     );
-    console.log("Response from getPayloadByTransactionType:", response);
     return response.payload;
   }
 

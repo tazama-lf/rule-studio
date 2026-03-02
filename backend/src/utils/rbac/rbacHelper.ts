@@ -6,14 +6,14 @@ export type Role = keyof Matrix['_meta']['roles'];
 
 export interface CheckContext {
   role: Role;
-  endpointKey: string;
+  endpointKey: EndpointKey;
   currentStatus: string;
   targetStatus?: string;
 }
 
 export interface GetContext {
   role: Role;
-  endpointKey: string;
+  endpointKey: EndpointKey;
 }
 
 export interface CheckResult {
@@ -47,8 +47,8 @@ export class RbacService {
     return value in this.roles;
   }
 
-  private getEndpointConfig(endpointKey: string): EndpointConfig | undefined {
-    return this.endpoints[endpointKey as EndpointKey] as unknown as EndpointConfig | undefined;
+  private getEndpointConfig(endpointKey: EndpointKey): EndpointConfig | undefined {
+    return this.endpoints[endpointKey] as unknown as EndpointConfig | undefined;
   }
 
   checkTier2({ role, endpointKey, currentStatus }: Omit<CheckContext, 'targetStatus'>): CheckResult {
@@ -113,7 +113,6 @@ export class RbacService {
     const tier2 = endpoint?.tier2;
 
     if (!tier2) {
-      console.log(`No Tier 2 config for ${endpointKey}, allowing by default`);
       return { allowed: true, allowedStatuses: [] };
     }
 

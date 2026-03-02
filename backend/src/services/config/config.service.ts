@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
-import { RbacService } from '../../utils/rbac/rbacHelper';
+import { EndpointKey, RbacService } from '../../utils/rbac/rbacHelper';
 import { AdminServiceClient } from '../admin-service-client';
 import { AuthenticatedUser } from '../auth/auth.types';
 
@@ -12,7 +12,7 @@ export class ConfigService {
 
   async getTransactionTypes(
     user: AuthenticatedUser,
-    endpointKey: string,
+    endpointKey: EndpointKey,
   ): Promise<string[]> {
     try {
       const normalizedRole = user.actorRole?.toLowerCase() ?? '';
@@ -23,7 +23,7 @@ export class ConfigService {
 
       const tier2 = this.rbacService.getTier2({
         role: normalizedRole,
-        endpointKey: endpointKey,
+        endpointKey,
       });
 
       if (!tier2.allowed) {
@@ -43,7 +43,7 @@ export class ConfigService {
   async getPayloadByTransactionType(
     transactionType: string,
     user: AuthenticatedUser,
-    endpointKey: string,
+    endpointKey: EndpointKey,
   ): Promise<any> {
     try {
       const normalizedRole = user.actorRole?.toLowerCase() ?? '';
@@ -54,7 +54,7 @@ export class ConfigService {
 
       const tier2 = this.rbacService.getTier2({
         role: normalizedRole,
-        endpointKey: endpointKey,
+        endpointKey,
       });
 
       if (!tier2.allowed) {
@@ -79,7 +79,7 @@ export class ConfigService {
   async getVersionsOfTransactionType(
     transactionType: string,
     user: AuthenticatedUser,
-    endpointKey: string,
+    endpointKey: EndpointKey,
   ): Promise<string[]> {
     try {
       const normalizedRole = user.actorRole?.toLowerCase() ?? '';
@@ -90,7 +90,7 @@ export class ConfigService {
 
       const tier2 = this.rbacService.getTier2({
         role: normalizedRole,
-        endpointKey: endpointKey,
+        endpointKey,
       });
 
       if (!tier2.allowed) {
