@@ -1,40 +1,40 @@
 import permissionMatrix from './permissionMatrix.json';
 
-type Matrix = typeof permissionMatrix;
-type EndpointKey = keyof Matrix['endpoints'];
-type Role = keyof Matrix['_meta']['roles']; 
+export type Matrix = typeof permissionMatrix;
+export type EndpointKey = keyof Matrix['endpoints'];
+export type Role = keyof Matrix['_meta']['roles']; 
 
-interface CheckContext {
+export interface CheckContext {
   role: Role;
   endpointKey: string;
   currentStatus: string;
   targetStatus?: string;
 }
 
-interface GetContext {
+export interface GetContext {
   role: Role;
   endpointKey: string;
 }
 
-interface CheckResult {
+export interface CheckResult {
   allowed: boolean;
   reason?: string;
   allowedStatuses?: string[];
 }
 
-interface Tier2Permissions {
+export interface Tier2Permissions {
   allowedCurrentStatuses: string[];
 }
 
-interface Tier2Config {
+export interface Tier2Config {
   rolePermissions: Record<Role, Tier2Permissions>;
 }
 
-interface Tier3Config {
+export interface Tier3Config {
   transitions: Record<Role, Record<string, string[]>>;
 }
 
-interface EndpointConfig {
+export interface EndpointConfig {
   tier2?: Tier2Config;
   tier3?: Tier3Config;
 }
