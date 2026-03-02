@@ -223,8 +223,6 @@ const useSimulationController = (props: ISimulation) => {
             setSelected(id)
         }
 
-        // setSelected(id)
-
         if (id === 1) {
             getRuleRequest(data?.id).unwrap()
                 .then((res) => {

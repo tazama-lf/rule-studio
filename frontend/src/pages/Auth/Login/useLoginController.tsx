@@ -26,7 +26,6 @@ const useLoginController = () => {
 
     useEffect(() => {
         if (isSuccess) {
-            console.log('DATA TOEKN',data?.token)
             insertData(data?.token, "access_token")
             const details = decodeToken(data?.token)
             insertData(details, 'user')
