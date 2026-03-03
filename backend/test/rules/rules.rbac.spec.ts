@@ -3,6 +3,7 @@ import { ForbiddenException } from '@nestjs/common';
 import { RulesService } from '../../src/services/rules/rules.service';
 import { AdminServiceClient } from '../../src/services/admin-service-client';
 import { ParseExtractService } from '../../src/services/parse-extract/parse-extract.service';
+import { NotificationService } from '../../src/services/notification/notification.service';
 import type { EndpointKey } from '../../src/utils/rbac/rbacHelper';
 import { makeAuthenticatedUser } from '../helpers/rbac/user.factory';
 
@@ -10,6 +11,7 @@ describe('RulesService RBAC', () => {
   let service: RulesService;
   let adminServiceClient: jest.Mocked<AdminServiceClient>;
   let parseExtractService: jest.Mocked<ParseExtractService>;
+  let notificationService: jest.Mocked<NotificationService>;
 
   const makeUser = makeAuthenticatedUser;
 
@@ -44,12 +46,21 @@ describe('RulesService RBAC', () => {
             processForRuleCreation: jest.fn(),
           },
         },
+        {
+          provide: NotificationService,
+          useValue: {
+            sendRuleWorkflowNotification: jest.fn(),
+            sendEmail: jest.fn(),
+            fetchRecipientEmails: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<RulesService>(RulesService);
     adminServiceClient = module.get(AdminServiceClient);
     parseExtractService = module.get(ParseExtractService);
+    notificationService = module.get(NotificationService);
   });
 
   afterEach(() => jest.restoreAllMocks());
@@ -107,11 +118,18 @@ describe('RulesService RBAC', () => {
     const getTier2Spy = jest
       .spyOn(rbacService, 'getTier2')
       .mockReturnValue({ allowed: true, allowedStatuses: [] });
+    adminServiceClient.getConfigRowByTxTp.mockResolvedValue({
+      config: {
+        schema: {},
+        mapping: {},
+        payload: {},
+      },
+    } as any);
     adminServiceClient.getPayloadByTransactionType.mockResolvedValue({ payload: {}, type: 'json' } as any);
     parseExtractService.processForRuleCreation.mockResolvedValue({ ruleRequest: {} } as any);
     adminServiceClient.createRule.mockResolvedValue({ id: undefined } as any);
 
-    await service.createRule({ txtp: 'pain.001.001.11' } as any, user, 'POST /rules/api/create' as EndpointKey);
+    await service.createRule({ txtp: 'pain.001.001.11' } as any, user);
 
     expect(getTier2Spy).toHaveBeenCalledWith({
       role: 'editor',
@@ -246,10 +264,10 @@ describe('RulesService RBAC', () => {
     parseExtractService.processForRuleCreation.mockResolvedValue({ ruleRequest: {} } as any);
     adminServiceClient.cloneRule.mockResolvedValue({} as any);
 
-    await service.cloneRule('1', user, { txtp: 'pain.001.001.11' } as any, 'POST /rules/api/clone/:ruleId');
+    await service.cloneRule('1', user, { txtp: 'pain.001.001.11' } as any);
 
     expect(checkTier2Spy).toHaveBeenCalledWith(
-      expect.objectContaining({ endpointKey: 'POST /rules/api/clone/:ruleId' }),
+      expect.objectContaining({ endpointKey: 'POST /rules/api/:ruleId/clone' }),
     );
   });
 

@@ -1,23 +1,12 @@
-import {
-  Injectable,
-  Logger,
-  OnModuleInit,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, ServiceUnavailableException } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { ConfigService } from '@nestjs/config';
-import {
-  getEmailTheme,
-} from '@tazama-lf/tcs-lib';
+import { getEmailTheme } from '@tazama-lf/tcs-lib';
 import { firstValueFrom } from 'rxjs/internal/firstValueFrom';
 import { HttpService } from '@nestjs/axios';
 import { AuthenticatedUser } from '../auth/auth.types';
 
-import {
-  decodeValidatedToken,
-  getGroupNameFromToken,
-  getTenantId,
-} from '../../utils/helpers';
+import { decodeValidatedToken, getGroupNameFromToken, getTenantId } from '../../utils/helpers';
 import { EventType } from '../../utils/enums/events.enum';
 import { Rules } from '../rules/dto/rules.dto';
 
@@ -32,13 +21,13 @@ export interface EmailOptions {
 @Injectable()
 export class NotificationService implements OnModuleInit {
   private readonly logger = new Logger(NotificationService.name);
-  private transporter: nodemailer.Transporter | null = null;
+  private transporter: ReturnType<typeof nodemailer.createTransport> = null!;
   private isConfigured = false;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
-  ) { }
+  ) {}
 
   onModuleInit(): void {
     this.initializeTransporter();
@@ -52,12 +41,8 @@ export class NotificationService implements OnModuleInit {
     const smtpSecure = this.configService.get<string>('SMTP_SECURE') === 'true';
 
     if (!smtpHost || !smtpPass) {
-      this.logger.warn(
-        ' SMTP NOT CONFIGURED - Email notifications will be logged but not sent',
-      );
-      this.logger.warn(
-        '   Set SMTP_HOST, SMTP_USER, SMTP_PASS in .env to enable emails',
-      );
+      this.logger.warn(' SMTP NOT CONFIGURED - Email notifications will be logged but not sent');
+      this.logger.warn('   Set SMTP_HOST, SMTP_USER, SMTP_PASS in .env to enable emails');
       this.isConfigured = false;
       return;
     }
@@ -76,9 +61,7 @@ export class NotificationService implements OnModuleInit {
       this.transporter.verify((error) => {
         if (error) {
           this.logger.error(` SMTP connection error: ${error.message}`);
-          this.logger.error(
-            '   Please check your SMTP credentials in .env file',
-          );
+          this.logger.error('   Please check your SMTP credentials in .env file');
           this.isConfigured = false;
         } else {
           this.logger.log(` SMTP configured and ready: ${smtpHost}`);
@@ -86,18 +69,14 @@ export class NotificationService implements OnModuleInit {
         }
       });
     } catch (error) {
-      this.logger.error(
-        `Failed to initialize SMTP transporter: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      this.logger.error(`Failed to initialize SMTP transporter: ${error instanceof Error ? error.message : 'Unknown error'}`);
       this.isConfigured = false;
     }
   }
 
   async sendEmail(options: EmailOptions): Promise<boolean> {
     if (!this.isConfigured || !this.transporter) {
-      this.logger.warn(
-        ` [DRY RUN] Would send email to: ${Array.isArray(options.to) ? options.to.join(', ') : options.to}`,
-      );
+      this.logger.warn(` [DRY RUN] Would send email to: ${Array.isArray(options.to) ? options.to.join(', ') : options.to}`);
       return false;
     }
 
@@ -107,9 +86,7 @@ export class NotificationService implements OnModuleInit {
         this.logger.error('SMTP_FROM_EMAIL is not configured');
         throw new Error('SMTP_FROM_EMAIL is required when SMTP is enabled');
       }
-      const fromName =
-        this.configService.get<string>('SMTP_FROM_NAME') ??
-        'Tazama Rule Studio';
+      const fromName = this.configService.get<string>('SMTP_FROM_NAME') ?? 'Tazama Rule Studio';
 
       const mailOptions: nodemailer.SendMailOptions = {
         from: `"${fromName}" <${fromEmail}>`,
@@ -127,18 +104,11 @@ export class NotificationService implements OnModuleInit {
       await this.transporter.sendMail(mailOptions);
       return true;
     } catch (error) {
-      this.logger.error(
-        `Failed to send email: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      this.logger.error(`Failed to send email: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return false;
     }
   }
-  async fetchRecipientEmails(
-    event: EventType,
-    tenantId: string,
-    authToken: string,
-    groupName: string,
-  ): Promise<any> {
+  async fetchRecipientEmails(event: EventType, tenantId: string, authToken: string, groupName: string): Promise<any> {
     try {
       let role: string | null = null;
       let fetchAll = false;
@@ -161,27 +131,15 @@ export class NotificationService implements OnModuleInit {
       }
 
       if (fetchAll) {
-        this.logger.log(
-          `Fetching all user emails from AuthService for tenant '${tenantId}'`,
-        );
-        const emails = await this.getUserGroupMembers(
-          authToken,
-          groupName,
-          undefined,
-        );
-        this.logger.log(
-          `✓ Fetched ${emails.length} total emails from Auth Service`,
-        );
+        this.logger.log(`Fetching all user emails from AuthService for tenant '${tenantId}'`);
+        const emails = await this.getUserGroupMembers(authToken, groupName, undefined);
+        this.logger.log(`✓ Fetched ${emails.length} total emails from Auth Service`);
         return emails;
       }
 
       if (role) {
         this.logger.log(`Fetching emails for role '${role}' from AuthService`);
-        const emails = await this.getUserGroupMembers(
-          authToken,
-          groupName,
-          role,
-        );
+        const emails = await this.getUserGroupMembers(authToken, groupName, role);
 
         this.logger.log(`Fetched ${emails.length} emails for role '${role}'`);
         return emails;
@@ -193,11 +151,7 @@ export class NotificationService implements OnModuleInit {
       return [];
     }
   }
-  async getUserGroupMembers(
-    token: string,
-    groupName: string,
-    roleName?: string,
-  ): Promise<string[]> {
+  async getUserGroupMembers(token: string, groupName: string, roleName?: string): Promise<string[]> {
     const authUrl = this.configService.get<string>('TAZAMA_AUTH_URL');
     let url = `${authUrl}?groupName=${groupName}`;
     if (roleName) {
@@ -209,7 +163,7 @@ export class NotificationService implements OnModuleInit {
         this.httpService.get(url, {
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
+            'Authorization': `Bearer ${token}`,
           },
         }),
       );
@@ -222,12 +176,8 @@ export class NotificationService implements OnModuleInit {
       return emailList;
     } catch (error) {
       this.logger.error('Error fetching user group members: ', error);
-      this.logger.error(
-        `Auth service error during fetching user group members: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      throw new ServiceUnavailableException(
-        'Authentication service unavailable',
-      );
+      this.logger.error(`Auth service error during fetching user group members: ${error instanceof Error ? error.message : String(error)}`);
+      throw new ServiceUnavailableException('Authentication service unavailable');
     }
   }
 
@@ -235,32 +185,23 @@ export class NotificationService implements OnModuleInit {
    * Sends a rule-specific workflow notification email with a custom template
    * that displays all rule fields returned by the admin service.
    */
-  async sendRuleWorkflowNotification(
-    event: EventType,
-    user: AuthenticatedUser,
-    ruleData: Rules,
-    authToken: string,
-    comment?: string,
-  ): Promise<void> {
+  async sendRuleWorkflowNotification(event: EventType, user: AuthenticatedUser, ruleData: Rules, comment?: string): Promise<void> {
     try {
       const decodedToken = decodeValidatedToken(user);
       const actorEmail = decodedToken.preferredUsername;
       const actorName = actorEmail;
       const tenantId = getTenantId(user);
       const groupName = getGroupNameFromToken(decodedToken);
-      this.logger.log(`Rule Information: ${JSON.stringify(ruleData.ruleName)}, Transaction Type Version: ${JSON.stringify(ruleData.txtpVersion)}`);
+      this.logger.log(
+        `Rule Information: ${JSON.stringify(ruleData.ruleName)}, Transaction Type Version: ${JSON.stringify(ruleData.txtpVersion)}`,
+      );
 
       if (!groupName) {
         this.logger.error('Group name not found in token. Cannot send rule notification.');
         return;
       }
 
-      const recipientEmails = (await this.fetchRecipientEmails(
-        event,
-        tenantId,
-        authToken,
-        groupName,
-      )) as string[];
+      const recipientEmails = (await this.fetchRecipientEmails(event, tenantId, user.token.tokenString, groupName)) as string[];
 
       if (recipientEmails.length === 0) {
         this.logger.warn(`No recipients found for event '${event}' in tenant '${tenantId}'`);

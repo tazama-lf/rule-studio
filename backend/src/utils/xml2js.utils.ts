@@ -26,65 +26,48 @@ export function returnArrayFieldsFromSchema(schema: any, loggerService?: LoggerS
     const stringFields: string[] = [];
     const visited = new Set(); // Circular reference detection
 
-    const traverseSchema = (obj: any, path = ''): void => {
-      if (!obj || typeof obj !== 'object') {
-        return;
+    const buildPath = (base: string, key: string): string => (base ? `${base}.${key}` : key);
+
+    const processProperty = (property: any, currentPath: string, traverseFn: (obj: any, path: string) => void): void => {
+      if (!property || typeof property !== 'object') return;
+
+      if (property.type === 'array') arrayFields.push(currentPath);
+      if (property.type === 'string') stringFields.push(currentPath);
+      if (property.type === 'object' && property.properties) traverseFn(property, currentPath);
+
+      if (property.type === 'array' && property.items?.type === 'object' && property.items.properties) {
+        traverseFn(property.items, currentPath);
       }
 
-      // Circular reference detection using object reference
-      if (visited.has(obj)) {
-        return;
+      const variants = property.anyOf ?? property.oneOf ?? property.allOf;
+      if (variants) {
+        variants.forEach((variant: any) => {
+          if (variant?.type === 'object' && variant.properties) traverseFn(variant, currentPath);
+        });
       }
+    };
+
+    const processSchemaVariants = (obj: any, path: string, traverseFn: (obj: any, path: string) => void): void => {
+      const variants = obj.anyOf ?? obj.oneOf ?? obj.allOf;
+      if (variants) {
+        variants.forEach((variant: any) => {
+          if (variant?.properties) traverseFn(variant, path);
+        });
+      }
+    };
+
+    const traverseSchema = (obj: any, path = ''): void => {
+      if (!obj || typeof obj !== 'object' || visited.has(obj)) return;
+
       visited.add(obj);
 
-      // Check if properties exist before trying to iterate
       if (obj.properties && typeof obj.properties === 'object') {
-        for (const [key, value] of Object.entries(obj.properties)) {
-          const currentPath = path ? `${path}.${key}` : key;
-          const property = value as any;
-
-          if (!property || typeof property !== 'object') {
-            continue;
-          }
-
-          if (property.type === 'array') {
-            arrayFields.push(currentPath);
-          }
-
-          if (property.type === 'string') {
-            stringFields.push(currentPath);
-          }
-
-          if (property.type === 'object' && property.properties) {
-            traverseSchema(property, currentPath);
-          }
-
-          if (property.type === 'array' && property.items) {
-            if (property.items.type === 'object' && property.items.properties) {
-              traverseSchema(property.items, currentPath);
-            }
-          }
-
-          if (property.anyOf ?? property.oneOf ?? property.allOf) {
-            const schemaVariants = property.anyOf ?? property.oneOf ?? property.allOf;
-            schemaVariants.forEach((variant: any) => {
-              if (variant?.type === 'object' && variant.properties) {
-                traverseSchema(variant, currentPath);
-              }
-            });
-          }
-        }
-      }
-
-      if (obj.anyOf ?? obj.oneOf ?? obj.allOf) {
-        const schemaVariants = obj.anyOf ?? obj.oneOf ?? obj.allOf;
-        schemaVariants.forEach((variant: any) => {
-          if (variant?.properties) {
-            traverseSchema(variant, path);
-          }
+        Object.entries(obj.properties).forEach(([key, value]) => {
+          processProperty(value as any, buildPath(path, key), traverseSchema);
         });
       }
 
+      processSchemaVariants(obj, path, traverseSchema);
       visited.delete(obj);
     };
 

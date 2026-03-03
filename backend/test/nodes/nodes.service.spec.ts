@@ -6,6 +6,7 @@ import {
   RequestQueryNodeDto,
 } from '../../src/services/nodes/dto';
 import { GetNodesQuery } from '../../src/services/nodes/interfaces/node.interface';
+import * as CryptoJS from 'crypto-js';
 
 // Mock AdminServiceClient
 const mockAdminServiceClient = {
@@ -147,8 +148,12 @@ describe('NodesService', () => {
 
     it('should successfully execute a query', async () => {
       const token = 'test-token';
+      const encryptedQuery = CryptoJS.AES.encrypt(
+        'SELECT * FROM users',
+        process.env.CRYPTO_SECRET_KEY!,
+      ).toString();
       const data: RequestQueryNodeDto = {
-        query: 'SELECT * FROM users',
+        query: encryptedQuery,
         dbName: 'test_db',
       };
       const expectedResult = { result: [{ id: 1, name: 'Test User' }] };
@@ -166,8 +171,12 @@ describe('NodesService', () => {
 
     it('should throw an error if adminServiceClient fails', async () => {
       const token = 'test-token';
+      const encryptedQuery = CryptoJS.AES.encrypt(
+        'SELECT * FROM users',
+        process.env.CRYPTO_SECRET_KEY!,
+      ).toString();
       const data: RequestQueryNodeDto = {
-        query: 'SELECT * FROM users',
+        query: encryptedQuery,
         dbName: 'test_db',
       };
       const error = new Error('Failed to execute query');

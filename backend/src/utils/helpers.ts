@@ -15,7 +15,7 @@ interface DecodedUserInfo {
 
 const { ENCRYPTION_KEY, IV_LENGTH } = process.env;
 
-const key = Buffer.from(ENCRYPTION_KEY!, 'utf8');
+const key = Buffer.from(ENCRYPTION_KEY ?? '', 'utf8');
 
 if (key.length !== 32) {
   throw new Error('ENCRYPTION_KEY must be 32 bytes for aes-256-cbc');
@@ -23,7 +23,7 @@ if (key.length !== 32) {
 
 export function encrypt(text: string): string {
   try {
-    const iv = crypto.randomBytes(parseInt(IV_LENGTH!, 10));
+    const iv = crypto.randomBytes(parseInt(IV_LENGTH ?? '16', 10));
     const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
 
     let encrypted = cipher.update(text, 'utf8', 'hex');
@@ -83,9 +83,7 @@ export function validateFileType(filePath: string): 'CSV' | 'TSV' | 'JSON' {
     case 'json':
       return 'JSON';
     default:
-      throw new Error(
-        `Invalid file type: ${ext}. Only CSV, TSV, or JSON are allowed.`,
-      );
+      throw new Error(`Invalid file type: ${ext}. Only CSV, TSV, or JSON are allowed.`);
   }
 }
 
@@ -101,35 +99,27 @@ export function getTenantId(user: AuthenticatedUser): string {
   return tenantId;
 }
 
-function decodeTokenString(tokenString: string): jwt.JwtPayload | null {
+function decodeTokenString(tokenString: string): Record<string, unknown> {
   try {
-    return jwt.decode(tokenString) as jwt.JwtPayload;
-  } catch {
-    return null;
+    return jwt.decode(tokenString) as Record<string, unknown>;
+  } catch (error) {
+    throw new Error('Failed to decode token string', { cause: error });
   }
 }
 
 export function decodeValidatedToken(user: AuthenticatedUser): DecodedUserInfo {
   let decoded = decodeTokenString(user.token.tokenString);
 
-  if (!decoded) {
-    throw new Error('Invalid token: unable to decode');
-  }
-
   if (decoded.tokenString && typeof decoded.tokenString === 'string') {
     const innerDecoded = decodeTokenString(decoded.tokenString);
-    if (innerDecoded) {
-      decoded = innerDecoded;
-    }
+    decoded = innerDecoded;
   }
 
   if (!decoded.preferred_username) {
-    throw new Error(
-      `Invalid token: preferred_username missing. Available keys: ${Object.keys(decoded).join(', ')}`,
-    );
+    throw new Error(`Invalid token: preferred_username missing. Available keys: ${Object.keys(decoded).join(', ')}`);
   }
 
-  if (!decoded.realm_access || !Array.isArray(decoded.realm_access.roles)) {
+  if (!decoded.realm_access || typeof decoded.realm_access !== 'object' || !Array.isArray((decoded.realm_access as Record<string, unknown>).roles)) {
     throw new Error('Invalid token: realm_access.roles missing or invalid');
   }
 
@@ -144,19 +134,12 @@ export function decodeValidatedToken(user: AuthenticatedUser): DecodedUserInfo {
   };
 }
 
-export const getGroupNameFromToken = (
-  decodedToken: DecodedUserInfo,
-): string | null => {
-  const groupName =
-    decodedToken.tenantDetails.length > 0
-      ? decodedToken.tenantDetails[0].replace(/\//g, '')
-      : null;
+export const getGroupNameFromToken = (decodedToken: DecodedUserInfo): string | null => {
+  const groupName = decodedToken.tenantDetails.length > 0 ? decodedToken.tenantDetails[0].replace(/\//g, '') : null;
   return groupName;
 };
 
-export const getEmailsFromToken = (
-  decodedToken: DecodedUserInfo,
-): string[] => {
+export const getEmailsFromToken = (decodedToken: DecodedUserInfo): string[] => {
   const email = decodedToken.preferredUsername;
   return email ? [email] : [];
 };

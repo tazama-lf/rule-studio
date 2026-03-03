@@ -10,7 +10,7 @@ import { ParseExtractService } from './parse-extract.service';
 export class ParseExtractController {
   private readonly logger = new Logger(ParseExtractController.name);
 
-  constructor(private readonly parseExtractService: ParseExtractService) { }
+  constructor(private readonly parseExtractService: ParseExtractService) {}
 
   // @Post('/api/validatePayload')
   // @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)

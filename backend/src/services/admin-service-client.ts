@@ -151,12 +151,7 @@ export class AdminServiceClient {
   }
 
   async createRule(ruleData: Partial<Rules>, token: string, ruleRequest: RuleRequest | undefined): Promise<Rules> {
-    const response = await this.executeHttpRequest<{ rule: Rules }>(
-      'POST',
-      RULE,
-      token,
-      {ruleData, ruleRequest},
-    );
+    const response = await this.executeHttpRequest<{ rule: Rules }>('POST', RULE, token, { ruleData, ruleRequest });
 
     return response.rule;
   }
@@ -195,10 +190,7 @@ export class AdminServiceClient {
   //   return [response.schema, response.mapping, response.functions];
   // }
 
-  async getPayloadByTransactionType(
-    transactionType: string,
-    token: string,
-  ): Promise<Record<string, unknown>> {
+  async getPayloadByTransactionType(transactionType: string, token: string): Promise<Record<string, unknown>> {
     const response = await this.executeHttpRequest<{ payload: Record<string, unknown> }>(
       'GET',
       `${CONFIG_PAYLOAD}/${transactionType}`,
@@ -221,10 +213,18 @@ export class AdminServiceClient {
   }
 
   async getConfigPayloadByTxTp(transactionType: string, transactionVersion: string, token: string): Promise<any> {
-    return await this.executeHttpRequest('GET', `${CONFIG_PAYLOAD}/${encodeURIComponent(transactionType)}/${encodeURIComponent(transactionVersion)}`, token);
+    return await this.executeHttpRequest(
+      'GET',
+      `${CONFIG_PAYLOAD}/${encodeURIComponent(transactionType)}/${encodeURIComponent(transactionVersion)}`,
+      token,
+    );
   }
 
-  async getConfigRowByTxTp(transactionType: string, transactionVersion: string, token: string): Promise<{
+  async getConfigRowByTxTp(
+    transactionType: string,
+    transactionVersion: string,
+    token: string,
+  ): Promise<{
     config: {
       schema: Record<string, unknown>;
       mapping: FieldMapping[];
@@ -240,7 +240,11 @@ export class AdminServiceClient {
     }>('GET', `${CONFIG}/${encodeURIComponent(transactionType)}/${encodeURIComponent(transactionVersion)}`, token);
   }
 
-  async cloneRule(ruleId: string, token: string, payload: Record<string, unknown> & { txtp?: string; txtpVersion?: string }): Promise<Rules> {
+  async cloneRule(
+    ruleId: string,
+    token: string,
+    payload: Record<string, unknown> & { txtp?: string; txtpVersion?: string },
+  ): Promise<Rules> {
     const response = await this.executeHttpRequest<{ rule: Rules }>('POST', `/v1/admin/trs/rule/clone/${ruleId}`, token, {
       payload,
     });

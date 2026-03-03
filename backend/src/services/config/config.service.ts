@@ -10,15 +10,12 @@ export class ConfigService {
 
   constructor(private readonly adminServiceClient: AdminServiceClient) {}
 
-  async getTransactionTypes(
-    user: AuthenticatedUser,
-    endpointKey: EndpointKey,
-  ): Promise<string[]> {
+  async getTransactionTypes(user: AuthenticatedUser, endpointKey: EndpointKey): Promise<string[]> {
     try {
-      const normalizedRole = user.actorRole?.toLowerCase() ?? '';
+      const normalizedRole = this.rbacService.getNormalizedRole(user);
 
       if (!this.rbacService.isRole(normalizedRole)) {
-        throw new ForbiddenException(`Role ${normalizedRole} is not authorized to access transaction types`);
+        throw new ForbiddenException('Role is not authorized to access transaction types');
       }
 
       const tier2 = this.rbacService.getTier2({
@@ -27,9 +24,7 @@ export class ConfigService {
       });
 
       if (!tier2.allowed) {
-        throw new ForbiddenException(
-          tier2.reason ?? `Role ${normalizedRole} is not authorized to access transaction types`,
-        );
+        throw new ForbiddenException(tier2.reason ?? `Role ${normalizedRole} is not authorized to access transaction types`);
       }
 
       return await this.adminServiceClient.getTransactionTypes(user.token.tokenString);
@@ -40,16 +35,12 @@ export class ConfigService {
     }
   }
 
-  async getPayloadByTransactionType(
-    transactionType: string,
-    user: AuthenticatedUser,
-    endpointKey: EndpointKey,
-  ): Promise<any> {
+  async getPayloadByTransactionType(transactionType: string, user: AuthenticatedUser, endpointKey: EndpointKey): Promise<any> {
     try {
-      const normalizedRole = user.actorRole?.toLowerCase() ?? '';
+      const normalizedRole = this.rbacService.getNormalizedRole(user);
 
       if (!this.rbacService.isRole(normalizedRole)) {
-        throw new ForbiddenException(`Role ${normalizedRole} is not authorized to access payload information for transaction type ${transactionType}`);
+        throw new ForbiddenException(`Role is not authorized to access payload information for transaction type ${transactionType}`);
       }
 
       const tier2 = this.rbacService.getTier2({
@@ -63,10 +54,7 @@ export class ConfigService {
         );
       }
 
-      return await this.adminServiceClient.getPayloadByTransactionType(
-        transactionType,
-        user.token.tokenString,
-      );
+      return await this.adminServiceClient.getPayloadByTransactionType(transactionType, user.token.tokenString);
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Error fetching payload for transaction type ${transactionType}: ${err.message}`);
@@ -74,16 +62,12 @@ export class ConfigService {
     }
   }
 
-  async getVersionsOfTransactionType(
-    transactionType: string,
-    user: AuthenticatedUser,
-    endpointKey: EndpointKey,
-  ): Promise<string[]> {
+  async getVersionsOfTransactionType(transactionType: string, user: AuthenticatedUser, endpointKey: EndpointKey): Promise<string[]> {
     try {
-      const normalizedRole = user.actorRole?.toLowerCase() ?? '';
+      const normalizedRole = this.rbacService.getNormalizedRole(user);
 
       if (!this.rbacService.isRole(normalizedRole)) {
-        throw new ForbiddenException(`Role ${normalizedRole} is not authorized to access version information for transaction type ${transactionType}`);
+        throw new ForbiddenException(`Role is not authorized to access version information for transaction type ${transactionType}`);
       }
 
       const tier2 = this.rbacService.getTier2({
@@ -97,10 +81,7 @@ export class ConfigService {
         );
       }
 
-      return await this.adminServiceClient.getVersionsOfTransactionType(
-        transactionType,
-        user.token.tokenString,
-      );
+      return await this.adminServiceClient.getVersionsOfTransactionType(transactionType, user.token.tokenString);
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Error fetching versions for transaction type ${transactionType}: ${err.message}`);

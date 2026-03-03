@@ -30,6 +30,7 @@
   "dependencies": {
     "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/swagger": "^11.2.5",
@@ -40,8 +41,10 @@
     "@tazama-lf/tcs-lib": "^1.0.141",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
+    "cron": "^4.4.0",
     "crypto-js": "^4.2.0",
     "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^8.0.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "swagger-ui-express": "^5.0.1",

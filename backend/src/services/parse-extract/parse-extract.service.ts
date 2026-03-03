@@ -1,10 +1,10 @@
-import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
-import { EndpointKey, RbacService } from '../../utils/rbac/rbacHelper';
+import { Injectable, Logger } from '@nestjs/common';
+import { RbacService } from '../../utils/rbac/rbacHelper';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import { randomUUID } from 'node:crypto';
 import { processMappings, FieldMapping } from '@tazama-lf/tcs-lib';
-import { TransactionalMessage, RuleRequest, NetworkMap, DataCache, MetaData, ParseExtractResponse } from './dto/message.dto';
+import { TransactionalMessage, RuleRequest, NetworkMap, DataCache, MetaData } from './dto/message.dto';
 import { AdminServiceClient } from '../admin-service-client';
 import { formatValidationErrors } from '../../utils/validation.utils';
 import type { AuthenticatedUser } from '../auth/auth.types';
@@ -19,197 +19,6 @@ export class ParseExtractService {
     // Initialize AJV with same configuration as DEMS
     this.ajv = new Ajv({ allErrors: true, logger: false });
     addFormats(this.ajv);
-  }
-
-  async processTransactionalMessage(
-    request: TransactionalMessage,
-    user: AuthenticatedUser,
-    endpointKey: EndpointKey,
-  ): Promise<ParseExtractResponse> {
-    const correlationId = randomUUID();
-
-    try {
-      const normalizedRole = user.actorRole?.toLowerCase() ?? '';
-      if (!this.rbacService.isRole(normalizedRole)) {
-        throw new ForbiddenException(
-          `Role ${normalizedRole} is not authorized to process transactional messages`,
-        );
-      }
-
-      const tier2 = this.rbacService.getTier2({
-        role: normalizedRole,
-        endpointKey,
-      });
-
-      if (!tier2.allowed) {
-        throw new ForbiddenException(
-          tier2.reason ??
-            `Role ${normalizedRole} is not authorized to process transactional messages`,
-        );
-      }
-
-      this.logger.log(
-        `Processing transactional message for ${request.TxTp} [${correlationId}]`,
-      );
-      this.logger.log(`tenant id is ${request.TenantId}`);
-      const result = await this.processTransactionPayload(
-        request,
-        user.token.tokenString,
-        correlationId,
-      );
-
-      if (!result.success) {
-        return {
-          success: false,
-          message: result.message,
-          processedAt: new Date().toISOString(),
-          transactionType: request.TxTp,
-          correlationId,
-          validationErrors: result.validationErrors,
-          configPayload: result.configPayload,
-        };
-      }
-
-      const response: ParseExtractResponse = {
-        success: true,
-        message: `Successfully validated and processed ${request.TxTp} message`,
-        processedAt: new Date().toISOString(),
-        configPayload: result.configPayload,
-        transactionType: request.TxTp,
-        correlationId,
-        validatedPayload: result.validatedPayload,
-        ruleRequest: result.ruleRequest,
-      };
-
-      this.logger.log(
-        `Message processing completed successfully for type: ${request.TxTp} [${correlationId}]`,
-      );
-
-      return response;
-    } catch (error) {
-      const err = error as Error;
-      this.logger.error(
-        `Error processing transactional message [${correlationId}]: ${err.message}`,
-        err.stack,
-      );
-
-      return {
-        success: false,
-        message: `Failed to process message: ${err.message}`,
-        processedAt: new Date().toISOString(),
-        transactionType: request.TxTp,
-        correlationId,
-      };
-    }
-  }
-
-  /**
-   * Core logic - fetch schema -> validate payload -> process mappings -> create RuleRequest
-   * @param request The transactional message request
-   * @param token Authentication token
-   * @param correlationId Correlation ID for tracking
-   * @returns Processing result with all necessary data
-   */
-  async processTransactionPayload(
-    request: TransactionalMessage,
-    token: string,
-    correlationId: string,
-  ): Promise<{
-    success: boolean;
-    message: string;
-    validationErrors?: string[];
-    configPayload?: any;
-    validatedPayload?: any;
-    ruleRequest?: RuleRequest;
-  }> {
-    // 1. Fetch schema from database via Admin Service
-    const adminServiceResponse =
-      await this.adminServiceClient.getConfigRowByTxTp(
-        request.TxTp, // needs to be sent for saving ruleRequest in db table
-        token,
-      );
-
-    if (!adminServiceResponse.config?.schema) {
-      const errorMsg = `No schema configuration found for transaction type: ${request.TxTp}`;
-      this.logger.warn(errorMsg);
-
-      return {
-        success: false,
-        message: errorMsg,
-      };
-    }
-
-    this.logger.log(`Found schema configuration for: ${request.TxTp}`);
-
-    // 2. Extract payload to validate - exclude TxTp and TenantId from request
-    const extractedData = this.extractPayloadFromRequest(request);
-
-    if (!extractedData?.payloadToValidate) {
-      return {
-        success: false,
-        message: 'No payload found to validate',
-      };
-    }
-
-    const { TxTp, TenantId, payloadToValidate } = extractedData;
-
-    // 3. Validate payload against schema thru AJV
-    const validationResult = this.validatePayload(
-      payloadToValidate,
-      adminServiceResponse.config.schema,
-      request.TxTp,
-      correlationId,
-    );
-
-    if (!validationResult.isValid) {
-      return {
-        success: false,
-        message: 'Payload validation failed',
-        validationErrors: validationResult.differences,
-        configPayload: adminServiceResponse,
-      };
-    }
-
-    // 4. After validation now, I will fetch mappings from config Table
-    // and create the DataCache object based on that
-    // we will utilize the TCS-LIB process mappings over here
-
-    // Process mappings to extract dataCache and transaction relationship
-    payloadToValidate.TxTp = TxTp;
-    payloadToValidate.TenantId = TenantId;
-   
-    const mappingResult = processMappings(
-      payloadToValidate,
-      adminServiceResponse.config.mapping ?? [], // where is this coming form?
-      request.TxTp,
-    );
-
-    // Fetch active network map for the tenant
-    const activeNetworkMap =
-      await this.adminServiceClient.getActiveNetworkMap(token);
-
-    const networkMap: NetworkMap = activeNetworkMap ?? {};
-
-    this.logger.log(
-      `Processed mappings for ${request.TxTp}: extracted ${Object.keys(mappingResult.dataCache).length} data cache entries`,
-    );
-
-    // we create the RuleRequest object here
-    const ruleRequest: RuleRequest = this.createRuleRequest(
-      payloadToValidate,
-      request,
-      correlationId,
-      mappingResult.dataCache,
-      networkMap,
-    );
-
-    return {
-      success: true,
-      message: `Successfully validated and processed ${request.TxTp} message`,
-      configPayload: adminServiceResponse,
-      validatedPayload: payloadToValidate,
-      ruleRequest,
-    };
   }
 
   /**
@@ -251,16 +60,14 @@ export class ParseExtractService {
         };
       }
 
-      const mappingOutcome = processMappings(
-        payloadToValidate,
-        mappingResult,
-        transactionType,
-      );
+      const mappingOutcome = processMappings(payloadToValidate, mappingResult, transactionType);
       const activeNetworkMap = await this.adminServiceClient.getActiveNetworkMap(user.token.tokenString);
 
       const networkMap: NetworkMap = activeNetworkMap ?? {};
 
-      this.logger.log(`Processed mappings for ${transactionType}: extracted ${Object.keys(mappingOutcome.dataCache).length} data cache entries`);
+      this.logger.log(
+        `Processed mappings for ${transactionType}: extracted ${Object.keys(mappingOutcome.dataCache).length} data cache entries`,
+      );
 
       const ruleRequest: RuleRequest = this.createRuleRequest(payloadToValidate, user, correlationId, mappingOutcome.dataCache, networkMap);
 
@@ -268,7 +75,7 @@ export class ParseExtractService {
         success: true,
         message: 'Transaction data processed successfully',
         correlationId,
-        ruleRequest: ruleRequest,
+        ruleRequest,
         validatedPayload: payloadToValidate,
         configPayload: payloadResult,
       };
@@ -331,7 +138,9 @@ export class ParseExtractService {
    * @param request The transactional message request
    * @returns Extracted payload object
    */
-  private extractPayloadFromRequest(request: TransactionalMessage): { TxTp: string; TenantId?: string; payloadToValidate: Record<string, unknown> } | null {
+  private extractPayloadFromRequest(
+    request: TransactionalMessage,
+  ): { TxTp: string; TenantId?: string; payloadToValidate: Record<string, unknown> } | null {
     const { TxTp, TenantId, ...payloadData } = request;
 
     // If there's meaningful data after excluding metadata fields, return it

@@ -80,14 +80,7 @@ describe('ParseExtractService - AJV Validation', () => {
       mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockConfig as any);
       mockAdminServiceClient.getActiveNetworkMap.mockResolvedValue({});
 
-      const result = await service.processForRuleCreation(
-        'pacs.008.001.10',
-        '10',
-        schema,
-        [],
-        validPayload,
-        mockUser,
-      );
+      const result = await service.processForRuleCreation('pacs.008.001.10', '10', schema, [], validPayload, mockUser);
 
       expect(result.success).toBe(true);
       expect(result.validationErrors).toBeUndefined();
@@ -111,14 +104,7 @@ describe('ParseExtractService - AJV Validation', () => {
       mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockConfig as any);
       mockAdminServiceClient.getActiveNetworkMap.mockResolvedValue({});
 
-      const result = await service.processForRuleCreation(
-        'pacs.008.001.10',
-        '10',
-        schema,
-        [],
-        invalidPayload,
-        mockUser,
-      );
+      const result = await service.processForRuleCreation('pacs.008.001.10', '10', schema, [], invalidPayload, mockUser);
 
       expect(result.success).toBe(false);
       expect(result.validationErrors).toBeDefined();
@@ -138,14 +124,7 @@ describe('ParseExtractService - AJV Validation', () => {
       mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockConfig as any);
       mockAdminServiceClient.getActiveNetworkMap.mockResolvedValue({});
 
-      const result = await service.processForRuleCreation(
-        'pacs.008.001.10',
-        '10',
-        schema,
-        [],
-        invalidPayload,
-        mockUser,
-      );
+      const result = await service.processForRuleCreation('pacs.008.001.10', '10', schema, [], invalidPayload, mockUser);
 
       expect(result.success).toBe(false);
       expect(result.validationErrors).toBeDefined();
@@ -155,14 +134,7 @@ describe('ParseExtractService - AJV Validation', () => {
     it('should handle missing schema configuration', async () => {
       mockAdminServiceClient.getActiveNetworkMap.mockResolvedValue({});
 
-      const result = await service.processForRuleCreation(
-        'unknown.transaction',
-        '1',
-        {},
-        [],
-        { SomeData: {} },
-        mockUser,
-      );
+      const result = await service.processForRuleCreation('unknown.transaction', '1', {}, [], { SomeData: {} }, mockUser);
 
       expect(result.success).toBe(false);
       expect(result.message).toContain('Failed to process transaction data');
@@ -222,14 +194,7 @@ describe('ParseExtractService - AJV Validation', () => {
       mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockConfig as any);
       mockAdminServiceClient.getActiveNetworkMap.mockResolvedValue({});
 
-      const result = await service.processForRuleCreation(
-        'pacs.008.001.10',
-        '10',
-        schema,
-        [],
-        validPayload,
-        mockUser,
-      );
+      const result = await service.processForRuleCreation('pacs.008.001.10', '10', schema, [], validPayload, mockUser);
 
       expect(result.success).toBe(true);
       expect(result.ruleRequest).toBeDefined();
@@ -267,14 +232,7 @@ describe('ParseExtractService - AJV Validation', () => {
       mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockConfig as any);
       mockAdminServiceClient.getActiveNetworkMap.mockResolvedValue({});
 
-      const result = await service.processForRuleCreation(
-        'pacs.008.001.10',
-        '10',
-        schema,
-        [],
-        invalidPayload,
-        mockUser,
-      );
+      const result = await service.processForRuleCreation('pacs.008.001.10', '10', schema, [], invalidPayload, mockUser);
 
       expect(result.success).toBe(false);
       expect(result.ruleRequest).toBeUndefined();

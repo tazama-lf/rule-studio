@@ -1,8 +1,9 @@
+import type { AuthenticatedUser } from 'src/services/auth/auth.types';
 import permissionMatrix from './permissionMatrix.json';
 
 export type Matrix = typeof permissionMatrix;
 export type EndpointKey = keyof Matrix['endpoints'];
-export type Role = keyof Matrix['_meta']['roles']; 
+export type Role = keyof Matrix['_meta']['roles'];
 
 export interface CheckContext {
   role: Role;
@@ -27,11 +28,11 @@ export interface Tier2Permissions {
 }
 
 export interface Tier2Config {
-  rolePermissions: Record<Role, Tier2Permissions>;
+  rolePermissions?: Record<Role, Tier2Permissions>;
 }
 
 export interface Tier3Config {
-  transitions: Record<Role, Record<string, string[]>>;
+  transitions?: Record<Role, Record<string, string[]>>;
 }
 
 export interface EndpointConfig {
@@ -59,7 +60,7 @@ export class RbacService {
       return { allowed: true };
     }
 
-    const perms = tier2.rolePermissions[role];
+    const perms = tier2.rolePermissions?.[role];
     if (!perms) {
       return {
         allowed: false,
@@ -89,7 +90,7 @@ export class RbacService {
       return { allowed: true };
     }
 
-    const roleTransitions = tier3.transitions[role];
+    const roleTransitions = tier3.transitions?.[role];
     if (!roleTransitions) {
       return {
         allowed: false,
@@ -116,7 +117,7 @@ export class RbacService {
       return { allowed: true, allowedStatuses: [] };
     }
 
-    const perms = tier2.rolePermissions[role];
+    const perms = tier2.rolePermissions?.[role];
     if (!perms) {
       return {
         allowed: false,
@@ -128,5 +129,9 @@ export class RbacService {
       allowed: true,
       allowedStatuses: perms.allowedCurrentStatuses,
     };
+  }
+
+  getNormalizedRole(user: AuthenticatedUser): Role {
+    return user.actorRole.toLowerCase() as Role;
   }
 }

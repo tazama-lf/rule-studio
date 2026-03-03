@@ -49,7 +49,23 @@ export class TazamaAuthGuard implements CanActivate {
     const decoded = this.extractTokenPayload(token);
 
     const innerDecoded = this.extractInnerToken(token);
-    const allowedStatuses = innerDecoded?.status
+
+    const actorEmail = innerDecoded.preferred_username as string | undefined;
+
+    const actorName = innerDecoded.name as string | undefined;
+
+    const realmAccess = innerDecoded.realm_access as
+      | { roles?: string[] }
+      | undefined;
+    const realmRoles = realmAccess?.roles;
+
+    const actorRole =
+      realmRoles?.find((role: string) =>
+        ['editor', 'approver', 'publisher', 'exporter'].includes(
+          role.toLowerCase(),
+        ),
+      ) ?? valid[0];
+    const allowedStatuses = innerDecoded.status
       ? (innerDecoded.status as string)
           .split(',')
           .map((s) => s.trim())
@@ -69,6 +85,9 @@ export class TazamaAuthGuard implements CanActivate {
       tenantId: decoded.tenantId,
       userId: decoded.clientId,
       allowedStatuses,
+      actorRole,
+      actorEmail,
+      actorName
     };
 
     request.user = authenticatedUser;
@@ -147,23 +166,22 @@ export class TazamaAuthGuard implements CanActivate {
     return decoded;
   }
 
-  private extractInnerToken(outerToken: string): Record<string, unknown> | null {
+  private extractInnerToken(outerToken: string): Record<string, unknown> {
     try {
-      const outerDecoded = jwt.decode(outerToken) as Record<string, unknown> | null;
-      this.logger.log(`Outer token keys: ${outerDecoded ? Object.keys(outerDecoded).join(', ') : 'null'}`);
+      const outerDecoded = jwt.decode(outerToken) as Record<string, unknown>;
+      this.logger.log(`Outer token keys: ${Object.keys(outerDecoded).join(', ')}`);
 
-      if (!outerDecoded?.tokenString) {
+      if (!outerDecoded.tokenString) {
         this.logger.warn('No tokenString field in outer token, returning outer token itself');
         return outerDecoded; // Return outer token if there's no inner token
       }
 
-      const innerDecoded = jwt.decode(outerDecoded.tokenString as string) as Record<string, unknown> | null;
-      this.logger.log(`Inner token keys: ${innerDecoded ? Object.keys(innerDecoded).join(', ') : 'null'}`);
+      const innerDecoded = jwt.decode(outerDecoded.tokenString as string) as Record<string, unknown>;
       return innerDecoded;
     } catch (error) {
       const err = error as Error;
       this.logger.warn(`Failed to extract inner token payload: ${err.message}`);
-      return null;
+      throw new UnauthorizedException('Invalid token format');
     }
   }
 }

@@ -37,15 +37,10 @@ export class ConfigController {
     status: 403,
     description: 'Forbidden - Insufficient permissions',
   })
-  async getTransactionTypes(
-    @User() user: AuthenticatedUser,
-  ): Promise<string[]> {
+  async getTransactionTypes(@User() user: AuthenticatedUser): Promise<string[]> {
     const endpointKey = 'GET /config/api/transaction-types' as EndpointKey;
 
-    return await this.configService.getTransactionTypes(
-      user,
-      endpointKey,
-    );
+    return await this.configService.getTransactionTypes(user, endpointKey);
   }
 
   // at this point, we need another API to get all versions for a transaction type
@@ -83,11 +78,7 @@ export class ConfigController {
   ): Promise<string[]> {
     const endpointKey = 'GET /config/api/versions/:transactionType' as EndpointKey;
 
-    return await this.configService.getVersionsOfTransactionType(
-      transactionType,
-      user,
-      endpointKey,
-    );
+    return await this.configService.getVersionsOfTransactionType(transactionType, user, endpointKey);
   }
 
   @Get('/api/payload/:transactionType/:transactionVersion')
@@ -125,17 +116,10 @@ export class ConfigController {
     status: 403,
     description: 'Forbidden - Insufficient permissions',
   })
-  async getPayloadByTransactionType(
-    @Param('transactionType') transactionType: string,
-    @User() user: AuthenticatedUser,
-  ): Promise<any> {
+  async getPayloadByTransactionType(@Param('transactionType') transactionType: string, @User() user: AuthenticatedUser): Promise<any> {
     const endpointKey = 'GET /config/api/payload/:transactionType' as EndpointKey;
 
-    const response = await this.configService.getPayloadByTransactionType(
-      transactionType,
-      user,
-      endpointKey,
-    );
+    const response = await this.configService.getPayloadByTransactionType(transactionType, user, endpointKey);
 
     return {
       ...response,

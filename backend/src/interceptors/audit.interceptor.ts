@@ -19,7 +19,7 @@ interface EventMetadata {
 export class AuditInterceptor implements NestInterceptor {
   private readonly logger = new Logger(AuditInterceptor.name);
 
-  constructor(@Inject('AUDIT_LOGGER') private readonly auditService: IAuditService) { }
+  constructor(@Inject('AUDIT_LOGGER') private readonly auditService: IAuditService) {}
 
   /**
    * Intercepts HTTP requests to critical endpoints and logs audit information
@@ -331,10 +331,11 @@ export class AuditInterceptor implements NestInterceptor {
         description: 'Inserted simulation logs',
         eventType: 'SIMULATION_LOGS_INSERTED',
       },
-
     } as const satisfies Record<string, EventMetadata>;
 
-    if (actionMap[handler]) { return actionMap[handler]; }
+    if (actionMap[handler]) {
+      return actionMap[handler];
+    }
 
     return {
       description: `${method} request to ${url}`,
@@ -351,7 +352,7 @@ export class AuditInterceptor implements NestInterceptor {
     }
 
     // Remove sensitive fields that should never be logged
-    const { password, token, secret, key, auth, credential, ...cleanBody } = body as Record<string, unknown>;;
+    const { password, token, secret, key, auth, credential, ...cleanBody } = body as Record<string, unknown>;
 
     // Truncate large payloads to prevent storage bloat
     const serialized = JSON.stringify(cleanBody);
@@ -364,19 +365,21 @@ export class AuditInterceptor implements NestInterceptor {
    * Logs audit data asynchronously without blocking the main operation
    * @private
    */
-  private logAuditAsync(auditData: Omit<IAuditLogInput, 'correlationId' | 'eventPhase'>, eventPhase: EventPhase, correlationId: string,): void {
-    const auditInput: IAuditLogInput = { ...auditData, correlationId, eventPhase, };
+  private logAuditAsync(
+    auditData: Omit<IAuditLogInput, 'correlationId' | 'eventPhase'>,
+    eventPhase: EventPhase,
+    correlationId: string,
+  ): void {
+    const auditInput: IAuditLogInput = { ...auditData, correlationId, eventPhase };
 
     this.auditService.log(auditInput).catch((error: unknown) => {
       const errorMessage = error instanceof Error ? error.message : String(error);
 
-      this.logger.error(`Audit logging failed for ${auditData.eventType} by ${auditData.actorName}`,
-        {
-          error: errorMessage,
-          eventPhase,
-          correlationId,
-        },
-      );
+      this.logger.error(`Audit logging failed for ${auditData.eventType} by ${auditData.actorName}`, {
+        error: errorMessage,
+        eventPhase,
+        correlationId,
+      });
     });
   }
 }

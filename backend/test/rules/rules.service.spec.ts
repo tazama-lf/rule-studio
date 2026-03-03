@@ -3,6 +3,7 @@ import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { RulesService } from '../../src/services/rules/rules.service';
 import { AdminServiceClient } from '../../src/services/admin-service-client';
 import { ParseExtractService } from '../../src/services/parse-extract/parse-extract.service';
+import { NotificationService } from '../../src/services/notification/notification.service';
 import { Logger } from '@nestjs/common';
 import { RuleCategory, RuleFlowStatus } from '../../src/utils/enums/rule.enum';
 import type { EndpointKey } from '../../src/utils/rbac/rbacHelper';
@@ -12,6 +13,7 @@ describe('RulesService (current signatures)', () => {
   let service: RulesService;
   let adminServiceClient: jest.Mocked<AdminServiceClient>;
   let parseExtractService: jest.Mocked<ParseExtractService>;
+  let notificationService: jest.Mocked<NotificationService>;
 
   const makeUser = makeAuthenticatedUser;
 
@@ -46,12 +48,21 @@ describe('RulesService (current signatures)', () => {
             processForRuleCreation: jest.fn(),
           },
         },
+        {
+          provide: NotificationService,
+          useValue: {
+            sendRuleWorkflowNotification: jest.fn(),
+            sendEmail: jest.fn(),
+            fetchRecipientEmails: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<RulesService>(RulesService);
     adminServiceClient = module.get(AdminServiceClient);
     parseExtractService = module.get(ParseExtractService);
+    notificationService = module.get(NotificationService);
   });
 
   afterEach(() => jest.restoreAllMocks());
@@ -102,6 +113,13 @@ describe('RulesService (current signatures)', () => {
     jest.spyOn(rbacService, 'getTier2').mockReturnValue({ allowed: true, allowedStatuses: [] });
     jest.spyOn(rbacService, 'checkTier2').mockReturnValue({ allowed: true });
 
+    adminServiceClient.getConfigRowByTxTp.mockResolvedValue({
+      config: {
+        schema: {},
+        mapping: {},
+        payload: {},
+      },
+    } as any);
     adminServiceClient.getPayloadByTransactionType.mockResolvedValue({ payload: {}, type: 'json' } as any);
     parseExtractService.processForRuleCreation.mockResolvedValue({ ruleRequest: {} } as any);
     adminServiceClient.createRule.mockResolvedValue({ id: '101' } as any);
@@ -113,19 +131,14 @@ describe('RulesService (current signatures)', () => {
       },
     } as any);
     adminServiceClient.createRuleFlow.mockResolvedValue({ id: 'flow-101' } as any);
-    adminServiceClient.updateRule.mockResolvedValue({ id: '101', flow_id: 'flow-101' } as any);
 
     const result = await service.createRule(
       { txtp: 'pain.001.001.11' } as any,
       user,
     );
 
-    expect(adminServiceClient.updateRule).toHaveBeenCalledWith(
-      '101',
-      { flow_id: 'flow-101' },
-      'test-token',
-    );
-    expect(result).toEqual({ id: '101', flow_id: 'flow-101' });
+    expect(adminServiceClient.createRuleFlow).toHaveBeenCalled();
+    expect(result).toEqual({ id: '101' });
   });
 
   it('createRule returns created rule when no new flow id is returned', async () => {
@@ -136,6 +149,13 @@ describe('RulesService (current signatures)', () => {
     jest.spyOn(rbacService, 'getTier2').mockReturnValue({ allowed: true, allowedStatuses: [] });
     jest.spyOn(rbacService, 'checkTier2').mockReturnValue({ allowed: true });
 
+    adminServiceClient.getConfigRowByTxTp.mockResolvedValue({
+      config: {
+        schema: {},
+        mapping: {},
+        payload: {},
+      },
+    } as any);
     adminServiceClient.getPayloadByTransactionType.mockResolvedValue({ payload: {}, type: 'json' } as any);
     parseExtractService.processForRuleCreation.mockResolvedValue({ ruleRequest: {} } as any);
     adminServiceClient.createRule.mockResolvedValue({ id: '202' } as any);
