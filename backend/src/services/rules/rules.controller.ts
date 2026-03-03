@@ -24,6 +24,8 @@ import {
   ResponseUpdatedRuleFlowDto,
   ResponseRuleFlowStatusDto,
 } from './dto/rules.dto';
+import { Req } from '@nestjs/common';
+import { EndpointKey } from '../../utils/rbac/rbacHelper';
 
 @ApiTags('Rules')
 @ApiBearerAuth('JWT-auth')
@@ -32,7 +34,7 @@ import {
 export class RulesController {
   private readonly logger = new Logger(RulesController.name);
 
-  constructor(private readonly rulesService: RulesService) {}
+  constructor(private readonly rulesService: RulesService) { }
 
   // get available rule statuses
   @Get('/api/status')
@@ -83,16 +85,12 @@ export class RulesController {
     @User() user: AuthenticatedUser,
     @Body() filters?: RuleFiltersDto,
   ): Promise<Rules[]> {
-    const updatedFilters = filters ?? {};
-
-    if (!updatedFilters.status || updatedFilters.status === '') {
-      const allowedStatuses = this.rulesService.getRulesStatusbyRole(user);
-      if (allowedStatuses.length > 0) {
-        updatedFilters.status = allowedStatuses.join(',');
-      }
-    }
-
-    return await this.rulesService.getAllRules(offset, limit, updatedFilters, user.token.tokenString);
+    return await this.rulesService.getAllRules(
+      offset,
+      limit,
+      filters || {},
+      user,
+    );
   }
 
   // get rule IDs
@@ -104,7 +102,7 @@ export class RulesController {
     responses: CommonResponses.SUCCESS_200([RuleIdResponseDto], 'Rule IDs retrieved successfully'),
   })
   async getRuleIds(@User() user: AuthenticatedUser): Promise<RuleIdResponseDto[]> {
-    const rawRuleIds = await this.rulesService.getRuleIds(user.token.tokenString);
+    const rawRuleIds = await this.rulesService.getRuleIds(user);
 
     return rawRuleIds.map((item) => {
       const source =
@@ -139,7 +137,17 @@ export class RulesController {
       CommonResponses.BAD_REQUEST_400('Invalid input data or rule already exists'),
     ),
   })
-  async createRule(@Body() ruleData: CreateRuleDto, @User() user: AuthenticatedUser): Promise<Rules> {
+  async createRule(
+    @Body() ruleData: CreateRuleDto,
+    @User() user: AuthenticatedUser,
+    @Req() req: {
+      method?: string;
+      url?: string;
+      originalUrl?: string;
+      route?: { path?: string };
+      routeOptions?: { url?: string };
+    },
+  ): Promise<Rules> {
     const ruleDataWithUser = {
       ruleName: ruleData.ruleName,
       description: ruleData.description,
@@ -152,7 +160,8 @@ export class RulesController {
       rule_config_id: ruleData.rule_config_id,
       userID: user.userId,
     };
-    return await this.rulesService.createRule(ruleDataWithUser, user);
+    const endpointKey = `${(req.method ?? '').toUpperCase()} ${req.originalUrl ?? req.url ?? ''}` as EndpointKey;
+    return await this.rulesService.createRule(ruleDataWithUser, user, endpointKey);
   }
 
   // get rule configuration by rule ID
@@ -171,8 +180,24 @@ export class RulesController {
       CommonResponses.NOT_FOUND_404('Rule configuration not found'),
     ),
   })
-  async getRuleConfiguration(@Param('ruleId') ruleId: string, @User() user: AuthenticatedUser): Promise<any> {
-    return await this.rulesService.getRuleConfiguration(ruleId, user.token.tokenString);
+  async getRuleConfiguration(
+    @Param('ruleId') ruleId: string,
+    @User() user: AuthenticatedUser,
+    @Req() req: {
+      method?: string;
+      url?: string;
+      originalUrl?: string;
+      route?: { path?: string };
+      routeOptions?: { url?: string };
+    },
+  ): Promise<any> {
+    const endpointKey = 'GET /rules/api/configuration/:ruleId';
+
+    return await this.rulesService.getRuleConfiguration(
+      ruleId,
+      user,
+      endpointKey,
+    );
   }
 
   // update an existing rule
@@ -196,8 +221,18 @@ export class RulesController {
       CommonResponses.NOT_FOUND_404('Rule not found'),
     ),
   })
-  async updateRule(@Param('ruleId') ruleId: string, @Body() updateData: UpdateRuleDto, @User() user: AuthenticatedUser): Promise<Rules> {
-    return await this.rulesService.updateRule(ruleId, updateData, user.token.tokenString);
+  async updateRule(
+    @Param('ruleId') ruleId: string,
+    @Body() updateData: UpdateRuleDto,
+    @User() user: AuthenticatedUser,
+  ): Promise<Rules> {
+    const endpointKey = 'PUT /rules/api/:ruleId' as EndpointKey;
+    return await this.rulesService.updateRule(
+      ruleId,
+      updateData,
+      user,
+      endpointKey,
+    );
   }
 
   // get rule by ID
@@ -218,8 +253,14 @@ export class RulesController {
       CommonResponses.NOT_FOUND_404('Rule not found'),
     ),
   })
-  async getRulesById(@Param('id', ParseIntPipe) id: number, @User() user: AuthenticatedUser): Promise<Rules> {
-    return await this.rulesService.getRulesById(id, user.tenantId, user.token.tokenString);
+  async getRuleById(
+    @Param('id', ParseIntPipe) id: number,
+    @User() user: AuthenticatedUser,
+  ): Promise<Rules> {
+    return await this.rulesService.getRuleById(
+      id,
+      user,
+    );
   }
 
   // get active network map
@@ -240,7 +281,7 @@ export class RulesController {
 
   // create rule flow configuration
   @Post('/api/:ruleId/flow')
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @RequireAnyClaims(TazamaClaims.EDITOR)
   @Audit()
   @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: '001' })
   @ApiBody({
@@ -261,7 +302,11 @@ export class RulesController {
     @Body() body: RequestFlow,
     @User() user: AuthenticatedUser,
   ): Promise<ResponseRuleFlowDto> {
-    return await this.rulesService.createRuleFlow(ruleId, body, user.token.tokenString);
+    return await this.rulesService.createRuleFlow(
+      ruleId,
+      body,
+      user,
+    );
   }
 
   // get rule flow configuration
@@ -281,7 +326,13 @@ export class RulesController {
     @Query() query: RuleFlowFilterDto,
     @User() user: AuthenticatedUser,
   ): Promise<ResponseRuleFlow> {
-    const result = await this.rulesService.getRuleFlow(ruleId, user.token.tokenString, query);
+    const endpointKey = 'GET /rules/api/:ruleId/flow';
+    const result = await this.rulesService.getRuleFlow(
+      ruleId,
+      user,
+      endpointKey,
+      query,
+    );
     return result;
   }
 
@@ -302,7 +353,14 @@ export class RulesController {
     @Query() query: RuleFlowFilterDto,
     @User() user: AuthenticatedUser,
   ): Promise<ResponseRuleFlowStatusDto> {
-    const result = await this.rulesService.getRuleFlowStatus(ruleId, user.token.tokenString, query);
+    const endpointKey = 'GET /rules/api/:ruleId/flow/status';
+
+    const result = await this.rulesService.getRuleFlowStatus(
+      ruleId,
+      user,
+      endpointKey,
+      query,
+    );
     return result;
   }
 
@@ -329,7 +387,13 @@ export class RulesController {
     @Body() payload: RequestSaveFlow,
     @User() user: AuthenticatedUser,
   ): Promise<ResponseUpdatedRuleFlowDto> {
-    return await this.rulesService.updateRuleFlow(ruleId, payload, user.token.tokenString);
+    const endpointKey = 'PUT /rules/api/:ruleId/flow';
+    return await this.rulesService.updateRuleFlow(
+      ruleId,
+      payload,
+      user,
+      endpointKey,
+    );
   }
 
   // get global variables for a rule
@@ -348,8 +412,17 @@ export class RulesController {
       CommonResponses.NOT_FOUND_404('Rule not found'),
     ),
   })
-  async getGlobalVariables(@Param('ruleId') ruleId: string, @User() user: AuthenticatedUser): Promise<GlobalVariableDto> {
-    return await this.rulesService.getGlobalVariables(ruleId, user.tenantId, user.token.tokenString);
+  async getGlobalVariables(
+    @Param('ruleId') ruleId: string,
+    @User() user: AuthenticatedUser,
+  ): Promise<GlobalVariableDto> {
+    const endpointKey = 'GET /rules/api/global-variables/:ruleId';
+
+    return await this.rulesService.getGlobalVariables(
+      ruleId,
+      user,
+      endpointKey,
+    );
   }
 
   // clone an existing rule
@@ -378,7 +451,14 @@ export class RulesController {
     @Body() payload: any, // add type here
     @User() user: AuthenticatedUser,
   ): Promise<Rules> {
-    return await this.rulesService.cloneRule(ruleId, user, payload);
+    const endpointKey = 'POST /rules/api/clone/:ruleId';
+
+    return await this.rulesService.cloneRule(
+      ruleId,
+      user,
+      payload,
+      endpointKey,
+    );
   }
 
   // update rule status
@@ -408,7 +488,15 @@ export class RulesController {
     @Body() body: UpdateRuleStatusDto,
     @User() user: AuthenticatedUser,
   ): Promise<Rules> {
-    return await this.rulesService.updateRuleStatus(ruleId, body.status, body.comment ?? '', user);
+    const endpointKey = 'PUT /rules/api/:ruleId/status';
+
+    return await this.rulesService.updateRuleStatus(
+      ruleId,
+      body.status,
+      body.comment ?? '',
+      user,
+      endpointKey,
+    );
   }
 
   // update rule metadata
@@ -437,6 +525,8 @@ export class RulesController {
     @Body() updateData: UpdateRuleDto,
     @User() user: AuthenticatedUser,
   ): Promise<Rules> {
-    return await this.rulesService.updateRule(ruleId, updateData, user.token.tokenString);
+    const endpointKey = 'PUT /rules/api/:ruleId/metadata';
+
+    return await this.rulesService.updateRule(ruleId, updateData, user, endpointKey);
   }
 }

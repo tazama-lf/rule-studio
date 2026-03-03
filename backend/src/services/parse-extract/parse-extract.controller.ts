@@ -1,12 +1,7 @@
-import { Controller, Post, Body, UseGuards, HttpCode, HttpStatus, Logger } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { Controller, UseGuards, Logger } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { TazamaAuthGuard } from '../../guards/tazama-auth.guard';
-import { User } from '../../decorators/user.decorator';
-import type { AuthenticatedUser } from '../auth/auth.types';
-import { TazamaClaims, RequireAnyClaims } from '../../decorators/auth.decorator';
 import { ParseExtractService } from './parse-extract.service';
-import { type TransactionalMessage, type ParseExtractResponse, TransactionalMessageDto, ParseExtractResponseDto } from './dto/message.dto';
-import { Audit } from 'src/decorators/audit.decorator';
 
 @ApiTags('Parse & Extract')
 @ApiBearerAuth('JWT-auth')

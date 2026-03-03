@@ -151,7 +151,12 @@ export class AdminServiceClient {
   }
 
   async createRule(ruleData: Partial<Rules>, token: string, ruleRequest: RuleRequest | undefined): Promise<Rules> {
-    const response = await this.executeHttpRequest<{ rule: Rules }>('POST', RULE, token, { ruleData, ruleRequest });
+    const response = await this.executeHttpRequest<{ rule: Rules }>(
+      'POST',
+      RULE,
+      token,
+      {ruleData, ruleRequest},
+    );
 
     return response.rule;
   }
@@ -189,10 +194,16 @@ export class AdminServiceClient {
   //   );
   //   return [response.schema, response.mapping, response.functions];
   // }
-  async getPayloadByTransactionType(transactionType: string, transactionVersion: string, token: string): Promise<Record<string, unknown>> {
-    const response = await this.executeHttpRequest<{
-      payload: Record<string, unknown>;
-    }>('GET', `${CONFIG_PAYLOAD}/${transactionType}/${transactionVersion}`, token);
+
+  async getPayloadByTransactionType(
+    transactionType: string,
+    token: string,
+  ): Promise<Record<string, unknown>> {
+    const response = await this.executeHttpRequest<{ payload: Record<string, unknown> }>(
+      'GET',
+      `${CONFIG_PAYLOAD}/${transactionType}`,
+      token,
+    );
     return response.payload;
   }
 

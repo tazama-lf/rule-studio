@@ -1,4 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { AdminServiceClient } from '../admin-service-client';
 import {
   ResponseRuleFlowDto,
@@ -18,21 +23,38 @@ import { AuthenticatedUser } from '../auth/auth.types';
 import { FieldMapping } from 'node_modules/@tazama-lf/tcs-lib/dist/src/interfaces/schema.interfaces';
 import { EventType } from 'src/utils/enums/events.enum';
 import { NotificationService } from '../notification/notification.service';
+import { RuleCategory } from '../../utils/enums/rule.enum';
+import { EndpointKey, RbacService } from '../../utils/rbac/rbacHelper';
 
 type CloneRulePayload = Record<string, unknown> & { txtp?: string; txtpVersion?: string };
 
 @Injectable()
 export class RulesService {
   private readonly logger = new Logger(RulesService.name);
-
+  private readonly rbacService = new RbacService();
   constructor(
     private readonly adminServiceClient: AdminServiceClient,
     private readonly parseExtractService: ParseExtractService,
     private readonly notificationService: NotificationService,
   ) { }
+
+  private isRuleEnvelope(value: unknown): value is { rules: Rules } {
+    return (
+      typeof value === 'object' && value !== null && 'rules' in value &&
+      typeof (value as { rules: unknown }).rules === 'object' &&
+      (value as { rules: unknown }).rules !== null
+    );
+  }
+
   private async getRuleOrThrow(id: number, token: string): Promise<Rules> {
     try {
-      return await this.adminServiceClient.getRulesById(id, token);
+      const response: unknown = await this.adminServiceClient.getRulesById(id, token);
+
+      if (this.isRuleEnvelope(response)) {
+        return response.rules;
+      }
+
+      return response as Rules;
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Error finding rules by ID ${id}: ${err.message}`);
@@ -40,27 +62,81 @@ export class RulesService {
     }
   }
 
-  async getAllRules(offset: number, limit: number, filters: RuleFiltersDto, token: string): Promise<Rules[]> {
-    // Set default sort order to DESC (newest first) if not provided
-    const updatedFilters = {
-      ...filters,
-      sortOrder: filters.sortOrder || 'DESC' as 'DESC',
-    };
-
-    return await this.adminServiceClient.getAllRulesWithFilters(offset, limit, updatedFilters, token);
+  private getNormalizedRole(user: AuthenticatedUser): string {
+    return user.actorRole?.toLowerCase() ?? '';
   }
 
-  async getRulesById(
+  async getAllRules(offset: number, limit: number, filters: RuleFiltersDto, user: AuthenticatedUser): Promise<Rules[]> {
+    const updatedFilters = { ...filters };
+    const normalizedRole = this.getNormalizedRole(user);
+
+    if (!this.rbacService.isRole(normalizedRole)) {
+      delete updatedFilters.status;
+      return this.adminServiceClient.getAllRulesWithFilters(offset, limit, updatedFilters, user.token.tokenString);
+    }
+
+    const tier2 = this.rbacService.getTier2({
+      role: normalizedRole,
+      endpointKey: 'POST /rules/api/all' as EndpointKey,
+    });
+
+    const allowedStatuses = tier2?.allowedStatuses ?? [];
+    if (allowedStatuses.length > 0) {
+      updatedFilters.status = allowedStatuses.join(',');
+    } else {
+      delete updatedFilters.status;
+    }
+
+    return this.adminServiceClient.getAllRulesWithFilters(offset, limit, updatedFilters, user.token.tokenString);
+  }
+
+  async getRuleById(
     id: number,
-    tenantId: string, // need to fix this. where else is the tenantId being extracted from??
-    token: string,
+    user: AuthenticatedUser,
   ): Promise<Rules> {
-    const rules = await this.getRuleOrThrow(id, token);
-    return rules;
+    const normalizedRole = this.getNormalizedRole(user);
+    if (!this.rbacService.isRole(normalizedRole)) {
+      throw new ForbiddenException('Role is not authorized to access this rule');
+    }
+    const token = user.token.tokenString;
+
+    const rule = await this.getRuleOrThrow(id, token);
+
+    const currentStatus = rule.status ?? '';
+
+    const tier2 = this.rbacService.checkTier2({
+      role: normalizedRole,
+      endpointKey: 'GET /rules/api/:ruleId',
+      currentStatus,
+    });
+
+    if (!tier2.allowed) {
+      throw new ForbiddenException(tier2.reason ?? 'Not authorized to access this rule');
+    }
+
+    return rule;
   }
 
   async createRule(ruleData: Partial<Rules>, user: AuthenticatedUser): Promise<Rules> {
     try {
+      const endpointKey = 'POST /rules/api/create' as EndpointKey;
+      const normalizedRole = this.getNormalizedRole(user);
+
+      if (!this.rbacService.isRole(normalizedRole)) {
+        throw new ForbiddenException('Role is not authorized to create rules');
+      }
+
+      const tier2 = this.rbacService.getTier2({
+        role: normalizedRole,
+        endpointKey,
+      });
+
+      if (!tier2.allowed) {
+        throw new ForbiddenException(
+          tier2.reason ?? 'Not authorized to create rules',
+        );
+      }
+      
       const transactionType = ruleData.txtp ?? '';
       const transactionVersion = ruleData.txtpVersion ?? '';
       const result = await this.adminServiceClient.getConfigRowByTxTp(transactionType, transactionVersion, user.token.tokenString);
@@ -104,6 +180,30 @@ export class RulesService {
 
   async cloneRule(ruleId: string, user: AuthenticatedUser, payload: CloneRulePayload): Promise<Rules> {
     try {
+      const normalizedRole = this.getNormalizedRole(user);
+
+      if (!this.rbacService.isRole(normalizedRole)) {
+        throw new ForbiddenException(`Role is not authorized to clone rule with ID ${ruleId}`);
+      }
+
+      const numericId = Number(ruleId);
+      if (!Number.isInteger(numericId)) {
+        throw new BadRequestException('Invalid ruleId. Expected a numeric value.');
+      }
+
+      const rule = await this.getRuleOrThrow(numericId, user.token.tokenString);
+      const currentStatus = rule.status ?? '';
+
+      const tier2 = this.rbacService.checkTier2({
+        role: normalizedRole,
+        endpointKey,
+        currentStatus,
+      });
+
+      if (!tier2.allowed) {
+        throw new ForbiddenException(tier2.reason ?? 'Tier 2 authorization failed');
+      }
+      
       return await this.adminServiceClient.cloneRule(ruleId, user.token.tokenString, payload);
     } catch (error) {
       const err = error as Error;
@@ -112,9 +212,23 @@ export class RulesService {
     }
   }
 
-  async getRuleIds(token: string): Promise<Array<Record<string, unknown>>> {
+  async getRuleIds(user: AuthenticatedUser): Promise<Array<Record<string, unknown>>> {
     try {
-      return await this.adminServiceClient.getRuleIds(token);
+      const normalizedRole = this.getNormalizedRole(user);
+      if (!this.rbacService.isRole(normalizedRole)) {
+        throw new ForbiddenException('Role is not authorized to access rule IDs');
+      }
+
+      const tier2 = this.rbacService.getTier2({
+        role: normalizedRole,
+        endpointKey: 'GET /rules/api/ids',
+      });
+
+      if (!tier2.allowed) {
+        throw new ForbiddenException(tier2.reason ?? 'Not authorized to access rule IDs');
+      }
+
+      return await this.adminServiceClient.getRuleIds(user.token.tokenString);
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Error fetching rule IDs: ${err.message}`);
@@ -122,9 +236,25 @@ export class RulesService {
     }
   }
 
-  async getRuleConfiguration(ruleId: string, token: string): Promise<Record<string, unknown>> {
+  async getRuleConfiguration(ruleId: string, user: AuthenticatedUser, endpointKey: EndpointKey): Promise<Record<string, unknown>> {
     try {
-      return await this.adminServiceClient.getRuleConfiguration(ruleId, token);
+      const normalizedRole = this.getNormalizedRole(user);
+
+      if (!this.rbacService.isRole(normalizedRole)) {
+        throw new ForbiddenException('Role is not authorized to access rule configuration');
+      }
+
+      const tier2 = this.rbacService.getTier2({
+        role: normalizedRole,
+        endpointKey,
+      });
+
+      if (!tier2.allowed) {
+        throw new ForbiddenException(
+          tier2.reason ?? 'Not authorized to access rule configuration',
+        );
+      }
+      return await this.adminServiceClient.getRuleConfiguration(ruleId, user.token.tokenString);
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Error fetching configuration for rule ${ruleId}: ${err.message}`);
@@ -132,9 +262,54 @@ export class RulesService {
     }
   }
 
-  async updateRule(ruleId: string, updateData: Partial<Rules>, token: string): Promise<Rules> {
+  async updateRule(
+    ruleId: string,
+    updateData: Partial<Rules>,
+    user: AuthenticatedUser,
+    endpointKey: EndpointKey,
+  ): Promise<Rules> {
     try {
-      return await this.adminServiceClient.updateRule(ruleId, updateData, token);
+      const normalizedRole = this.getNormalizedRole(user);
+
+      if (!this.rbacService.isRole(normalizedRole)) {
+        throw new ForbiddenException('Role is not authorized to update rule status');
+      }
+
+      const numericId = Number(ruleId);
+      if (!Number.isInteger(numericId)) {
+        throw new BadRequestException('Invalid ruleId. Expected a numeric value.');
+      }
+
+      const rule = await this.getRuleOrThrow(numericId, user.token.tokenString);
+      const currentStatus = rule.status ?? '';
+
+      const tier2 = this.rbacService.checkTier2({
+        role: normalizedRole,
+        endpointKey,
+        currentStatus,
+      });
+
+      if (!tier2.allowed) {
+        throw new ForbiddenException(tier2.reason ?? 'Tier 2 authorization failed');
+      }
+
+      if (updateData.status) {
+        const tier3 = this.rbacService.checkTier3({
+          role: normalizedRole,
+          endpointKey,
+          currentStatus,
+          targetStatus: updateData.status,
+        });
+        if (!tier3.allowed) {
+          throw new ForbiddenException(tier3.reason ?? 'Tier 3 authorization failed');
+        }
+      }
+
+      return await this.adminServiceClient.updateRule(
+        ruleId,
+        updateData,
+        user.token.tokenString,
+      );
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Error updating rule ${ruleId}: ${err.message}`);
@@ -152,9 +327,37 @@ export class RulesService {
     }
   }
 
-  async getRuleFlow(ruleId: string, token: string, filters?: RuleFlowFilterDto): Promise<ResponseRuleFlow> {
+  async getRuleFlow(ruleId: string, user: AuthenticatedUser, endpointKey: EndpointKey, filters?: RuleFlowFilterDto,
+  ): Promise<ResponseRuleFlow> {
     try {
-      const ruleFlow = await this.adminServiceClient.getRuleFlow(ruleId, token, filters);
+      const normalizedRole = this.getNormalizedRole(user);
+
+      if (!this.rbacService.isRole(normalizedRole)) {
+        throw new ForbiddenException('Role is not authorized to update rule status');
+      }
+
+      const numericId = Number(ruleId);
+      if (!Number.isInteger(numericId)) {
+        throw new BadRequestException('Invalid ruleId. Expected a numeric value.');
+      }
+
+      const rule = await this.getRuleOrThrow(numericId, user.token.tokenString);
+      const currentStatus = rule.status ?? '';
+
+      const tier2 = this.rbacService.checkTier2({
+        role: normalizedRole,
+        endpointKey,
+        currentStatus,
+      });
+
+      if (!tier2.allowed) {
+        throw new ForbiddenException(tier2.reason ?? 'Tier 2 authorization failed');
+      }
+      const ruleFlow = await this.adminServiceClient.getRuleFlow(
+        ruleId,
+        user.token.tokenString,
+        filters,
+      );
       return ruleFlow;
     } catch (error) {
       const err = error as Error;
@@ -163,9 +366,36 @@ export class RulesService {
     }
   }
 
-  async getRuleFlowStatus(ruleId: string, token: string, filters?: RuleFlowFilterDto): Promise<ResponseRuleFlowStatusDto> {
+  async getRuleFlowStatus(ruleId: string, user: AuthenticatedUser, endpointKey: EndpointKey, filters?: RuleFlowFilterDto): Promise<ResponseRuleFlowStatusDto> {
     try {
-      const status = await this.adminServiceClient.getRuleFlowStatus(ruleId, token, filters);
+      const normalizedRole = this.getNormalizedRole(user);
+
+      if (!this.rbacService.isRole(normalizedRole)) {
+        throw new ForbiddenException('Role is not authorized to update rule status');
+      }
+
+      const numericId = Number(ruleId);
+      if (!Number.isInteger(numericId)) {
+        throw new BadRequestException('Invalid ruleId. Expected a numeric value.');
+      }
+
+      const rule = await this.getRuleOrThrow(numericId, user.token.tokenString);
+      const currentStatus = rule.status ?? '';
+
+      const tier2 = this.rbacService.checkTier2({
+        role: normalizedRole,
+        endpointKey,
+        currentStatus,
+      });
+
+      if (!tier2.allowed) {
+        throw new ForbiddenException(tier2.reason ?? 'Tier 2 authorization failed');
+      }
+      const status = await this.adminServiceClient.getRuleFlowStatus(
+        ruleId,
+        user.token.tokenString,
+        filters,
+      );
       return status;
     } catch (error) {
       const err = error as Error;
@@ -174,9 +404,38 @@ export class RulesService {
     }
   }
 
-  async createRuleFlow(ruleId: string, body: RequestFlow, token: string): Promise<ResponseRuleFlowDto> {
+  async createRuleFlow(ruleId: string, body: RequestFlow, user: AuthenticatedUser): Promise<ResponseRuleFlowDto> {
     try {
-      return await this.adminServiceClient.createRuleFlow(ruleId, body, token);
+      const endpointKey: EndpointKey = 'POST /rules/api/:ruleId/flow';
+      const normalizedRole = this.getNormalizedRole(user);
+
+      if (!this.rbacService.isRole(normalizedRole)) {
+        throw new ForbiddenException('Role is not authorized to update rule status');
+      }
+
+      const numericId = Number(ruleId);
+      if (!Number.isInteger(numericId)) {
+        throw new BadRequestException('Invalid ruleId. Expected a numeric value.');
+      }
+
+      const rule = await this.getRuleOrThrow(numericId, user.token.tokenString);
+      const currentStatus = rule.status ?? '';
+
+      const tier2 = this.rbacService.checkTier2({
+        role: normalizedRole,
+        endpointKey,
+        currentStatus,
+      });
+
+      if (!tier2.allowed) {
+        throw new ForbiddenException(tier2.reason ?? 'Tier 2 authorization failed');
+      }
+
+      return await this.adminServiceClient.createRuleFlow(
+        ruleId,
+        body,
+        user.token.tokenString,
+      );
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Error creating flow for rule ${ruleId}: ${err.message}`);
@@ -184,23 +443,94 @@ export class RulesService {
     }
   }
 
-  async updateRuleFlow(ruleId: string, payload: RequestSaveFlow, token: string): Promise<ResponseUpdatedRuleFlowDto> {
+  async updateRuleFlow(ruleId: string, payload: RequestSaveFlow, user: AuthenticatedUser, endpointKey: EndpointKey): Promise<ResponseUpdatedRuleFlowDto> {
     try {
-      return await this.adminServiceClient.updateRuleFlow(ruleId, payload, token);
+      const normalizedRole = this.getNormalizedRole(user);
+
+      if (!this.rbacService.isRole(normalizedRole)) {
+        throw new ForbiddenException('Role is not authorized to update rule status');
+      }
+
+      const numericId = Number(ruleId);
+      if (!Number.isInteger(numericId)) {
+        throw new BadRequestException('Invalid ruleId. Expected a numeric value.');
+      }
+
+      const rule = await this.getRuleOrThrow(numericId, user.token.tokenString);
+      const currentStatus = rule.status ?? '';
+
+      const tier2 = this.rbacService.checkTier2({
+        role: normalizedRole,
+        endpointKey,
+        currentStatus,
+      });
+
+      if (!tier2.allowed) {
+        throw new ForbiddenException(tier2.reason ?? 'Tier 2 authorization failed');
+      }
+
+      return await this.adminServiceClient.updateRuleFlow(
+        ruleId,
+        payload,
+        user.token.tokenString,
+      );
     } catch (error) {
       const err = error as Error;
-      this.logger.error(`Error updating flow for rule ${ruleId}: ${err.message}`);
+      this.logger.error(
+        `Error updating flow for rule ${ruleId}: ${err.message}`,
+      );
       throw error;
     }
   }
 
   getRulesStatusbyRole(user: AuthenticatedUser): string[] {
-    return user.allowedStatuses ?? [];
+    const normalizedRole = this.getNormalizedRole(user);
+
+    if (!this.rbacService.isRole(normalizedRole)) {
+      return [];
+    }
+
+    const tier2 = this.rbacService.getTier2({
+      role: normalizedRole,
+      endpointKey: 'GET /rules/api/status' as EndpointKey,
+    });
+
+    return tier2.allowedStatuses ?? [];
   }
 
-  async getGlobalVariables(ruleId: string, tenantId: string, token: string): Promise<GlobalVariableDto> {
+  async getGlobalVariables(ruleId: string, user: AuthenticatedUser, endpointKey: EndpointKey): Promise<GlobalVariableDto> {
     try {
-      const ruleData = await this.adminServiceClient.getGlobalVariables(ruleId, tenantId, token);
+      const normalizedRole = this.getNormalizedRole(user);
+
+      if (!this.rbacService.isRole(normalizedRole)) {
+        throw new ForbiddenException(
+          'Role is not authorized to read global variables of the rule ',
+          ruleId,
+        );
+      }
+
+      const numericId = Number(ruleId);
+      if (!Number.isInteger(numericId)) {
+        throw new BadRequestException('Invalid ruleId. Expected a numeric value.');
+      }
+
+      const rule = await this.getRuleOrThrow(numericId, user.token.tokenString);
+      const currentStatus = rule.status ?? '';
+
+      const tier2 = this.rbacService.checkTier2({
+        role: normalizedRole,
+        endpointKey,
+        currentStatus,
+      });
+
+      if (!tier2.allowed) {
+        throw new ForbiddenException(tier2.reason ?? 'Tier 2 authorization failed');
+      }
+      const ruleData = await this.adminServiceClient.getGlobalVariables(
+        ruleId,
+        user.tenantId,
+        user.token.tokenString,
+      );
       return ruleData;
     } catch (error) {
       const err = error as Error;
@@ -209,13 +539,7 @@ export class RulesService {
     }
   }
 
-  async updateRuleStatus(
-    ruleId: string,
-    status: string,
-    reason: string,
-    user: AuthenticatedUser,
-  ): Promise<Rules> {
-
+  async updateRuleStatus(ruleId: string, status: string, reason: string, user: AuthenticatedUser, endpointKey: EndpointKey): Promise<Rules> {
     const token = user.token.tokenString || '';
     const mapStatusToEventType = (status: string): EventType | null => {
       const normalizedStatus = status.toUpperCase();
@@ -245,6 +569,43 @@ export class RulesService {
     };
 
     try {
+      const normalizedRole = this.getNormalizedRole(user);
+
+      if (!this.rbacService.isRole(normalizedRole)) {
+        throw new ForbiddenException(
+          `Role ${normalizedRole} is not authorized to update rule status for rule ${ruleId}`,
+        );
+      }
+
+      const numericId = Number(ruleId);
+      if (!Number.isInteger(numericId)) {
+        throw new BadRequestException('Invalid ruleId. Expected a numeric value.');
+      }
+
+      const rule = await this.getRuleOrThrow(numericId, user.token.tokenString);
+      const currentStatus = rule.status ?? '';
+
+      const tier2 = this.rbacService.checkTier2({
+        role: normalizedRole,
+        endpointKey,
+        currentStatus,
+      });
+
+      if (!tier2.allowed) {
+        throw new ForbiddenException(tier2.reason ?? 'Tier 2 authorization failed');
+      }
+
+      const tier3 = this.rbacService.checkTier3({
+        role: normalizedRole,
+        endpointKey,
+        currentStatus,
+        targetStatus: status,
+      });
+
+      if (!tier3.allowed) {
+        throw new ForbiddenException(tier3.reason ?? 'Tier 3 authorization failed');
+      }
+      
       const existingRule = await this.getRuleOrThrow(Number(ruleId), token);
       const previousStatus = (existingRule as any)?.rules?.status ?? existingRule.status;
 
