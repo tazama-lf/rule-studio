@@ -40,7 +40,7 @@ const useParserController = (props: IParseProps) => {
 
     const getData = useCallback(() => {
         if (!data?.txtp) return
-        getPayload({ type: data.txtp })
+        getPayload({ type: data.txtp, version: data.txtp_version })
             .unwrap()
             .then((res) => {
                 setPayload(JSON.stringify(res, null, 4))

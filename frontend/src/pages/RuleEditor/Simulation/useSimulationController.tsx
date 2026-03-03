@@ -101,7 +101,8 @@ const useSimulationController = (props: ISimulation) => {
             deploy: 'Deployment'
         }
         const title = titles[type]
-        open(`${title} Confirmation Required!`, <Approval id={data?.id} type={type} />, null, { maxWidth: 'sm' })
+        const rule_config_id = data?.rule_config_id
+        open(`${title} Confirmation Required!`, <Approval rule_config_id={rule_config_id?.toString().split('@')[0]} id={data?.id} type={type} />, null, { maxWidth: 'sm' })
     }
 
     const handleNext = () => {
@@ -113,8 +114,10 @@ const useSimulationController = (props: ISimulation) => {
     }
 
     const handleReportStatus = useCallback(() => {
+
+        const rule_config_id = data?.rule_config_id
         const body = {
-            ruleId: data?.id,
+            ruleId: rule_config_id?.toString().split('@')[0],
             branchName: 'staging'
         }
         getReportStatus({ ...body })
@@ -157,8 +160,11 @@ const useSimulationController = (props: ISimulation) => {
     }, [toggleLoader, handleReportStatus])
 
     const handleUpload = useCallback(() => {
+
+        const rule_config_id = data?.rule_config_id
+
         const body = {
-            ruleId: data?.id,
+            ruleId: rule_config_id?.toString().split('@')[0],
             ruleCode: flowData?.result?.ts_file_base64_rule_builder,
             testCode: flowData?.result?.ts_file_base64_test_case
         }
@@ -186,8 +192,9 @@ const useSimulationController = (props: ISimulation) => {
             toast.error('Please sync code on GitHub before deploying')
             return
         }
+        const rule_config_id = data?.rule_config_id
         const body = {
-            ruleId: data?.id,
+            ruleId: rule_config_id?.toString().split('@')[0],
             branchName: "dev"
         }
         deploy(body).unwrap()
@@ -209,14 +216,12 @@ const useSimulationController = (props: ISimulation) => {
     }, [codeSynced, data?.id, deploy, toggleCodeDeployed, updateMetadata])
 
     const handleSelect = (id: number) => {
-        if (!codeDeployed && claims.editor === user?.claims) {
+        if (!codeDeployed && claims.editor === user?.claims && mode != 'view') {
             toast.error('Deploy rule first to run simulation')
             return;
         } else {
             setSelected(id)
         }
-
-        // setSelected(id)
 
         if (id === 1) {
             getRuleRequest(data?.id).unwrap()
@@ -234,7 +239,7 @@ const useSimulationController = (props: ISimulation) => {
                 toast.error('Transaction type not found')
                 return
             }
-            getPayload({ type: data.txtp })
+            getPayload({ type: data.txtp, version: data.txtp_version })
                 .unwrap()
                 .then((res) => {
                     if (res) {
@@ -272,11 +277,14 @@ const useSimulationController = (props: ISimulation) => {
             : _values?.payload || {};
         if (isReadOnly) {
 
+            const rule_config_id = data?.rule_config_id
+            const id = rule_config_id?.toString().split('@')[0]
+            const version = rule_config_id?.toString().split('@')[1]
             body = {
                 functionName: '',
                 awaitReply: true,
-                destination: `sub-rule-${data.id}@${data.version}`,
-                consumer: `pub-rule-${data.id}@${data.version}`,
+                destination: `sub-rule-${id}@${version}`,
+                consumer: `pub-rule-${id}@${version}`,
                 message: parsedPayload
             };
             mutation = ruleOnly;
@@ -300,7 +308,7 @@ const useSimulationController = (props: ISimulation) => {
                 natsConsumer: "investigation-service",
                 functionName: "TMS",
                 awaitReply: true,
-                transaction: samplePayload
+                transaction: parsedPayload
             };
             mutation = endToEnd;
             logCategory = 'end_to_end';
