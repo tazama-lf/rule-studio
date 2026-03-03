@@ -22,7 +22,7 @@ export class NodesController {
   })
   @Post('/create')
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
-  @Audit() // Audit node creation actions
+  @Audit()
   @ApiBody({ type: [CreateNodeDto] })
   @ApiResponse({
     status: 201,
@@ -109,7 +109,7 @@ export class NodesController {
 
   @Delete(':nodeId')
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
-  @Audit() // Audit node deletion actions (critical)
+  @Audit()
   @ApiOperation({
     summary: 'Delete node by ID',
     description: 'Deletes a specific node by its unique identifier',
@@ -138,6 +138,7 @@ export class NodesController {
 
   @Post('execute-query')
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @Audit()
   @ApiOperation({
     summary: 'Execute query node',
     description: 'Executes a query node and returns the result',

@@ -7,6 +7,7 @@ import { SimulationLogsService } from './simulation-logs.service';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { User } from 'src/decorators/user.decorator';
 import { RequestSimulationLogsDto, SimulationLogsDto } from './dto';
+import { Audit } from 'src/decorators/audit.decorator';
 
 @ApiTags('simulation-logs')
 @ApiBearerAuth('JWT-auth')
@@ -40,6 +41,7 @@ export class SimulationLogsController {
 
   @Post('insert/:ruleId')
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @Audit()
   @ApiBody({
     type: RequestSimulationLogsDto,
     description: 'Simulation logs to be inserted',
