@@ -371,7 +371,7 @@ describe('Approval Component', () => {
 
   describe('Deploy Flow', () => {
     it('should call deploy then updateStatus for deploy type', async () => {
-      renderWithTheme(<Approval type="deploy" id="rule-1" />);
+      renderWithTheme(<Approval type="deploy" id="rule-1" rule_config_id="rule-1" />);
 
       await act(async () => {
         fireEvent.click(screen.getByText('Yes, Deploy Rule'));
@@ -395,7 +395,7 @@ describe('Approval Component', () => {
     it('should show success toast and navigate on successful deploy', async () => {
       const toast = require('react-hot-toast');
 
-      renderWithTheme(<Approval type="deploy" id="rule-1" />);
+      renderWithTheme(<Approval type="deploy" id="rule-1" rule_config_id="rule-1" />);
 
       await act(async () => {
         fireEvent.click(screen.getByText('Yes, Deploy Rule'));
@@ -412,7 +412,7 @@ describe('Approval Component', () => {
       const toast = require('react-hot-toast');
       mockDeployUnwrap.mockRejectedValueOnce(new Error('deploy fail'));
 
-      renderWithTheme(<Approval type="deploy" id="rule-1" />);
+      renderWithTheme(<Approval type="deploy" id="rule-1" rule_config_id="rule-1" />);
 
       await act(async () => {
         fireEvent.click(screen.getByText('Yes, Deploy Rule'));
@@ -427,7 +427,7 @@ describe('Approval Component', () => {
       const toast = require('react-hot-toast');
       mockSubmitUnwrap.mockRejectedValueOnce(new Error('status fail'));
 
-      renderWithTheme(<Approval type="deploy" id="rule-1" />);
+      renderWithTheme(<Approval type="deploy" id="rule-1" rule_config_id="rule-1" />);
 
       await act(async () => {
         fireEvent.click(screen.getByText('Yes, Deploy Rule'));

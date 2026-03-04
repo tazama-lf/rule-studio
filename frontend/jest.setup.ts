@@ -1,11 +1,13 @@
 import '@testing-library/jest-dom';
 
-// Polyfill for TextEncoder/TextDecoder (needed for react-router-dom v7)
 const { TextEncoder, TextDecoder } = require('util');
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder as any;
 
-// Mock import.meta for Vite
+if (typeof global.structuredClone === 'undefined') {
+  global.structuredClone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
+}
+
 (global as any).importMeta = {
   env: {
     VITE_CRYPTO_KEY: 'test-crypto-key',
@@ -17,7 +19,6 @@ global.TextDecoder = TextDecoder as any;
   },
 };
 
-// Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: (query: string) => ({
@@ -32,7 +33,6 @@ Object.defineProperty(window, 'matchMedia', {
   }),
 });
 
-// Mock IntersectionObserver
 global.IntersectionObserver = class IntersectionObserver {
   constructor() {}
   disconnect() {}
@@ -43,7 +43,6 @@ global.IntersectionObserver = class IntersectionObserver {
   unobserve() {}
 } as any;
 
-// Mock ResizeObserver
 global.ResizeObserver = class ResizeObserver {
   constructor() {}
   disconnect() {}
@@ -51,10 +50,8 @@ global.ResizeObserver = class ResizeObserver {
   unobserve() {}
 } as any;
 
-// Mock scrollIntoView
 Element.prototype.scrollIntoView = function() {};
 
-// Mock HTMLElement.prototype.scrollTo
 if (!HTMLElement.prototype.scrollTo) {
   HTMLElement.prototype.scrollTo = function() {};
 }
