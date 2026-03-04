@@ -55,7 +55,6 @@ describe('RulesController wiring', () => {
     expect(mockRulesService.createRule).toHaveBeenCalledWith(
       expect.objectContaining({ txtp: 'pain.001.001.11', userID: 'user-1' }),
       user,
-      'POST /rules/api/create',
     );
   });
 
@@ -144,7 +143,6 @@ describe('RulesController wiring', () => {
       '1',
       user,
       { txtp: 'pain.001.001.11' },
-      'POST /rules/api/clone/:ruleId',
     );
   });
 

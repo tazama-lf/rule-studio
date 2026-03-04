@@ -10,7 +10,7 @@ import { CLAIMS_KEY, IS_PUBLIC_KEY, ANY_CLAIMS_KEY } from '../decorators/auth.de
 export class TazamaAuthGuard implements CanActivate {
   private readonly logger = new Logger(TazamaAuthGuard.name);
 
-  constructor(private readonly reflector: Reflector) {}
+  constructor(private readonly reflector: Reflector) { }
 
   canActivate(context: ExecutionContext): boolean {
     const logContext = 'TazamaAuthGuard.canActivate()';
@@ -65,11 +65,19 @@ export class TazamaAuthGuard implements CanActivate {
           role.toLowerCase(),
         ),
       ) ?? valid[0];
+
+    const sourceIP =
+      request.ip ??
+      (request.headers['x-forwarded-for'] as string | undefined)
+        ?.split(',')[0]
+        .trim() ??
+      request.socket.remoteAddress;
+
     const allowedStatuses = innerDecoded.status
       ? (innerDecoded.status as string)
-          .split(',')
-          .map((s) => s.trim())
-          .filter((s) => s.length > 0)
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0)
       : undefined;
 
     if (allowedStatuses) {
@@ -84,10 +92,11 @@ export class TazamaAuthGuard implements CanActivate {
       validClaims: valid,
       tenantId: decoded.tenantId,
       userId: decoded.clientId,
-      allowedStatuses,
+      actorName,
       actorRole,
       actorEmail,
-      actorName
+      sourceIP,
+      allowedStatuses
     };
 
     request.user = authenticatedUser;

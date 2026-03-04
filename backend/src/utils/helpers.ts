@@ -128,8 +128,8 @@ export function decodeValidatedToken(user: AuthenticatedUser): DecodedUserInfo {
   }
 
   return {
-    preferredUsername: decoded.preferred_username,
-    realmRoles: decoded.realm_access.roles,
+    preferredUsername: decoded.preferred_username as string,
+    realmRoles: (decoded.realm_access as Record<string, unknown>).roles as string[],
     tenantDetails: decoded.tenant_details,
   };
 }
