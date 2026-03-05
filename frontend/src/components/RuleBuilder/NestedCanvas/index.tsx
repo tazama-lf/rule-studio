@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo, memo } from 'react';
 import type { DragEvent } from 'react';
 import {
   ReactFlow,
@@ -20,7 +20,7 @@ import EditableNode from '../EditableNode';
 import LeftSidebar from '../LeftSidebar';
 import RightSidebar from '../RightSidebar';
 import { getNodeTemplate } from '../../../utils/Flow/nodeTemplateService';
-import { generateNestedNodeId, setCounters } from '../../../utils/Flow/FlowDefaults';
+import { generateNestedNodeId, setNestedNodeCounter } from '../../../utils/Flow/FlowDefaults';
 import { getLabelForHandle, getColorForHandle } from '../../../utils/Common/helpers';
 import { useValidationContext } from '../../../validation/context';
 
@@ -28,7 +28,9 @@ const nodeTypes = {
   editableNode: EditableNode,
 };
 
-// Internal component to expose updateNodeInternals from within ReactFlow context
+const EMPTY_MAIN_CANVAS_NODES: Node[] = [];
+const DEFAULT_NESTED_VIEWPORT = { x: 150, y: 50, zoom: 1 };
+
 const UpdateNodeInternalsExposer: React.FC<{ onReady: (updateFn: (nodeId: string) => void) => void }> = ({ onReady }) => {
   const updateNodeInternals = useUpdateNodeInternals();
   
@@ -51,7 +53,7 @@ interface NestedCanvasProps {
   mainCanvasNodes?: Node[];
 }
 
-const NestedCanvas: React.FC<NestedCanvasProps> = ({
+const NestedCanvas: React.FC<NestedCanvasProps> = memo(({
   nodeLabel,
   initialNodes: providedInitialNodes,
   initialEdges: providedInitialEdges,
@@ -59,7 +61,7 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
   onSave,
   viewOnly = false,
   ruleId,
-  mainCanvasNodes = [],
+  mainCanvasNodes = EMPTY_MAIN_CANVAS_NODES,
 }) => {
   const [initialNodesEdges] = useState(() => {
     if (providedInitialNodes) {
@@ -72,7 +74,7 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
         return max;
       }, 0);
       if (maxNestedNodeId > 0) {
-        setCounters(0, 0, maxNestedNodeId);
+        setNestedNodeCounter(maxNestedNodeId);
       }
       
       return { nodes: providedInitialNodes, edges: providedInitialEdges || [] };
@@ -127,6 +129,7 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const updateNodeInternalsRef = useRef<((nodeId: string) => void) | null>(null);
   const { clearNodeErrors } = useValidationContext();
+  const hasNestedInitializedRef = useRef(false);
   
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
@@ -141,6 +144,17 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
     nodesRef.current = nodes;
     edgesRef.current = edges;
   }, [nodes, edges]);
+
+  useEffect(() => {
+    if (!hasNestedInitializedRef.current && providedInitialNodes && providedInitialNodes.length > 0) {
+      setNodes(providedInitialNodes);
+      if (providedInitialEdges) {
+        setEdges(providedInitialEdges);
+      }
+      hasNestedInitializedRef.current = true;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [providedInitialNodes, providedInitialEdges]);
   
   const allNodes = useMemo(() => {
     return [...mainCanvasNodes, ...nodes];
@@ -274,7 +288,6 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
   );
   const onKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      // No-op in view-only mode
       if (viewOnly) {
         return;
       }
@@ -459,7 +472,7 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
             onNodeClick={onNodeClick}
             onPaneClick={onPaneClick}
             nodeTypes={nodeTypes}
-            defaultViewport={{ x: 150, y: 50, zoom: 1 }}
+            defaultViewport={DEFAULT_NESTED_VIEWPORT}
             nodesDraggable={!viewOnly}
             nodesConnectable={!viewOnly}
             elementsSelectable={!viewOnly}
@@ -485,6 +498,9 @@ const NestedCanvas: React.FC<NestedCanvasProps> = ({
       </Box>
     </Box>
   );
-};
+});
+
+NestedCanvas.displayName = 'NestedCanvas';
 
 export default NestedCanvas;
+

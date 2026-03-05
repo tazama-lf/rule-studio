@@ -20,7 +20,7 @@ const Section = ({ header, subHeader, children }: ISection) => {
                     : null}
             </Grid>
 
-            <Grid container rowSpacing={3} size={12} p={3}>
+            <Grid container justifyContent={'center'} rowSpacing={3} size={12} p={3}>
                 {children}
             </Grid>
         </Grid>

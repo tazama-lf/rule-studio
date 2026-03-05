@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useCallback, useMemo } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import type { Node, Edge } from '@xyflow/react';
@@ -14,11 +14,17 @@ import { ValidationErrorModal } from '../../components/RuleBuilder/ValidationErr
 import { useGetFlowQuery, useSaveFlowMutation, useGetNodesQuery } from '../../redux/Api/Rule-builder';
 import { transformApiFlowData, type ApiNode, type ApiEdge } from '../../utils/Flow/FlowTransformers';
 import { setApiNodes } from '../../utils/Flow/nodeTemplateService';
+import { validateTypeScriptCode } from '../../utils/Flow/codeValidator';
+import { generateTypeScriptCode } from '../../utils/Flow/CodeGenerator';
 import {
   useFlowAnimation,
   useFlowState,
   useNestedCanvasManager,
 } from '../../hooks/RuleBuilder';
+import { extractData } from '../../utils/Common/storage';
+import { LocalStorage } from '../../utils/Common/enums';
+import { useUpdateMetadataMutation } from '../../redux/Api/Rules';
+import { RESET_FLOW_PAYLOAD } from '../../utils/Constants';
 
 interface RuleBuilderProps {
   viewOnly?: boolean;
@@ -26,36 +32,37 @@ interface RuleBuilderProps {
 
 const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
   const { id: ruleId } = useParams<{ id: string }>();
-  
-  const { data: nodesData, isLoading: isLoadingNodes, error: nodesError } = useGetNodesQuery({});
-  
-  const { data: flowData, isLoading: isLoadingFlow, error: flowError } = useGetFlowQuery(ruleId || '', {
-    skip: !ruleId,
-  });
-  
+
+  const { data: nodesData, isLoading: isLoadingNodes, error: nodesError } = useGetNodesQuery('rule_builder');
+
+  const { data: flowData, isLoading: isLoadingFlow, error: flowError } = useGetFlowQuery(
+    { ruleId: ruleId || '', category: 'rule_builder' },
+    { skip: !ruleId, refetchOnMountOrArgChange: true }
+  );
+
   const [saveFlow, { isLoading: isSaving }] = useSaveFlowMutation();
-  
+  const [update] = useUpdateMetadataMutation();
+
   const flowState = useFlowState();
   const nestedCanvasManager = useNestedCanvasManager();
-  
-  // Store reference to updateNodeInternals from Canvas for dynamic handle updates
+
   const updateNodeInternalsRef = React.useRef<((nodeId: string) => void) | null>(null);
-  
+
   const [apiNodesInitialized, setApiNodesInitialized] = React.useState(false);
-  
+
   useEffect(() => {
     if (nodesData && Array.isArray(nodesData)) {
       setApiNodes(nodesData as unknown as ApiNode[]);
       setApiNodesInitialized(true);
     }
   }, [nodesData]);
-  
+
   const transformedFlowData = useMemo(() => {
 
-    if (!flowData?.flow || !apiNodesInitialized) return null;
-    
-    const flowJson = flowData.flow.flow_json || flowData.flow;
-    
+    if ((!flowData?.result && !flowData?.flow) || !apiNodesInitialized) return null;
+
+    const flowJson = flowData.result.flow_json || flowData.flow;
+
     return transformApiFlowData(
       flowJson.nodes as ApiNode[] || [],
       flowJson.edges as ApiEdge[] || []
@@ -75,9 +82,13 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
   }, [transformedFlowData]);
 
   const [showErrorModal, setShowErrorModal] = React.useState(false);
+  const [showSaveSuccessModal, setShowSaveSuccessModal] = React.useState(false);
+  const [showResetConfirmDialog, setShowResetConfirmDialog] = React.useState(false);
+  const [allowNavigation, setAllowNavigation] = React.useState(false);
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (allowNavigation) return;
       event.preventDefault();
       event.returnValue = '';
       return '';
@@ -88,10 +99,10 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, []);
-  
+  }, [allowNavigation]);
+
   const [isPaused, setIsPaused] = React.useState(false);
-  
+
   const {
     playFlowAnimation,
     stopAnimation,
@@ -101,7 +112,7 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
     animationTimeoutRef,
   } = useFlowAnimation({
     isPlaying: Boolean(flowState.currentAnimationNode),
-    setIsPlaying: () => {},
+    setIsPlaying: () => { },
     nestedCanvasData: nestedCanvasManager.nestedCanvasData,
     setDebugVariables: flowState.setDebugVariables,
     setDebugLogs: flowState.setDebugLogs,
@@ -145,6 +156,74 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
     window.generateFlowCode?.();
   };
 
+  const handleReset = async () => {
+    if (!ruleId) {
+      toast.error('Rule ID not found');
+      return;
+    }
+
+    try {
+      const transformedResetFlow = transformApiFlowData(
+        RESET_FLOW_PAYLOAD.nodes as ApiNode[],
+        RESET_FLOW_PAYLOAD.edges as ApiEdge[]
+      );
+
+      const tsCode = generateTypeScriptCode(
+        transformedResetFlow.nodes,
+        transformedResetFlow.edges,
+        transformedResetFlow.nestedFlows
+      );
+      
+      if (!tsCode) {
+        toast.error('Failed to generate TypeScript code');
+        return;
+      }
+
+      const validationResult = validateTypeScriptCode(tsCode);
+      const status = validationResult.isValid ? 'pass' : 'fail';
+      const tsFileBase64 = btoa(unescape(encodeURIComponent(tsCode)));
+
+      const payload = {
+        flow_json: RESET_FLOW_PAYLOAD,
+        ts_file_base64: tsFileBase64,
+        status,
+      };
+
+      await saveFlow({
+        ruleId,
+        flowData: payload,
+        category: 'rule_builder',
+      }).unwrap().then((res) => {
+        if (res) {
+          update({
+            id: ruleId,
+            body: {
+              metadata: {
+                sync: true,
+                test: false,
+                deploy: false,
+                simulation: false
+              }
+            }
+          }).unwrap();
+        }
+      });
+
+      toast.success('Flow reset to default template successfully');
+      setShowResetConfirmDialog(false);
+      
+      // Allow navigation and reload the page to reflect the reset
+      setAllowNavigation(true);
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
+    } catch (error: unknown) {
+      console.error('Reset flow error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to reset flow';
+      toast.error(errorMessage);
+    }
+  };
+
   const handleSave = async () => {
     if (!ruleId) {
       toast.error('Rule ID not found');
@@ -173,19 +252,42 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
         return;
       }
 
+      const validationResult = validateTypeScriptCode(tsCode);
+      const status = validationResult.isValid ? 'pass' : 'fail';
+
       const tsFileBase64 = btoa(unescape(encodeURIComponent(tsCode)));
 
       const payload = {
         flow_json: parsedFlowJson,
         ts_file_base64: tsFileBase64,
+        status,
       };
 
-      const response = await saveFlow({
+      await saveFlow({
         ruleId,
         flowData: payload,
-      }).unwrap();
+        category: 'rule_builder',
+      }).unwrap().then((res) => {
+        if (res) {
+          update({
+            id: ruleId,
+            body: {
+              metadata: {
+                sync: true,
+                test: false,
+                deploy: false,
+                simulation: false
+              }
+            }
+          }).unwrap()
+        }
+      });
 
-      toast.success(response.message || 'Flow saved successfully');
+      // Close JSON modal but keep code modal open
+      flowState.setJsonModalOpen(false);
+
+      // Show save success modal (code modal stays open in background)
+      setShowSaveSuccessModal(true);
     } catch (error: unknown) {
       const errorMessage = (error as { data?: { message?: string } })?.data?.message || 'Failed to save flow';
       toast.error(errorMessage);
@@ -193,6 +295,11 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
   };
 
   const handleNodeSelect = useCallback((node: Node | null) => {
+    if (node?.data.nodeType === 'Start' || node?.data.nodeType === 'End') {
+      flowState.setSelectedNode(null);
+      return;
+    }
+
     if (node?.data.nodeType === 'HandleTransaction') {
       nestedCanvasManager.openNestedCanvas(node.id, String(node.data.label || 'Handle Transaction'));
       flowState.setSelectedNode(null);
@@ -218,22 +325,30 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
     updateNodeInternalsRef.current?.(nodeId);
   }, []);
 
-  const handleFlowStateUpdate = ((
-    nodes: Node[], 
-    edges: Edge[], 
-    setNodes: (nodes: Node[] | ((prevNodes: Node[]) => Node[])) => void, 
+  const handleFlowStateUpdate = useCallback((nodes: Node[],
+    edges: Edge[],
+    setNodes: (nodes: Node[] | ((prevNodes: Node[]) => Node[])) => void,
     setEdges: (edges: Edge[] | ((prevEdges: Edge[]) => Edge[])) => void
   ) => {
     updateFlowState(nodes, edges, setNodes, setEdges);
     flowState.setAllNodes(nodes);
     flowState.setEdges(edges);
-  });
-  
-  const handleNestedCanvasSave = ((nodes: Node[], edges: Edge[]) => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [updateFlowState, flowState.setAllNodes, flowState.setEdges]);
+
+  const handleNestedCanvasSave = useCallback((nodes: Node[], edges: Edge[]) => {
     if (nestedCanvasManager.activeNestedCanvas) {
       nestedCanvasManager.handleNestedCanvasSave(nestedCanvasManager.activeNestedCanvas, nodes, edges);
     }
-  });
+  }, [nestedCanvasManager]);
+
+  const canvasWrapperStyle = useMemo(() => ({
+    display: nestedCanvasManager.activeNestedCanvas ? 'none' : 'flex',
+    flex: 1,
+    flexDirection: 'column' as const,
+    height: '100%',
+    width: '100%'
+  }), [nestedCanvasManager.activeNestedCanvas]);
 
   useEffect(() => {
     const timeoutRef = animationTimeoutRef.current;
@@ -243,6 +358,10 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
       }
     };
   }, [animationTimeoutRef]);
+
+  const mode = extractData('mode', LocalStorage)
+
+  const isStaticRule = ruleId === '21';
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
@@ -256,9 +375,13 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
         onDisplayJson={handleDisplayJson}
         onGenerateCode={handleGenerateCode}
         onViewErrors={() => setShowErrorModal(true)}
-        onSave={handleSave}
+        onSave={!isStaticRule ? handleSave : undefined}
+        onReset={!isStaticRule ? () => setShowResetConfirmDialog(true) : undefined}
         isSaving={isSaving}
         viewOnly={viewOnly}
+        hidePlayControls={true}
+        title="Rule Builder"
+        backUrl={mode === 'view' ? `/editor?mode=view&tab=rule_builder` : `/editor?tab=rule_builder`}
       />
       {nodesError || flowError ? (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, flexDirection: 'column', gap: 2 }}>
@@ -287,8 +410,8 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
       ) : (
         <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
           {!viewOnly && (
-            <LeftSidebar 
-              mode="main" 
+            <LeftSidebar
+              mode="main"
               collapsed={flowState.sidebarCollapsed}
               onToggleCollapse={flowState.handleToggleSidebar}
               hideCustomFunctions={nestedCanvasManager.activeNestedCanvas !== null}
@@ -298,22 +421,25 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
               ruleId={ruleId}
             />
           )}
-          <RuleBuilderCanvas
-            isPlaying={Boolean(flowState.currentAnimationNode)}
-            onJsonGenerate={flowState.handleJsonGenerate}
-            onCodeGenerate={flowState.handleCodeGenerate}
-            onNodeSelect={handleNodeSelect}
-            onNodeUpdateHandlerReady={handleNodeUpdateHandlerReady}
-            debugVariables={flowState.debugVariables}
-            debugLogs={flowState.debugLogs}
-            currentNodeId={flowState.currentAnimationNode}
-            nestedCanvasData={nestedCanvasManager.nestedCanvasData}
-            viewOnly={viewOnly}
-            onFlowStateUpdate={handleFlowStateUpdate}
-            initialNodes={transformedFlowData?.nodes}
-            initialEdges={transformedFlowData?.edges}
-            onUpdateNodeInternalsReady={handleUpdateNodeInternalsReady}
-          />
+          <Box sx={canvasWrapperStyle}>
+            <RuleBuilderCanvas
+              isPlaying={Boolean(flowState.currentAnimationNode)}
+              onJsonGenerate={flowState.handleJsonGenerate}
+              onCodeGenerate={flowState.handleCodeGenerate}
+              onNodeSelect={handleNodeSelect}
+              onNodeUpdateHandlerReady={handleNodeUpdateHandlerReady}
+              debugVariables={flowState.debugVariables}
+              debugLogs={flowState.debugLogs}
+              currentNodeId={flowState.currentAnimationNode}
+              nestedCanvasData={nestedCanvasManager.nestedCanvasData}
+              viewOnly={viewOnly}
+              onFlowStateUpdate={handleFlowStateUpdate}
+              initialNodes={transformedFlowData?.nodes}
+              initialEdges={transformedFlowData?.edges}
+              onUpdateNodeInternalsReady={handleUpdateNodeInternalsReady}
+              isNestedCanvasActive={Boolean(nestedCanvasManager.activeNestedCanvas)}
+            />
+          </Box>
           <RightSidebar
             key={flowState.selectedNode?.id || 'no-selection'}
             selectedNode={flowState.selectedNode}
@@ -328,6 +454,7 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
 
           {nestedCanvasManager.activeNestedCanvas && (
             <NestedCanvas
+              key={`nested-${nestedCanvasManager.activeNestedCanvas}`}
               nodeId={nestedCanvasManager.activeNestedCanvas}
               nodeLabel={nestedCanvasManager.activeNestedCanvasLabel}
               initialNodes={nestedCanvasManager.nestedCanvasData[nestedCanvasManager.activeNestedCanvas]?.nodes}
@@ -359,12 +486,76 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
         emptyMessage="Click 'Generate Code' to see output"
         onDownload={() => flowState.handleDownload(flowState.generatedCode)}
         language="typescript"
+        enableValidation={true}
+        validationType="rule"
       />
 
       <ValidationErrorModal
         open={showErrorModal}
         onClose={() => setShowErrorModal(false)}
       />
+
+      <Dialog open={showSaveSuccessModal} onClose={() => setShowSaveSuccessModal(false)}>
+        <DialogTitle>Flow Saved Successfully</DialogTitle>
+        <DialogContent>
+          <Typography>Your rule flow has been saved. What would you like to do next?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setShowSaveSuccessModal(false);
+              // Keep code modal open when staying on editor
+            }}
+            variant="outlined"
+          >
+            Stay on Editor
+          </Button>
+          <Button
+            onClick={() => {
+              setShowSaveSuccessModal(false);
+              flowState.setCodeModalOpen(false);
+              setAllowNavigation(true);
+              setTimeout(() => {
+                window.location.href = mode === 'view' ? `/editor?mode=view&tab=rule_builder` : `/editor?tab=rule_builder`;
+              }, 0);
+            }}
+            variant="contained"
+          >
+            Proceed to Next Step
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog 
+        open={showResetConfirmDialog} 
+        onClose={() => setShowResetConfirmDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ color: 'warning.main' }}>Reset Flow Confirmation</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure? All changes will be lost and the rule will be updated.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setShowResetConfirmDialog(false)}
+            variant="outlined"
+            color="inherit"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleReset}
+            variant="contained"
+            color="warning"
+            disabled={isSaving}
+          >
+            {isSaving ? 'Resetting...' : 'Yes, Reset'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

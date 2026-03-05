@@ -11,20 +11,29 @@ import PrivateRoute from './routes/PrivateRoute';
 import ProtectedRoute from './routes/ProtectedRoute';
 import theme from './utils/Theme';
 
+const themeMode = createTheme(theme());
+
 function App() {
 
-  const themeMode = useMemo(() => createTheme(theme()), []);
+  const privateWithLayoutRoutes = useMemo(
+    () => ROUTES.filter(route => route.private === true && route.layout === true),
+    []
+  );
 
-  const privateWithLayoutRoutes = ROUTES.filter(route => route.private === true && route.layout === true);
+  const publicNoLayoutRoutes = useMemo(
+    () => ROUTES.filter(route => route.private === false && route.layout === false),
+    []
+  );
 
-  const publicNoLayoutRoutes = ROUTES.filter(route => route.private === false && route.layout === false);
+  const privateWithoutLayoutRoutes = useMemo(
+    () => ROUTES.filter(route => route.private === true && route.layout === false),
+    []
+  );
 
-  const privateWithoutLayoutRoutes = ROUTES.filter(route => route.private === true && route.layout === false);
   return (
     <BrowserRouter>
       <ThemeProvider theme={themeMode}>
         <ModalProvider>
-
           <Toaster position="top-right" reverseOrder={false} />
           <Routes>
             <Route element={<ProtectedRoute />}>
@@ -52,8 +61,6 @@ function App() {
                 }
               </Route>
             </Route>
-
-
           </Routes>
         </ModalProvider>
       </ThemeProvider>

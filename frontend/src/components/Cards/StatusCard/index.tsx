@@ -5,9 +5,10 @@ import { BoxContainer, getStatusStyles, StatusContainer } from "./Status.styles"
 
 interface StatusBoxProps {
     status: string;
+    bullet?: boolean
 }
 
-const StatusCard = ({ status }: StatusBoxProps) => {
+const StatusCard = ({ status, bullet = true }: StatusBoxProps) => {
     const theme = useTheme();
     const styles = getStatusStyles(status, theme);
 
@@ -17,7 +18,9 @@ const StatusCard = ({ status }: StatusBoxProps) => {
                 ...styles,
             }}
         >
-            <BoxContainer sx={{ bgcolor: styles.color }}></BoxContainer>
+            {bullet &&
+                <BoxContainer sx={{ bgcolor: styles.color }}></BoxContainer>
+            }
             <Text size="sub" fontWeight={700} fontSize={11} color={styles.color}>
                 {status}
             </Text>

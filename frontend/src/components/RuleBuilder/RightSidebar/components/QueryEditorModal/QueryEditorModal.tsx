@@ -23,7 +23,8 @@ interface QueryEditorModalProps {
   open: boolean;
   onClose: () => void;
   onSave: (query: string) => void;
-  onExecute: (query: string) => void;
+  onExecute: (query: string, dbName?: string) => void;
+  dbName?: string;
   initialValue: string;
   isExecuting?: boolean;
   executionError?: string | null;
@@ -38,6 +39,7 @@ const QueryEditorModal: React.FC<QueryEditorModalProps> = ({
   onClose,
   onSave,
   onExecute,
+  dbName,
   initialValue,
   isExecuting = false,
   executionError = null,
@@ -49,9 +51,14 @@ const QueryEditorModal: React.FC<QueryEditorModalProps> = ({
   const editorRef = useRef<EditorSectionHandle>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   
-  const { handleDrop, handleDragOver, handleDragEnter, handleDragLeave } = useDragDropEditor();
+  const { handleDrop, handleDragOver, handleDragEnter, handleDragLeave, handleEditorMount } = useDragDropEditor();
   
-  const variableData = useVariableData({ ruleId, allNodes, edges, selectedNodeId });
+  const variableData = useVariableData({ 
+    ruleId: open ? ruleId : undefined, 
+    allNodes: open ? allNodes : [], 
+    edges: open ? edges : [], 
+    selectedNodeId: open ? selectedNodeId : null 
+  });
 
   const handleSave = useCallback(() => {
     const query = editorRef.current?.getValue() ?? '';
@@ -64,14 +71,14 @@ const QueryEditorModal: React.FC<QueryEditorModalProps> = ({
   }, [onSave]);
 
   const handleExecute = useCallback(() => {
-    const query = editorRef.current?.getValue() ?? '';
-    if (!query.trim()) {
+    const rawQuery = editorRef.current?.getValue() ?? '';
+    if (!rawQuery.trim()) {
       setValidationError('Query cannot be empty');
       return;
     }
     setValidationError(null);
-    onExecute(query);
-  }, [onExecute]);
+    onExecute(rawQuery, dbName);
+  }, [onExecute, dbName]);
 
   const handleCancel = useCallback(() => {
     setValidationError(null);
@@ -124,6 +131,7 @@ const QueryEditorModal: React.FC<QueryEditorModalProps> = ({
           onDragOver={handleDragOver}
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
+          onEditorMount={handleEditorMount}
         />
 
         <Divider orientation="vertical" flexItem />
@@ -162,4 +170,36 @@ const QueryEditorModal: React.FC<QueryEditorModalProps> = ({
   );
 };
 
-export default React.memo(QueryEditorModal);
+const arePropsEqual = (
+  prevProps: QueryEditorModalProps,
+  nextProps: QueryEditorModalProps
+): boolean => {
+  if (!prevProps.open && !nextProps.open) {
+    return true;
+  }
+
+  if (prevProps.open !== nextProps.open) {
+    return false;
+  }
+
+  if (
+    prevProps.initialValue !== nextProps.initialValue ||
+    prevProps.isExecuting !== nextProps.isExecuting ||
+    prevProps.executionError !== nextProps.executionError ||
+    prevProps.ruleId !== nextProps.ruleId ||
+    prevProps.selectedNodeId !== nextProps.selectedNodeId
+  ) {
+    return false;
+  }
+
+  if (
+    prevProps.allNodes?.length !== nextProps.allNodes?.length ||
+    prevProps.edges?.length !== nextProps.edges?.length
+  ) {
+    return false;
+  }
+
+  return true;
+};
+
+export default React.memo(QueryEditorModal, arePropsEqual);

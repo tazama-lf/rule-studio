@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import StatusCard from "../../components/Cards/StatusCard";
 import type { DropdownOption } from "../../components/DropDown";
@@ -9,10 +9,11 @@ import { useModal } from "../../contexts/ModalContext";
 import useFilters from "../../hooks/useFilters";
 import { useGetRulesMutation, useGetStatusQuery } from "../../redux/Api/Rules";
 import { LocalStorage } from "../../utils/Common/enums";
-import { extractData, removeData } from "../../utils/Common/storage";
+import { extractData, insertData, removeData } from "../../utils/Common/storage";
 import { claims, publishingStatus, ruleTypes, Status } from "../../utils/Constants/data";
 
 const useHomeController = () => {
+
     const navigate = useNavigate();
     const [ruleType, setRuleType] = useState<DropdownOption | DropdownOption[] | null>(null)
     const [status, setStatus] = useState<DropdownOption | DropdownOption[] | null>(null)
@@ -40,7 +41,7 @@ const useHomeController = () => {
         setSearchTerm('')
     }
 
-    const fetchRules = async () => {
+    const fetchRules = useCallback(async () => {
         try {
             const params = {
                 offset,
@@ -58,12 +59,13 @@ const useHomeController = () => {
         } catch (err) {
             console.error(err);
         }
-    };
-
-
-    useEffect(() => {
-        fetchRules();
     }, [getRules, offset, limit, searchTerm, status, ruleType]);
+
+    // Call fetchRules when dependencies change
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        void fetchRules();
+    }, [fetchRules]);
 
     useEffect(() => {
         setOffset(0);
@@ -82,6 +84,7 @@ const useHomeController = () => {
         if (!row) {
             removeData('trs_rule', LocalStorage)
         }
+        removeData('mode', LocalStorage)
         navigate(row ? `/editor/${row?.id}?mode=edit` : "/editor");
     };
 
@@ -89,7 +92,7 @@ const useHomeController = () => {
         open(
             `${row?.status === Status.STATUS_01_IN_PROGRESS ? 'Pause' : 'Resume'} Confirmation Required!`,
             <Approval
-                id={row?.id}
+                id={row?.id as string}
                 type={row?.status === Status.STATUS_01_IN_PROGRESS ? 'pause' : 'resume'}
                 onSuccess={fetchRules}
             />,
@@ -99,9 +102,13 @@ const useHomeController = () => {
     }
 
     const onView = (row: Record<string, string>) => {
+        insertData('view', 'mode', LocalStorage)
         navigate(`/editor/${row?.id}?mode=view`);
     }
 
+    const handleClone = (row: Record<string, string>) => {
+        navigate(`/editor/${row?.id}?mode=clone`)
+    }
 
     const columns: TableColumn[] = [
         { label: "Rule Name", key: "rule_name" },
@@ -127,7 +134,9 @@ const useHomeController = () => {
                             onEdit: () => handleCreateEdit(row as Record<string, string>),
                             onHold: () => handleHold(row as Record<string, string>),
                         } : {}),
-                        onClone: () => onView(row as Record<string, string>)
+                        ...(row?.status === Status.STATUS_03_UNDER_REVIEW || row?.status === Status.STATUS_04_APPROVED ? {
+                            onClone: () => handleClone(row as Record<string, string>)
+                        } : {}),
                     })}
                 />
             )

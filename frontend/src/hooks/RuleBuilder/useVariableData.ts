@@ -93,7 +93,8 @@ export const useVariableData = ({ ruleId, allNodes, edges, selectedNodeId }: Use
   const { localVars, loopVars, loopContext } = useLocalVariables({ 
     allNodes, 
     edges, 
-    selectedNodeId 
+    selectedNodeId,
+    globalVarsData
   });
 
   const localVarsTree = useMemo(() => 

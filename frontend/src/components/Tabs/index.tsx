@@ -8,18 +8,11 @@ export type TabItem = {
     enabled: boolean
 };
 
-export interface TabsProps {
-    tabs?: TabItem[];
-    selected?: string;
-    setSelected?: (value: string) => void;
-}
-
-const Tabs = ({ tabs: propTabs, selected: propSelected, setSelected: propSetSelected }: TabsProps = {}) => {
+const Tabs = () => {
     const context = useTab()
 
-    const tabs = propTabs ?? context.tabs
-    const selected = propSelected ?? context.selectedTab
-    const setSelected = propSetSelected ?? context.setSelectedTab
+    const tabs = context.tabs
+    const selected = context.selectedTab
 
     return (
         <S.Wrapper>
@@ -29,10 +22,8 @@ const Tabs = ({ tabs: propTabs, selected: propSelected, setSelected: propSetSele
 
                     return (
                         <S.TabItemWrapper
-
                             active={active}
                             key={item.value}
-                            onClick={() => item.enabled && setSelected(item.value)}
                         >
                             <S.TabLabel active={active}>
                                 {item.label}
