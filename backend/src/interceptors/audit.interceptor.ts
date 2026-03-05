@@ -341,6 +341,18 @@ export class AuditInterceptor implements NestInterceptor {
       return out;
     };
     const cleanBody = redact(body);
+
+    // Truncate large bodies
+    const bodyString = JSON.stringify(cleanBody);
+    const maxSize = 10000;
+    if (bodyString.length > maxSize) {
+      return {
+        cleanBody,
+        _truncated: true,
+        _originalSize: bodyString.length,
+      };
+    }
+
     return cleanBody;
   }
   /**

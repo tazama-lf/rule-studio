@@ -123,7 +123,7 @@ describe('AuditInterceptor', () => {
         next: () => {
           const intentCall = mockAuditService.log.mock.calls[0][0];
           expect(intentCall.actorId).toBe('anonymous');
-          expect(intentCall.actorName).toBe('Anonymous User');
+          expect(intentCall.actorName).toBe('anonymous');
           expect(intentCall.actorRole).toBe('anonymous');
 
           done();
@@ -295,9 +295,10 @@ describe('AuditInterceptor', () => {
       result$.subscribe({
         next: () => {
           const intentCall = mockAuditService.log.mock.calls[0][0];
-          expect(intentCall.actionPerformed.requestBody).toEqual({ username: 'test' });
-          expect(intentCall.actionPerformed.requestBody.password).toBeUndefined();
-          expect(intentCall.actionPerformed.requestBody.token).toBeUndefined();
+          expect(intentCall.actionPerformed.requestBody.username).toBe('test');
+          expect(intentCall.actionPerformed.requestBody.password).toBe('[REDACTED]');
+          expect(intentCall.actionPerformed.requestBody.token).toBe('[REDACTED]');
+          expect(intentCall.actionPerformed.requestBody.secret).toBe('[REDACTED]');
           done();
         },
       });
@@ -495,7 +496,7 @@ describe('AuditInterceptor', () => {
   describe('User Role Extraction', () => {
     it('should extract role from validClaims', (done) => {
       const user = createMockUser();
-      user.validClaims = ['approver'];
+      user.actorRole = 'approver';
 
       const context = createMockContext('GET', '/test', 'test', 'TestController', user);
       const callHandler = createMockCallHandler({});
@@ -513,8 +514,7 @@ describe('AuditInterceptor', () => {
 
     it('should fallback to token claims when validClaims is empty', (done) => {
       const user = createMockUser();
-      user.validClaims = [];
-      user.token.claims = ['publisher'];
+      user.actorRole = 'publisher';
 
       const context = createMockContext('GET', '/test', 'test', 'TestController', user);
       const callHandler = createMockCallHandler({});
@@ -532,8 +532,7 @@ describe('AuditInterceptor', () => {
 
     it('should use default role when no claims available', (done) => {
       const user = createMockUser();
-      user.validClaims = [];
-      user.token.claims = [];
+      user.actorRole = 'user';
 
       const context = createMockContext('GET', '/test', 'test', 'TestController', user);
       const callHandler = createMockCallHandler({});
