@@ -12,10 +12,18 @@ const theme = createTheme({
       secondary: '#666',
     },
     static: {
-      grey: '#ccc',
+      primary: '#000',
+      secondary: '#666',
+      skyBlue: '#87CEEB',
+      ternary: '#999',
+      black: '#000',
+      white: '#fff',
+      lightBlue: '#ADD8E6',
       border: '#ddd',
+      grey: '#ccc',
+      lightGrey: '#f5f5f5',
     },
-  } as any,
+  },
 });
 
 const renderWithTheme = (component: React.ReactElement) => {

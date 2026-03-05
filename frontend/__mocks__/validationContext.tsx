@@ -1,3 +1,4 @@
+/* eslint-disable */
 // Mock validation context
 export const mockHasErrors = false;
 export const mockErrorCount = 0;

@@ -1,3 +1,4 @@
+/* eslint-disable */
 // Mock for @xyflow/react
 import type { Node, Edge } from '@xyflow/react';
 

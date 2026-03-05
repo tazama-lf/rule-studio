@@ -231,7 +231,7 @@ describe('SuspenseLoader', () => {
     });
 
     it('should render independently', () => {
-      const { container } = render(
+      render(
         <>
           <SuspenseLoader />
           <SuspenseLoader />
@@ -260,7 +260,7 @@ describe('SuspenseLoader', () => {
     });
 
     it('should maintain appearance when nested', () => {
-      const { container } = render(
+      render(
         <div>
           <SuspenseLoader />
         </div>

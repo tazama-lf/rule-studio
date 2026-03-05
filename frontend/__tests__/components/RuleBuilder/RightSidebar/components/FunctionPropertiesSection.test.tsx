@@ -138,7 +138,7 @@ describe('FunctionPropertiesSection', () => {
         description: 'Test description',
       };
 
-      const { container } = render(<FunctionPropertiesSection template={template} />);
+      render(<FunctionPropertiesSection template={template} />);
 
       const descriptionElement = screen.getByText('Test description');
       expect(descriptionElement.parentElement).toBeInTheDocument();

@@ -14,8 +14,19 @@ jest.mock('../../../src/contexts/ModalContext', () => ({
 const theme = createTheme({
   palette: {
     text: { primary: '#000', secondary: '#666' },
-    static: { grey: '#ccc', border: '#ddd' },
-  } as any,
+    static: { 
+      grey: '#ccc', 
+      border: '#ddd',
+      primary: '#000',
+      secondary: '#666',
+      skyBlue: '#87CEEB',
+      ternary: '#999',
+      black: '#000',
+      white: '#fff',
+      lightBlue: '#add8e6',
+      lightGrey: '#e0e0e0'
+    },
+  },
 });
 
 const renderWithTheme = (ui: React.ReactElement) =>

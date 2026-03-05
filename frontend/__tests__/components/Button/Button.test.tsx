@@ -80,13 +80,13 @@ describe('Button Component', () => {
     });
 
     it('should render outlined variant', () => {
-      const { container } = render(<MuiButton text="Outlined" outlined onClick={() => {}} />);
+      render(<MuiButton text="Outlined" outlined onClick={() => {}} />);
       const button = screen.getByRole('button', { name: 'Outlined' });
       expect(button.className).toContain('MuiButton-outlined');
     });
 
     it('should render contained variant by default', () => {
-      const { container } = render(<MuiButton text="Contained" onClick={() => {}} />);
+      render(<MuiButton text="Contained" onClick={() => {}} />);
       const button = screen.getByRole('button', { name: 'Contained' });
       expect(button.className).toContain('MuiButton-contained');
     });
@@ -158,11 +158,9 @@ describe('Button Component', () => {
 
     it('should preventDefault when preventDefault prop is true', () => {
       const handleClick = jest.fn();
-      const preventDefault = jest.fn();
       render(<MuiButton text="Prevent" preventDefault onClick={handleClick} />);
       
       const button = screen.getByRole('button', { name: 'Prevent' });
-      const event = { preventDefault } as unknown as React.MouseEvent<HTMLButtonElement>;
       
       fireEvent.click(button);
       expect(handleClick).toHaveBeenCalled();
@@ -263,7 +261,7 @@ describe('Button Component', () => {
     });
 
     it('should not render icon when not provided', () => {
-      const { container } = render(
+      render(
         <MuiButton text="No Icon" onClick={() => {}} />
       );
       const button = screen.getByRole('button', { name: 'No Icon' });

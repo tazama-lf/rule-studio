@@ -1,3 +1,4 @@
+import React from 'react';
 import { renderHook, act } from '@testing-library/react';
 import { useNodeForm } from '../../../src/hooks/RuleBuilder/useNodeForm';
 import * as variableManager from '../../../src/utils/Flow/VariableManager';
@@ -383,7 +384,7 @@ describe('useNodeForm', () => {
             return '';
           }),
         },
-      } as any;
+      } as unknown as React.DragEvent<HTMLDivElement>;
 
       const dropHandler = result.current.handleDrop('value');
       dropHandler(event);
@@ -413,7 +414,7 @@ describe('useNodeForm', () => {
             return '';
           }),
         },
-      } as any;
+      } as unknown as React.DragEvent<HTMLDivElement>;
 
       const dropHandler = result.current.handleDrop('value');
       dropHandler(event);
@@ -440,7 +441,7 @@ describe('useNodeForm', () => {
         dataTransfer: {
           getData: jest.fn(() => ''),
         },
-      } as any;
+      } as unknown as React.DragEvent<HTMLDivElement>;
 
       mockOnUpdateNode.mockClear();
 
@@ -466,7 +467,7 @@ describe('useNodeForm', () => {
         dataTransfer: {
           dropEffect: '',
         },
-      } as any;
+      } as unknown as React.DragEvent<HTMLDivElement>;
 
       result.current.handleDragOver(event);
 

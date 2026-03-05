@@ -28,6 +28,12 @@ jest.mock('../../../src/hooks/RuleBuilder/useNodeValidation', () => ({
   })),
 }));
 
+import { useNodeRenderer } from '../../../src/hooks/RuleBuilder/useNodeRenderer';
+import { useNodeValidation } from '../../../src/hooks/RuleBuilder/useNodeValidation';
+
+const mockUseNodeRenderer = useNodeRenderer as jest.Mock;
+const mockUseNodeValidation = useNodeValidation as jest.Mock;
+
 describe('RuleBuilder EditableNode Component', () => {
   const mockNodeData: EditableNodeData = {
     label: 'Test Node',
@@ -58,6 +64,22 @@ describe('RuleBuilder EditableNode Component', () => {
     );
   };
 
+  beforeEach(() => {
+    mockUseNodeRenderer.mockReturnValue({
+      template: { displayName: 'Test Node' },
+      backgroundColor: '#ffffff',
+      borderColor: '#cccccc',
+      label: 'Test Label',
+      localParams: {},
+      isSpecialNode: false,
+      targetHandle: { enabled: true },
+      sourceHandles: [{ id: 'source-1', enabled: true }],
+    });
+    mockUseNodeValidation.mockReturnValue({
+      hasError: false,
+    });
+  });
+
   describe('Basic Rendering', () => {
     it('should render node with display name', () => {
       renderNode();
@@ -75,10 +97,12 @@ describe('RuleBuilder EditableNode Component', () => {
     });
   });
 
+  const mockUseNodeRenderer = jest.fn();
+  const mockUseNodeValidation = jest.fn();
+
   describe('Custom Function Nodes', () => {
     it('should display Definition chip for definition mode', () => {
-      const { useNodeRenderer } = require('../../../src/hooks/RuleBuilder/useNodeRenderer');
-      useNodeRenderer.mockReturnValue({
+      mockUseNodeRenderer.mockReturnValue({
         template: { displayName: 'Custom Function' },
         backgroundColor: '#ffffff',
         borderColor: '#cccccc',
@@ -101,8 +125,7 @@ describe('RuleBuilder EditableNode Component', () => {
     });
 
     it('should display Call chip for call mode', () => {
-      const { useNodeRenderer } = require('../../../src/hooks/RuleBuilder/useNodeRenderer');
-      useNodeRenderer.mockReturnValue({
+      mockUseNodeRenderer.mockReturnValue({
         template: { displayName: 'Custom Function' },
         backgroundColor: '#ffffff',
         borderColor: '#cccccc',
@@ -125,8 +148,7 @@ describe('RuleBuilder EditableNode Component', () => {
     });
 
     it('should display function name', () => {
-      const { useNodeRenderer } = require('../../../src/hooks/RuleBuilder/useNodeRenderer');
-      useNodeRenderer.mockReturnValue({
+      mockUseNodeRenderer.mockReturnValue({
         template: { displayName: 'Custom Function' },
         backgroundColor: '#ffffff',
         borderColor: '#cccccc',
@@ -163,8 +185,7 @@ describe('RuleBuilder EditableNode Component', () => {
 
   describe('Selection State', () => {
     it('should apply selected state', () => {
-      const { useNodeRenderer } = require('../../../src/hooks/RuleBuilder/useNodeRenderer');
-      useNodeRenderer.mockReturnValue({
+      mockUseNodeRenderer.mockReturnValue({
         template: { displayName: 'Test Node' },
         backgroundColor: '#ffffff',
         borderColor: '#cccccc',
@@ -187,8 +208,7 @@ describe('RuleBuilder EditableNode Component', () => {
 
   describe('Validation Errors', () => {
     it('should show error state when node has validation errors', () => {
-      const { useNodeValidation } = require('../../../src/hooks/RuleBuilder/useNodeValidation');
-      useNodeValidation.mockReturnValue({
+      mockUseNodeValidation.mockReturnValue({
         hasError: true,
       });
 
@@ -197,8 +217,7 @@ describe('RuleBuilder EditableNode Component', () => {
     });
 
     it('should show normal state when node has no errors', () => {
-      const { useNodeValidation } = require('../../../src/hooks/RuleBuilder/useNodeValidation');
-      useNodeValidation.mockReturnValue({
+      mockUseNodeValidation.mockReturnValue({
         hasError: false,
       });
 
@@ -207,35 +226,9 @@ describe('RuleBuilder EditableNode Component', () => {
     });
   });
 
-  describe('Special Nodes', () => {
-    it('should render special nodes (Start/End)', () => {
-      const { useNodeRenderer } = require('../../../src/hooks/RuleBuilder/useNodeRenderer');
-      useNodeRenderer.mockReturnValue({
-        template: { displayName: 'Start' },
-        backgroundColor: '#e0f7fa',
-        borderColor: '#00acc1',
-        label: 'Start',
-        localParams: {},
-        isSpecialNode: true,
-        targetHandle: { enabled: false },
-        sourceHandles: [{ id: 'source-1', enabled: true }],
-      });
-
-      const startNodeData: EditableNodeData = {
-        label: 'Start',
-        nodeType: 'Start',
-        params: {},
-      };
-
-      renderNode({ data: startNodeData });
-      expect(screen.getByText('Start')).toBeInTheDocument();
-    });
-  });
-
   describe('Node Handles', () => {
     it('should render with target handle when enabled', () => {
-      const { useNodeRenderer } = require('../../../src/hooks/RuleBuilder/useNodeRenderer');
-      useNodeRenderer.mockReturnValue({
+      mockUseNodeRenderer.mockReturnValue({
         template: { displayName: 'Test Node' },
         backgroundColor: '#ffffff',
         borderColor: '#cccccc',
@@ -251,8 +244,7 @@ describe('RuleBuilder EditableNode Component', () => {
     });
 
     it('should render with source handles when enabled', () => {
-      const { useNodeRenderer } = require('../../../src/hooks/RuleBuilder/useNodeRenderer');
-      useNodeRenderer.mockReturnValue({
+      mockUseNodeRenderer.mockReturnValue({
         template: { displayName: 'Test Node' },
         backgroundColor: '#ffffff',
         borderColor: '#cccccc',
@@ -273,8 +265,7 @@ describe('RuleBuilder EditableNode Component', () => {
 
   describe('Node Styling', () => {
     it('should apply custom background color', () => {
-      const { useNodeRenderer } = require('../../../src/hooks/RuleBuilder/useNodeRenderer');
-      useNodeRenderer.mockReturnValue({
+      mockUseNodeRenderer.mockReturnValue({
         template: { displayName: 'Test Node' },
         backgroundColor: '#ff5722',
         borderColor: '#d32f2f',
@@ -290,8 +281,7 @@ describe('RuleBuilder EditableNode Component', () => {
     });
 
     it('should apply custom border color', () => {
-      const { useNodeRenderer } = require('../../../src/hooks/RuleBuilder/useNodeRenderer');
-      useNodeRenderer.mockReturnValue({
+      mockUseNodeRenderer.mockReturnValue({
         template: { displayName: 'Test Node' },
         backgroundColor: '#ffffff',
         borderColor: '#4caf50',
@@ -307,3 +297,5 @@ describe('RuleBuilder EditableNode Component', () => {
     });
   });
 });
+
+

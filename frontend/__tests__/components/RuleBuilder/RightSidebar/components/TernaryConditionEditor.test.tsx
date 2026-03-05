@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import TernaryConditionEditor from '../../../../../src/components/RuleBuilder/RightSidebar/components/TernaryConditionEditor';
 import type { TernaryNode } from '../../../../../src/components/RuleBuilder/RightSidebar/components/TernaryConditionEditor';

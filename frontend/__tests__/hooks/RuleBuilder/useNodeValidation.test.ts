@@ -1,9 +1,7 @@
 import { renderHook } from '@testing-library/react';
 import { useNodeValidation } from '../../../src/hooks/RuleBuilder/useNodeValidation';
 import * as yup from 'yup';
-import React from 'react';
 
-// Mock the validation context
 const mockSetNodeErrors = jest.fn();
 const mockGetNodeError = jest.fn();
 
@@ -14,7 +12,6 @@ jest.mock('../../../src/validation/context', () => ({
   }),
 }));
 
-// Mock the schema functions
 const mockGetSchemaForNode = jest.fn();
 const mockHasValidation = jest.fn();
 

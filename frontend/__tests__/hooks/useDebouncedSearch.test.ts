@@ -1,4 +1,4 @@
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import useDebouncedSearch from '../../src/hooks/useDebouncedSearch';
 
 describe('useDebouncedSearch', () => {

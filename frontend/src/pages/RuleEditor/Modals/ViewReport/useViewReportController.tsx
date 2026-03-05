@@ -37,6 +37,7 @@ const useViewReportController = (props: IViewReport) => {
       .catch(() => {
         toast.error('Failed to fetch report')
       })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getReport, data?.id])
 
   useEffect(() => {

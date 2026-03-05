@@ -1,3 +1,4 @@
+/* eslint-disable */
 // Mock for react-router-dom
 export const mockNavigate = () => {};
 

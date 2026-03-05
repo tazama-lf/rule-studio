@@ -5,9 +5,13 @@ import OutputModal from '../../../src/components/RuleBuilder/OutputModal';
 import * as codeValidator from '../../../src/utils/Flow/codeValidator';
 import type { ValidationResult } from '../../../src/utils/Flow/codeValidator';
 
-jest.mock('@monaco-editor/react', () => ({
-  __esModule: true,
-  default: ({ value, onMount, language, options }: any) => {
+jest.mock('@monaco-editor/react', () => {
+  const MockMonacoEditor = ({ value, onMount, language, options }: {
+    value?: string;
+    onMount?: (editor: unknown, monaco: unknown) => void;
+    language?: string;
+    options?: { readOnly?: boolean };
+  }) => {
     React.useEffect(() => {
       if (onMount) {
         const mockEditor = {
@@ -60,8 +64,9 @@ jest.mock('@monaco-editor/react', () => ({
         readOnly
       />
     );
-  },
-}));
+  };
+  return { __esModule: true, default: MockMonacoEditor };
+});
 
 jest.mock('../../../src/utils/Flow/codeValidator');
 

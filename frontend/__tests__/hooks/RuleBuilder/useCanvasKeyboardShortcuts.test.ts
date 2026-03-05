@@ -1,4 +1,4 @@
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { useCanvasKeyboardShortcuts } from '../../../src/hooks/RuleBuilder/useCanvasKeyboardShortcuts';
 import type { Node, Edge } from '@xyflow/react';
 
@@ -80,7 +80,7 @@ describe('useCanvasKeyboardShortcuts', ()=> {
     });
 
     it('should respect enabled flag when false', () => {
-      const { result } = renderHook(() =>
+      renderHook(() =>
         useCanvasKeyboardShortcuts({
           nodes: mockNodes,
           edges: mockEdges,

@@ -27,9 +27,8 @@ const mockMonaco = {
   },
 };
 
-jest.mock('@monaco-editor/react', () => ({
-  __esModule: true,
-  default: ({ onMount, defaultValue }: { onMount?: (editor: typeof mockEditor, monaco: typeof mockMonaco) => void; defaultValue?: string }) => {
+jest.mock('@monaco-editor/react', () => {
+  const MockMonacoEditor = ({ onMount, defaultValue }: { onMount?: (editor: typeof mockEditor, monaco: typeof mockMonaco) => void; defaultValue?: string }) => {
     React.useEffect(() => {
       if (onMount) {
         onMount(mockEditor as never, mockMonaco as never);
@@ -41,8 +40,9 @@ jest.mock('@monaco-editor/react', () => ({
         <textarea data-testid="monaco-textarea" defaultValue={defaultValue} />
       </div>
     );
-  },
-}));
+  };
+  return { __esModule: true, default: MockMonacoEditor };
+});
 
 describe('EditorSection Component', () => {
   const mockOnDrop = jest.fn();

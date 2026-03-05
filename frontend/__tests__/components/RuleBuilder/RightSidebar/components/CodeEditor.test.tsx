@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import React from 'react';
 import CodeEditor from '../../../../../src/components/RuleBuilder/RightSidebar/components/CodeEditor';
@@ -27,9 +27,8 @@ const mockMonaco = {
   },
 };
 
-jest.mock('@monaco-editor/react', () => ({
-  __esModule: true,
-  default: ({ 
+jest.mock('@monaco-editor/react', () => {
+  const MockMonacoEditor = ({ 
     value, 
     onChange, 
     onMount,
@@ -57,8 +56,9 @@ jest.mock('@monaco-editor/react', () => ({
         />
       </div>
     );
-  },
-}));
+  };
+  return { __esModule: true, default: MockMonacoEditor };
+});
 
 describe('CodeEditor Component', () => {
   const mockOnChange = jest.fn();
@@ -423,7 +423,7 @@ describe('CodeEditor Component', () => {
     });
 
     it('should not fail without onChange handler', () => {
-      const { onChange, ...propsWithoutOnChange } = defaultProps;
+      const { onChange: _onChange, ...propsWithoutOnChange } = defaultProps;
       
       expect(() => {
         render(<CodeEditor {...propsWithoutOnChange} onChange={() => {}} />);

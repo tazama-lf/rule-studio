@@ -319,7 +319,12 @@ describe('useVariableTree', () => {
 
       const { result } = renderHook(() => useVariableTree({ obj }));
 
-      const checkDraggable = (nodes: any[]): boolean => {
+      type TreeNode = {
+        isDraggable?: boolean;
+        children?: TreeNode[];
+      };
+
+      const checkDraggable = (nodes: TreeNode[]): boolean => {
         return nodes.every(node => {
           const isDraggable = node.isDraggable === true;
           const childrenDraggable = node.children ? checkDraggable(node.children) : true;

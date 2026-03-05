@@ -1,4 +1,5 @@
 import { renderHook } from '@testing-library/react';
+import { Position } from '@xyflow/react';
 import { useNodeRenderer } from '../../../src/hooks/RuleBuilder/useNodeRenderer';
 import * as nodeTemplateService from '../../../src/utils/Flow/nodeTemplateService';
 import { useNodeStyles } from '../../../src/hooks/RuleBuilder/EditableNode/useNodeStyles';
@@ -25,20 +26,30 @@ describe('useNodeRenderer', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockedTemplateService.getNodeTemplate.mockReturnValue(mockTemplate as any);
+    mockedTemplateService.getNodeTemplate.mockReturnValue(mockTemplate);
     mockedUseNodeStyles.mockReturnValue({
       backgroundColor: '#e3f2fd',
       borderColor: '#2196f3',
     });
     mockedUseNodeHandles.mockReturnValue({
-      targetHandle: 'targetHandleElement' as any,
-      sourceHandles: ['sourceHandleElement'] as any,
+      targetHandle: {
+        id: 'target',
+        type: 'target',
+        position: Position.Top,
+        style: {},
+      },
+      sourceHandles: [{
+        id: 'source',
+        type: 'source',
+        position: Position.Bottom,
+        style: {},
+      }],
     });
   });
 
   describe('Initialization', () => {
     it('should return all expected properties', () => {
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'Test',
         nodeType: 'TestNode',
         params: {},
@@ -60,47 +71,47 @@ describe('useNodeRenderer', () => {
 
   describe('Mode Handling', () => {
     it('should use mode from data', () => {
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'Test',
         nodeType: 'TestNode',
-        mode: 'async',
+        mode: 'definition',
         params: {},
       };
 
       renderHook(() => useNodeRenderer(nodeData));
 
-      expect(mockedTemplateService.getNodeTemplate).toHaveBeenCalledWith('TestNode', 'async');
+      expect(mockedTemplateService.getNodeTemplate).toHaveBeenCalledWith('TestNode', 'definition');
     });
 
     it('should use generation_type when mode is not present', () => {
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'Test',
         nodeType: 'TestNode',
-        generation_type: 'function',
+        generation_type: 'call',
         params: {},
       };
 
       renderHook(() => useNodeRenderer(nodeData));
 
-      expect(mockedTemplateService.getNodeTemplate).toHaveBeenCalledWith('TestNode', 'function');
+      expect(mockedTemplateService.getNodeTemplate).toHaveBeenCalledWith('TestNode', 'call');
     });
 
     it('should prefer mode over generation_type', () => {
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'Test',
         nodeType: 'TestNode',
-        mode: 'async',
-        generation_type: 'function',
+        mode: 'definition',
+        generation_type: 'call',
         params: {},
       };
 
       renderHook(() => useNodeRenderer(nodeData));
 
-      expect(mockedTemplateService.getNodeTemplate).toHaveBeenCalledWith('TestNode', 'async');
+      expect(mockedTemplateService.getNodeTemplate).toHaveBeenCalledWith('TestNode', 'definition');
     });
 
     it('should handle no mode or generation_type', () => {
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'Test',
         nodeType: 'TestNode',
         params: {},
@@ -114,7 +125,7 @@ describe('useNodeRenderer', () => {
 
   describe('NodeType Cleaning', () => {
     it('should clean nodeType with :: separator', () => {
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'Test',
         nodeType: 'TestNode::variant',
         params: {},
@@ -126,7 +137,7 @@ describe('useNodeRenderer', () => {
     });
 
     it('should keep nodeType without :: separator', () => {
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'Test',
         nodeType: 'SimpleNode',
         params: {},
@@ -140,7 +151,7 @@ describe('useNodeRenderer', () => {
 
   describe('Template Retrieval', () => {
     it('should retrieve template from service', () => {
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'Test',
         nodeType: 'TestNode',
         params: {},
@@ -154,7 +165,7 @@ describe('useNodeRenderer', () => {
     it('should handle undefined template', () => {
       mockedTemplateService.getNodeTemplate.mockReturnValue(undefined);
 
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'Test',
         nodeType: 'UnknownNode',
         params: {},
@@ -168,7 +179,7 @@ describe('useNodeRenderer', () => {
 
   describe('Styling', () => {
     it('should get colors from useNodeStyles', () => {
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'Test',
         nodeType: 'TestNode',
         params: {},
@@ -181,7 +192,7 @@ describe('useNodeRenderer', () => {
     });
 
     it('should call useNodeStyles with clean nodeType', () => {
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'Test',
         nodeType: 'TestNode::variant',
         params: {},
@@ -195,7 +206,7 @@ describe('useNodeRenderer', () => {
 
   describe('Label and Params', () => {
     it('should return label from nodeData', () => {
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'My Custom Label',
         nodeType: 'TestNode',
         params: {},
@@ -212,7 +223,7 @@ describe('useNodeRenderer', () => {
         key2: 'value2',
       };
 
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'Test',
         nodeType: 'TestNode',
         params,
@@ -224,7 +235,7 @@ describe('useNodeRenderer', () => {
     });
 
     it('should return empty object when no params', () => {
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'Test',
         nodeType: 'TestNode',
       };
@@ -237,7 +248,7 @@ describe('useNodeRenderer', () => {
 
   describe('Special Node Detection', () => {
     it('should detect Start as special node', () => {
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'Start',
         nodeType: 'Start',
         params: {},
@@ -249,7 +260,7 @@ describe('useNodeRenderer', () => {
     });
 
     it('should detect End as special node', () => {
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'End',
         nodeType: 'End',
         params: {},
@@ -261,7 +272,7 @@ describe('useNodeRenderer', () => {
     });
 
     it('should detect HandleTransaction as special node', () => {
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'Handle',
         nodeType: 'HandleTransaction',
         params: {},
@@ -273,7 +284,7 @@ describe('useNodeRenderer', () => {
     });
 
     it('should not mark regular nodes as special', () => {
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'Regular',
         nodeType: 'SetVariable',
         params: {},
@@ -292,7 +303,7 @@ describe('useNodeRenderer', () => {
         { type: 'else-if', condition: 'x < 0' },
       ];
 
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'If',
         nodeType: 'If',
         params: {
@@ -306,7 +317,7 @@ describe('useNodeRenderer', () => {
     });
 
     it('should use default condition for If node with no conditions param', () => {
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'If',
         nodeType: 'If',
         params: {},
@@ -318,7 +329,7 @@ describe('useNodeRenderer', () => {
     });
 
     it('should handle invalid JSON in conditions', () => {
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'If',
         nodeType: 'If',
         params: {
@@ -332,7 +343,7 @@ describe('useNodeRenderer', () => {
     });
 
     it('should return empty array for non-If nodes', () => {
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'SetVar',
         nodeType: 'SetVariable',
         params: {},
@@ -351,9 +362,9 @@ describe('useNodeRenderer', () => {
         handles: { source: true, target: true },
       };
 
-      mockedTemplateService.getNodeTemplate.mockReturnValue(templateWithHandles as any);
+      mockedTemplateService.getNodeTemplate.mockReturnValue(templateWithHandles);
 
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'Test',
         nodeType: 'TestNode',
         params: {},
@@ -376,9 +387,9 @@ describe('useNodeRenderer', () => {
         displayName: 'Test',
       };
 
-      mockedTemplateService.getNodeTemplate.mockReturnValue(templateWithoutHandles as any);
+      mockedTemplateService.getNodeTemplate.mockReturnValue(templateWithoutHandles);
 
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'Test',
         nodeType: 'TestNode',
         params: {},
@@ -400,7 +411,7 @@ describe('useNodeRenderer', () => {
         { type: 'else-if', condition: 'x < 0' },
       ];
 
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'If',
         nodeType: 'If',
         params: {
@@ -420,13 +431,23 @@ describe('useNodeRenderer', () => {
 
     it('should return handles from useNodeHandles', () => {
       const mockHandles = {
-        targetHandle: 'targetHandleElement' as any,
-        sourceHandles: ['sourceHandleElement'] as any,
+        targetHandle: {
+          id: 'target',
+          type: 'target' as const,
+          position: Position.Top,
+          style: {},
+        },
+        sourceHandles: [{
+          id: 'source',
+          type: 'source' as const,
+          position: Position.Bottom,
+          style: {},
+        }],
       };
 
       mockedUseNodeHandles.mockReturnValue(mockHandles);
 
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'Test',
         nodeType: 'TestNode',
         params: {},
@@ -441,10 +462,10 @@ describe('useNodeRenderer', () => {
 
   describe('Memoization', () => {
     it('should memoize template when nodeType and mode do not change', () => {
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'Test',
         nodeType: 'TestNode',
-        mode: 'async',
+        mode: 'definition',
         params: {},
       };
 
@@ -457,7 +478,7 @@ describe('useNodeRenderer', () => {
     });
 
     it('should recompute when nodeType changes', () => {
-      const { result, rerender } = renderHook(
+      const { rerender } = renderHook(
         ({ nodeType }) =>
           useNodeRenderer({
             label: 'Test',
@@ -476,7 +497,7 @@ describe('useNodeRenderer', () => {
 
     it('should memoize params when not changed', () => {
       const params = { key: 'value' };
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'Test',
         nodeType: 'TestNode',
         params,
@@ -493,7 +514,7 @@ describe('useNodeRenderer', () => {
 
   describe('Edge Cases', () => {
     it('should handle empty nodeType', () => {
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'Test',
         nodeType: '',
         params: {},
@@ -505,7 +526,7 @@ describe('useNodeRenderer', () => {
     });
 
     it('should handle nodeType with multiple :: separators', () => {
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'Test',
         nodeType: 'Category::SubCategory::NodeType',
         params: {},
@@ -517,13 +538,13 @@ describe('useNodeRenderer', () => {
     });
 
     it('should handle params with complex objects', () => {
-      const params: any = {
+      const params: Record<string, string> = {
         simple: 'string',
-        complex: { nested: { value: 123 } },
-        array: [1, 2, 3],
+        complex: '{"nested":{"value":123}}',
+        array: '[1,2,3]',
       };
 
-      const nodeData: any = {
+      const nodeData: EditableNodeData = {
         label: 'Test',
         nodeType: 'TestNode',
         params,
@@ -535,3 +556,4 @@ describe('useNodeRenderer', () => {
     });
   });
 });
+

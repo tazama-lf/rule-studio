@@ -1,4 +1,4 @@
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { useDebuggerPanel } from '../../../src/hooks/RuleBuilder/useDebuggerPanel';
 
 describe('useDebuggerPanel', () => {

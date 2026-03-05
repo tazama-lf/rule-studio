@@ -1,14 +1,23 @@
 import '@testing-library/jest-dom';
+import { TextEncoder, TextDecoder } from 'util';
 
-const { TextEncoder, TextDecoder } = require('util');
 global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder as any;
+global.TextDecoder = TextDecoder as typeof global.TextDecoder;
 
 if (typeof global.structuredClone === 'undefined') {
   global.structuredClone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 }
 
-(global as any).importMeta = {
+interface ImportMetaEnv {
+  VITE_CRYPTO_KEY: string;
+  VITE_API_URL: string;
+  MODE: string;
+  DEV: boolean;
+  PROD: boolean;
+  SSR: boolean;
+}
+
+(global as typeof global & { importMeta: { env: ImportMetaEnv } }).importMeta = {
   env: {
     VITE_CRYPTO_KEY: 'test-crypto-key',
     VITE_API_URL: 'http://localhost:3000',
@@ -37,18 +46,18 @@ global.IntersectionObserver = class IntersectionObserver {
   constructor() {}
   disconnect() {}
   observe() {}
-  takeRecords() {
+  takeRecords(): IntersectionObserverEntry[] {
     return [];
   }
   unobserve() {}
-} as any;
+} as unknown as typeof global.IntersectionObserver;
 
 global.ResizeObserver = class ResizeObserver {
   constructor() {}
   disconnect() {}
   observe() {}
   unobserve() {}
-} as any;
+} as unknown as typeof global.ResizeObserver;
 
 Element.prototype.scrollIntoView = function() {};
 

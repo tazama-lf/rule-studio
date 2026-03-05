@@ -2,8 +2,8 @@ import { renderHook, act } from '@testing-library/react';
 import { useDragDropEditor } from '../../../src/hooks/RuleBuilder/useDragDropEditor';
 
 describe('useDragDropEditor', () => {
-  let mockEditor: any;
-  let mockMonaco: any;
+  let mockEditor: { updateOptions: jest.Mock; addCommand: jest.Mock; getPosition: jest.Mock; executeEdits: jest.Mock; getModel: jest.Mock; setPosition: jest.Mock; focus: jest.Mock; getDomNode: jest.Mock; };
+  let mockMonaco: { KeyCode: { Space: number } };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -13,6 +13,7 @@ describe('useDragDropEditor', () => {
       addCommand: jest.fn(),
       getPosition: jest.fn(),
       executeEdits: jest.fn(),
+      getModel: jest.fn(),
       setPosition: jest.fn(),
       focus: jest.fn(),
       getDomNode: jest.fn(),
@@ -42,7 +43,7 @@ describe('useDragDropEditor', () => {
       const { result } = renderHook(() => useDragDropEditor());
 
       act(() => {
-        result.current.handleEditorMount(mockEditor, mockMonaco);
+        result.current.handleEditorMount(mockEditor as never, mockMonaco as never);
       });
 
       expect(mockEditor.updateOptions).toHaveBeenCalledWith({
@@ -62,7 +63,7 @@ describe('useDragDropEditor', () => {
       const { result } = renderHook(() => useDragDropEditor());
 
       act(() => {
-        result.current.handleEditorMount(mockEditor, mockMonaco);
+        result.current.handleEditorMount(mockEditor as never, mockMonaco as never);
       });
 
       expect(mockEditor.addCommand).toHaveBeenCalledWith(
@@ -80,7 +81,7 @@ describe('useDragDropEditor', () => {
       });
 
       act(() => {
-        result.current.handleEditorMount(mockEditor, mockMonaco);
+        result.current.handleEditorMount(mockEditor as never, mockMonaco as never);
       });
 
       const spaceCallback = mockEditor.addCommand.mock.calls[0][1];
@@ -110,7 +111,7 @@ describe('useDragDropEditor', () => {
       mockEditor.getPosition.mockReturnValue(null);
 
       act(() => {
-        result.current.handleEditorMount(mockEditor, mockMonaco);
+        result.current.handleEditorMount(mockEditor as never, mockMonaco as never);
       });
 
       const spaceCallback = mockEditor.addCommand.mock.calls[0][1];
@@ -127,7 +128,7 @@ describe('useDragDropEditor', () => {
       const mockEvent = {
         preventDefault: jest.fn(),
         stopPropagation: jest.fn(),
-      } as any;
+      } as unknown as React.DragEvent<HTMLDivElement>;
 
       result.current.handleDragEnter(mockEvent);
 
@@ -145,7 +146,7 @@ describe('useDragDropEditor', () => {
         stopPropagation: jest.fn(),
         currentTarget: document.createElement('div'),
         target: document.createElement('div'),
-      } as any;
+      } as unknown as React.DragEvent<HTMLDivElement>;
 
       result.current.handleDragLeave(mockEvent);
 
@@ -166,7 +167,7 @@ describe('useDragDropEditor', () => {
       mockEditor.getDomNode.mockReturnValue(mockDomNode);
 
       act(() => {
-        result.current.handleEditorMount(mockEditor, mockMonaco);
+        result.current.handleEditorMount(mockEditor as never, mockMonaco as never);
       });
 
       const container = document.createElement('div');
@@ -175,7 +176,7 @@ describe('useDragDropEditor', () => {
         stopPropagation: jest.fn(),
         currentTarget: container,
         target: container,
-      } as any;
+      } as unknown as React.DragEvent<HTMLDivElement>;
 
       result.current.handleDragLeave(mockEvent);
 
@@ -193,7 +194,7 @@ describe('useDragDropEditor', () => {
         dataTransfer: {
           dropEffect: '',
         },
-      } as any;
+      } as unknown as React.DragEvent<HTMLDivElement>;
 
       result.current.handleDragOver(mockEvent);
 
@@ -210,7 +211,7 @@ describe('useDragDropEditor', () => {
         dataTransfer: {
           dropEffect: '',
         },
-      } as any;
+      } as unknown as React.DragEvent<HTMLDivElement>;
 
       result.current.handleDragOver(mockEvent);
 
@@ -226,7 +227,7 @@ describe('useDragDropEditor', () => {
       hookResult = result.current;
       
       act(() => {
-        hookResult.handleEditorMount(mockEditor, mockMonaco);
+        hookResult.handleEditorMount(mockEditor as never, mockMonaco as never);
       });
     });
 
@@ -237,7 +238,7 @@ describe('useDragDropEditor', () => {
         dataTransfer: {
           getData: jest.fn(() => ''),
         },
-      } as any;
+      } as unknown as React.DragEvent<HTMLDivElement>;
 
       hookResult.handleDrop(mockEvent);
 
@@ -257,7 +258,7 @@ describe('useDragDropEditor', () => {
       mockEditor.getDomNode.mockReturnValue(mockDomNode);
 
       act(() => {
-        hookResult.handleEditorMount(mockEditor, mockMonaco);
+        hookResult.handleEditorMount(mockEditor as never, mockMonaco as never);
       });
 
       const mockEvent = {
@@ -269,7 +270,7 @@ describe('useDragDropEditor', () => {
             return '';
           }),
         },
-      } as any;
+      } as unknown as React.DragEvent<HTMLDivElement>;
 
       hookResult.handleDrop(mockEvent);
 
@@ -298,7 +299,7 @@ describe('useDragDropEditor', () => {
       mockEditor.getDomNode.mockReturnValue(mockDomNode);
 
       act(() => {
-        hookResult.handleEditorMount(mockEditor, mockMonaco);
+        hookResult.handleEditorMount(mockEditor as never, mockMonaco as never);
       });
 
       const mockEvent = {
@@ -310,7 +311,7 @@ describe('useDragDropEditor', () => {
             return '';
           }),
         },
-      } as any;
+      } as unknown as React.DragEvent<HTMLDivElement>;
 
       hookResult.handleDrop(mockEvent);
 
@@ -332,7 +333,7 @@ describe('useDragDropEditor', () => {
       mockEditor.getDomNode.mockReturnValue(mockDomNode);
 
       act(() => {
-        hookResult.handleEditorMount(mockEditor, mockMonaco);
+        hookResult.handleEditorMount(mockEditor as never, mockMonaco as never);
       });
 
       const mockEvent = {
@@ -344,7 +345,7 @@ describe('useDragDropEditor', () => {
             return '';
           }),
         },
-      } as any;
+      } as unknown as React.DragEvent<HTMLDivElement>;
 
       hookResult.handleDrop(mockEvent);
 
@@ -358,7 +359,7 @@ describe('useDragDropEditor', () => {
         dataTransfer: {
           getData: jest.fn(() => ''),
         },
-      } as any;
+      } as unknown as React.DragEvent<HTMLDivElement>;
 
       hookResult.handleDrop(mockEvent);
 
@@ -375,7 +376,7 @@ describe('useDragDropEditor', () => {
       mockEditor.getDomNode.mockReturnValue(mockDomNode);
 
       act(() => {
-        hookResult.handleEditorMount(mockEditor, mockMonaco);
+        hookResult.handleEditorMount(mockEditor as never, mockMonaco as never);
       });
 
       const mockEvent = {
@@ -387,7 +388,7 @@ describe('useDragDropEditor', () => {
             return '';
           }),
         },
-      } as any;
+      } as unknown as React.DragEvent<HTMLDivElement>;
 
       hookResult.handleDrop(mockEvent);
 
@@ -411,7 +412,7 @@ describe('useDragDropEditor', () => {
       mockEditor.getDomNode.mockReturnValue(mockDomNode);
 
       act(() => {
-        hookResult.handleEditorMount(mockEditor, mockMonaco);
+        hookResult.handleEditorMount(mockEditor as never, mockMonaco as never);
       });
 
       const mockEvent = {
@@ -423,7 +424,7 @@ describe('useDragDropEditor', () => {
             return '';
           }),
         },
-      } as any;
+      } as unknown as React.DragEvent<HTMLDivElement>;
 
       hookResult.handleDrop(mockEvent);
 
@@ -491,7 +492,7 @@ describe('useDragDropEditor', () => {
       mockEditor.getDomNode.mockReturnValue(mockDomNode);
 
       act(() => {
-        result.current.handleEditorMount(mockEditor, mockMonaco);
+        result.current.handleEditorMount(mockEditor as never, mockMonaco as never);
       });
 
       const longPath = 'very.long.nested.path.to.property.with.many.levels';
@@ -505,7 +506,7 @@ describe('useDragDropEditor', () => {
             return '';
           }),
         },
-      } as any;
+      } as unknown as React.DragEvent<HTMLDivElement>;
 
       result.current.handleDrop(mockEvent);
 
@@ -524,7 +525,7 @@ describe('useDragDropEditor', () => {
         stopPropagation: jest.fn(),
         currentTarget: container,
         target: container,
-      } as any;
+      } as unknown as React.DragEvent<HTMLDivElement>;
 
       expect(() => {
         result.current.handleDragLeave(mockEvent);
@@ -543,7 +544,7 @@ describe('useDragDropEditor', () => {
       mockEditor.getDomNode.mockReturnValue(mockDomNode);
 
       act(() => {
-        result.current.handleEditorMount(mockEditor, mockMonaco);
+        result.current.handleEditorMount(mockEditor as never, mockMonaco as never);
       });
 
       const mockEvent = {
@@ -555,7 +556,7 @@ describe('useDragDropEditor', () => {
             return '';
           }),
         },
-      } as any;
+      } as unknown as React.DragEvent<HTMLDivElement>;
 
       expect(() => {
         result.current.handleDrop(mockEvent);
@@ -563,5 +564,8 @@ describe('useDragDropEditor', () => {
     });
   });
 });
+
+
+
 
 

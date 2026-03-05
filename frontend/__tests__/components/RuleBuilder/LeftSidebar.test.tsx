@@ -1,26 +1,21 @@
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import LeftSidebar from '../../../src/components/RuleBuilder/LeftSidebar';
 import type { Node, Edge } from '@xyflow/react';
+import type { NodeTemplate } from '../../../src/hooks/RuleBuilder/useNodePalette';
+
+type TestNodeTemplate = NodeTemplate & { category?: string };
 
 // Mock the extractQuery file that uses import.meta
 jest.mock('../../../src/utils/Common/extractQueryParameters');
 
 // Mock dependencies
 jest.mock('../../../src/redux/Api/Rule-builder', () => ({
-  useGetGlobalVariablesQuery: jest.fn(() => ({
-    data: null,
-    isLoading: false,
-    error: null,
-  })),
+  useGetGlobalVariablesQuery: jest.fn(),
 }));
 
 jest.mock('../../../src/utils/Flow/nodeTemplateService', () => ({
-  getAllNodeTemplates: jest.fn(() => [
-    { type: 'If', label: 'If Condition', category: 'control_flow' },
-    { type: 'SetVariable', label: 'Set Variable', category: 'data' },
-    { type: 'FunctionCall', label: 'Function Call', category: 'function' },
-  ]),
+  getAllNodeTemplates: jest.fn(),
 }));
 
 jest.mock('../../../src/utils/Flow/GlobalVariables', () => ({
@@ -29,6 +24,12 @@ jest.mock('../../../src/utils/Flow/GlobalVariables', () => ({
     RuleConfig: { type: 'object', description: 'Rule Configuration' },
   },
 }));
+
+import { useGetGlobalVariablesQuery } from '../../../src/redux/Api/Rule-builder';
+import { getAllNodeTemplates } from '../../../src/utils/Flow/nodeTemplateService';
+
+const mockUseGetGlobalVariablesQuery = useGetGlobalVariablesQuery as jest.Mock;
+const mockGetAllNodeTemplates = getAllNodeTemplates as jest.Mock;
 
 describe('RuleBuilder LeftSidebar Component', () => {
   const mockNodes: Node[] = [
@@ -41,6 +42,19 @@ describe('RuleBuilder LeftSidebar Component', () => {
   ];
 
   const mockEdges: Edge[] = [];
+
+  beforeEach(() => {
+    mockUseGetGlobalVariablesQuery.mockReturnValue({
+      data: null,
+      isLoading: false,
+      error: null,
+    });
+    mockGetAllNodeTemplates.mockReturnValue([
+      { type: 'If', label: 'If Condition', category: 'control_flow' },
+      { type: 'SetVariable', label: 'Set Variable', category: 'data' },
+      { type: 'FunctionCall', label: 'Function Call', category: 'function' },
+    ]);
+  });
 
   const defaultProps = {
     mode: 'main' as const,
@@ -133,8 +147,7 @@ describe('RuleBuilder LeftSidebar Component', () => {
 
   describe('Node Filtering', () => {
     it('should hide custom functions when hideCustomFunctions is true', () => {
-      const { getAllNodeTemplates } = require('../../../src/utils/Flow/nodeTemplateService');
-      getAllNodeTemplates.mockReturnValue([
+      mockGetAllNodeTemplates.mockReturnValue([
         { type: 'If', label: 'If Condition', category: 'control_flow', isFunction: false },
         { type: 'CustomFunction', label: 'Custom Function', category: 'function', isFunction: true },
       ]);
@@ -146,8 +159,7 @@ describe('RuleBuilder LeftSidebar Component', () => {
     });
 
     it('should hide start and end nodes when hideStartEnd is true', () => {
-      const { getAllNodeTemplates } = require('../../../src/utils/Flow/nodeTemplateService');
-      getAllNodeTemplates.mockReturnValue([
+      mockGetAllNodeTemplates.mockReturnValue([
         { type: 'Start', label: 'Start', category: 'control_flow' },
         { type: 'End', label: 'End', category: 'control_flow' },
         { type: 'If', label: 'If Condition', category: 'control_flow' },
@@ -161,8 +173,7 @@ describe('RuleBuilder LeftSidebar Component', () => {
     });
 
     it('should hide import node when hideImportNode is true', () => {
-      const { getAllNodeTemplates } = require('../../../src/utils/Flow/nodeTemplateService');
-      getAllNodeTemplates.mockReturnValue([
+      mockGetAllNodeTemplates.mockReturnValue([
         { type: 'Import', label: 'Import', category: 'data' },
         { type: 'If', label: 'If Condition', category: 'control_flow' },
       ]);
@@ -230,8 +241,7 @@ describe('RuleBuilder LeftSidebar Component', () => {
 
   describe('Global Variables from API', () => {
     it('should handle API response for global variables', () => {
-      const { useGetGlobalVariablesQuery } = require('../../../src/redux/Api/Rule-builder');
-      useGetGlobalVariablesQuery.mockReturnValue({
+      mockUseGetGlobalVariablesQuery.mockReturnValue({
         data: {
           RuleRequest: { transaction: { amount: 100 } },
           RuleConfig: { config: { threshold: 50 } },
@@ -254,8 +264,7 @@ describe('RuleBuilder LeftSidebar Component', () => {
     });
 
     it('should handle API errors gracefully', () => {
-      const { useGetGlobalVariablesQuery } = require('../../../src/redux/Api/Rule-builder');
-      useGetGlobalVariablesQuery.mockReturnValue({
+      mockUseGetGlobalVariablesQuery.mockReturnValue({
         data: null,
         isLoading: false,
         error: { message: 'Failed to load' },
@@ -270,8 +279,7 @@ describe('RuleBuilder LeftSidebar Component', () => {
 
   describe('Node Categories', () => {
     it('should group nodes by category', () => {
-      const { getAllNodeTemplates } = require('../../../src/utils/Flow/nodeTemplateService');
-      getAllNodeTemplates.mockReturnValue([
+      mockGetAllNodeTemplates.mockReturnValue([
         { type: 'If', label: 'If Condition', category: 'control_flow' },
         { type: 'SetVariable', label: 'Set Variable', category: 'data' },
         { type: 'While', label: 'While Loop', category: 'control_flow' },
@@ -286,8 +294,7 @@ describe('RuleBuilder LeftSidebar Component', () => {
     });
 
     it('should render node palette with available nodes', () => {
-      const { getAllNodeTemplates } = require('../../../src/utils/Flow/nodeTemplateService');
-      getAllNodeTemplates.mockReturnValue([
+      mockGetAllNodeTemplates.mockReturnValue([
         { type: 'If', label: 'If Condition', category: 'control_flow' },
         { type: 'SetVariable', label: 'Set Variable', category: 'data' },
         { type: 'While', label: 'While Loop', category: 'control_flow' },
@@ -300,3 +307,4 @@ describe('RuleBuilder LeftSidebar Component', () => {
     });
   });
 });
+

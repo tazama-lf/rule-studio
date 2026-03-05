@@ -9,19 +9,22 @@ import jsxA11y from 'eslint-plugin-jsx-a11y';
 import eslintStandard from 'eslint-config-love';
 import eslintConfigPrettier from 'eslint-config-prettier';
 export default [
-  eslintConfigPrettier,
   {
     ignores: [
       '**/coverage/**',
       '**/build/**',
       '**/dist/**',
       '**/node_modules/**',
-      '**/__tests__/**',
-      '**/test/**',
+      '__tests__/',
+      '__mocks__/',
+      '__tests__/**',
+      '__mocks__/**',
     ],
   },
+  eslintConfigPrettier,
   {
     files: ['**/*.ts', '**/*.tsx'],
+    ignores: ['__tests__/**', '__mocks__/**'],
     plugins: {
       ...eslintStandard.plugins,
       react,

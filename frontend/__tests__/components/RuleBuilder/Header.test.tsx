@@ -1,6 +1,6 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, useNavigate } from 'react-router-dom';
 import Header from '../../../src/components/RuleBuilder/Header';
 import { useValidationContext } from '../../../src/validation/context';
 
@@ -30,8 +30,7 @@ describe('RuleBuilder Header Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     
-    const { useNavigate } = require('react-router-dom');
-    useNavigate.mockReturnValue(mockUseNavigate);
+    (useNavigate as jest.Mock).mockReturnValue(mockUseNavigate);
     
     mockUseValidationContext.mockReturnValue({
       hasErrors: false,

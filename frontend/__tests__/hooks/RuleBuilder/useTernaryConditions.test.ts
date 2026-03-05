@@ -1,3 +1,4 @@
+ 
 import { renderHook, act } from '@testing-library/react';
 import { useTernaryConditions } from '../../../src/hooks/RuleBuilder/useTernaryConditions';
 import type { TernaryNode } from '../../../src/components/RuleBuilder/RightSidebar/components/TernaryConditionEditor';

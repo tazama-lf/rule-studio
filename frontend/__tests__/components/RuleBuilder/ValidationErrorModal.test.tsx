@@ -1,17 +1,18 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ValidationErrorModal } from '../../../src/components/RuleBuilder/ValidationErrorModal';
+import type { ValidationError } from '../../../src/validation/context/ValidationContext';
 
 // Mock the validation context
-const mockGetAllErrors = () => [];
-const mockGetErrorCount = () => 0;
-
 jest.mock('../../../src/validation/context', () => ({
   useValidationContext: jest.fn(() => ({
-    getAllErrors: mockGetAllErrors,
-    getErrorCount: mockGetErrorCount,
+    getAllErrors: (): ValidationError[] => [],
+    getErrorCount: () => 0,
   })),
 }));
+
+import { useValidationContext } from '../../../src/validation/context';
+const mockUseValidationContext = useValidationContext as jest.Mock;
 
 describe('RuleBuilder ValidationErrorModal Component', () => {
   const defaultProps = {
@@ -39,8 +40,7 @@ describe('RuleBuilder ValidationErrorModal Component', () => {
     });
 
     it('should display error count badge', () => {
-      const { useValidationContext } = require('../../../src/validation/context');
-      useValidationContext.mockReturnValue({
+      mockUseValidationContext.mockReturnValue({
         getAllErrors: () => [],
         getErrorCount: () => 0,
       });
@@ -50,8 +50,7 @@ describe('RuleBuilder ValidationErrorModal Component', () => {
     });
 
     it('should show singular form for single error', () => {
-      const { useValidationContext } = require('../../../src/validation/context');
-      useValidationContext.mockReturnValue({
+      mockUseValidationContext.mockReturnValue({
         getAllErrors: () => [
           {
             nodeId: '1',
@@ -68,9 +67,8 @@ describe('RuleBuilder ValidationErrorModal Component', () => {
     });
 
     it('should show plural form for multiple errors', () => {
-      const { useValidationContext } = require('../../../src/validation/context');
-      useValidationContext.mockReturnValue({
-        getAllErrors: () => [
+      mockUseValidationContext.mockReturnValue({
+        getAllErrors: (): ValidationError[] => [
           {
             nodeId: '1',
             nodeName: 'Node 1',
@@ -94,8 +92,7 @@ describe('RuleBuilder ValidationErrorModal Component', () => {
 
   describe('Empty State', () => {
     it('should show empty state when no errors', () => {
-      const { useValidationContext } = require('../../../src/validation/context');
-      useValidationContext.mockReturnValue({
+      mockUseValidationContext.mockReturnValue({
         getAllErrors: () => [],
         getErrorCount: () => 0,
       });
@@ -107,8 +104,7 @@ describe('RuleBuilder ValidationErrorModal Component', () => {
 
   describe('Error List', () => {
     it('should display error details', () => {
-      const { useValidationContext } = require('../../../src/validation/context');
-      useValidationContext.mockReturnValue({
+      mockUseValidationContext.mockReturnValue({
         getAllErrors: () => [
           {
             nodeId: '1',
@@ -130,9 +126,8 @@ describe('RuleBuilder ValidationErrorModal Component', () => {
     });
 
     it('should display multiple nodes with errors', () => {
-      const { useValidationContext } = require('../../../src/validation/context');
-      useValidationContext.mockReturnValue({
-        getAllErrors: () => [
+      mockUseValidationContext.mockReturnValue({
+        getAllErrors: (): ValidationError[] => [
           {
             nodeId: '1',
             nodeName: 'Node 1',
@@ -184,8 +179,7 @@ describe('RuleBuilder ValidationErrorModal Component', () => {
 
   describe('Error Types', () => {
     it('should handle nodes with single error field', () => {
-      const { useValidationContext } = require('../../../src/validation/context');
-      useValidationContext.mockReturnValue({
+      mockUseValidationContext.mockReturnValue({
         getAllErrors: () => [
           {
             nodeId: '1',
@@ -203,8 +197,7 @@ describe('RuleBuilder ValidationErrorModal Component', () => {
     });
 
     it('should handle nodes with multiple error fields', () => {
-      const { useValidationContext } = require('../../../src/validation/context');
-      useValidationContext.mockReturnValue({
+      mockUseValidationContext.mockReturnValue({
         getAllErrors: () => [
           {
             nodeId: '1',
@@ -230,3 +223,5 @@ describe('RuleBuilder ValidationErrorModal Component', () => {
     });
   });
 });
+
+

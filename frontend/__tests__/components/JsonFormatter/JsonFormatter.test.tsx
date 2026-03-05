@@ -8,6 +8,7 @@ import EditableJsonPayload from '../../../src/components/JsonFormatter/EditableJ
 /* ------------------------------------------------------------------ */
 /*  Mock @microlink/react-json-view                                    */
 /* ------------------------------------------------------------------ */
+// eslint-disable-next-line react-hooks/immutability
 let capturedProps: Record<string, unknown> = {};
 
 jest.mock('@microlink/react-json-view', () => {
@@ -25,22 +26,30 @@ jest.mock('@microlink/react-json-view', () => {
 const theme = createTheme({
   palette: {
     text: { primary: '#000', secondary: '#666' },
-    static: { grey: '#ccc', border: '#ddd' },
-  } as any,
+    static: {
+      primary: '#000',
+      secondary: '#666',
+      skyBlue: '#87CEEB',
+      ternary: '#999',
+      black: '#000',
+      white: '#fff',
+      lightBlue: '#ADD8E6',
+      border: '#ddd',
+      grey: '#ccc',
+      lightGrey: '#f5f5f5',
+    },
+  },
 });
 
 const renderWithTheme = (ui: React.ReactElement) =>
   render(<ThemeProvider theme={theme}>{ui}</ThemeProvider>);
 
-/* ================================================================== */
-/*  FormattedJsonSection (index.tsx)                                    */
-/* ================================================================== */
+
 describe('FormattedJsonSection', () => {
   beforeEach(() => {
     capturedProps = {};
   });
 
-  /* ---------- valid JSON ---------- */
   describe('Valid JSON', () => {
     it('should render ReactJson viewer for valid JSON', () => {
       renderWithTheme(<FormattedJsonSection value='{"name":"John"}' />);
@@ -459,3 +468,6 @@ describe('EditableJsonPayload', () => {
     });
   });
 });
+
+
+

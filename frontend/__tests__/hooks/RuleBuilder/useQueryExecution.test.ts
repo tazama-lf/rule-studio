@@ -4,6 +4,9 @@ import { useQueryExecution } from '../../../src/hooks/RuleBuilder/useQueryExecut
 import { useExecuteQueryMutation } from '../../../src/redux/Api/Rule-builder';
 import { extractQueryParameters } from '../../../src/utils/Common/extractQueryParameters';
 import { extractErrorMessage } from '../../../src/types/queryExecution';
+import type { useVariableData } from '../../../src/hooks/RuleBuilder/useVariableData';
+
+type VariableData = ReturnType<typeof useVariableData>;
 
 jest.mock('../../../src/redux/Api/Rule-builder');
 jest.mock('../../../src/utils/Common/extractQueryParameters');
@@ -20,15 +23,14 @@ const mockedExtractErrorMessage = extractErrorMessage as jest.MockedFunction<
 >;
 
 describe('useQueryExecution', () => {
-  const mockVariableData: any = {
+  const mockVariableData: VariableData = {
     localVarsTree: [
       {
-        label: 'count',
+        key: 'count',
         value: '10',
         path: 'count',
         type: 'string',
         children: [],
-        key: 'count',
         isDraggable: true,
       },
     ],
@@ -49,7 +51,7 @@ describe('useQueryExecution', () => {
     jest.clearAllMocks();
 
     mockExecuteQueryMutation.mockReturnValue({ unwrap: mockUnwrap });
-    mockedUseExecuteQueryMutation.mockReturnValue([mockExecuteQueryMutation, {} as any]);
+    mockedUseExecuteQueryMutation.mockReturnValue([mockExecuteQueryMutation, { reset: jest.fn() }]);
     mockedExtractQueryParameters.mockImplementation((query) => query);
     mockedExtractErrorMessage.mockReturnValue('Query execution failed');
   });
@@ -121,7 +123,7 @@ describe('useQueryExecution', () => {
     });
 
     it('should set isExecuting to true during execution', async () => {
-      let resolveQuery: (value: any) => void;
+      let resolveQuery: (value: unknown) => void;
       const queryPromise = new Promise((resolve) => {
         resolveQuery = resolve;
       });
@@ -490,15 +492,14 @@ describe('useQueryExecution', () => {
 
       const firstExecuteQuery = result.current.executeQuery;
 
-      const newVariableData: any = {
+      const newVariableData: VariableData = {
         localVarsTree: [
           {
-            label: 'newVar',
+            key: 'newVar',
             value: '20',
             path: 'newVar',
             type: 'string',
             children: [],
-            key: 'newVar',
             isDraggable: true,
           },
         ],

@@ -1,7 +1,8 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import FunctionCallSection from '../../../../../src/components/RuleBuilder/RightSidebar/components/FunctionCallSection';
 import type { Node } from '@xyflow/react';
+import { getFunctionParameters, generateFunctionArgs } from '../../../../../src/utils/Flow/functionParameterUtils';
 
 // Mock the utilities
 jest.mock('../../../../../src/utils/Flow/functionParameterUtils', () => ({
@@ -11,6 +12,9 @@ jest.mock('../../../../../src/utils/Flow/functionParameterUtils', () => ({
     return params.map((p: { name: string }) => `${p.name}Value`).join(', ');
   }),
 }));
+
+const mockGetFunctionParameters = getFunctionParameters as jest.Mock;
+const mockGenerateFunctionArgs = generateFunctionArgs as jest.Mock;
 
 jest.mock('../../../../../src/utils/cursorPreservation', () => ({
   withCursorPreservation: (fn: (e: React.ChangeEvent<HTMLInputElement>) => void) => fn,
@@ -44,8 +48,7 @@ describe('FunctionCallSection Component', () => {
 
   describe('CustomFunction Call Mode - No Function Selected', () => {
     it('should show no functions message when no custom functions available', () => {
-      const { getFunctionParameters } = require('../../../../../src/utils/Flow/functionParameterUtils');
-      getFunctionParameters.mockReturnValue(null);
+      mockGetFunctionParameters.mockReturnValue(null);
 
       render(
         <FunctionCallSection
@@ -61,8 +64,7 @@ describe('FunctionCallSection Component', () => {
     });
 
     it('should show function selector when custom functions are available', () => {
-      const { getFunctionParameters } = require('../../../../../src/utils/Flow/functionParameterUtils');
-      getFunctionParameters.mockReturnValue(null);
+      mockGetFunctionParameters.mockReturnValue(null);
 
       const customFunctionNode: Node = {
         id: 'func-1',
@@ -89,8 +91,7 @@ describe('FunctionCallSection Component', () => {
     });
 
     it('should allow selecting a custom function', () => {
-      const { getFunctionParameters } = require('../../../../../src/utils/Flow/functionParameterUtils');
-      getFunctionParameters.mockReturnValue(null);
+      mockGetFunctionParameters.mockReturnValue(null);
 
       const customFunctionNode: Node = {
         id: 'func-1',
@@ -119,8 +120,7 @@ describe('FunctionCallSection Component', () => {
     });
 
     it('should filter nodes by generation_type for custom functions', () => {
-      const { getFunctionParameters } = require('../../../../../src/utils/Flow/functionParameterUtils');
-      getFunctionParameters.mockReturnValue(null);
+      mockGetFunctionParameters.mockReturnValue(null);
 
       const customFunctionNode: Node = {
         id: 'func-1',
@@ -149,8 +149,7 @@ describe('FunctionCallSection Component', () => {
     });
 
     it('should disable function selector in viewOnly mode', () => {
-      const { getFunctionParameters } = require('../../../../../src/utils/Flow/functionParameterUtils');
-      getFunctionParameters.mockReturnValue(null);
+      mockGetFunctionParameters.mockReturnValue(null);
 
       const customFunctionNode: Node = {
         id: 'func-1',
@@ -178,8 +177,7 @@ describe('FunctionCallSection Component', () => {
     });
 
     it('should disable function selector in readOnly mode', () => {
-      const { getFunctionParameters } = require('../../../../../src/utils/Flow/functionParameterUtils');
-      getFunctionParameters.mockReturnValue(null);
+      mockGetFunctionParameters.mockReturnValue(null);
 
       const customFunctionNode: Node = {
         id: 'func-1',
@@ -209,8 +207,7 @@ describe('FunctionCallSection Component', () => {
 
   describe('Function with No Parameters', () => {
     it('should show no parameters message', () => {
-      const { getFunctionParameters } = require('../../../../../src/utils/Flow/functionParameterUtils');
-      getFunctionParameters.mockReturnValue([]);
+      mockGetFunctionParameters.mockReturnValue([]);
 
       render(
         <FunctionCallSection
@@ -223,8 +220,7 @@ describe('FunctionCallSection Component', () => {
     });
 
     it('should show function selector for custom function call with no parameters', () => {
-      const { getFunctionParameters } = require('../../../../../src/utils/Flow/functionParameterUtils');
-      getFunctionParameters.mockReturnValue([]);
+      mockGetFunctionParameters.mockReturnValue([]);
 
       const customFunctionNode: Node = {
         id: 'func-1',
@@ -259,8 +255,7 @@ describe('FunctionCallSection Component', () => {
     ];
 
     beforeEach(() => {
-      const { getFunctionParameters } = require('../../../../../src/utils/Flow/functionParameterUtils');
-      getFunctionParameters.mockReturnValue(mockParams);
+      mockGetFunctionParameters.mockReturnValue(mockParams);
     });
 
     it('should render function call section with parameters', () => {
@@ -436,8 +431,7 @@ describe('FunctionCallSection Component', () => {
     });
 
     it('should show generated code preview', () => {
-      const { generateFunctionArgs } = require('../../../../../src/utils/Flow/functionParameterUtils');
-      generateFunctionArgs.mockReturnValue('param1Value, param2Value');
+      mockGenerateFunctionArgs.mockReturnValue('param1Value, param2Value');
 
       render(
         <FunctionCallSection
@@ -452,8 +446,7 @@ describe('FunctionCallSection Component', () => {
     });
 
     it('should show generated code without result variable when not storing', () => {
-      const { generateFunctionArgs } = require('../../../../../src/utils/Flow/functionParameterUtils');
-      generateFunctionArgs.mockReturnValue('param1Value, param2Value');
+      mockGenerateFunctionArgs.mockReturnValue('param1Value, param2Value');
 
       render(
         <FunctionCallSection
@@ -521,8 +514,7 @@ describe('FunctionCallSection Component', () => {
     ];
 
     beforeEach(() => {
-      const { getFunctionParameters } = require('../../../../../src/utils/Flow/functionParameterUtils');
-      getFunctionParameters.mockReturnValue(mockParams);
+      mockGetFunctionParameters.mockReturnValue(mockParams);
     });
 
     it('should show function selector when custom function is selected', () => {
@@ -613,8 +605,7 @@ describe('FunctionCallSection Component', () => {
     ];
 
     beforeEach(() => {
-      const { getFunctionParameters } = require('../../../../../src/utils/Flow/functionParameterUtils');
-      getFunctionParameters.mockReturnValue(mockParams);
+      mockGetFunctionParameters.mockReturnValue(mockParams);
     });
 
     it('should memoize component when props do not change', () => {
@@ -643,8 +634,7 @@ describe('FunctionCallSection Component', () => {
 
   describe('Edge Cases', () => {
     it('should handle empty allNodes array', () => {
-      const { getFunctionParameters } = require('../../../../../src/utils/Flow/functionParameterUtils');
-      getFunctionParameters.mockReturnValue([]);
+      mockGetFunctionParameters.mockReturnValue([]);
 
       render(
         <FunctionCallSection
@@ -659,8 +649,7 @@ describe('FunctionCallSection Component', () => {
     });
 
     it('should handle nodes without function_name in params', () => {
-      const { getFunctionParameters } = require('../../../../../src/utils/Flow/functionParameterUtils');
-      getFunctionParameters.mockReturnValue(null);
+      mockGetFunctionParameters.mockReturnValue(null);
 
       const invalidNode: Node = {
         id: 'invalid-1',
@@ -686,11 +675,10 @@ describe('FunctionCallSection Component', () => {
     });
 
     it('should handle resultVariable default value', () => {
-      const { getFunctionParameters, generateFunctionArgs } = require('../../../../../src/utils/Flow/functionParameterUtils');
-      getFunctionParameters.mockReturnValue([
+      mockGetFunctionParameters.mockReturnValue([
         { name: 'param1', label: 'Parameter 1', type: 'string' }
       ]);
-      generateFunctionArgs.mockReturnValue('param1Value');
+      mockGenerateFunctionArgs.mockReturnValue('param1Value');
 
       render(
         <FunctionCallSection
@@ -706,11 +694,10 @@ describe('FunctionCallSection Component', () => {
     });
 
     it('should use custom resultVariable when provided', () => {
-      const { getFunctionParameters, generateFunctionArgs } = require('../../../../../src/utils/Flow/functionParameterUtils');
-      getFunctionParameters.mockReturnValue([
+      mockGetFunctionParameters.mockReturnValue([
         { name: 'param1', label: 'Parameter 1', type: 'string' }
       ]);
-      generateFunctionArgs.mockReturnValue('param1Value');
+      mockGenerateFunctionArgs.mockReturnValue('param1Value');
 
       render(
         <FunctionCallSection
@@ -725,8 +712,7 @@ describe('FunctionCallSection Component', () => {
     });
 
     it('should handle function_name error in selector', () => {
-      const { getFunctionParameters } = require('../../../../../src/utils/Flow/functionParameterUtils');
-      getFunctionParameters.mockReturnValue([
+      mockGetFunctionParameters.mockReturnValue([
         { name: 'param1', label: 'Parameter 1', type: 'string' }
       ]);
 
@@ -760,3 +746,4 @@ describe('FunctionCallSection Component', () => {
     });
   });
 });
+

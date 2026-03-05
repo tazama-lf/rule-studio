@@ -3,6 +3,9 @@ import '@testing-library/jest-dom';
 import NestedCanvas from '../../../src/components/RuleBuilder/NestedCanvas';
 import type { Node, Edge } from '@xyflow/react';
 import { act } from 'react';
+import { getNodeTemplate } from '../../../src/utils/Flow/nodeTemplateService';
+import { setNestedNodeCounter } from '../../../src/utils/Flow/FlowDefaults';
+import { getLabelForHandle, getColorForHandle } from '../../../src/utils/Common/helpers';
 
 jest.mock('../../../src/validation/context', () => ({
   useValidationContext: () => ({
@@ -135,7 +138,6 @@ describe('NestedCanvas Component', () => {
 
   describe('Initialization', () => {
     it('should initialize with Start and End nodes when no initial nodes provided', () => {
-      const { getNodeTemplate } = require('../../../src/utils/Flow/nodeTemplateService');
       renderNestedCanvas();
       
       expect(getNodeTemplate).toHaveBeenCalledWith('Start');
@@ -187,7 +189,6 @@ describe('NestedCanvas Component', () => {
     });
 
     it('should set nested node counter from existing nodes', () => {
-      const { setNestedNodeCounter } = require('../../../src/utils/Flow/FlowDefaults');
       
       const initialNodes: Node[] = [
         {
@@ -698,7 +699,7 @@ describe('NestedCanvas Component', () => {
       const reactFlowWrapper = container.querySelector('[class*="react-flow"]');
       
       if (reactFlowWrapper) {
-        const dragOverEvent = fireEvent.dragOver(reactFlowWrapper, {
+        fireEvent.dragOver(reactFlowWrapper, {
           dataTransfer: {
             dropEffect: 'none',
           },
@@ -708,7 +709,6 @@ describe('NestedCanvas Component', () => {
     });
 
     it('should handle drop event to create new node', async () => {
-      const { generateNestedNodeId } = require('../../../src/utils/Flow/FlowDefaults');
       
       const { container } = renderNestedCanvas();
       
@@ -817,14 +817,12 @@ describe('NestedCanvas Component', () => {
     });
 
     it('should create edge with label for multiple handles', () => {
-      const { getLabelForHandle } = require('../../../src/utils/Common/helpers');
       
       renderNestedCanvas();
       expect(getLabelForHandle).toBeDefined();
     });
 
     it('should create edge with color for multiple handles', () => {
-      const { getColorForHandle } = require('../../../src/utils/Common/helpers');
       
       renderNestedCanvas();
       expect(getColorForHandle).toBeDefined();
@@ -911,7 +909,8 @@ describe('NestedCanvas Component', () => {
     });
 
     it('should work without ruleId prop', () => {
-      const { ruleId, ...propsWithoutRuleId } = defaultProps;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { ruleId: _ruleId, ...propsWithoutRuleId } = defaultProps;
       renderNestedCanvas({ ...propsWithoutRuleId, ruleId: undefined });
       
       expect(screen.getByText('Test Function - Internal Flow')).toBeInTheDocument();
@@ -922,3 +921,4 @@ describe('NestedCanvas Component', () => {
     });
   });
 });
+

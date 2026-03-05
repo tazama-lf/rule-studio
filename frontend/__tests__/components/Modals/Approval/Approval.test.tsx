@@ -4,6 +4,7 @@ import '@testing-library/jest-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import Approval from '../../../../src/components/Modals/Approval';
 import type { IApproval } from '../../../../src/components/Modals/Approval/useApprovalController';
+import toast from 'react-hot-toast';
 
 const mockClose = jest.fn();
 const mockNavigate = jest.fn();
@@ -354,7 +355,6 @@ describe('Approval Component', () => {
     });
 
     it('should show error toast on submit failure', async () => {
-      const toast = require('react-hot-toast');
       mockSubmitUnwrap.mockRejectedValueOnce(new Error('fail'));
 
       renderWithTheme(<Approval type="approve" id="rule-1" />);
@@ -393,7 +393,6 @@ describe('Approval Component', () => {
     });
 
     it('should show success toast and navigate on successful deploy', async () => {
-      const toast = require('react-hot-toast');
 
       renderWithTheme(<Approval type="deploy" id="rule-1" rule_config_id="rule-1" />);
 
@@ -409,7 +408,6 @@ describe('Approval Component', () => {
     });
 
     it('should show error toast when deploy fails', async () => {
-      const toast = require('react-hot-toast');
       mockDeployUnwrap.mockRejectedValueOnce(new Error('deploy fail'));
 
       renderWithTheme(<Approval type="deploy" id="rule-1" rule_config_id="rule-1" />);
@@ -424,7 +422,6 @@ describe('Approval Component', () => {
     });
 
     it('should show error toast when deploy succeeds but status update fails', async () => {
-      const toast = require('react-hot-toast');
       mockSubmitUnwrap.mockRejectedValueOnce(new Error('status fail'));
 
       renderWithTheme(<Approval type="deploy" id="rule-1" rule_config_id="rule-1" />);
@@ -471,3 +468,4 @@ describe('Approval Component', () => {
     });
   });
 });
+
