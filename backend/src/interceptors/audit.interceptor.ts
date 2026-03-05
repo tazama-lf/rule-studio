@@ -50,19 +50,19 @@ export class AuditInterceptor implements NestInterceptor {
 
         this.logAuditAsync(auditData, EventPhase.SUCCESS, correlationId);
       }),
-      catchError((error) => {
+      catchError((error: unknown) => {
         const auditData = {
           ...baseAuditData,
           outcome: {
-            error: error.message,
-            statusCode: error.status ?? 500,
+            error: error instanceof Error ? error.message : String(error),
+            statusCode: (error instanceof Object && 'status' in error) ? (error as any).status : 500,
             executionTimeMs: Date.now() - startTime,
           },
         };
 
         this.logAuditAsync(auditData, EventPhase.FAILED, correlationId);
 
-        throw new Error(error);
+        throw error instanceof Error ? error : new Error(String(error));
       }),
     );
   }

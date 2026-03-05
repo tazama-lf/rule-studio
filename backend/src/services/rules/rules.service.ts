@@ -332,39 +332,41 @@ export class RulesService {
     user: AuthenticatedUser,
     endpointKey: EndpointKey,
   ): Promise<Rules> {
-    try {
-      const normalizedRole = this.rbacService.getNormalizedRole(user);
-      const numericId = Number(ruleId);
-      if (!Number.isInteger(numericId)) throw new BadRequestException('Invalid ruleId. Expected a numeric value.');
-      const rule = await this.getRuleOrThrow(numericId, user.token.tokenString);
-      const currentStatus = rule.status ?? '';
-      const tier2 = this.rbacService.checkTier2({ role: normalizedRole, endpointKey, currentStatus });
-      if (!tier2.allowed) throw new ForbiddenException(tier2.reason ?? 'Tier 2 authorization failed');
-      const tier3 = this.rbacService.checkTier3({ role: normalizedRole, endpointKey, currentStatus, targetStatus: status });
-      if (!tier3.allowed) throw new ForbiddenException(tier3.reason ?? 'Tier 3 authorization failed');
-      const existingRule = await this.getRuleOrThrow(Number(ruleId), user.token.tokenString);
-      const previousStatus = (existingRule as any)?.rules?.status ?? existingRule.status;
-      if (previousStatus === status) {
-        return await this.adminServiceClient.updateRuleStatus(ruleId, status, reason, user.token.tokenString);
-      }
-      const updatedRule = await this.adminServiceClient.updateRuleStatus(ruleId, status, reason, user.token.tokenString);
-      const ruleData = await this.getRuleOrThrow(Number(ruleId), user.token.tokenString);
-      const eventType = this.mapStatusToEventType(status);
-      if (eventType) {
-        try {
-          await this.notificationService.sendRuleWorkflowNotification(eventType, user, ruleData, reason);
-        } catch (notificationError) {
-          const notifErr = notificationError as Error;
-          this.logger.warn(`Failed to send notification for rule ${ruleId} status change: ${notifErr.message}`);
-        }
-      } else {
-        this.logger.debug(`No notification event mapped for status '${status}' on rule ${ruleId}`);
-      }
-      return updatedRule;
-    } catch (error) {
-      const err = error as Error;
-      this.logger.error(`Error updating status for rule ${ruleId}: ${err.message}`);
-      throw error;
+    const numericId = Number(ruleId);
+    if (!Number.isInteger(numericId)) throw new BadRequestException('Invalid ruleId. Expected a numeric value.');
+
+    const normalizedRole = this.rbacService.getNormalizedRole(user);
+    const token = user.token.tokenString;
+    const rule = await this.getRuleOrThrow(numericId, token);
+    const currentStatus = rule.status ?? '';
+
+    // Authorization checks
+    const tier2 = this.rbacService.checkTier2({ role: normalizedRole, endpointKey, currentStatus });
+    if (!tier2.allowed) throw new ForbiddenException(tier2.reason ?? 'Tier 2 authorization failed');
+
+    const tier3 = this.rbacService.checkTier3({ role: normalizedRole, endpointKey, currentStatus, targetStatus: status });
+    if (!tier3.allowed) throw new ForbiddenException(tier3.reason ?? 'Tier 3 authorization failed');
+
+    // Check if status has actually changed
+    const previousStatus = (rule as any)?.rules?.status ?? rule.status;
+    if (previousStatus === status) {
+      return await this.adminServiceClient.updateRuleStatus(ruleId, status, reason, token);
     }
+
+    // Update status
+    const updatedRule = await this.adminServiceClient.updateRuleStatus(ruleId, status, reason, token);
+
+    // Send notification if status changed
+    const eventType = this.mapStatusToEventType(status);
+    if (eventType) {
+      try {
+        const ruleData = await this.getRuleOrThrow(numericId, token);
+        await this.notificationService.sendRuleWorkflowNotification(eventType, user, ruleData, reason);
+      } catch (notificationError) {
+        this.logger.warn(`Failed to send notification for rule ${ruleId}: ${(notificationError as Error).message}`);
+      }
+    }
+
+    return updatedRule;
   }
 }
