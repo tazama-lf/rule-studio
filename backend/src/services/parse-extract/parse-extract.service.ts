@@ -47,7 +47,9 @@ export class ParseExtractService {
 
     try {
       this.logger.log(`Processing transaction data for rule creation - TxTp: ${transactionType} [${correlationId}]`);
-      const validationResult = this.validatePayload(payloadResult, schemaResult, transactionType, correlationId);
+      const payloadToValidate = { ...payloadResult, TxTp: transactionType, TenantId: user.tenantId };
+
+      const validationResult = this.validatePayload(payloadToValidate, schemaResult, transactionType, correlationId);
       if (!validationResult.isValid) {
         return {
           success: false,
@@ -57,8 +59,6 @@ export class ParseExtractService {
           correlationId,
         };
       }
-
-      const payloadToValidate = { ...payloadResult, TxTp: transactionType, TenantId: user.tenantId };
       const mappingOutcome = processMappings(payloadToValidate, mappingResult, transactionType);
       const activeNetworkMap = await this.adminServiceClient.getActiveNetworkMap(user.token.tokenString);
 
