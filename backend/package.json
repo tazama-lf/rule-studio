@@ -38,7 +38,7 @@
     "@tazama-lf/auth-lib": "3.0.0",
     "@tazama-lf/frms-coe-lib": "7.0.0-rc.0",
     "@tazama-lf/frms-coe-startup-lib": "3.0.0",
-    "@tazama-lf/tcs-lib": "^1.0.141",
+    "@tazama-lf/tcs-lib": "^1.0.155",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "cron": "^4.4.0",

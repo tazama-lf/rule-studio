@@ -190,10 +190,10 @@ export class AdminServiceClient {
   //   return [response.schema, response.mapping, response.functions];
   // }
 
-  async getPayloadByTransactionType(transactionType: string, token: string): Promise<Record<string, unknown>> {
+  async getPayloadByTransactionType(transactionType: string, transactionVersion: string, token: string): Promise<Record<string, unknown>> {
     const response = await this.executeHttpRequest<{ payload: Record<string, unknown> }>(
       'GET',
-      `${CONFIG_PAYLOAD}/${transactionType}`,
+      `${CONFIG_PAYLOAD}/${transactionType}/${transactionVersion}`,
       token,
     );
     return response.payload;

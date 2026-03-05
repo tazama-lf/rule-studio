@@ -35,7 +35,7 @@ export class ConfigService {
     }
   }
 
-  async getPayloadByTransactionType(transactionType: string, user: AuthenticatedUser, endpointKey: EndpointKey): Promise<any> {
+  async getPayloadByTransactionType(transactionType: string, transactionVersion: string, user: AuthenticatedUser, endpointKey: EndpointKey): Promise<any> {
     try {
       const normalizedRole = this.rbacService.getNormalizedRole(user);
 
@@ -54,7 +54,7 @@ export class ConfigService {
         );
       }
 
-      return await this.adminServiceClient.getPayloadByTransactionType(transactionType, user.token.tokenString);
+      return await this.adminServiceClient.getPayloadByTransactionType(transactionType, transactionVersion, user.token.tokenString);
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Error fetching payload for transaction type ${transactionType}: ${err.message}`);

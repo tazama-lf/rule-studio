@@ -43,12 +43,13 @@ describe('ConfigController wiring', () => {
   it('getPayloadByTransactionType passes endpointKey and augments response', async () => {
     (mockConfigService.getPayloadByTransactionType as jest.Mock).mockResolvedValue({ schema: {} });
 
-    const result = await controller.getPayloadByTransactionType('pain.001.001.11', user);
+    const result = await controller.getPayloadByTransactionType('pain.001.001.11', '11', user);
 
     expect(mockConfigService.getPayloadByTransactionType).toHaveBeenCalledWith(
       'pain.001.001.11',
+      '11',
       user,
-      'GET /config/api/payload/:transactionType',
+      'GET /config/api/payload/:transactionType/:transactionVersion',
     );
     expect(result).toEqual({
       schema: {},

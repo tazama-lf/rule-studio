@@ -77,13 +77,14 @@ describe('ConfigService RBAC', () => {
 
     await service.getPayloadByTransactionType(
       'pain.001.001.11',
+      '1.0.0',
       user,
-      'GET /config/api/payload/:transactionType',
+      'GET /config/api/payload/:transactionType/:transactionVersion',
     );
 
     expect(tier2Spy).toHaveBeenCalledWith({
       role: 'editor',
-      endpointKey: 'GET /config/api/payload/:transactionType',
+      endpointKey: 'GET /config/api/payload/:transactionType/:transactionVersion',
     });
   });
 
