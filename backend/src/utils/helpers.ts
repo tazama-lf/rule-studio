@@ -18,7 +18,7 @@ const { ENCRYPTION_KEY, IV_LENGTH } = process.env;
 const key = Buffer.from(ENCRYPTION_KEY ?? '', 'utf8');
 
 if (key.length !== 32) {
-  throw new Error('ENCRYPTION_KEY must be 32 bytes for aes-256-cbc');
+  throw new Error('ENCRYPTION_KEY must be 32 bytes for aes-256-gcm');
 }
 
 export function encrypt(text: string): string {
@@ -52,7 +52,7 @@ export function decrypt(text: string): string {
     decipher.setAuthTag(authTag);
 
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-    decrypted = decipher.final('utf8');
+    decrypted += decipher.final('utf8');
     return decrypted;
   } catch (error) {
     throw new Error('Failed to decrypt payload', { cause: error });

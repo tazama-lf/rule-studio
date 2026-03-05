@@ -401,7 +401,7 @@ export class UpdateRuleStatusDto {
   comment?: string;
 }
 export class RequestSaveFlow {
-  @ApiProperty({ description: 'ts file base64', example: 'data:image/png;base64,iVBORw0KGgoAAAANSUh...' })
+  @ApiProperty({ description: 'ts file base64', example: 'data:application/typescript;base64,ZXhwb3J0IGNvbnN0Li4u...' })
   @IsString()
   ts_file_base64: string;
   @ApiProperty({ description: 'Json of the flow', example: '{"edges": {}, "nodes": {} }' })

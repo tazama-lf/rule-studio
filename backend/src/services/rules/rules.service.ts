@@ -100,7 +100,7 @@ export class RulesService {
       const tier2 = this.rbacService.getTier2({ role: normalizedRole, endpointKey });
       if (!tier2.allowed) throw new ForbiddenException(tier2.reason ?? 'Not authorized to create rules');
       const transactionType = ruleData.txtp ?? '';
-      const transactionVersion = ruleData.txtpVersion ?? '';
+      const transactionVersion = ruleData.txtpVersion ?? ruleData.txtp_version ?? '';
       const result = await this.adminServiceClient.getConfigRowByTxTp(transactionType, transactionVersion, user.token.tokenString);
       const schemaResult = result.config.schema;
       const mappingResult = result.config.mapping;
@@ -115,7 +115,7 @@ export class RulesService {
       );
       if (!parseResult.ruleRequest) {
         this.logger.error(`Rule request is missing in parse result for transaction type ${transactionType}`);
-        throw new Error('Failed to generate rule request from payload');
+        throw new BadRequestException('Failed to generate rule request from payload');
       }
       const rule = await this.adminServiceClient.createRule(ruleData, user.token.tokenString, parseResult.ruleRequest);
       if (rule.id) {

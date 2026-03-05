@@ -347,7 +347,7 @@ export class AuditInterceptor implements NestInterceptor {
     const maxSize = 10000;
     if (bodyString.length > maxSize) {
       return {
-        cleanBody,
+        _preview: bodyString.slice(0, 500) + '...',
         _truncated: true,
         _originalSize: bodyString.length,
       };

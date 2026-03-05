@@ -171,7 +171,7 @@ export class TazamaAuthGuard implements CanActivate {
   private extractInnerToken(outerToken: string): Record<string, unknown> {
     try {
       const outerDecoded = jwt.decode(outerToken) as Record<string, unknown>;
-      this.logger.log(`Outer token keys: ${Object.keys(outerDecoded).join(', ')}`);
+      this.logger.debug(`Outer token has ${Object.keys(outerDecoded).length} claims`);
 
       if (!outerDecoded.tokenString) {
         this.logger.warn('No tokenString field in outer token, returning outer token itself');
