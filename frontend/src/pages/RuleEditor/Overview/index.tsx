@@ -46,14 +46,14 @@ const Overview = (props: IOverviewProps) => {
                             )}
                         />
                     </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
+                    {/* <Grid size={{ xs: 12, md: 6 }}>
                         <DropDown
                             value={null}
                             label="Network Map"
                             onClick={functions.handleNetworkMap}
                             placeholder="View Network Map"
                         />
-                    </Grid>
+                    </Grid> */}
                 </Grid>
             </Section>
             <Section header={'General Information'}>
@@ -87,6 +87,15 @@ const Overview = (props: IOverviewProps) => {
                                     label="Rule Version"
                                     {...field}
                                     error={error?.message}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        if (!/\.\./.test(value) && (/^\d+\.?\d*\.?\d*$/.test(value) || value === '')) {
+                                            const dotCount = (value.match(/\./g) || []).length;
+                                            if (dotCount <= 2) {
+                                                field.onChange?.(e);
+                                            }
+                                        }
+                                    }}
                                 />
                             )}
                         />
@@ -122,6 +131,7 @@ const Overview = (props: IOverviewProps) => {
                             type='textarea'
                             label="Description"
                             {...field}
+                            maxLength={255}
                             error={values.errors.description?.message}
                         />
                     )}
@@ -167,16 +177,13 @@ const Overview = (props: IOverviewProps) => {
 
             </Section>
 
-            {!values?.isEdit ?
-                <Box mt={2} width={'100%'} display={'flex'} justifyContent={'flex-end'}>
+            <Box mt={2} width={'100%'} display={'flex'} justifyContent={'flex-end'}>
+                {!values?.isEdit ?
                     <Button loading={values?.createLoading} height="40px" type="secondary" size="md" text="Save & Next" onClick={functions.handleSubmit} />
-                </Box>
-                :
-                <Box mt={2} width={'100%'} display={'flex'} justifyContent={'flex-end'}>
+                    :
                     <Button height="40px" type="secondary" size="md" text="Next" onClick={functions.handleNext} />
-                </Box>
-            }
-
+                }
+            </Box>
         </Grid>
     )
 }

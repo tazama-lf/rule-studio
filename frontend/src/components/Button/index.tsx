@@ -8,7 +8,7 @@ type ButtonProps = {
   Icon?: React.ElementType;
   disabled?: boolean;
   text: string;
-  type?: "primary" | "secondary" | "muted" | "danger" | "success" | "default" | 'simple';
+  type?: "primary" | "secondary" | "muted" | "danger" | "success" | "default" | 'simple' | 'prod';
   outlined?: boolean;
   loading?: boolean;
   size?: "sm" | "md" | "lg" | "";
@@ -61,6 +61,10 @@ const MuiButton = ({
       main: "#000",
       contrastText: "#fff",
     },
+    prod: {
+      main: '#4f46e5',
+      contrastText: "#fff",
+    }
   };
 
   const widths: Record<string, string> = {

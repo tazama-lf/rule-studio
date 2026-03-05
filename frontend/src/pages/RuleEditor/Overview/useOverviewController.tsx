@@ -1,12 +1,12 @@
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import type { DropdownOption } from "../../../components/DropDown";
 import { useModal } from "../../../contexts/ModalContext";
 import { useTab } from "../../../contexts/TabContext/useTab";
 import { useGetTypesQuery, useLazyGetTxtpVersionsQuery } from "../../../redux/Api/Config";
-import { useCreateRuleMutation } from "../../../redux/Api/Rules";
+import { useCloneRuleMutation, useCreateRuleMutation } from "../../../redux/Api/Rules";
 import { LocalStorage } from "../../../utils/Common/enums";
 import { toDropdown } from "../../../utils/Common/helpers";
 import { extractData, insertData } from "../../../utils/Common/storage";
@@ -14,6 +14,7 @@ import { ruleTypes } from "../../../utils/Constants/data";
 import { createRuleSchema } from "../../../validation/schemas";
 import RuleConfig from "../Modals/RuleConfig";
 import ViewNetworkMap from "../Modals/ViewNetworkMap";
+import { useCreateRepoMutation } from '../../../redux/Api/Simulation';
 
 interface RuleFormValues {
     rule_name: string;
@@ -32,20 +33,38 @@ export interface IOverviewProps {
 
 const useOverviewController = (props: IOverviewProps) => {
 
-    const data = extractData('trs_rule', LocalStorage, true) ?? props?.data
+    const data = useMemo(
+        () => props.data ?? extractData('trs_rule', LocalStorage, true),
+        [props.data]
+    )
+
     const { enableNextTab } = useTab()
     const { mode } = props
     const [versions, setVersions] = useState<string[]>([])
 
     const { data: types, isLoading } = useGetTypesQuery({})
     const [submit, { isLoading: createLoading }] = useCreateRuleMutation()
+    const [createRepo, { isLoading: repoLoading }] = useCreateRepoMutation()
+    const [clone] = useCloneRuleMutation()
     const [getVersions] = useLazyGetTxtpVersionsQuery()
 
     const { open } = useModal()
     const user = extractData('user') || {}
 
+    const getTxtpVersions = useCallback((type: string | number) => {
+        getVersions({ type }).unwrap()
+            .then((res) => {
+                if (res) {
+                    setVersions(res)
+                }
+            })
+            .catch(() => {
+                toast.error('Failed to load transaction type versions')
+            })
+    }, [getVersions])
+
     const initial: RuleFormValues = {
-        rule_name: (data?.rule_name as string) ?? '',
+        rule_name: (data?.ruleName as string) ?? '',
         description: (data?.description as string) ?? '',
         txtp: toDropdown(data?.txtp as string) as { label: string, value: string } | null,
         txtpVersion: toDropdown(data?.txtp_version as string) as { label: string, value: string } | null,
@@ -54,8 +73,7 @@ const useOverviewController = (props: IOverviewProps) => {
         rule_type: toDropdown(data?.rule_type as string) as { label: string, value: string } | null,
     };
 
-
-    const shouldValidate = mode === "clone" || mode === null
+    const shouldValidate = mode === "clone" || !mode
 
     const {
         handleSubmit,
@@ -68,8 +86,9 @@ const useOverviewController = (props: IOverviewProps) => {
         resolver: shouldValidate ? yupResolver(createRuleSchema) : undefined,
     })
 
-    const onSubmit = (values: RuleFormValues) => {
+    const onSubmit = async (values: RuleFormValues) => {
         const payload = {
+            ruleName: values?.rule_name,
             description: values?.description,
             version: values?.version,
             txtp: values?.txtp?.value,
@@ -77,40 +96,79 @@ const useOverviewController = (props: IOverviewProps) => {
             rule_type: values?.rule_type?.value,
             txtpVersion: values?.txtpVersion?.value,
         }
-        submit(payload).unwrap()
-            .then((res) => {
-                insertData(res, 'trs_rule', LocalStorage, true)
-                toast.success('Rule Successfully Created')
-                enableNextTab()
-            })
-            .catch((error) => {
-                toast.error(error?.data?.message || 'Failed to create rule')
-            })
+
+        try {
+            if (mode === 'clone' && !data?.id) {
+                toast.error('Source rule ID is missing. Cannot clone rule.');
+                return;
+            }
+            
+            const res =
+                mode === 'clone'
+                    ? await clone({ id: data?.id, body: payload }).unwrap()
+                    : await submit(payload).unwrap()
+
+            insertData(res, 'trs_rule', LocalStorage, true)
+
+            toast.success(
+                mode === 'clone'
+                    ? 'Rule Successfully Cloned'
+                    : 'Rule Successfully Created'
+            )
+
+            const repoBody = {
+                ruleId: res?.id,
+                ruleVersion: values?.version,
+                organization: 'psl-copilot',
+            }
+
+            await createRepo(repoBody).unwrap()
+            enableNextTab()
+        } catch (error: unknown) {
+            const errorMessage =
+                (error as { data?: { message?: string } })?.data?.message ||
+                (mode === 'clone'
+                    ? 'Failed to clone rule'
+                    : 'Failed to create rule')
+            toast.error(errorMessage)
+        }
     }
 
     const handleNext = () => {
         enableNextTab()
     }
 
+    const getRuleName = useCallback((id: string) => {
+        if (!id) return ''
+        const rule_no = id.toString().split('@')
+        const tenantId = user?.tenantId ?? ''
+        return `${tenantId}-rule-${rule_no?.[0]}`
+    }, [user?.tenantId])
+
     const handleRuleValue = (val: DropdownOption) => {
         setValue('rule_config_id', val as { label: string, value: string })
-        const rule_no = val?.value?.toString().split('@')
-        const tenantId = user?.tenantId ?? ''
-        setValue('rule_name', `${tenantId}-rule-${rule_no?.[0]}`)
+        const name = getRuleName(val?.value as string)
+        setValue('rule_name', name)
     }
+
+    useEffect(() => {
+        if (mode === 'clone' && data?.txtp_version) {
+            getTxtpVersions(data?.txtp as string | number)
+        }
+    }, [mode, data?.txtp_version, data?.txtp, getTxtpVersions])
+
+    useEffect(() => {
+        if (data) {
+            const name = getRuleName(data?.rule_config_id as string)
+            setValue('rule_name', name)
+        }
+    }, [data, setValue, getRuleName])
 
     const handleTxTp = (val: DropdownOption) => {
         setValue('txtp', val as { label: string, value: string })
+        setValue('txtpVersion', null)
         if (val?.value) {
-            getVersions({ type: val.value }).unwrap()
-                .then((res) => {
-                    if (res) {
-                        setVersions(res)
-                    }
-                })
-                .catch(() => {
-                    toast.error('Failed to load transaction type versions')
-                })
+            getTxtpVersions(val?.value)
         }
     }
 
@@ -123,15 +181,14 @@ const useOverviewController = (props: IOverviewProps) => {
         open('View Network Map', <ViewNetworkMap />, null, { maxWidth: 'md' })
     }
 
-
     return {
         values: {
             control,
-            isEdit: mode === 'edit' || mode == 'view',
+            isEdit: mode === 'edit' || mode === 'view' || (data && !mode),
             errors,
             isLoading,
             rule_config_id: getValues('rule_config_id'),
-            createLoading,
+            createLoading: createLoading || repoLoading,
             transactions: types?.map((item: string) => ({ label: item, value: item })) || [],
             txtpVersions: versions?.map((item: string) => ({ label: item, value: item })) || [],
             ruleTypes: ruleTypes.map(({ display, value }) => { return { label: display, value } }),

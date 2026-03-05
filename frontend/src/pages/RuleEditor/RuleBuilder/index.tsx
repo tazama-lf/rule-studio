@@ -1,35 +1,92 @@
-import { Grid } from "@mui/material"
+import { Box, Grid, Paper, CircularProgress } from "@mui/material"
 import Button from "../../../components/Button"
 import useRuleBuilderController, { type IRuleBuilder } from "./useRuleBuilderController"
+import { Text } from "../../../components/Text";
 
 const RuleBuilder = (props: IRuleBuilder) => {
 
-    const { functions } = useRuleBuilderController(props);
+    const { values, functions } = useRuleBuilderController(props);
+    const { statusConfig, isLoadingFlow } = values;
 
     return (
         <Grid
             container
             py={3}
-            display={'flex'}
-            justifyContent={'center'}
-            gap={2}
+            height={'60vh'}
         >
-            <Button
-                height="40px"
-                width="170px"
-                type="secondary"
-                size="md"
-                text="Open Rule Builder"
-                onClick={functions.handleBuilder}
-            />
-            <Button
-                height="40px"
-                width="170px"
-                type="secondary"
-                size="md"
-                text="Next"
-                onClick={functions.handleNext}
-            />
+            <Box width={'100%'}>
+                <Grid size={12} mb={1}>
+                    <Text weight={'bold'} color="black" size={'header'}>Rule Builder</Text>
+                </Grid>
+                <Grid size={12} mb={3}>
+                    <Text color="text.ternary" size={'body'}>Create and manage your rule flow</Text>
+                </Grid>
+            </Box>
+            
+            {isLoadingFlow ? (
+                <Box width={'100%'} display={'flex'} justifyContent={'center'} alignItems={'center'} flex={1}>
+                    <CircularProgress />
+                </Box>
+            ) : (
+                <Box width={'100%'} display={'flex'} justifyContent={'center'} alignItems={'center'} flex={1}>
+                    <Paper
+                        elevation={0}
+                        sx={{
+                            backgroundColor: statusConfig.bgColor,
+                            border: `2px solid ${statusConfig.color}`,
+                            borderRadius: '12px',
+                            padding: '32px',
+                            maxWidth: '600px',
+                            width: '100%',
+                            textAlign: 'center'
+                        }}
+                    >
+                        <Box fontSize={'48px'} mb={2}>
+                            {statusConfig.icon}
+                        </Box>
+                        <Text 
+                            weight={'bold'} 
+                            size={'subHeader'} 
+                            sx={{ color: statusConfig.color, mb: 2 }}
+                        >
+                            {statusConfig.title}
+                        </Text>
+                        <Text 
+                            color="text.secondary" 
+                            size={'body'}
+                            sx={{ mb: 3, display: 'block' }}
+                        >
+                            {statusConfig.description}
+                        </Text>
+                        <Button
+                            height="44px"
+                            width="180px"
+                            type="secondary"
+                            size="md"
+                            text={statusConfig.buttonText}
+                            onClick={functions.handleBuilder}
+                        />
+                    </Paper>
+                </Box>
+            )}
+            <Box width={'100%'} display={'flex'} justifyContent={'space-between'} alignSelf={'flex-end'}>
+                <Button
+                    height="40px"
+                    width="170px"
+                    type="secondary"
+                    size="md"
+                    text="Back"
+                    onClick={functions.handleBack}
+                />
+                <Button
+                    height="40px"
+                    width="170px"
+                    type="secondary"
+                    size="md"
+                    text="Next"
+                    onClick={functions.handleNext}
+                />
+            </Box>
         </Grid>
     )
 }

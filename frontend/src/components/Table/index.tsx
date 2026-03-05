@@ -13,6 +13,7 @@ import { memo } from "react";
 import { dateFormatter, getNestedValue } from "../../utils/Common/helpers";
 import Loader from "../Loader";
 import CustomPagination from "../Pagination";
+import { Text } from "../Text";
 
 export type TableColumn = {
     key: string;
@@ -40,6 +41,7 @@ type TableProps = {
     onRowClick?: (row: unknown) => void;
     getRowClassName?: (row: unknown) => string;
     getRowStyle?: (row: unknown) => React.CSSProperties;
+    title?: string;
 };
 
 const Table = ({
@@ -50,11 +52,26 @@ const Table = ({
     onRowClick,
     getRowClassName,
     getRowStyle,
+    serial_no = false,
+    title,
 }: TableProps) => {
-    const headers = [...columns];
+    const headers = serial_no
+        ? [{ key: 'serial_no', label: 'S.No.' }, ...columns]
+        : [...columns];
 
     const renderRow = (row: Record<string, unknown>, index: number) => (
         <>
+            {serial_no && (
+                <TableCell
+                    key={`serial_no-${index}`}
+                    sx={{
+                        borderBottom: "1px solid #e0e0e0",
+                        textAlign: 'left',
+                    }}
+                >
+                    {(pagination ? (pagination.offset - 1) * pagination.limit : 0) + index + 1}
+                </TableCell>
+            )}
             {columns.map((col) => (
                 <TableCell
                     key={`${(row as Record<string, unknown>)?.id ?? index}-${col.key}`}
@@ -77,6 +94,13 @@ const Table = ({
 
     return (
         <Box my={3}>
+            {title && (
+                <Box mb={2}>
+                    <Text weight="bold" color="black" size="main">
+                        {title}
+                    </Text>
+                </Box>
+            )}
             <TableContainer component={Paper} variant="outlined">
                 <MuiTable stickyHeader sx={{ minWidth: 600 }}>
                     <TableHead>

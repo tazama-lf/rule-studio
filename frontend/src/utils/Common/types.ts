@@ -11,6 +11,26 @@ export interface Option {
     value: unknown
 }
 
+export interface Rule {
+    id?: string;
+    description: string;
+    txtp: string;
+    version: string;
+    txtpVersion?: string;
+    status?: string;
+    publishing_status?: string;
+    rule_type?: string;
+    rule_config_id?: string;
+    flow_id?: string;
+    updated_at?: string;
+    created_at?: string;
+    [key: string]: unknown;
+}
+
+export interface RuleResponse {
+    rules: Rule;
+}
+
 export type IResult = {
     success: boolean;
     message: string;

@@ -8,6 +8,7 @@ interface UseCanvasKeyboardShortcutsProps {
   setEdges: (edges: Edge[] | ((prevEdges: Edge[]) => Edge[])) => void;
   deleteSelectedNodes: () => void;
   deleteSelectedEdges: () => void;
+  enabled?: boolean;
 }
 
 export const useCanvasKeyboardShortcuts = ({
@@ -17,6 +18,7 @@ export const useCanvasKeyboardShortcuts = ({
   setEdges,
   deleteSelectedNodes,
   deleteSelectedEdges,
+  enabled = true,
 }: UseCanvasKeyboardShortcutsProps) => {
   const historyRef = useRef<{ nodes: Node[]; edges: Edge[] }[]>([]);
   const redoRef = useRef<{ nodes: Node[]; edges: Edge[] }[]>([]);
@@ -71,9 +73,11 @@ export const useCanvasKeyboardShortcuts = ({
     ]
   );
   useEffect(() => {
+    if (!enabled) return;
+    
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [onKeyDown]);
+  }, [onKeyDown, enabled]);
 
   const pushHistory = useCallback(() => {
     historyRef.current.push({ nodes: [...nodes], edges: [...edges] });

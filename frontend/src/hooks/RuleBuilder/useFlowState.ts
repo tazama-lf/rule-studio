@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type { Node } from '@xyflow/react';
 import type { DebugLog } from '../../components/RuleBuilder/DebuggerPanel';
 
@@ -77,7 +77,7 @@ export const useFlowState = () => {
     URL.revokeObjectURL(url);
   }, []);
 
-  return {
+  return useMemo(() => ({
     jsonModalOpen,
     setJsonModalOpen,
     codeModalOpen,
@@ -107,5 +107,28 @@ export const useFlowState = () => {
     handleJsonGenerate,
     handleCodeGenerate,
     handleDownload,
-  };
+  }), [
+    jsonModalOpen,
+    codeModalOpen,
+    jsonOutput,
+    codeOutput,
+    debugVariables,
+    setDebugVariables,
+    debugLogs,
+    setDebugLogs,
+    currentAnimationNode,
+    setCurrentAnimationNode,
+    selectedNode,
+    sidebarCollapsed,
+    generatedCode,
+    allNodes,
+    setAllNodes,
+    edges,
+    setEdges,
+    handleToggleSidebar,
+    handleCloseRightSidebar,
+    handleJsonGenerate,
+    handleCodeGenerate,
+    handleDownload,
+  ]);
 };

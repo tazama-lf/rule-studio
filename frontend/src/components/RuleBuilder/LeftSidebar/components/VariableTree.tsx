@@ -28,7 +28,7 @@ const VariableTree: React.FC<VariableTreeProps> = ({
   ruleResultTree
 }) => {
   return (
-    <Box sx={{ p: 1.5, overflowX: 'auto', minWidth: 0 }}>
+    <Box sx={{ p: 1.5, minWidth: 0 }}>
       <Box sx={{ minWidth: 300 }}>
         {loopContext.isInLoopScope && (
           <VariableTreeSection

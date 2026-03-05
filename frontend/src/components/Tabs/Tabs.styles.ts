@@ -18,7 +18,6 @@ export const TabItemWrapper = styled(Box, {
 })<{ active: boolean }>(({ theme, active }) => ({
     position: "relative",
     padding: "10px 16px",
-    cursor: "pointer",
     borderTopLeftRadius: '5px',
     borderTopRightRadius: '5px',
     backgroundColor: active ? theme.palette.static.lightBlue : 'transparent'

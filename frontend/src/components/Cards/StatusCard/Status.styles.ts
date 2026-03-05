@@ -18,13 +18,16 @@ export const getStatusStyles = (status: string, theme: Theme) => {
             };
 
         case "STATUS_04_APPROVED":
+        case "Simple":
+        case "Low":
             return {
                 backgroundColor: '#f0fdf4',
                 color: '#00a63e',
                 borderColor: '#ddfbe8',
             };
-
         case "STATUS_05_REJECTED":
+        case "Complex":
+        case "High":
             return {
                 backgroundColor: '#fef2f2',
                 color: '#e7000b',
