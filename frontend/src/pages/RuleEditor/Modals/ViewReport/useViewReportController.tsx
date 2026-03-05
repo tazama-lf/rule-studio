@@ -19,9 +19,10 @@ const useViewReportController = (props: IViewReport) => {
   const [htmlContent, setHtmlContent] = useState<string>('')
 
   const handleReport = useCallback(() => {
+    const rule_config_id = data?.rule_config_id
     const body = {
       organization: 'psl-copilot',
-      ruleId: data?.id,
+      ruleId: rule_config_id?.toString().split('@')[0],
       branchName: 'staging'
     }
     getReport({ ...body })
@@ -36,6 +37,7 @@ const useViewReportController = (props: IViewReport) => {
       .catch(() => {
         toast.error('Failed to fetch report')
       })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getReport, data?.id])
 
   useEffect(() => {

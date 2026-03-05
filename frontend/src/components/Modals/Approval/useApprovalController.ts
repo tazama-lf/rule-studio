@@ -9,7 +9,8 @@ import toast from "react-hot-toast";
 export interface IApproval {
     type: 'review' | 'approve' | 'reject' | 'pause' | 'resume' | 'deploy',
     id: string,
-    onSuccess?: () => void
+    onSuccess?: () => void,
+    rule_config_id?: string
 }
 
 interface IValues {
@@ -97,7 +98,7 @@ const requiresComment = (type: IApproval['type']) => {
 
 const useApprovalController = (props: IApproval) => {
 
-    const { type, id, onSuccess } = props
+    const { type, id, rule_config_id, onSuccess } = props
     const { close } = useModal()
     const navigate = useNavigate()
 
@@ -122,8 +123,9 @@ const useApprovalController = (props: IApproval) => {
         }
 
         if (status === Status.STATUS_08_DEPLOYED) {
+
             const deployBody = {
-                ruleId: id,
+                ruleId: rule_config_id,
                 branchName: "prod"
             }
             deploy(deployBody).unwrap()
