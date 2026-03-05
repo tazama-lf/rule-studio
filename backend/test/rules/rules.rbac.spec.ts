@@ -267,7 +267,7 @@ describe('RulesService RBAC', () => {
     await service.cloneRule('1', user, { txtp: 'pain.001.001.11' } as any);
 
     expect(checkTier2Spy).toHaveBeenCalledWith(
-      expect.objectContaining({ endpointKey: 'POST /rules/api/:ruleId/clone' }),
+      expect.objectContaining({ endpointKey: 'POST /rules/api/clone/:ruleId' }),
     );
   });
 

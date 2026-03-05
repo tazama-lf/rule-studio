@@ -71,6 +71,9 @@ export class RulesService {
     const updatedFilters = filters;
     const normalizedRole = this.rbacService.getNormalizedRole(user);
     const tier2 = this.rbacService.getTier2({ role: normalizedRole, endpointKey: 'POST /rules/api/all' as EndpointKey });
+    if (!tier2.allowed) {
+      throw new ForbiddenException(tier2.reason ?? 'Not authorized to access rules');
+    }
     if (tier2.allowedStatuses && tier2.allowedStatuses.length > 0) {
       updatedFilters.status = tier2.allowedStatuses.join(',');
     } else {
@@ -136,7 +139,7 @@ export class RulesService {
 
   async cloneRule(ruleId: string, user: AuthenticatedUser, payload: CloneRulePayload): Promise<Rules> {
     try {
-      const endpointKey = 'POST /rules/api/:ruleId/clone' as EndpointKey;
+      const endpointKey = 'POST /rules/api/clone/:ruleId' as EndpointKey;
       const normalizedRole = this.rbacService.getNormalizedRole(user);
       if (!this.rbacService.isRole(normalizedRole)) throw new ForbiddenException(`Role is not authorized to clone rule with ID ${ruleId}`);
       const numericId = Number(ruleId);

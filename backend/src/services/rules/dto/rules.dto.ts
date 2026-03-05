@@ -43,7 +43,6 @@ export class RuleBaseDto {
 
   @ApiProperty({ description: 'Rule name', example: 'cbe-rule-061' })
   @IsString()
-  @IsNotEmpty()
   rule_name?: string | undefined;
 
   @ApiProperty({ description: 'Rule description', example: 'Detects transactions above threshold' })

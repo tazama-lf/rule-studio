@@ -39,12 +39,19 @@ export class AuditInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       tap((responseData) => {
+        let responseSize = -1;
+        try {
+          responseSize = JSON.stringify(responseData ?? {}).length;
+        } catch {
+          // keep responseSize as -1 if serialization fails
+        }
+
         const auditData = {
           ...baseAuditData,
           outcome: {
             statusCode: response.statusCode,
             executionTimeMs: Date.now() - startTime,
-            responseSize: JSON.stringify(responseData ?? {}).length,
+            responseSize,
           },
         };
 
@@ -84,8 +91,8 @@ export class AuditInterceptor implements NestInterceptor {
     return {
       // User identification
       actorId: user?.userId ?? 'anonymous',
-      actorName: this.extractUserName(user),
-      actorRole: this.extractUserRole(user),
+      actorName: user?.actorName ?? user?.actorEmail ?? 'anonymous',
+      actorRole: user?.actorRole ?? 'anonymous',
 
       // Resource information
       resourceId: this.extractResourceId(request),
@@ -110,34 +117,6 @@ export class AuditInterceptor implements NestInterceptor {
         timestamp: new Date().toISOString(),
       },
     };
-  }
-
-  /**
-   * Extracts user role from authentication token
-   * @private
-   */
-  private extractUserRole(user?: AuthenticatedUser): string {
-    if (!user) return 'anonymous';
-
-    if (user.validClaims.length > 0) {
-      return user.validClaims[0];
-    }
-
-    if (user.token.claims.length > 0) {
-      return user.token.claims[0];
-    }
-
-    return 'user';
-  }
-
-  /**
-   * Extracts user display name from authentication token
-   * @private
-   */
-  private extractUserName(user?: AuthenticatedUser): string {
-    if (!user) return 'Anonymous User';
-
-    return user.userId;
   }
 
   /**
@@ -351,14 +330,17 @@ export class AuditInterceptor implements NestInterceptor {
       return body;
     }
 
-    // Remove sensitive fields that should never be logged
-    const { password, token, secret, key, auth, credential, ...cleanBody } = body as Record<string, unknown>;
-
-    // Truncate large payloads to prevent storage bloat
-    const serialized = JSON.stringify(cleanBody);
-    if (serialized.length > 10000) {
-      return { _truncated: true, _originalSize: serialized.length };
-    }
+    const sensitive = new Set(['password', 'token', 'secret', 'key', 'auth', 'credential']);
+    const redact = (value: unknown): unknown => {
+      if (Array.isArray(value)) return value.map(redact);
+      if (!value || typeof value !== 'object') return value;
+      const out: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+        out[k] = sensitive.has(k.toLowerCase()) ? '[REDACTED]' : redact(v);
+      }
+      return out;
+    };
+    const cleanBody = redact(body);
     return cleanBody;
   }
   /**

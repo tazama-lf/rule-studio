@@ -23,13 +23,14 @@ if (key.length !== 32) {
 
 export function encrypt(text: string): string {
   try {
-    const iv = crypto.randomBytes(parseInt(IV_LENGTH ?? '16', 10));
-    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+    const iv = crypto.randomBytes(parseInt(IV_LENGTH ?? '12', 10));
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
 
     let encrypted = cipher.update(text, 'utf8', 'hex');
     encrypted += cipher.final('hex');
 
-    return iv.toString('hex') + ':' + encrypted;
+    const authTag = cipher.getAuthTag();
+    return iv.toString('hex') + ':' + encrypted + ':' + authTag.toString('hex');
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(message, { cause: error });
@@ -38,15 +39,17 @@ export function encrypt(text: string): string {
 
 export function decrypt(text: string): string {
   const parts = text.split(':');
-  if (parts.length !== 2) {
+  if (parts.length !== 3) {
     throw new Error('Invalid encrypted payload format');
   }
 
-  const [ivHex, encrypted] = parts;
+  const [ivHex, encrypted, authTagHex] = parts;
 
   try {
     const iv = Buffer.from(ivHex, 'hex');
-    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+    const authTag = Buffer.from(authTagHex, 'hex');
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(authTag);
 
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');
     decrypted = decipher.final('utf8');
@@ -127,7 +130,7 @@ export function decodeValidatedToken(user: AuthenticatedUser): DecodedUserInfo {
     throw new Error('Invalid token: realm_access.roles missing or invalid');
   }
 
-  if (!Array.isArray(decoded.tenant_details)) {
+  if (!Array.isArray(decoded.tenant_details) || !decoded.tenant_details.every((v) => typeof v === 'string')) {
     throw new Error('Invalid token: tenant_details missing or invalid');
   }
 
@@ -139,7 +142,10 @@ export function decodeValidatedToken(user: AuthenticatedUser): DecodedUserInfo {
 }
 
 export const getGroupNameFromToken = (decodedToken: DecodedUserInfo): string | null => {
-  const groupName = decodedToken.tenantDetails.length > 0 ? decodedToken.tenantDetails[0].replace(/\//g, '') : null;
+  const groupName =
+    decodedToken.tenantDetails.length > 0 && typeof decodedToken.tenantDetails[0] === 'string'
+      ? decodedToken.tenantDetails[0].replace(/\//g, '')
+      : null;
   return groupName;
 };
 
