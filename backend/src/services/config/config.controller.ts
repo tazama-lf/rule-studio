@@ -116,7 +116,11 @@ export class ConfigController {
     status: 403,
     description: 'Forbidden - Insufficient permissions',
   })
-  async getPayloadByTransactionType(@Param('transactionType') transactionType: string, @Param('transactionVersion') transactionVersion: string, @User() user: AuthenticatedUser): Promise<any> {
+  async getPayloadByTransactionType(
+    @Param('transactionType') transactionType: string,
+    @Param('transactionVersion') transactionVersion: string,
+    @User() user: AuthenticatedUser,
+  ): Promise<any> {
     const endpointKey = 'GET /config/api/payload/:transactionType/:transactionVersion' as EndpointKey;
 
     const response = await this.configService.getPayloadByTransactionType(transactionType, transactionVersion, user, endpointKey);

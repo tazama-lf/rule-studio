@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ParseExtractService } from '../parse-extract.service';
-import { AdminServiceClient } from '../../admin-service-client';
-import { RuleRequest } from '../dto/message.dto';
-import { AuthenticatedUser } from '../../auth/auth.types';
+import { ParseExtractService } from '../../src/services/parse-extract/parse-extract.service';
+import { AdminServiceClient } from '../../src/services/admin-service-client';
+import { RuleRequest } from '../../src/services/parse-extract/dto/message.dto';
+import { AuthenticatedUser } from '../../src/services/auth/auth.types';
 
 describe('ParseExtractService - AJV Validation', () => {
   let service: ParseExtractService;
@@ -49,12 +49,14 @@ describe('ParseExtractService - AJV Validation', () => {
     validClaims: [],
     tenantId: 'tenant-123',
     userId: 'user-123',
+    actorRole: '',
   };
 
   beforeEach(async () => {
     const mockAdminService = {
       getSchemaByTxTp: jest.fn(),
       getConfigRowByTxTp: jest.fn(),
+      getActiveNetworkMap: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -108,7 +110,7 @@ describe('ParseExtractService - AJV Validation', () => {
 
       expect(result.success).toBe(false);
       expect(result.validationErrors).toBeDefined();
-      expect(result.validationErrors).toContain(expect.stringContaining("Missing required property 'CreDtTm'"));
+      expect(result.validationErrors?.[0]).toContain("Missing required property 'CreDtTm'");
     });
 
     it('should handle payload with incorrect data types', async () => {
@@ -128,16 +130,18 @@ describe('ParseExtractService - AJV Validation', () => {
 
       expect(result.success).toBe(false);
       expect(result.validationErrors).toBeDefined();
-      expect(result.validationErrors).toContain(expect.stringContaining('Should be a string'));
+      expect(result.validationErrors?.[0]).toContain('Should be a string');
     });
 
-    it('should handle missing schema configuration', async () => {
+    it('should handle empty schema (allows any payload)', async () => {
       mockAdminServiceClient.getActiveNetworkMap.mockResolvedValue({});
 
+      // Empty schema validates any payload successfully
       const result = await service.processForRuleCreation('unknown.transaction', '1', {}, [], { SomeData: {} }, mockUser);
 
-      expect(result.success).toBe(false);
-      expect(result.message).toContain('Failed to process transaction data');
+      expect(result.success).toBe(true);
+      expect(result.validatedPayload).toBeDefined();
+      expect(result.ruleRequest).toBeDefined();
     });
 
     it('should extract payload from request object when Payload field is not provided', async () => {

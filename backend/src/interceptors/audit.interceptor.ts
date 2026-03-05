@@ -55,7 +55,7 @@ export class AuditInterceptor implements NestInterceptor {
           ...baseAuditData,
           outcome: {
             error: error instanceof Error ? error.message : String(error),
-            statusCode: (error instanceof Object && 'status' in error) ? (error as any).status : 500,
+            statusCode: error instanceof Object && 'status' in error ? (error as any).status : 500,
             executionTimeMs: Date.now() - startTime,
           },
         };

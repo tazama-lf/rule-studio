@@ -119,7 +119,11 @@ export function decodeValidatedToken(user: AuthenticatedUser): DecodedUserInfo {
     throw new Error(`Invalid token: preferred_username missing. Available keys: ${Object.keys(decoded).join(', ')}`);
   }
 
-  if (!decoded.realm_access || typeof decoded.realm_access !== 'object' || !Array.isArray((decoded.realm_access as Record<string, unknown>).roles)) {
+  if (
+    !decoded.realm_access ||
+    typeof decoded.realm_access !== 'object' ||
+    !Array.isArray((decoded.realm_access as Record<string, unknown>).roles)
+  ) {
     throw new Error('Invalid token: realm_access.roles missing or invalid');
   }
 

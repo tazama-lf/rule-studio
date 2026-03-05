@@ -35,7 +35,12 @@ export class ConfigService {
     }
   }
 
-  async getPayloadByTransactionType(transactionType: string, transactionVersion: string, user: AuthenticatedUser, endpointKey: EndpointKey): Promise<any> {
+  async getPayloadByTransactionType(
+    transactionType: string,
+    transactionVersion: string,
+    user: AuthenticatedUser,
+    endpointKey: EndpointKey,
+  ): Promise<any> {
     try {
       const normalizedRole = this.rbacService.getNormalizedRole(user);
 

@@ -10,7 +10,7 @@ import { CLAIMS_KEY, IS_PUBLIC_KEY, ANY_CLAIMS_KEY } from '../decorators/auth.de
 export class TazamaAuthGuard implements CanActivate {
   private readonly logger = new Logger(TazamaAuthGuard.name);
 
-  constructor(private readonly reflector: Reflector) { }
+  constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
     const logContext = 'TazamaAuthGuard.canActivate()';
@@ -54,30 +54,20 @@ export class TazamaAuthGuard implements CanActivate {
 
     const actorName = innerDecoded.name as string | undefined;
 
-    const realmAccess = innerDecoded.realm_access as
-      | { roles?: string[] }
-      | undefined;
+    const realmAccess = innerDecoded.realm_access as { roles?: string[] } | undefined;
     const realmRoles = realmAccess?.roles;
 
     const actorRole =
-      realmRoles?.find((role: string) =>
-        ['editor', 'approver', 'publisher', 'exporter'].includes(
-          role.toLowerCase(),
-        ),
-      ) ?? valid[0];
+      realmRoles?.find((role: string) => ['editor', 'approver', 'publisher', 'exporter'].includes(role.toLowerCase())) ?? valid[0];
 
     const sourceIP =
-      request.ip ??
-      (request.headers['x-forwarded-for'] as string | undefined)
-        ?.split(',')[0]
-        .trim() ??
-      request.socket.remoteAddress;
+      request.ip ?? (request.headers['x-forwarded-for'] as string | undefined)?.split(',')[0].trim() ?? request.socket.remoteAddress;
 
     const allowedStatuses = innerDecoded.status
       ? (innerDecoded.status as string)
-        .split(',')
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0)
+          .split(',')
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0)
       : undefined;
 
     if (allowedStatuses) {
@@ -96,7 +86,7 @@ export class TazamaAuthGuard implements CanActivate {
       actorRole,
       actorEmail,
       sourceIP,
-      allowedStatuses
+      allowedStatuses,
     };
 
     request.user = authenticatedUser;
