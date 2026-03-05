@@ -40,6 +40,12 @@ export class RuleBaseDto {
   @IsString()
   @IsNotEmpty()
   ruleName: string;
+
+  @ApiProperty({ description: 'Rule name', example: 'cbe-rule-061' })
+  @IsString()
+  @IsNotEmpty()
+  rule_name?: string | undefined;
+
   @ApiProperty({ description: 'Rule description', example: 'Detects transactions above threshold' })
   @IsString()
   @IsNotEmpty()
@@ -57,6 +63,12 @@ export class RuleBaseDto {
   @IsOptional()
   @IsString()
   txtpVersion?: string;
+
+  @ApiPropertyOptional({ description: 'Transaction type version', example: '11' })
+  @IsOptional()
+  @IsString()
+  txtp_version?: string;
+
   @ApiPropertyOptional({ description: 'Rule status', example: 'ACTIVE', enum: ['ACTIVE', 'INACTIVE', 'TESTING'] })
   @IsOptional()
   @IsString()

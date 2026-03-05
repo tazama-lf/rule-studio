@@ -193,7 +193,7 @@ export class NotificationService implements OnModuleInit {
       const tenantId = getTenantId(user);
       const groupName = getGroupNameFromToken(decodedToken);
       this.logger.log(
-        `Rule Information: ${JSON.stringify(ruleData.ruleName)}, Transaction Type Version: ${JSON.stringify(ruleData.txtpVersion)}`,
+        `Rule Information: ${JSON.stringify(ruleData.rule_name)}, Transaction Type Version: ${JSON.stringify(ruleData.txtp_version)}`,
       );
 
       if (!groupName) {
@@ -208,8 +208,8 @@ export class NotificationService implements OnModuleInit {
         return;
       }
 
-      const { ruleName, version } = ruleData;
-      const theme = getEmailTheme(event, ruleName, version);
+      const { rule_name: ruleName, version } = ruleData;
+      const theme = getEmailTheme(event, ruleName ?? '', version);
 
       const htmlContent = `<div style="font-family: Arial, sans-serif; max-width: 750px; padding: 24px; background-color: #f4f6f8;">
         <h2 style="color: ${theme.themeColor}; margin-top: 0;">${theme.emailTitle}</h2>
@@ -224,10 +224,10 @@ export class NotificationService implements OnModuleInit {
           <h3 style="margin-top: 0; color: ${theme.themeColor};">Rule Information</h3>
           <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
             ${this.emailRow('Rule ID', ruleData.id)}
-            ${this.emailRow('Rule Name', ruleData.ruleName)}
+            ${this.emailRow('Rule Name', ruleName)}
             ${this.emailRow('Description', ruleData.description)}
             ${this.emailRow('Transaction Type', ruleData.txtp)}
-            ${this.emailRow('Transaction Type Version', ruleData.txtpVersion)}
+            ${this.emailRow('Transaction Type Version', ruleData.txtp_version)}
             ${this.emailRow('Rule Version', ruleData.version)}
             ${this.emailRow('Rule Type', ruleData.rule_type)}
             ${this.emailRow('Rule Config ID', ruleData.rule_config_id)}
@@ -243,7 +243,7 @@ export class NotificationService implements OnModuleInit {
         </p>
       </div>`;
 
-      const textContent = `${theme.emailTitle}\n\nFrom: ${actorName}\nEmail: ${actorEmail}\n\nRule ID: ${ruleData.id}\nRule Name: ${ruleData.ruleName}\nDescription: ${ruleData.description}\nTransaction Type: ${ruleData.txtp}\nTransaction Type Version: ${ruleData.txtpVersion}\nVersion: ${ruleData.version}\nRule Type: ${ruleData.rule_type}\nRule Config ID: ${ruleData.rule_config_id}\nStatus: ${ruleData.status}\n\nCreated At: ${ruleData.created_at}\nUpdated At: ${ruleData.updated_at}\n${comment ? `Comment:\n${comment}\n` : ''}\nTenant: ${tenantId}`;
+      const textContent = `${theme.emailTitle}\n\nFrom: ${actorName}\nEmail: ${actorEmail}\n\nRule ID: ${ruleData.id}\nRule Name: ${ruleData.rule_name}\nDescription: ${ruleData.description}\nTransaction Type: ${ruleData.txtp}\nTransaction Type Version: ${ruleData.txtp_version}\nVersion: ${ruleData.version}\nRule Type: ${ruleData.rule_type}\nRule Config ID: ${ruleData.rule_config_id}\nStatus: ${ruleData.status}\n\nCreated At: ${ruleData.created_at}\nUpdated At: ${ruleData.updated_at}\n${comment ? `Comment:\n${comment}\n` : ''}\nTenant: ${tenantId}`;
 
       this.logger.log(`Sending rule notification email to ${recipientEmails.length} recipient(s)`);
 
