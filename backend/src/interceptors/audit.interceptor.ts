@@ -78,10 +78,11 @@ export class AuditInterceptor implements NestInterceptor {
     request: Request,
     user?: AuthenticatedUser,
   ): Omit<IAuditLogInput, 'correlationId' | 'eventPhase' | 'outcome'> {
-    const { method, url, params, query, headers } = request;
+    const { method, url, body, params, query, headers } = request;
     const handler = context.getHandler().name;
     const controller = context.getClass().name;
     const eventMeta = this.buildEventMetadata(method, url, handler);
+    const metaData = this.extractUpdateChanges(handler, body);
 
     return {
       actorId: user?.userId ?? 'anonymous',
@@ -102,8 +103,47 @@ export class AuditInterceptor implements NestInterceptor {
         pathParameters: params,
         queryParameters: query,
         timestamp: new Date().toISOString(),
+        ...(metaData && { metaData }),
       },
     };
+  }
+
+  /**
+   * Extracts only safe, non-sensitive changed fields for update operations
+   * @private
+   */
+  private extractUpdateChanges(handler: string, body: unknown): Record<string, unknown> | null {
+    if (!body || typeof body !== 'object') return null;
+    const b = body as Record<string, unknown>;
+
+    switch (handler) {
+      case 'updateRule':
+      case 'updateRuleMetadata':
+        return {
+          ...(b.description !== undefined && { description: b.description }),
+          ...(b.version !== undefined && { version: b.version }),
+          ...(b.status !== undefined && { status: b.status }),
+          ...(b.publishing_status !== undefined && { publishing_status: b.publishing_status }),
+          ...(b.rule_type !== undefined && { rule_type: b.rule_type }),
+          ...(b.txtp !== undefined && { txtp: b.txtp }),
+          ...(b.metadata !== undefined && { metadata: b.metadata }),
+        };
+
+      case 'updateRuleStatus':
+        return {
+          status: b.status,
+          ...(b.comment !== undefined && { comment: b.comment }),
+        };
+
+      case 'updateRuleFlow':
+        return {
+          ...(b.category !== undefined && { category: b.category }),
+          ...(b.status !== undefined && { status: b.status }),
+        };
+
+      default:
+        return null;
+    }
   }
 
   /**

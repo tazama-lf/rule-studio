@@ -262,18 +262,13 @@ describe('AuditInterceptor', () => {
     });
   });
 
-  describe('Request Sanitization', () => {
-    it('should remove sensitive fields from request body', (done) => {
+  describe('Update Changes Extraction', () => {
+    it('should store safe fields for updateRule handler', (done) => {
       const mockRequest = {
-        method: 'POST',
-        url: '/auth/login',
-        body: {
-          username: 'test',
-          password: 'secret123',
-          token: 'abc',
-          secret: 'xyz',
-        },
-        params: {},
+        method: 'PUT',
+        url: '/rules/api/123',
+        body: { description: 'New desc', version: '2.0.0', status: 'ACTIVE', rule_type: 'aml' },
+        params: { ruleId: '123' },
         query: {},
         headers: { 'user-agent': 'test' },
         ip: '127.0.0.1',
@@ -285,31 +280,97 @@ describe('AuditInterceptor', () => {
           getRequest: () => mockRequest,
           getResponse: () => ({ statusCode: 200 }),
         }),
-        getHandler: () => ({ name: 'login' }),
-        getClass: () => ({ name: 'AuthController' }),
+        getHandler: () => ({ name: 'updateRule' }),
+        getClass: () => ({ name: 'RulesController' }),
       } as ExecutionContext;
 
-      const callHandler = createMockCallHandler({});
-      const result$ = interceptor.intercept(context, callHandler);
-
+      const result$ = interceptor.intercept(context, createMockCallHandler({}));
       result$.subscribe({
         next: () => {
           const intentCall = mockAuditService.log.mock.calls[0][0];
-          expect(intentCall.actionPerformed.requestBody.username).toBe('test');
-          expect(intentCall.actionPerformed.requestBody.password).toBe('[REDACTED]');
-          expect(intentCall.actionPerformed.requestBody.token).toBe('[REDACTED]');
-          expect(intentCall.actionPerformed.requestBody.secret).toBe('[REDACTED]');
+          expect(intentCall.actionPerformed.metaData).toEqual({
+            description: 'New desc',
+            version: '2.0.0',
+            status: 'ACTIVE',
+            rule_type: 'aml',
+          });
           done();
         },
       });
     });
 
-    it('should truncate large request bodies', (done) => {
-      const largeBody = { data: 'x'.repeat(15000) };
+    it('should store status and comment for updateRuleStatus handler', (done) => {
       const mockRequest = {
-        method: 'POST',
-        url: '/test',
-        body: largeBody,
+        method: 'PUT',
+        url: '/rules/api/123/status',
+        body: { status: 'INACTIVE', comment: 'Disabling for review' },
+        params: { ruleId: '123' },
+        query: {},
+        headers: { 'user-agent': 'test' },
+        ip: '127.0.0.1',
+        socket: { remoteAddress: '127.0.0.1' },
+      };
+
+      const context = {
+        switchToHttp: () => ({
+          getRequest: () => mockRequest,
+          getResponse: () => ({ statusCode: 200 }),
+        }),
+        getHandler: () => ({ name: 'updateRuleStatus' }),
+        getClass: () => ({ name: 'RulesController' }),
+      } as ExecutionContext;
+
+      const result$ = interceptor.intercept(context, createMockCallHandler({}));
+      result$.subscribe({
+        next: () => {
+          const intentCall = mockAuditService.log.mock.calls[0][0];
+          expect(intentCall.actionPerformed.metaData).toEqual({
+            status: 'INACTIVE',
+            comment: 'Disabling for review',
+          });
+          done();
+        },
+      });
+    });
+
+    it('should store category and status for updateRuleFlow handler', (done) => {
+      const mockRequest = {
+        method: 'PUT',
+        url: '/rules/api/123/flow',
+        body: { category: 'RULE_BUILDER', status: 'COMPLETE', flow_json: { nodes: [] }, ts_file_base64: 'abc123==' },
+        params: { ruleId: '123' },
+        query: {},
+        headers: { 'user-agent': 'test' },
+        ip: '127.0.0.1',
+        socket: { remoteAddress: '127.0.0.1' },
+      };
+
+      const context = {
+        switchToHttp: () => ({
+          getRequest: () => mockRequest,
+          getResponse: () => ({ statusCode: 200 }),
+        }),
+        getHandler: () => ({ name: 'updateRuleFlow' }),
+        getClass: () => ({ name: 'RulesController' }),
+      } as ExecutionContext;
+
+      const result$ = interceptor.intercept(context, createMockCallHandler({}));
+      result$.subscribe({
+        next: () => {
+          const intentCall = mockAuditService.log.mock.calls[0][0];
+          expect(intentCall.actionPerformed.metaData).toEqual({ category: 'RULE_BUILDER', status: 'COMPLETE' });
+          expect(intentCall.actionPerformed.metaData.flow_json).toBeUndefined();
+          expect(intentCall.actionPerformed.metaData.ts_file_base64).toBeUndefined();
+          done();
+        },
+      });
+    });
+
+    it('should not store metaData for non-update handlers', (done) => {
+      const mockRequest = {
+        method: 'GET',
+        url: '/rules/api',
+        body: {},
         params: {},
         query: {},
         headers: { 'user-agent': 'test' },
@@ -322,18 +383,15 @@ describe('AuditInterceptor', () => {
           getRequest: () => mockRequest,
           getResponse: () => ({ statusCode: 200 }),
         }),
-        getHandler: () => ({ name: 'test' }),
-        getClass: () => ({ name: 'TestController' }),
+        getHandler: () => ({ name: 'getAllRules' }),
+        getClass: () => ({ name: 'RulesController' }),
       } as ExecutionContext;
 
-      const callHandler = createMockCallHandler({});
-      const result$ = interceptor.intercept(context, callHandler);
-
+      const result$ = interceptor.intercept(context, createMockCallHandler({}));
       result$.subscribe({
         next: () => {
           const intentCall = mockAuditService.log.mock.calls[0][0];
-          expect(intentCall.actionPerformed.requestBody._truncated).toBe(true);
-          expect(intentCall.actionPerformed.requestBody._originalSize).toBeGreaterThan(10000);
+          expect(intentCall.actionPerformed.metaData).toBeUndefined();
           done();
         },
       });
