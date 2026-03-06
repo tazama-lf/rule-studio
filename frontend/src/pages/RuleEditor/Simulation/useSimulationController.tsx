@@ -209,13 +209,23 @@ const useSimulationController = (props: ISimulation) => {
                         deploy: true,
                         simulation: false
                     })
+                    open(
+                        'Deployment Successful',
+                        <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                            <p style={{ fontSize: '15px', color: '#333', lineHeight: 1.6 }}>
+                                The rule has been deployed successfully. A workflow is currently in progress — please allow up to 30 minutes for both simulations to complete and verify that the rule is functioning as expected.
+                            </p>
+                        </div>,
+                        null,
+                        { maxWidth: 'sm' }
+                    )
                 }
             })
             .catch(() => {
                 toast.error('Failed to deploy code')
             })
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [codeSynced, data?.id, deploy, toggleCodeDeployed, updateMetadata])
+    }, [codeSynced, data?.id, deploy, toggleCodeDeployed, updateMetadata, open])
 
     const handleSelect = (id: number) => {
         if (!codeDeployed && claims.editor === user?.claims && mode != 'view') {
