@@ -58,7 +58,6 @@ const useSimulationController = (props: ISimulation) => {
     // Initialize metadata state
     useEffect(() => {
         if (data?.metadata) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             setViewReport(data.metadata.test ?? false)
             setCodeSynced(data.metadata.sync ?? true)
             setCodeDeployed(data.metadata.deploy ?? false)
@@ -149,6 +148,7 @@ const useSimulationController = (props: ISimulation) => {
             .catch(() => {
                 toast.error('Failed to fetch report')
             })
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [getReportStatus, data?.id, toggleViewReport, updateMetadata])
 
     const handleLoader = useCallback(() => {
@@ -185,6 +185,7 @@ const useSimulationController = (props: ISimulation) => {
             .catch(() => {
                 toast.error('Failed to upload code')
             })
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [data?.id, upload, toggleCodeSynced, updateMetadata, flowData, handleLoader])
 
     const handleDeploy = useCallback(() => {
@@ -213,6 +214,7 @@ const useSimulationController = (props: ISimulation) => {
             .catch(() => {
                 toast.error('Failed to deploy code')
             })
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [codeSynced, data?.id, deploy, toggleCodeDeployed, updateMetadata])
 
     const handleSelect = (id: number) => {
@@ -331,6 +333,7 @@ const useSimulationController = (props: ISimulation) => {
                 toast.error('Failed to run simulation. Please try again.');
                 setResult(null);
             });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selected, user?.claims, ruleOnly, endToEnd, toggleSimulationExecuted, updateMetadata, addSimulationLog])
 
     const handleReport = () => {
