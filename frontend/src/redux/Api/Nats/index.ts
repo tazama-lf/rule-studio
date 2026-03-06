@@ -3,6 +3,7 @@ import { getAuthToken } from "../../../utils/Common/storage";
 
 const BASE_URL = import.meta.env.VITE_NATS_API_URL
 const DEMS_URL = import.meta.env.VITE_DEMS_ENDPOINT
+const ADMIN_URL = import.meta.env.VITE_ADMIN_ENDPOINT
 
 export const natsApi = createApi({
     reducerPath: 'natsApi',
@@ -33,7 +34,7 @@ export const natsApi = createApi({
         }),
         getEndReport: builder.query({
             query: ({ msgId }) => ({
-                url: `http://10.10.80.37:5100/v1/admin/reports/getreportbymsgid?msgid=${msgId}`,
+                url: `${ADMIN_URL}/v1/admin/reports/getreportbymsgid?msgid=${msgId}`,
                 method: "GET",
             }),
         }),

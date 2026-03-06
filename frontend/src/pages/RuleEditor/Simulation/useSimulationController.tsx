@@ -325,21 +325,21 @@ const useSimulationController = (props: ISimulation) => {
             mutation = endToEnd;
             logCategory = 'end_to_end';
             onSuccess = (res: unknown) => {
-                toggleSimulationExecuted();
-                if (claims.editor === user?.claims) {
-                    updateMetadata({
-                        sync: false,
-                        test: true,
-                        deploy: true,
-                        simulation: true
-                    });
-                }
                 const msgId = (res as Record<string, unknown>)?.transactionRelationship as Record<string, unknown> | undefined;
                 getEndReport({ msgId: msgId?.MsgId as string })
                     .then((response) => {
                         const responseData = response as Record<string, unknown>;
                         if (responseData?.data) {
                             setResult(responseData.data);
+                            toggleSimulationExecuted();
+                            if (claims.editor === user?.claims) {
+                                updateMetadata({
+                                    sync: false,
+                                    test: true,
+                                    deploy: true,
+                                    simulation: true
+                                });
+                            }
                             addSimulationLog(body, responseData.data, logCategory);
                         }
                     })
