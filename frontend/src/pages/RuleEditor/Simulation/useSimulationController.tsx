@@ -14,7 +14,7 @@ import { useLazyGetReportStatusQuery, useMergeBranchMutation, useUploadCodeMutat
 import { useAddSimulationlogsMutation } from "../../../redux/Api/SimulationLogs";
 import { LocalStorage } from "../../../utils/Common/enums";
 import { extractData } from "../../../utils/Common/storage";
-import { claims, samplePayload } from "../../../utils/Constants/data";
+import { claims } from "../../../utils/Constants/data";
 import ViewNetworkMap from "../Modals/ViewNetworkMap";
 import ViewReport from "../Modals/ViewReport";
 
@@ -47,7 +47,7 @@ const useSimulationController = (props: ISimulation) => {
     const [viewReport, setViewReport] = useState(data?.metadata?.test ?? false)
     const [codeSynced, setCodeSynced] = useState(data?.metadata?.sync ?? true)
     const [codeDeployed, setCodeDeployed] = useState(data?.metadata?.deploy ?? false)
-    const [simulationExecuted, setSimulationExecuted] = useState(data?.metadata?.test ?? false)
+    const [simulationExecuted, setSimulationExecuted] = useState(data?.metadata?.simulation ?? false)
     const [isReportFailed, setIsReportFailed] = useState(false);
 
     const toggleViewReport = useCallback(() => setViewReport((prev: boolean) => !prev), [])
@@ -62,7 +62,7 @@ const useSimulationController = (props: ISimulation) => {
             setViewReport(data.metadata.test ?? false)
             setCodeSynced(data.metadata.sync ?? true)
             setCodeDeployed(data.metadata.deploy ?? false)
-            setSimulationExecuted(data.metadata.test ?? false)
+            setSimulationExecuted(data.metadata.simulation ?? false)
         }
     }, [data?.metadata])
 
@@ -206,7 +206,7 @@ const useSimulationController = (props: ISimulation) => {
                         sync: false,
                         test: true,
                         deploy: true,
-                        simulation: true
+                        simulation: false
                     })
                 }
             })
@@ -279,7 +279,7 @@ const useSimulationController = (props: ISimulation) => {
 
             const rule_config_id = data?.rule_config_id
             const id = rule_config_id?.toString().split('@')[0]
-            const version = rule_config_id?.toString().split('@')[1]
+            const version = data?.version
             body = {
                 functionName: '',
                 awaitReply: true,
@@ -296,20 +296,14 @@ const useSimulationController = (props: ISimulation) => {
                     updateMetadata({
                         sync: false,
                         test: true,
-                        deploy: false,
+                        deploy: true,
                         simulation: true
                     });
                 }
                 addSimulationLog(body, res, logCategory);
             };
         } else {
-            body = {
-                endpoint: import.meta.env.VITE_SIMULATION_ENDPOINT,
-                natsConsumer: "investigation-service",
-                functionName: "TMS",
-                awaitReply: true,
-                transaction: parsedPayload
-            };
+            body = parsedPayload;
             mutation = endToEnd;
             logCategory = 'end_to_end';
             onSuccess = (res: unknown) => {
@@ -319,7 +313,7 @@ const useSimulationController = (props: ISimulation) => {
                     updateMetadata({
                         sync: false,
                         test: true,
-                        deploy: false,
+                        deploy: true,
                         simulation: true
                     });
                 }
@@ -347,6 +341,9 @@ const useSimulationController = (props: ISimulation) => {
         open('View Network Map', <ViewNetworkMap />, null, { maxWidth: 'md' })
     }
 
+
+    console.log('simulationExecuted', simulationExecuted)
+
     return {
         values: {
             claim: user?.claims,
@@ -356,7 +353,7 @@ const useSimulationController = (props: ISimulation) => {
             viewReport,
             loader: loader || statusLoading,
             selected,
-            sentForApproval: !codeSynced && codeDeployed && simulationExecuted,
+            sentForApproval: simulationExecuted,
             codeSynced,
             codeDeployed,
             result,
