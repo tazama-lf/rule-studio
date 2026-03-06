@@ -60,9 +60,7 @@ export class ParseExtractService {
         };
       }
       const mappingOutcome = processMappings(payloadToValidate, mappingResult, transactionType);
-      const activeNetworkMap = await this.adminServiceClient.getActiveNetworkMap(user.token.tokenString);
-
-      const networkMap: NetworkMap = activeNetworkMap ?? {};
+      const networkMap = await this.adminServiceClient.getActiveNetworkMap(user.token.tokenString);
 
       this.logger.log(
         `Processed mappings for ${transactionType}: extracted ${Object.keys(mappingOutcome.dataCache).length} data cache entries`,

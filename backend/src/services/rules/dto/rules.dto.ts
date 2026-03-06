@@ -176,7 +176,7 @@ export class RuleConfigurationDto {
   @IsNotEmpty()
   ruleId: string;
   @IsNotEmpty()
-  configuration: any;
+  configuration: Record<string, unknown>;
 }
 
 export class PositionDto {

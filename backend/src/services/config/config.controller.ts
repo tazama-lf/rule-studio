@@ -120,7 +120,7 @@ export class ConfigController {
     @Param('transactionType') transactionType: string,
     @Param('transactionVersion') transactionVersion: string,
     @User() user: AuthenticatedUser,
-  ): Promise<any> {
+  ): Promise<Record<string, unknown>> {
     const endpointKey = 'GET /config/api/payload/:transactionType/:transactionVersion' as EndpointKey;
 
     const response = await this.configService.getPayloadByTransactionType(transactionType, transactionVersion, user, endpointKey);

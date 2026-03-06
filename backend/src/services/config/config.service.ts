@@ -40,7 +40,7 @@ export class ConfigService {
     transactionVersion: string,
     user: AuthenticatedUser,
     endpointKey: EndpointKey,
-  ): Promise<any> {
+  ): Promise<Record<string, unknown>> {
     try {
       const normalizedRole = this.rbacService.getNormalizedRole(user);
 

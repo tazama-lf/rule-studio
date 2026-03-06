@@ -36,7 +36,7 @@ export default defineConfig([
       '@typescript-eslint/max-params': ['warn', { max: 7 }],
       '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/class-methods-use-this': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-floating-promises': 'off',
       '@typescript-eslint/no-magic-numbers': 'off',
       '@typescript-eslint/no-var-requires': 'off',

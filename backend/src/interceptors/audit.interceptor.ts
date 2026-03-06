@@ -1,6 +1,6 @@
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Inject, Logger } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { type IAuditService, IAuditLogInput, EventPhase } from '@tazama-lf/audit-lib';
 import type { AuthenticatedUser } from '../services/auth/auth.types';
@@ -24,7 +24,7 @@ export class AuditInterceptor implements NestInterceptor {
   /**
    * Intercepts HTTP requests to critical endpoints and logs audit information
    */
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     this.logger.log('AuditInterceptor triggered');
     const request = context.switchToHttp().getRequest<Request & { user?: AuthenticatedUser }>();
     const response = context.switchToHttp().getResponse<{ statusCode: number }>();
@@ -62,14 +62,16 @@ export class AuditInterceptor implements NestInterceptor {
           ...baseAuditData,
           outcome: {
             error: error instanceof Error ? error.message : String(error),
-            statusCode: error instanceof Object && 'status' in error ? (error as any).status : 500,
+            statusCode: error instanceof Object && 'status' in error ? ((error as Record<string, unknown>).status as number) : 500,
             executionTimeMs: Date.now() - startTime,
           },
         };
 
         this.logAuditAsync(auditData, EventPhase.FAILED, correlationId);
 
-        throw error instanceof Error ? error : new Error(String(error));
+        // Ensure error is always an Error instance for proper error handling
+        const errorToThrow = error instanceof Error ? error : new Error(String(error));
+        return throwError(() => errorToThrow);
       }),
     );
   }
@@ -325,7 +327,7 @@ export class AuditInterceptor implements NestInterceptor {
    * Removes sensitive information from request body
    * @private
    */
-  private sanitizeRequestBody(body: any): any {
+  private sanitizeRequestBody(body: unknown): unknown {
     if (!body || typeof body !== 'object') {
       return body;
     }

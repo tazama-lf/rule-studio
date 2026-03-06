@@ -1,5 +1,8 @@
-import { applyDecorators } from '@nestjs/common';
+import { applyDecorators, type Type } from '@nestjs/common';
 import { ApiOperation, ApiResponse, type ApiResponseOptions, type ApiOperationOptions } from '@nestjs/swagger';
+
+// Type alias for Swagger-compatible response types
+type SwaggerType = string | Type<unknown> | [Type<unknown>] | (new (...args: unknown[]) => unknown);
 
 export interface SwaggerDecoratorOptions {
   summary: string;
@@ -8,7 +11,7 @@ export interface SwaggerDecoratorOptions {
     number,
     {
       description: string;
-      type?: any;
+      type?: SwaggerType;
     }
   >;
 }
@@ -67,10 +70,10 @@ export const ApiSwagger = (options: SwaggerDecoratorOptions): ReturnType<typeof 
  * Predefined common response configurations
  */
 export const CommonResponses = {
-  SUCCESS_200: (type?: any, description = 'Operation completed successfully') => ({
+  SUCCESS_200: (type?: SwaggerType, description = 'Operation completed successfully') => ({
     200: { description, type },
   }),
-  CREATED_201: (type?: any, description = 'Resource created successfully') => ({
+  CREATED_201: (type?: SwaggerType, description = 'Resource created successfully') => ({
     201: { description, type },
   }),
   BAD_REQUEST_400: (description = 'Invalid input data') => ({
@@ -85,5 +88,5 @@ export const CommonResponses = {
  * Helper function to merge multiple response configurations
  */
 export const mergeResponses = (
-  ...responses: Array<Record<number, { description: string; type?: any }>>
-): Record<number, { description: string; type?: any }> => responses.reduce((acc, curr) => ({ ...acc, ...curr }), {});
+  ...responses: Array<Record<number, { description: string; type?: SwaggerType }>>
+): Record<number, { description: string; type?: SwaggerType }> => responses.reduce((acc, curr) => ({ ...acc, ...curr }), {});

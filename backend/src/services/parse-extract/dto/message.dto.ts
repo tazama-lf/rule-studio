@@ -3,7 +3,7 @@ import { ApiProperty } from '@nestjs/swagger';
 export interface TransactionalMessage {
   TxTp: string;
   TenantId?: string;
-  [key: string]: any; // Allow for CstmrCdtTrfInitn, FIToFIPmtStsRpt, FIToFICstmrCdtTrf, etc.
+  [key: string]: unknown; // Allow for CstmrCdtTrfInitn, FIToFIPmtStsRpt, FIToFICstmrCdtTrf, etc.
 }
 
 export interface ConfigEntity {
@@ -13,33 +13,33 @@ export interface ConfigEntity {
   endpoint_path: string;
   version: string;
   content_type: string;
-  schema: any; // JSONB
-  mapping?: any; // JSONB
+  schema: Record<string, unknown>; // JSONB
+  mapping?: Record<string, unknown>; // JSONB
   tenant_id: string;
   created_by: string;
   created_at: Date;
   updated_at: Date;
   status: string;
-  functions?: any; // JSONB
+  functions?: Record<string, unknown>; // JSONB
   publishing_status?: string;
   comments?: string;
-  payload?: any; // JSONB - This is what we need
+  payload?: Record<string, unknown>; // JSONB - This is what we need
 }
 
-export type NetworkMap = Record<string, any>;
+export type NetworkMap = Record<string, unknown>;
 
-export type DataCache = Record<string, any>;
+export type DataCache = Record<string, unknown>;
 
 export interface MetaData {
   correlationId?: string;
   timestamp?: string;
   tenantId?: string;
   transactionType?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface RuleRequest {
-  transaction: any; // The validated payload (will be strongly typed later)
+  transaction: Record<string, unknown>; // The validated payload (will be strongly typed later)
   networkMap: NetworkMap;
   DataCache: DataCache;
   metaData?: MetaData;
@@ -49,10 +49,10 @@ export interface ParseExtractResponse {
   success: boolean;
   message: string;
   processedAt: string;
-  configPayload?: any; // The payload from config table
+  configPayload?: Record<string, unknown>; // The payload from config table
   transactionType?: string;
   validationErrors?: string[]; // Array of validation error messages
-  validatedPayload?: any; // The validated payload when successful
+  validatedPayload?: Record<string, unknown>; // The validated payload when successful
   correlationId?: string; // For tracking
   ruleRequest?: RuleRequest; // Add RuleRequest to the response
 }
@@ -80,7 +80,7 @@ export class ParseExtractResponseDto {
     description: 'Configuration payload used for processing',
     required: false,
   })
-  configPayload?: any;
+  configPayload?: Record<string, unknown>;
 
   @ApiProperty({
     description: 'Type of the transaction processed',
@@ -100,7 +100,7 @@ export class ParseExtractResponseDto {
     description: 'The validated payload after successful processing',
     required: false,
   })
-  validatedPayload?: any;
+  validatedPayload?: Record<string, unknown>;
 
   @ApiProperty({
     description: 'Correlation ID for tracking the request',
@@ -130,5 +130,5 @@ export class TransactionalMessageDto {
   })
   TenantId?: string;
 
-  [key: string]: any; // Allow for CstmrCdtTrfInitn, FIToFIPmtStsRpt, FIToFICstmrCdtTrf, etc.
+  [key: string]: unknown; // Allow for CstmrCdtTrfInitn, FIToFIPmtStsRpt, FIToFICstmrCdtTrf, etc.
 }

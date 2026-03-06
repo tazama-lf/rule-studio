@@ -27,7 +27,7 @@ export class ExampleController {
       CommonResponses.NOT_FOUND_404('Related resource not found'),
     ),
   })
-  createResource(): any {
+  createResource(): Record<string, unknown> {
     return {};
   }
 
@@ -42,7 +42,7 @@ export class ExampleController {
       500: { description: 'Internal server error' },
     },
   })
-  customResponses(): any[] {
+  customResponses(): unknown[] {
     return [];
   }
 
@@ -57,7 +57,7 @@ export class ExampleController {
       { 422: { description: 'Validation failed' } },
     ),
   })
-  updateResource(): any {
+  updateResource(): Record<string, unknown> {
     return {};
   }
 

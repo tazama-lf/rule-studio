@@ -108,7 +108,7 @@ export class NotificationService implements OnModuleInit {
       return false;
     }
   }
-  async fetchRecipientEmails(event: EventType, tenantId: string, authToken: string, groupName: string): Promise<any> {
+  async fetchRecipientEmails(event: EventType, tenantId: string, authToken: string, groupName: string): Promise<string[]> {
     try {
       let role: string | null = null;
       let fetchAll = false;
@@ -201,7 +201,7 @@ export class NotificationService implements OnModuleInit {
         return;
       }
 
-      const recipientEmails = (await this.fetchRecipientEmails(event, tenantId, user.token.tokenString, groupName)) as string[];
+      const recipientEmails = await this.fetchRecipientEmails(event, tenantId, user.token.tokenString, groupName);
 
       if (recipientEmails.length === 0) {
         this.logger.warn(`No recipients found for event '${event}' in tenant '${tenantId}'`);
@@ -268,7 +268,7 @@ export class NotificationService implements OnModuleInit {
     }
   }
 
-  private emailRow(label: string, value: any): string {
+  private emailRow(label: string, value: string | number | undefined): string {
     return `
       <tr>
         <td style="padding: 8px; font-weight: bold; color: #666; width: 40%;">${label}</td>
@@ -276,7 +276,7 @@ export class NotificationService implements OnModuleInit {
       </tr>`;
   }
 
-  private emailRowWithBadge(label: string, value: any, color: string): string {
+  private emailRowWithBadge(label: string, value: string | number | undefined, color: string): string {
     return `
       <tr>
         <td style="padding: 8px; font-weight: bold; color: #666;">${label}</td>

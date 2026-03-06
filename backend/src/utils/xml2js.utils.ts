@@ -12,7 +12,7 @@ import type { ReturnArrayFieldsFromSchema } from '../interfaces/iXml2js.interfac
  * @param loggerService Logger service for error logging
  * @returns Object containing arrays of field paths for arrays and strings
  */
-export function returnArrayFieldsFromSchema(schema: any, loggerService?: LoggerService): ReturnArrayFieldsFromSchema {
+export function returnArrayFieldsFromSchema(schema: unknown, loggerService?: LoggerService): ReturnArrayFieldsFromSchema {
   try {
     // Handle null/undefined schema
     if (!schema) {
@@ -28,42 +28,57 @@ export function returnArrayFieldsFromSchema(schema: any, loggerService?: LoggerS
 
     const buildPath = (base: string, key: string): string => (base ? `${base}.${key}` : key);
 
-    const processProperty = (property: any, currentPath: string, traverseFn: (obj: any, path: string) => void): void => {
+    const processProperty = (property: unknown, currentPath: string, traverseFn: (obj: unknown, path: string) => void): void => {
       if (!property || typeof property !== 'object') return;
 
-      if (property.type === 'array') arrayFields.push(currentPath);
-      if (property.type === 'string') stringFields.push(currentPath);
-      if (property.type === 'object' && property.properties) traverseFn(property, currentPath);
+      const prop = property as Record<string, unknown>;
+      if (prop.type === 'array') arrayFields.push(currentPath);
+      if (prop.type === 'string') stringFields.push(currentPath);
+      if (prop.type === 'object' && prop.properties) traverseFn(property, currentPath);
 
-      if (property.type === 'array' && property.items?.type === 'object' && property.items.properties) {
-        traverseFn(property.items, currentPath);
+      if (
+        prop.type === 'array' &&
+        (prop.items as Record<string, unknown> | undefined)?.type === 'object' &&
+        (prop.items as Record<string, unknown>).properties
+      ) {
+        traverseFn(prop.items, currentPath);
       }
 
-      const variants = property.anyOf ?? property.oneOf ?? property.allOf;
-      if (variants) {
-        variants.forEach((variant: any) => {
-          if (variant?.type === 'object' && variant.properties) traverseFn(variant, currentPath);
+      const variants = prop.anyOf ?? prop.oneOf ?? prop.allOf;
+      if (variants && Array.isArray(variants)) {
+        variants.forEach((variant: unknown) => {
+          if (
+            variant &&
+            typeof variant === 'object' &&
+            (variant as Record<string, unknown>).type === 'object' &&
+            (variant as Record<string, unknown>).properties
+          ) {
+            traverseFn(variant, currentPath);
+          }
         });
       }
     };
 
-    const processSchemaVariants = (obj: any, path: string, traverseFn: (obj: any, path: string) => void): void => {
-      const variants = obj.anyOf ?? obj.oneOf ?? obj.allOf;
-      if (variants) {
-        variants.forEach((variant: any) => {
-          if (variant?.properties) traverseFn(variant, path);
+    const processSchemaVariants = (obj: unknown, path: string, traverseFn: (obj: unknown, path: string) => void): void => {
+      if (!obj || typeof obj !== 'object') return;
+      const schema = obj as Record<string, unknown>;
+      const variants = schema.anyOf ?? schema.oneOf ?? schema.allOf;
+      if (variants && Array.isArray(variants)) {
+        variants.forEach((variant: unknown) => {
+          if (variant && typeof variant === 'object' && (variant as Record<string, unknown>).properties) traverseFn(variant, path);
         });
       }
     };
 
-    const traverseSchema = (obj: any, path = ''): void => {
+    const traverseSchema = (obj: unknown, path = ''): void => {
       if (!obj || typeof obj !== 'object' || visited.has(obj)) return;
 
       visited.add(obj);
 
-      if (obj.properties && typeof obj.properties === 'object') {
-        Object.entries(obj.properties).forEach(([key, value]) => {
-          processProperty(value as any, buildPath(path, key), traverseSchema);
+      const schema = obj as Record<string, unknown>;
+      if (schema.properties && typeof schema.properties === 'object') {
+        Object.entries(schema.properties).forEach(([key, value]) => {
+          processProperty(value, buildPath(path, key), traverseSchema);
         });
       }
 
@@ -94,31 +109,26 @@ export function returnArrayFieldsFromSchema(schema: any, loggerService?: LoggerS
  * @param loggerService Optional logger service for logging conversions
  * @returns Modified payload with objects converted to arrays and numbers converted to strings where needed
  */
-export function replaceObjectsWithArrays(payload: any, arrayFields: string[], stringFields: string[], loggerService?: LoggerService): any {
+export function replaceObjectsWithArrays(
+  payload: unknown,
+  arrayFields: string[],
+  stringFields: string[],
+  loggerService?: LoggerService,
+): unknown {
   try {
     if (payload === null || payload === undefined) {
       throw new Error('Payload cannot be null or undefined');
     }
 
-    // console.log("Starting replacement of objects with arrays and numbers with strings in payload...");
-    const modifiedPayload = structuredClone(payload); // deep copy
-    // console.log("Payload cloned successfully, modified payload.", JSON.stringify(modifiedPayload, null, 2));
-
-    // console.log("Array fields to process:", arrayFields);
+    const modifiedPayload = structuredClone(payload);
 
     arrayFields.forEach((fieldPath) => {
       convertObjectToArrayAtPath(modifiedPayload, fieldPath, loggerService);
     });
 
-    // console.log("Completed object to array conversions. Now starting number to string conversions...");
-    // console.log(JSON.stringify(modifiedPayload, null, 2));
-    // console.log("String fields to process:", stringFields);
-
     stringFields.forEach((fieldPath) => {
       convertNumberToStringAtPath(modifiedPayload, fieldPath, loggerService);
     });
-
-    // console.log("Completed number to string conversions. Final modified payload:", JSON.stringify(modifiedPayload, null, 2));
 
     return modifiedPayload;
   } catch (error) {
@@ -139,18 +149,18 @@ export function replaceObjectsWithArrays(payload: any, arrayFields: string[], st
  * @param path The dot-notation path to the field
  * @param loggerService Optional logger service for logging conversions
  */
-export function convertNumberToStringAtPath(obj: any, path: string, loggerService?: LoggerService): void {
+export function convertNumberToStringAtPath(obj: unknown, path: string, loggerService?: LoggerService): void {
   try {
     if (obj === null || obj === undefined) {
       throw new Error('Object cannot be null or undefined');
     }
 
     const pathParts = path.split('.');
-    let current = obj;
+    let current: unknown = obj;
 
     for (let i = 0; i < pathParts.length - 1; i += 1) {
-      if (current && typeof current === 'object' && !Array.isArray(current) && current[pathParts[i]]) {
-        current = current[pathParts[i]];
+      if (typeof current === 'object' && current !== null && !Array.isArray(current) && pathParts[i] in current) {
+        current = (current as Record<string, unknown>)[pathParts[i]];
       } else {
         return;
       }
@@ -158,11 +168,14 @@ export function convertNumberToStringAtPath(obj: any, path: string, loggerServic
 
     const targetFieldName = pathParts[pathParts.length - 1];
 
-    if (current?.[targetFieldName] !== undefined && typeof current[targetFieldName] === 'number') {
-      current[targetFieldName] = String(current[targetFieldName]);
+    if (typeof current === 'object' && current !== null && !Array.isArray(current)) {
+      const objCurrent = current as Record<string, unknown>;
+      if (typeof objCurrent[targetFieldName] === 'number') {
+        objCurrent[targetFieldName] = String(objCurrent[targetFieldName]);
 
-      if (loggerService) {
-        loggerService.log(`Converted field '${path}' from number to string: ${current[targetFieldName]}`);
+        if (loggerService) {
+          loggerService.log(`Converted field '${path}' from number to string: ${String(objCurrent[targetFieldName])}`);
+        }
       }
     }
   } catch (error) {
@@ -179,30 +192,28 @@ export function convertNumberToStringAtPath(obj: any, path: string, loggerServic
  * @param path The dot-notation path to the field
  * @param loggerService Optional logger service for logging conversions
  */
-export function convertObjectToArrayAtPath(obj: any, path: string, loggerService?: LoggerService): void {
+export function convertObjectToArrayAtPath(obj: unknown, path: string, loggerService?: LoggerService): void {
   try {
     if (obj === null || obj === undefined) {
       throw new Error('Object cannot be null or undefined');
     }
-
     const pathParts = path.split('.');
-    let current = obj;
-
+    let current: unknown = obj;
     for (let i = 0; i < pathParts.length - 1; i += 1) {
-      if (current && typeof current === 'object' && !Array.isArray(current) && current[pathParts[i]]) {
-        current = current[pathParts[i]];
+      if (typeof current === 'object' && current !== null && !Array.isArray(current) && pathParts[i] in current) {
+        current = (current as Record<string, unknown>)[pathParts[i]];
       } else {
         return;
       }
     }
-
     const targetFieldName = pathParts[pathParts.length - 1];
-
-    if (current?.[targetFieldName] && typeof current[targetFieldName] === 'object' && !Array.isArray(current[targetFieldName])) {
-      current[targetFieldName] = [current[targetFieldName]];
-
-      if (loggerService) {
-        loggerService.log(`Converted field '${path}' from object to array`);
+    if (typeof current === 'object' && current !== null && !Array.isArray(current)) {
+      const objCurrent = current as Record<string, unknown>;
+      if (objCurrent[targetFieldName] && typeof objCurrent[targetFieldName] === 'object' && !Array.isArray(objCurrent[targetFieldName])) {
+        objCurrent[targetFieldName] = [objCurrent[targetFieldName]];
+        if (loggerService) {
+          loggerService.log(`Convertnpm ed field '${path}' from object to array`);
+        }
       }
     }
   } catch (error) {
@@ -221,7 +232,7 @@ export function convertObjectToArrayAtPath(obj: any, path: string, loggerService
  */
 export function createSchemaAwareNumberProcessor(stringFields: string[]) {
   const stringFieldSet = new Set(stringFields);
-  return (value: any, name: string, path = '') => {
+  return (value: unknown, name: string, path = '') => {
     const fullPath = path ? `${path}.${name}` : name;
     if (stringFieldSet.has(fullPath)) return value;
 

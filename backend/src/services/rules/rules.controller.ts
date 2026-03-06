@@ -147,7 +147,7 @@ export class RulesController {
     @Param('ruleId') ruleId: string,
     @User() user: AuthenticatedUser,
     @Req() req: { method?: string; url?: string; originalUrl?: string; route?: { path?: string }; routeOptions?: { url?: string } },
-  ): Promise<any> {
+  ): Promise<Record<string, unknown>> {
     return await this.rulesService.getRuleConfiguration(ruleId, user, 'GET /rules/api/configuration/:ruleId');
   }
 
@@ -197,7 +197,7 @@ export class RulesController {
       CommonResponses.NOT_FOUND_404('No active network map found'),
     ),
   })
-  async getActiveNetworkMap(@User() user: AuthenticatedUser): Promise<any> {
+  async getActiveNetworkMap(@User() user: AuthenticatedUser): Promise<Record<string, unknown>> {
     this.logger.log(`Controller: Fetching active network map for user: ${user.userId}`);
     return await this.rulesService.getActiveNetworkMap(user.token.tokenString);
   }
@@ -317,7 +317,11 @@ export class RulesController {
       CommonResponses.NOT_FOUND_404('Source rule not found'),
     ),
   })
-  async cloneRule(@Param('ruleId') ruleId: string, @Body() payload: any, @User() user: AuthenticatedUser): Promise<Rules> {
+  async cloneRule(
+    @Param('ruleId') ruleId: string,
+    @Body() payload: Record<string, unknown>,
+    @User() user: AuthenticatedUser,
+  ): Promise<Rules> {
     return await this.rulesService.cloneRule(ruleId, user, payload);
   }
 

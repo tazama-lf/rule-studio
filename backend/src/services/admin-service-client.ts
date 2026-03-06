@@ -205,14 +205,14 @@ export class AdminServiceClient {
     return response.rule;
   }
 
-  async getActiveNetworkMap(token: string): Promise<any> {
+  async getActiveNetworkMap(token: string): Promise<Record<string, unknown>> {
     const response = await this.executeHttpRequest<{
-      networkMap: any;
+      networkMap: Record<string, unknown>;
     }>('GET', ACTIVE_NETWORK_MAP, token);
     return response.networkMap;
   }
 
-  async getConfigPayloadByTxTp(transactionType: string, transactionVersion: string, token: string): Promise<any> {
+  async getConfigPayloadByTxTp(transactionType: string, transactionVersion: string, token: string): Promise<Record<string, unknown>> {
     return await this.executeHttpRequest(
       'GET',
       `${CONFIG_PAYLOAD}/${encodeURIComponent(transactionType)}/${encodeURIComponent(transactionVersion)}`,

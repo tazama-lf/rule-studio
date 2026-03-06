@@ -340,7 +340,7 @@ export class RulesService {
 
     const normalizedRole = this.rbacService.getNormalizedRole(user);
     const token = user.token.tokenString;
-    const rule = await this.getRuleOrThrow(numericId, token);
+    const rule = (await this.getRuleOrThrow(numericId, token)) as Partial<Rules>;
     const currentStatus = rule.status ?? '';
 
     // Authorization checks
@@ -349,12 +349,6 @@ export class RulesService {
 
     const tier3 = this.rbacService.checkTier3({ role: normalizedRole, endpointKey, currentStatus, targetStatus: status });
     if (!tier3.allowed) throw new ForbiddenException(tier3.reason ?? 'Tier 3 authorization failed');
-
-    // Check if status has actually changed
-    const previousStatus = (rule as any)?.rules?.status ?? rule.status;
-    if (previousStatus === status) {
-      return await this.adminServiceClient.updateRuleStatus(ruleId, status, reason, token);
-    }
 
     // Update status
     const updatedRule = await this.adminServiceClient.updateRuleStatus(ruleId, status, reason, token);
