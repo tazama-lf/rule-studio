@@ -58,7 +58,6 @@ const useSimulationController = (props: ISimulation) => {
     // Initialize metadata state
     useEffect(() => {
         if (data?.metadata) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             setViewReport(data.metadata.test ?? false)
             setCodeSynced(data.metadata.sync ?? true)
             setCodeDeployed(data.metadata.deploy ?? false)
@@ -150,6 +149,7 @@ const useSimulationController = (props: ISimulation) => {
             .catch(() => {
                 toast.error('Failed to fetch report')
             })
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [getReportStatus, data?.id, toggleViewReport, updateMetadata])
 
     const handleLoader = useCallback(() => {
@@ -186,6 +186,7 @@ const useSimulationController = (props: ISimulation) => {
             .catch(() => {
                 toast.error('Failed to upload code')
             })
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [data?.id, upload, toggleCodeSynced, updateMetadata, flowData, handleLoader])
 
     const handleDeploy = useCallback(() => {
@@ -209,12 +210,23 @@ const useSimulationController = (props: ISimulation) => {
                         deploy: true,
                         simulation: false
                     })
+                    open(
+                        'Deployment Successful',
+                        <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                            <p style={{ fontSize: '15px', color: '#333', lineHeight: 1.6 }}>
+                                The rule has been deployed successfully. A workflow is currently in progress — please allow up to 30 minutes for both simulations to complete and verify that the rule is functioning as expected.
+                            </p>
+                        </div>,
+                        null,
+                        { maxWidth: 'sm' }
+                    )
                 }
             })
             .catch(() => {
                 toast.error('Failed to deploy code')
             })
-    }, [codeSynced, data?.id, deploy, toggleCodeDeployed, updateMetadata])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [codeSynced, data?.id, deploy, toggleCodeDeployed, updateMetadata, open])
 
     const handleSelect = (id: number) => {
         if (!codeDeployed && claims.editor === user?.claims && mode != 'view') {
@@ -344,6 +356,7 @@ const useSimulationController = (props: ISimulation) => {
                 toast.error('Failed to run simulation. Please try again.');
                 setResult(null);
             });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selected, user?.claims, ruleOnly, endToEnd, toggleSimulationExecuted, updateMetadata, addSimulationLog])
 
     const handleReport = () => {

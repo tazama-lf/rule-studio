@@ -213,15 +213,35 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = memo(({
   const nodesLengthRef = useRef(nodes.length);
   const edgesLengthRef = useRef(edges.length);
 
+  const definitionFingerprint = React.useMemo(() => {
+    return nodes
+      .filter(n => {
+        const d = n.data as Record<string, unknown>;
+        return d?.mode === 'definition' || d?.generation_type === 'definition';
+      })
+      .map(n => {
+        const d = n.data as Record<string, unknown>;
+        const p = d?.params as Record<string, string> | undefined;
+        return `${n.id}:${p?.function_name || ''}:${p?.typeName || ''}:${p?.parameter_count || '0'}:${p?.parameters || '[]'}:${(p?.code_template || '').length}`;
+      })
+      .join('|');
+  }, [nodes]);
+
+  const prevDefinitionFingerprintRef = useRef(definitionFingerprint);
+
   React.useEffect(() => {
-    if (onFlowStateUpdateRef.current && 
-        (nodesLengthRef.current !== nodes.length || edgesLengthRef.current !== edges.length)) {
+    const lengthChanged =
+      nodesLengthRef.current !== nodes.length || edgesLengthRef.current !== edges.length;
+    const defsChanged = prevDefinitionFingerprintRef.current !== definitionFingerprint;
+
+    if (onFlowStateUpdateRef.current && (lengthChanged || defsChanged)) {
       onFlowStateUpdateRef.current(nodes, edges, setNodes, setEdges);
       nodesLengthRef.current = nodes.length;
       edgesLengthRef.current = edges.length;
+      prevDefinitionFingerprintRef.current = definitionFingerprint;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodes, edges]);
+  }, [nodes, edges, definitionFingerprint]);
 
   const onDragOver = useCallback((event: DragEvent) => {
     event.preventDefault();
