@@ -24,7 +24,7 @@ const History = (props: IHistory) => {
                 <Box flex={1}>
                     <Table
                         serial_no
-                        title={'End-To-End Simulation'}
+                        title={'DEMS-driven Simulation'}
                         columns={values.columns}
                         data={values.endToEndData}
                         loading={values.isLoading}
