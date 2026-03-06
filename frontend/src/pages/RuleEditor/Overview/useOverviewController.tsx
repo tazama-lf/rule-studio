@@ -102,7 +102,7 @@ const useOverviewController = (props: IOverviewProps) => {
                 toast.error('Source rule ID is missing. Cannot clone rule.');
                 return;
             }
-            
+
             const res =
                 mode === 'clone'
                     ? await clone({ id: data?.id, body: payload }).unwrap()
@@ -116,9 +116,11 @@ const useOverviewController = (props: IOverviewProps) => {
                     : 'Rule Successfully Created'
             )
 
+            const currentRuleConfigId = values.rule_config_id?.value;
+
             const repoBody = {
-                ruleId: res?.id,
-                ruleVersion: values?.version,
+                ruleId: currentRuleConfigId?.toString().split('@')[0],
+                ruleVersion: currentRuleConfigId?.toString().split('@')[1],
                 organization: 'psl-copilot',
             }
 

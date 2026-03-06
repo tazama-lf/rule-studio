@@ -14,8 +14,8 @@ export const simulations = [
     {
         id: 2,
         icon: AccountTreeIcon,
-        title: 'Full End-to-End Simulation',
-        description: 'Complete system test with all components',
+        title: 'DEMS-driven Simulation',
+        description: 'Ingesting a transaction through DEMS to simulate the rule behavior',
         complexity: 'Complex',
         cost: "High"
     },
