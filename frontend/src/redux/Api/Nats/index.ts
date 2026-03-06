@@ -1,14 +1,13 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { getAuthToken } from "../../../utils/Common/storage";
 
-const BASE_URL = import.meta.env.VITE_NATS_API_URL 
-    // ? '/nats-proxy' 
-    // : (import.meta.env.VITE_NATS_API_URL as string);
+const BASE_URL = import.meta.env.VITE_NATS_API_URL
+const DEMS_URL = import.meta.env.VITE_DEMS_ENDPOINT
 
 export const natsApi = createApi({
     reducerPath: 'natsApi',
     baseQuery: fetchBaseQuery({
-        baseUrl: `${BASE_URL}`,
+        baseUrl: ``,
         prepareHeaders: (headers) => {
             const token = getAuthToken()
             if (token) headers.set("authorization", `Bearer ${token}`)
@@ -20,16 +19,22 @@ export const natsApi = createApi({
     endpoints: (builder) => ({
         ruleOnly: builder.mutation({
             query: (body) => ({
-                url: `/natsPublish`,
+                url: `${BASE_URL}/natsPublish`,
                 method: "POST",
                 body: { ...body },
             }),
         }),
         endToEnd: builder.mutation({
-            query: (body) => ({
-                url: `/restPublish`,
+            query: ({ body, tenantId, version, txtp }) => ({
+                url: `${DEMS_URL}/${tenantId}/${version}/evaluate/${txtp}`,
                 method: "POST",
                 body: { ...body },
+            }),
+        }),
+        getEndReport: builder.query({
+            query: ({ msgId }) => ({
+                url: `http://10.10.80.37:5100/v1/admin/reports/getreportbymsgid?msgid=${msgId}`,
+                method: "GET",
             }),
         }),
     }),
@@ -37,5 +42,6 @@ export const natsApi = createApi({
 
 export const {
     useRuleOnlyMutation,
-    useEndToEndMutation // Add this line to export the endToEnd mutation hook
+    useEndToEndMutation,
+    useLazyGetEndReportQuery
 } = natsApi

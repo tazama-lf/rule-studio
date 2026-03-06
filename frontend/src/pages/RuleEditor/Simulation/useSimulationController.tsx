@@ -7,7 +7,7 @@ import { useModal } from "../../../contexts/ModalContext";
 import { useTab } from "../../../contexts/TabContext/useTab";
 import useToggle from "../../../hooks/useToggle";
 import { useLazyGetSamplePayloadQuery } from "../../../redux/Api/Config";
-import { useEndToEndMutation, useRuleOnlyMutation } from "../../../redux/Api/Nats";
+import { useEndToEndMutation, useLazyGetEndReportQuery, useRuleOnlyMutation } from "../../../redux/Api/Nats";
 import { useGetAllFlowQuery, useLazyGetGlobalVariablesQuery } from "../../../redux/Api/Rule-builder";
 import { useUpdateMetadataMutation } from "../../../redux/Api/Rules";
 import { useLazyGetReportStatusQuery, useMergeBranchMutation, useUploadCodeMutation } from "../../../redux/Api/Simulation";
@@ -77,6 +77,7 @@ const useSimulationController = (props: ISimulation) => {
 
     const [ruleOnly, { isLoading: ruleOnlyLoading }] = useRuleOnlyMutation()
     const [endToEnd, { isLoading: endToEndLoading }] = useEndToEndMutation()
+    const [getEndReport, { isLoading: endReportLoading }] = useLazyGetEndReportQuery()
     const [addLogs] = useAddSimulationlogsMutation()
 
     const updateMetadata = useCallback((metadata: Record<string, boolean>) => {
@@ -303,11 +304,15 @@ const useSimulationController = (props: ISimulation) => {
                 addSimulationLog(body, res, logCategory);
             };
         } else {
-            body = parsedPayload;
+            body = {
+                body: parsedPayload,
+                tenantId: user.tenantId,
+                version: data.txtp_version,
+                txtp: data.txtp
+            };
             mutation = endToEnd;
             logCategory = 'end_to_end';
             onSuccess = (res: unknown) => {
-                setResult(res);
                 toggleSimulationExecuted();
                 if (claims.editor === user?.claims) {
                     updateMetadata({
@@ -317,7 +322,15 @@ const useSimulationController = (props: ISimulation) => {
                         simulation: true
                     });
                 }
-                addSimulationLog(body, res, logCategory);
+                const msgId = (res as Record<string, unknown>)?.transactionRelationship as Record<string, unknown> | undefined;
+                getEndReport({ msgId: msgId?.MsgId as string })
+                    .then((response) => {
+                        const responseData = response as Record<string, unknown>;
+                        if (responseData?.data) {
+                            setResult(responseData.data);
+                            addSimulationLog(body, responseData.data, logCategory);
+                        }
+                    })
             };
         }
         mutation(body).unwrap()
@@ -360,7 +373,7 @@ const useSimulationController = (props: ISimulation) => {
             control,
             errors,
             isLoading: flowLoading,
-            simulating: ruleOnlyLoading || endToEndLoading,
+            simulating: ruleOnlyLoading || endToEndLoading || endReportLoading,
             payloadLoading: variablesLoading || sampleLoading,
             isReportFailed,
             mode
