@@ -287,17 +287,17 @@ export class ResponseRuleFlowStatusDto {
   @IsString()
   @IsNotEmpty()
   rule_id: string;
-  @ApiProperty({ description: 'rule builder status of the flow', example: 'initial' })
+  @ApiPropertyOptional({ description: 'rule builder status of the flow', example: 'initial' })
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   status_rule_builder?: string;
-  @ApiProperty({ description: 'test case generation status of the flow', example: 'initial' })
+  @ApiPropertyOptional({ description: 'test case generation status of the flow', example: 'initial' })
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   status_test_case?: string;
-  @ApiProperty({ description: 'test case generation status of the flow', example: 'initial' })
+  @ApiPropertyOptional({ description: 'Overall status of the flow', example: 'initial' })
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   status?: string;
 }
 

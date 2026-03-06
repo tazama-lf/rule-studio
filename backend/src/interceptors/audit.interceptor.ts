@@ -30,7 +30,6 @@ export class AuditInterceptor implements NestInterceptor {
     const response = context.switchToHttp().getResponse<{ statusCode: number }>();
     const { user } = request;
     const startTime = Date.now();
-
     const correlationId = randomUUID();
 
     const baseAuditData = this.buildBaseAuditData(context, request, user);
@@ -39,19 +38,14 @@ export class AuditInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       tap((responseData) => {
-        let responseSize = -1;
-        try {
-          responseSize = JSON.stringify(responseData ?? {}).length;
-        } catch {
-          // keep responseSize as -1 if serialization fails
-        }
+        const resourceId = baseAuditData.resourceId ?? this.extractResourceIdFromResponse(responseData);
 
         const auditData = {
           ...baseAuditData,
+          resourceId,
           outcome: {
             statusCode: response.statusCode,
             executionTimeMs: Date.now() - startTime,
-            responseSize,
           },
         };
 
@@ -69,7 +63,6 @@ export class AuditInterceptor implements NestInterceptor {
 
         this.logAuditAsync(auditData, EventPhase.FAILED, correlationId);
 
-        // Ensure error is always an Error instance for proper error handling
         const errorToThrow = error instanceof Error ? error : new Error(String(error));
         return throwError(() => errorToThrow);
       }),
@@ -85,35 +78,27 @@ export class AuditInterceptor implements NestInterceptor {
     request: Request,
     user?: AuthenticatedUser,
   ): Omit<IAuditLogInput, 'correlationId' | 'eventPhase' | 'outcome'> {
-    const { method, url, body, params, query, headers } = request;
+    const { method, url, params, query, headers } = request;
     const handler = context.getHandler().name;
     const controller = context.getClass().name;
     const eventMeta = this.buildEventMetadata(method, url, handler);
 
     return {
-      // User identification
       actorId: user?.userId ?? 'anonymous',
       actorName: user?.actorName ?? user?.actorEmail ?? 'anonymous',
       actorRole: user?.actorRole ?? 'anonymous',
-
-      // Resource information
-      resourceId: this.extractResourceId(request),
+      resourceId: this.extractResourceIdFromRequest(request),
       resourceType: this.mapControllerToResourceType(controller),
-
-      // Request metadata
       sourceIp: this.extractSourceIp(request),
-
       description: eventMeta.description,
       eventType: eventMeta.eventType,
       tenantId: user?.tenantId ?? 'default',
-
       actionPerformed: {
         method,
         endpoint: url,
         handler,
         controller,
         userAgent: headers['user-agent'],
-        requestBody: this.sanitizeRequestBody(body),
         pathParameters: params,
         queryParameters: query,
         timestamp: new Date().toISOString(),
@@ -125,11 +110,20 @@ export class AuditInterceptor implements NestInterceptor {
    * Extracts resource ID from request parameters
    * @private
    */
-  private extractResourceId(request: Request): string | undefined {
+  private extractResourceIdFromRequest(request: Request): string | undefined {
     const params = request.params as Record<string, string>;
-
-    // Common resource ID parameter names
     return params.ruleId || params.nodeId || params.id || params.resourceId;
+  }
+
+  /**
+   * Extracts resource ID from response body (used for POST endpoints that return the created resource)
+   * @private
+   */
+  private extractResourceIdFromResponse(responseData: unknown): string | undefined {
+    if (!responseData || typeof responseData !== 'object') return undefined;
+    const data = responseData as Record<string, unknown>;
+    const id = data.id ?? data.rule_id ?? data.nodeId;
+    return typeof id === 'string' ? id : undefined;
   }
 
   /**
@@ -153,23 +147,16 @@ export class AuditInterceptor implements NestInterceptor {
    * @private
    */
   private extractSourceIp(request: Request): string {
-    // Check various headers for real IP (load balancer, proxy scenarios)
-    const xForwardedFor = request.headers['x-forwarded-for'] as string;
-    const xRealIp = request.headers['x-real-ip'] as string;
+    const xForwardedForRaw = request.headers['x-forwarded-for'];
+    const xRealIpRaw = request.headers['x-real-ip'];
 
-    if (xForwardedFor) {
-      return xForwardedFor.split(',')[0].trim();
-    }
+    const xForwardedFor = Array.isArray(xForwardedForRaw) ? xForwardedForRaw[0] : xForwardedForRaw;
+    if (xForwardedFor) return xForwardedFor.split(',')[0].trim();
 
-    if (xRealIp) {
-      return xRealIp;
-    }
+    const xRealIp = Array.isArray(xRealIpRaw) ? xRealIpRaw[0] : xRealIpRaw;
+    if (xRealIp) return xRealIp.trim();
 
-    if (request.ip) {
-      return request.ip;
-    }
-
-    return request.socket.remoteAddress ?? 'unknown';
+    return request.ip ?? request.socket.remoteAddress ?? 'unknown';
   }
 
   /**
@@ -188,7 +175,7 @@ export class AuditInterceptor implements NestInterceptor {
         eventType: 'TRANSACTION_TYPES_RETRIEVED',
       },
 
-      getVersionsOfTransactionType: {
+      getVersionsByTransactionType: {
         description: 'Retrieved versions for transaction type',
         eventType: 'TRANSACTION_TYPE_VERSIONS_RETRIEVED',
       },
@@ -253,7 +240,7 @@ export class AuditInterceptor implements NestInterceptor {
         eventType: 'RULE_UPDATED',
       },
 
-      getRulesById: {
+      getRuleById: {
         description: 'Retrieved rule by ID',
         eventType: 'RULE_RETRIEVED_BY_ID',
       },
@@ -323,40 +310,7 @@ export class AuditInterceptor implements NestInterceptor {
       eventType: 'UNKNOWN_EVENT',
     };
   }
-  /**
-   * Removes sensitive information from request body
-   * @private
-   */
-  private sanitizeRequestBody(body: unknown): unknown {
-    if (!body || typeof body !== 'object') {
-      return body;
-    }
 
-    const sensitive = new Set(['password', 'token', 'secret', 'key', 'auth', 'credential']);
-    const redact = (value: unknown): unknown => {
-      if (Array.isArray(value)) return value.map(redact);
-      if (!value || typeof value !== 'object') return value;
-      const out: Record<string, unknown> = {};
-      for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-        out[k] = sensitive.has(k.toLowerCase()) ? '[REDACTED]' : redact(v);
-      }
-      return out;
-    };
-    const cleanBody = redact(body);
-
-    // Truncate large bodies
-    const bodyString = JSON.stringify(cleanBody);
-    const maxSize = 10000;
-    if (bodyString.length > maxSize) {
-      return {
-        _preview: bodyString.slice(0, 500) + '...',
-        _truncated: true,
-        _originalSize: bodyString.length,
-      };
-    }
-
-    return cleanBody;
-  }
   /**
    * Logs audit data asynchronously without blocking the main operation
    * @private

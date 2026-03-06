@@ -224,7 +224,7 @@ export class RulesService {
   ): Promise<ResponseRuleFlow> {
     try {
       const normalizedRole = this.rbacService.getNormalizedRole(user);
-      if (!this.rbacService.isRole(normalizedRole)) throw new ForbiddenException('Role is not authorized to update rule status');
+      if (!this.rbacService.isRole(normalizedRole)) throw new ForbiddenException('Role is not authorized to view rule flow');
       const numericId = Number(ruleId);
       if (!Number.isInteger(numericId)) throw new BadRequestException('Invalid ruleId. Expected a numeric value.');
       const rule = await this.getRuleOrThrow(numericId, user.token.tokenString);
@@ -247,7 +247,7 @@ export class RulesService {
   ): Promise<ResponseRuleFlowStatusDto> {
     try {
       const normalizedRole = this.rbacService.getNormalizedRole(user);
-      if (!this.rbacService.isRole(normalizedRole)) throw new ForbiddenException('Role is not authorized to update rule status');
+      if (!this.rbacService.isRole(normalizedRole)) throw new ForbiddenException('Role is not authorized to view rule flow status');
       const numericId = Number(ruleId);
       if (!Number.isInteger(numericId)) throw new BadRequestException('Invalid ruleId. Expected a numeric value.');
       const rule = await this.getRuleOrThrow(numericId, user.token.tokenString);
@@ -266,7 +266,7 @@ export class RulesService {
     try {
       const endpointKey: EndpointKey = 'POST /rules/api/:ruleId/flow';
       const normalizedRole = this.rbacService.getNormalizedRole(user);
-      if (!this.rbacService.isRole(normalizedRole)) throw new ForbiddenException('Role is not authorized to update rule status');
+      if (!this.rbacService.isRole(normalizedRole)) throw new ForbiddenException('Role is not authorized to create rule flow');
       const numericId = Number(ruleId);
       if (!Number.isInteger(numericId)) throw new BadRequestException('Invalid ruleId. Expected a numeric value.');
       const rule = await this.getRuleOrThrow(numericId, user.token.tokenString);
@@ -289,7 +289,7 @@ export class RulesService {
   ): Promise<ResponseUpdatedRuleFlowDto> {
     try {
       const normalizedRole = this.rbacService.getNormalizedRole(user);
-      if (!this.rbacService.isRole(normalizedRole)) throw new ForbiddenException('Role is not authorized to update rule status');
+      if (!this.rbacService.isRole(normalizedRole)) throw new ForbiddenException('Role is not authorized to update rule flow');
       const numericId = Number(ruleId);
       if (!Number.isInteger(numericId)) throw new BadRequestException('Invalid ruleId. Expected a numeric value.');
       const rule = await this.getRuleOrThrow(numericId, user.token.tokenString);
@@ -357,8 +357,7 @@ export class RulesService {
     const eventType = this.mapStatusToEventType(status);
     if (eventType) {
       try {
-        const ruleData = await this.getRuleOrThrow(numericId, token);
-        await this.notificationService.sendRuleWorkflowNotification(eventType, user, ruleData, reason);
+        await this.notificationService.sendRuleWorkflowNotification(eventType, user, updatedRule, reason);
       } catch (notificationError) {
         this.logger.warn(`Failed to send notification for rule ${ruleId}: ${(notificationError as Error).message}`);
       }
