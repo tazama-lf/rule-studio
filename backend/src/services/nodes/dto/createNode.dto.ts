@@ -1,12 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsNotEmpty,
-  IsObject,
-  IsOptional,
-  IsString,
-  IsNumber,
-  IsArray,
-} from 'class-validator';
+import { IsNotEmpty, IsObject, IsOptional, IsString, IsNumber, IsArray } from 'class-validator';
 
 export class CreateNodeDto {
   @ApiProperty({
@@ -52,11 +45,19 @@ export class CreateNodeDto {
 export class RequestQueryNodeDto {
   @ApiProperty({
     description: 'The query string to be executed',
-    example: 'SELECT * FROM nodes WHERE type = \'processor\'',
+    example: 'SELECT * FROM nodes WHERE type = processor',
   })
   @IsString()
   @IsNotEmpty()
   query: string;
+
+  @ApiProperty({
+    description: 'The name of the database to execute the query against',
+    example: 'nodes_db',
+  })
+  @IsString()
+  @IsNotEmpty()
+  dbName: string;
 
   @ApiProperty({
     description: 'Optional parameters for the query',

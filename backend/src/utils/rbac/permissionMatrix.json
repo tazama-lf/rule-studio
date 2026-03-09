@@ -1,0 +1,348 @@
+{
+  "_meta": {
+    "version": "0.1.1",
+    "description": "Tier 2 & 3 RBAC permission matrix. Tier 1 (endpoint + HTTP method role gating) is enforced at the controller level and is not represented here.",
+    "statusCodes": {
+      "STATUS_01_IN_PROGRESS": "STATUS_01_IN_PROGRESS",
+      "STATUS_02_ON_HOLD": "STATUS_02_ON_HOLD",
+      "STATUS_03_UNDER_REVIEW": "STATUS_03_UNDER_REVIEW",
+      "STATUS_04_APPROVED": "STATUS_04_APPROVED",
+      "STATUS_05_REJECTED": "STATUS_05_REJECTED",
+      "STATUS_08_DEPLOYED": "STATUS_08_DEPLOYED"
+    },
+    "roles": {
+      "editor": {
+        "bypassAllTiers": false
+      },
+      "approver": {
+        "bypassAllTiers": false
+      },
+      "publisher": {
+        "bypassAllTiers": false
+      }
+    }
+  },
+  "endpoints": {
+    "GET /rules/api/status": {
+      "tier2": {
+        "description": "Retrieves available rule statuses based on user role and permissions",
+        "rolePermissions": {
+          "editor": {
+            "allowedCurrentStatuses": [
+              "STATUS_01_IN_PROGRESS",
+              "STATUS_02_ON_HOLD",
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED",
+              "STATUS_05_REJECTED",
+              "STATUS_08_DEPLOYED"
+            ]
+          },
+          "approver": {
+            "allowedCurrentStatuses": [
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED",
+              "STATUS_08_DEPLOYED"
+            ]
+          },
+          "publisher": {
+            "allowedCurrentStatuses": [
+              "STATUS_04_APPROVED",
+              "STATUS_08_DEPLOYED"
+            ]
+          }
+        }
+      }
+    },
+    "POST /rules/api/all": {
+      "tier2": {
+        "description": "Retrieves paginated list of rules with optional filters for status, transaction type, etc.",
+        "rolePermissions": {
+          "editor": {
+            "allowedCurrentStatuses": [
+              "STATUS_01_IN_PROGRESS",
+              "STATUS_02_ON_HOLD",
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED",
+              "STATUS_05_REJECTED",
+              "STATUS_08_DEPLOYED"
+            ]
+          },
+          "approver": {
+            "allowedCurrentStatuses": [
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED",
+              "STATUS_08_DEPLOYED"
+            ]
+          },
+          "publisher": {
+            "allowedCurrentStatuses": [
+              "STATUS_04_APPROVED",
+              "STATUS_08_DEPLOYED"
+            ]
+          }
+        }
+      }
+    },
+    "GET /rules/api/ids": {},
+    "POST /rules/api/create": {},
+    "GET /rules/api/configuration/:ruleId": {},
+    "PUT /rules/api/:ruleId": {
+      "tier2": {
+        "description": "Updates an existing rule with partial data (only provided fields will be updated)",
+        "rolePermissions": {
+          "editor": {
+            "allowedCurrentStatuses": [
+              "STATUS_01_IN_PROGRESS",
+              "STATUS_02_ON_HOLD",
+              "STATUS_05_REJECTED"
+            ]
+          }
+        }
+      },
+      "tier3": {
+        "description": "Allowed status transitions per role, keyed by currentStatus → [targetStatusCode]",
+        "transitions": {
+          "editor": {
+            "STATUS_01_IN_PROGRESS": [
+              "STATUS_02_ON_HOLD",
+              "STATUS_03_UNDER_REVIEW"
+            ],
+            "STATUS_02_ON_HOLD": [
+              "STATUS_01_IN_PROGRESS"
+            ],
+            "STATUS_05_REJECTED": [
+              "STATUS_01_IN_PROGRESS"
+            ]
+          }
+        }
+      }
+    },
+    "GET /rules/api/:ruleId": {
+      "tier2": {
+        "description": "Retrieves a specific rule by its numeric database ID",
+        "rolePermissions": {
+          "editor": {
+            "allowedCurrentStatuses": [
+              "STATUS_01_IN_PROGRESS",
+              "STATUS_02_ON_HOLD",
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED",
+              "STATUS_05_REJECTED",
+              "STATUS_08_DEPLOYED"
+            ]
+          },
+          "approver": {
+            "allowedCurrentStatuses": [
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED",
+              "STATUS_08_DEPLOYED"
+            ]
+          },
+          "publisher": {
+            "allowedCurrentStatuses": [
+              "STATUS_04_APPROVED",
+              "STATUS_08_DEPLOYED"
+            ]
+          }
+        }
+      }
+    },
+    "GET /rules/api/network-map/active": {},
+    "POST /rules/api/:ruleId/flow": {
+      "tier2": {
+        "description": "Creates a new flow configuration for a specific rule with nodes and connections",
+        "rolePermissions": {
+          "editor": {
+            "allowedCurrentStatuses": [
+              "STATUS_01_IN_PROGRESS"
+            ]
+          }
+        }
+      }
+    },
+    "GET /rules/api/:ruleId/flow": {
+      "tier2": {
+        "description": "Retrieves the flow configuration for a specific rule showing nodes and connections",
+        "rolePermissions": {
+          "editor": {
+            "allowedCurrentStatuses": [
+              "STATUS_01_IN_PROGRESS",
+              "STATUS_02_ON_HOLD",
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED",
+              "STATUS_05_REJECTED",
+              "STATUS_08_DEPLOYED"
+            ]
+          },
+          "approver": {
+            "allowedCurrentStatuses": [
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED",
+              "STATUS_08_DEPLOYED"
+            ]
+          },
+          "publisher": {
+            "allowedCurrentStatuses": [
+              "STATUS_04_APPROVED",
+              "STATUS_08_DEPLOYED"
+            ]
+          }
+        }
+      }
+    },
+    "PUT /rules/api/:ruleId/flow": {
+      "tier2": {
+        "description": "Creates a new flow configuration for a specific rule with nodes and connections",
+        "rolePermissions": {
+          "editor": {
+            "allowedCurrentStatuses": [
+              "STATUS_01_IN_PROGRESS"
+            ]
+          }
+        }
+      }
+    },
+    "GET /rules/api/:ruleId/flow/status": {
+      "tier2": {
+        "description": "Retrieves the current status of the rule flow configuration (e.g., active, draft, error)",
+        "rolePermissions": {
+          "editor": {
+            "allowedCurrentStatuses": [
+              "STATUS_01_IN_PROGRESS",
+              "STATUS_02_ON_HOLD",
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED",
+              "STATUS_05_REJECTED",
+              "STATUS_08_DEPLOYED"
+            ]
+          },
+          "approver": {
+            "allowedCurrentStatuses": [
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED",
+              "STATUS_08_DEPLOYED"
+            ]
+          },
+          "publisher": {
+            "allowedCurrentStatuses": [
+              "STATUS_04_APPROVED",
+              "STATUS_08_DEPLOYED"
+            ]
+          }
+        }
+      }
+    },
+    "GET /rules/api/global-variables/:ruleId": {
+      "tier2": {
+        "description": "Retrieves the global variables used in a specific rule editor",
+        "rolePermissions": {
+          "editor": {
+            "allowedCurrentStatuses": [
+              "STATUS_01_IN_PROGRESS",
+              "STATUS_02_ON_HOLD",
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED",
+              "STATUS_05_REJECTED",
+              "STATUS_08_DEPLOYED"
+            ]
+          },
+          "approver": {
+            "allowedCurrentStatuses": [
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED",
+              "STATUS_08_DEPLOYED"
+            ]
+          },
+          "publisher": {
+            "allowedCurrentStatuses": [
+              "STATUS_04_APPROVED",
+              "STATUS_08_DEPLOYED"
+            ]
+          }
+        }
+      }
+    },
+    "POST /rules/api/clone/:ruleId": {
+      "tier2": {
+        "description": "Creates a copy of an existing rule for modification and customization",
+        "rolePermissions": {
+          "editor": {
+            "allowedCurrentStatuses": [
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED",
+              "STATUS_08_DEPLOYED"
+            ]
+          }
+        }
+      }
+    },
+    "PUT /rules/api/:ruleId/status": {
+      "tier2": {
+        "description": "Controls which current resource statuses each role may act upon",
+        "rolePermissions": {
+          "editor": {
+            "allowedCurrentStatuses": [
+              "STATUS_01_IN_PROGRESS",
+              "STATUS_02_ON_HOLD",
+              "STATUS_05_REJECTED"
+            ]
+          },
+          "approver": {
+            "allowedCurrentStatuses": [
+              "STATUS_03_UNDER_REVIEW"
+            ]
+          },
+          "publisher": {
+            "allowedCurrentStatuses": [
+              "STATUS_04_APPROVED"
+            ]
+          }
+        }
+      },
+      "tier3": {
+        "description": "Allowed status transitions per role, keyed by currentStatus → [targetStatusCode]",
+        "transitions": {
+          "editor": {
+            "STATUS_01_IN_PROGRESS": [
+              "STATUS_02_ON_HOLD",
+              "STATUS_03_UNDER_REVIEW"
+            ],
+            "STATUS_02_ON_HOLD": [
+              "STATUS_01_IN_PROGRESS"
+            ],
+            "STATUS_05_REJECTED": [
+              "STATUS_01_IN_PROGRESS"
+            ]
+          },
+          "approver": {
+            "STATUS_03_UNDER_REVIEW": [
+              "STATUS_04_APPROVED",
+              "STATUS_05_REJECTED"
+            ]
+          },
+          "publisher": {
+            "STATUS_04_APPROVED": [
+              "STATUS_08_DEPLOYED"
+            ]
+          }
+        }
+      }
+    },
+    "PUT /rules/api/:ruleId/metadata": {
+      "tier2": {
+        "description": "Updates an existing rule with partial metadata (only provided fields will be updated)",
+        "rolePermissions": {
+          "editor": {
+            "allowedCurrentStatuses": [
+              "STATUS_01_IN_PROGRESS"
+            ]
+          }
+        }
+      }
+    },
+    "POST /parse/api/validatePayload": {},
+    "GET /config/api/transaction-types": {},
+    "GET /config/api/versions/:transactionType": {},
+    "GET /config/api/payload/:transactionType/:transactionVersion": {}  
+  }
+}

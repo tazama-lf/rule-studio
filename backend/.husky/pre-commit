@@ -1,1 +1,5 @@
+#!/usr/bin/env sh
+
+cd backend
 npx lint-staged
+

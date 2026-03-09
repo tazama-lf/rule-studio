@@ -5,9 +5,7 @@ import type { ErrorObject } from 'ajv';
  * @param errors Array of AJV error objects
  * @returns Array of formatted error messages
  */
-export function formatValidationErrors(
-  errors: ErrorObject[] | null | undefined,
-): string[] {
+export function formatValidationErrors(errors: ErrorObject[] | null | undefined): string[] {
   return (
     errors?.map((error) => {
       const path = error.instancePath || 'root';

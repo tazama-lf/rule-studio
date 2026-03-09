@@ -1,37 +1,13 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Post,
-  Query,
-  UseGuards,
-  Delete,
-  Param,
-} from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiQuery,
-  ApiParam,
-  ApiBody,
-} from '@nestjs/swagger';
+import { Body, Controller, Get, Post, Query, UseGuards, Delete, Param } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam, ApiBody } from '@nestjs/swagger';
 import { TazamaAuthGuard } from '../../guards/tazama-auth.guard';
 import { NodesService } from './nodes.service';
-import {
-  CreateNodeDto,
-  RequestQueryNodeDto,
-  ResponseNodesDto,
-  ResponseQueryNodeDto,
-} from './dto';
-import {
-  RequireAnyClaims,
-  TazamaClaims,
-} from '../../decorators/auth.decorator';
+import { CreateNodeDto, RequestQueryNodeDto, ResponseNodesDto, ResponseQueryNodeDto } from './dto';
+import { RequireAnyClaims, TazamaClaims } from '../../decorators/auth.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { User } from '../../decorators/user.decorator';
 import type { GetNodesQuery } from './interfaces/node.interface';
+import { Audit } from '../../decorators/audit.decorator';
 
 @ApiTags('Nodes')
 @ApiBearerAuth('JWT-auth')
@@ -42,15 +18,11 @@ export class NodesController {
 
   @ApiOperation({
     summary: 'Create node',
-    description:
-      'Creates one or more new nodes in the system for transaction processing',
+    description: 'Creates one or more new nodes in the system for transaction processing',
   })
   @Post('/create')
-  @RequireAnyClaims(
-    TazamaClaims.EDITOR,
-    TazamaClaims.APPROVER,
-    TazamaClaims.PUBLISHER,
-  )
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @Audit()
   @ApiBody({ type: [CreateNodeDto] })
   @ApiResponse({
     status: 201,
@@ -66,27 +38,16 @@ export class NodesController {
     status: 403,
     description: 'Forbidden - Insufficient permissions',
   })
-  async createNode(
-    @Body() createNodeDto: CreateNodeDto[],
-    @User() user: AuthenticatedUser,
-  ): Promise<ResponseNodesDto[]> {
-    return await this.nodesService.createNode(
-      user.token.tokenString,
-      createNodeDto,
-    );
+  async createNode(@Body() createNodeDto: CreateNodeDto[], @User() user: AuthenticatedUser): Promise<ResponseNodesDto[]> {
+    return await this.nodesService.createNode(user.token.tokenString, createNodeDto);
   }
 
   @ApiOperation({
     summary: 'Get all nodes',
-    description:
-      'Retrieves all nodes with optional query parameters for filtering, sorting and pagination',
+    description: 'Retrieves all nodes with optional query parameters for filtering, sorting and pagination',
   })
   @Get()
-  @RequireAnyClaims(
-    TazamaClaims.EDITOR,
-    TazamaClaims.APPROVER,
-    TazamaClaims.PUBLISHER,
-  )
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
   @ApiQuery({
     name: 'limit',
     required: false,
@@ -142,19 +103,13 @@ export class NodesController {
     status: 403,
     description: 'Forbidden - Insufficient permissions',
   })
-  async getAllNodes(
-    @Query() query: GetNodesQuery,
-    @User() user: AuthenticatedUser,
-  ): Promise<ResponseNodesDto[]> {
+  async getAllNodes(@Query() query: GetNodesQuery, @User() user: AuthenticatedUser): Promise<ResponseNodesDto[]> {
     return await this.nodesService.getAllNodes(user.token.tokenString, query);
   }
 
   @Delete(':nodeId')
-  @RequireAnyClaims(
-    TazamaClaims.EDITOR,
-    TazamaClaims.APPROVER,
-    TazamaClaims.PUBLISHER,
-  )
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @Audit()
   @ApiOperation({
     summary: 'Delete node by ID',
     description: 'Deletes a specific node by its unique identifier',
@@ -177,22 +132,13 @@ export class NodesController {
     status: 403,
     description: 'Forbidden - Insufficient permissions',
   })
-  async deleteNodeById(
-    @Param('nodeId') nodeId: string,
-    @User() user: AuthenticatedUser,
-  ): Promise<{ success: boolean; message: string }> {
-    return await this.nodesService.deleteNodeById(
-      nodeId,
-      user.token.tokenString,
-    );
+  async deleteNodeById(@Param('nodeId') nodeId: string, @User() user: AuthenticatedUser): Promise<{ success: boolean; message: string }> {
+    return await this.nodesService.deleteNodeById(nodeId, user.token.tokenString);
   }
 
   @Post('execute-query')
-  @RequireAnyClaims(
-    TazamaClaims.EDITOR,
-    TazamaClaims.APPROVER,
-    TazamaClaims.PUBLISHER,
-  )
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @Audit()
   @ApiOperation({
     summary: 'Execute query node',
     description: 'Executes a query node and returns the result',
@@ -212,13 +158,7 @@ export class NodesController {
     status: 403,
     description: 'Forbidden - Insufficient permissions',
   })
-  async executeQueryNode(
-    @Body() body: RequestQueryNodeDto,
-    @User() user: AuthenticatedUser,
-  ): Promise<ResponseQueryNodeDto> {
-    return await this.nodesService.executeQueryNode(
-      user.token.tokenString,
-      body,
-    );
+  async executeQueryNode(@Body() body: RequestQueryNodeDto, @User() user: AuthenticatedUser): Promise<ResponseQueryNodeDto> {
+    return await this.nodesService.executeQueryNode(user.token.tokenString, body);
   }
 }

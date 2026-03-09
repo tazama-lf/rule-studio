@@ -11,6 +11,7 @@ import {
 import { LoggerService } from '@tazama-lf/frms-coe-lib';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { Audit } from '../../decorators/audit.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -21,6 +22,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(200)
+  @Audit()
   async login(
     @Body(new ValidationPipe({ whitelist: true, transform: true }))
     body: LoginDto,
@@ -46,20 +48,12 @@ export class AuthController {
     }
 
     if (error instanceof ServiceUnavailableException) {
-      this.logger.error(
-        'Auth service unavailable during login attempt',
-        AuthController.name,
-      );
+      this.logger.error('Auth service unavailable during login attempt', AuthController.name);
       throw error;
     }
 
     const err = error as Error;
-    this.logger.error(
-      `Unexpected error during login: ${err.message}`,
-      AuthController.name,
-    );
-    throw new InternalServerErrorException(
-      'An unexpected error occurred during login',
-    );
+    this.logger.error(`Unexpected error during login: ${err.message}`, AuthController.name);
+    throw new InternalServerErrorException('An unexpected error occurred during login');
   }
 }
