@@ -25,9 +25,7 @@ CREATE TABLE trs_rules (
     updated_by VARCHAR(255) NOT NULL,
     updated_at DATE,
     created_at DATE,
-    flow_id INTEGER,
     PRIMARY KEY (rule_id, tenant_id, version),
-    CONSTRAINT fk_trs_rules_flow_id FOREIGN KEY (flow_id) REFERENCES trs_rule_flow(id)
 );
 
 -- Index on tenant_id for faster retrieval of rules by tenant
