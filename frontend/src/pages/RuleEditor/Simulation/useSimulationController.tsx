@@ -213,10 +213,25 @@ const useSimulationController = (props: ISimulation) => {
                         deploy: true,
                         simulation: false
                     })
+                    const showFallbackModal = () => {
+                        open(
+                            'Deployment Successful',
+                            <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                                <p style={{ fontSize: '15px', color: '#333', lineHeight: 1.6 }}>
+                                    The rule has been deployed successfully. A workflow is currently in progress — please allow up to 30 minutes for both simulations to complete and verify that the rule is functioning as expected.
+                                </p>
+                            </div>,
+                            null,
+                            { maxWidth: 'sm' }
+                        )
+                    }
                     getOrganization().unwrap()
-                        .then((org) => {
-                            const ParseResponse = JSON.parse(org);
-                            const { organization} : { organization: string } = ParseResponse || {};
+                        .then((res) => {
+                            const organization = res?.organization
+                            if (!organization || !rule_name) {
+                                showFallbackModal()
+                                return
+                            }
                             const actionsUrl = `https://github.com/${organization}/${rule_name}/actions`
                             open(
                                 'Deployment Successful',
@@ -235,16 +250,7 @@ const useSimulationController = (props: ISimulation) => {
                             )
                         })
                         .catch(() => {
-                            open(
-                                'Deployment Successful',
-                                <div style={{ textAlign: 'center', padding: '16px 0' }}>
-                                    <p style={{ fontSize: '15px', color: '#333', lineHeight: 1.6 }}>
-                                        The rule has been deployed successfully. A workflow is currently in progress — please allow up to 30 minutes for both simulations to complete and verify that the rule is functioning as expected.
-                                    </p>
-                                </div>,
-                                null,
-                                { maxWidth: 'sm' }
-                            )
+                            showFallbackModal()
                         })
                 }
             })
@@ -317,6 +323,11 @@ const useSimulationController = (props: ISimulation) => {
             : _values?.payload || {};
         if (isReadOnly) {
 
+            if (!tenant_id) {
+                toast.error('Tenant ID is missing. Cannot run simulation.')
+                return
+            }
+
             const rule_config_id = data?.rule_config_id
             const id = rule_config_id?.toString().split('@')[0]
             const version = data?.version
@@ -384,7 +395,7 @@ const useSimulationController = (props: ISimulation) => {
                 setResult(null);
             });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selected, user?.claims, ruleOnly, endToEnd, toggleSimulationExecuted, updateMetadata, addSimulationLog])
+    }, [selected, user?.claims, ruleOnly, endToEnd, toggleSimulationExecuted, updateMetadata, addSimulationLog, tenant_id])
 
     const handleReport = () => {
         open('Test Report', <ViewReport data={data} />, null, { maxWidth: 'xl' })
