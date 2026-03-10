@@ -49,7 +49,12 @@ export const simulationApi = createApi({
                 method: "GET",
             }),
         }),
-       
+        getOrganization: builder.query<{ organization: string }, void>({
+            query: () => ({
+                url: `/api/v1/organization`,
+                method: "GET",
+            }),
+        }),
     }),
 })
 
@@ -59,4 +64,5 @@ export const {
     useMergeBranchMutation,
     useLazyGetReportQuery,
     useLazyGetReportStatusQuery,
+    useLazyGetOrganizationQuery,
 } = simulationApi
