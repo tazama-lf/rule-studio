@@ -29,12 +29,7 @@ const config: Config.InitialOptions = {
 
   // Coverage settings
   collectCoverage: true,
-  collectCoverageFrom: [
-    'src/**/*.ts',
-    '!src/main.ts',
-    '!src/**/index.ts',
-    '!src/**/*.module.ts',
-  ],
+  collectCoverageFrom: ['src/**/*.ts', '!src/main.ts', '!src/**/index.ts', '!src/**/*.module.ts'],
   coverageDirectory: '<rootDir>/coverage',
   coverageProvider: 'v8',
 
