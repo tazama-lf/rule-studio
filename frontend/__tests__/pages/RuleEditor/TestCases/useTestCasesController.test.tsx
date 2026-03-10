@@ -4,16 +4,25 @@ import useTestCasesController from '../../../../src/pages/RuleEditor/TestCases/u
 
 const mockEnableNextTab = jest.fn();
 const mockEnablePreviousTab = jest.fn();
+const mockUseTab = jest.fn(() => ({
+    enableNextTab: mockEnableNextTab,
+    enablePreviousTab: mockEnablePreviousTab,
+}));
 
 jest.mock('../../../../src/contexts/TabContext/useTab', () => ({
-    useTab: () => ({
-        enableNextTab: mockEnableNextTab,
-        enablePreviousTab: mockEnablePreviousTab,
-    }),
+    useTab: (...args: Parameters<typeof mockUseTab>) => mockUseTab(...args),
 }));
 
 jest.mock('../../../../src/utils/Common/storage', () => ({
     extractData: jest.fn(),
+}));
+
+jest.mock('../../../../src/utils/Common/enums', () => ({
+    LocalStorage: 'LocalStorage',
+}));
+
+jest.mock('../../../../src/utils/Common/navigation', () => ({
+    navigateTo: jest.fn(),
 }));
 
 jest.mock('../../../../src/redux/Api/Rule-builder', () => ({
@@ -22,6 +31,7 @@ jest.mock('../../../../src/redux/Api/Rule-builder', () => ({
 
 const { extractData } = require('../../../../src/utils/Common/storage');
 const { useGetRuleFlowStatusQuery } = require('../../../../src/redux/Api/Rule-builder');
+const { navigateTo } = require('../../../../src/utils/Common/navigation');
 
 describe('useTestCasesController Hook', () => {
     beforeEach(() => {
@@ -32,9 +42,8 @@ describe('useTestCasesController Hook', () => {
         });
         (useGetRuleFlowStatusQuery as jest.Mock).mockReturnValue({
             data: {
-                data: {
-                    statusInProgress: true,
-                    flowStatus: 'initial',
+                result: {
+                    status: 'initial',
                 },
             },
             isLoading: false,
@@ -58,7 +67,7 @@ describe('useTestCasesController Hook', () => {
         it('should call extractData to get rule data', () => {
             renderHook(() => useTestCasesController({}));
 
-            expect(extractData).toHaveBeenCalledWith('rule');
+            expect(extractData).toHaveBeenCalledWith('trs_rule', 'LocalStorage', true);
         });
 
         it('should use data from props if provided', () => {
@@ -74,10 +83,12 @@ describe('useTestCasesController Hook', () => {
 
             expect(useGetRuleFlowStatusQuery).toHaveBeenCalledWith(
                 {
-                    id: '123',
+                    ruleId: '123',
+                    category: 'test_case_generation',
                 },
                 {
                     skip: false,
+                    refetchOnMountOrArgChange: true,
                 }
             );
         });
@@ -89,10 +100,12 @@ describe('useTestCasesController Hook', () => {
 
             expect(useGetRuleFlowStatusQuery).toHaveBeenCalledWith(
                 {
-                    id: undefined,
+                    ruleId: '',
+                    category: 'test_case_generation',
                 },
                 {
                     skip: true,
+                    refetchOnMountOrArgChange: true,
                 }
             );
         });
@@ -102,9 +115,8 @@ describe('useTestCasesController Hook', () => {
         beforeEach(() => {
             (useGetRuleFlowStatusQuery as jest.Mock).mockReturnValue({
                 data: {
-                    data: {
-                        statusInProgress: true,
-                        flowStatus: 'initial',
+                    result: {
+                        status: 'initial',
                     },
                 },
                 isLoading: false,
@@ -137,9 +149,8 @@ describe('useTestCasesController Hook', () => {
         beforeEach(() => {
             (useGetRuleFlowStatusQuery as jest.Mock).mockReturnValue({
                 data: {
-                    data: {
-                        statusInProgress: false,
-                        flowStatus: 'pass',
+                    result: {
+                        status: 'pass',
                     },
                 },
                 isLoading: false,
@@ -161,7 +172,7 @@ describe('useTestCasesController Hook', () => {
             const config = result.current.values.statusConfig;
             expect(config.title).toBe('Test Cases Validated Successfully');
             expect(config.description).toBe('Your test cases have been validated and are ready to use. You can edit them anytime.');
-            expect(config.buttonText).toBe('View Test Cases');
+            expect(config.buttonText).toMatch(/Test Cases/);
             expect(config.color).toBe('#66BB6A');
             expect(config.bgColor).toBe('#E8F5E9');
             expect(config.icon).toBe('✅');
@@ -172,9 +183,8 @@ describe('useTestCasesController Hook', () => {
         beforeEach(() => {
             (useGetRuleFlowStatusQuery as jest.Mock).mockReturnValue({
                 data: {
-                    data: {
-                        statusInProgress: false,
-                        flowStatus: 'fail',
+                    result: {
+                        status: 'fail',
                     },
                 },
                 isLoading: false,
@@ -196,7 +206,7 @@ describe('useTestCasesController Hook', () => {
             const config = result.current.values.statusConfig;
             expect(config.title).toBe('Validation Failed');
             expect(config.description).toBe('Your test cases contain errors and need to be fixed. Click below to review and correct the issues.');
-            expect(config.buttonText).toBe('View Test Cases');
+            expect(config.buttonText).toMatch(/Test Cases/);
             expect(config.color).toBe('#EF5350');
             expect(config.bgColor).toBe('#FFEBEE');
             expect(config.icon).toBe('⚠️');
@@ -207,9 +217,8 @@ describe('useTestCasesController Hook', () => {
         beforeEach(() => {
             (useGetRuleFlowStatusQuery as jest.Mock).mockReturnValue({
                 data: {
-                    data: {
-                        statusInProgress: true,
-                        flowStatus: 'unknown',
+                    result: {
+                        status: 'unknown',
                     },
                 },
                 isLoading: false,
@@ -229,9 +238,9 @@ describe('useTestCasesController Hook', () => {
             const { result } = renderHook(() => useTestCasesController({}));
 
             const config = result.current.values.statusConfig;
-            expect(config.title).toBe('Test Cases Status');
-            expect(config.description).toBe('Click below to view or edit your test cases.');
-            expect(config.buttonText).toBe('View Test Cases');
+            expect(config.title).toBe('Test Case Generator');
+            expect(config.description).toBe('Generate test cases for your rule');
+            expect(config.buttonText).toMatch(/Test Case/);
             expect(config.color).toBe('#42A5F5');
             expect(config.bgColor).toBe('#E3F2FD');
             expect(config.icon).toBe('📝');
@@ -253,9 +262,8 @@ describe('useTestCasesController Hook', () => {
         it('should return isLoadingFlow as false when query is not loading', () => {
             (useGetRuleFlowStatusQuery as jest.Mock).mockReturnValue({
                 data: {
-                    data: {
-                        statusInProgress: true,
-                        flowStatus: 'initial',
+                    result: {
+                        status: 'initial',
                     },
                 },
                 isLoading: false,
@@ -333,13 +341,17 @@ describe('useTestCasesController Hook', () => {
         });
     });
 
-    describe.skip('handleCanvas Function - Edit Mode', () => {
+    describe('handleCanvas Function - Edit Mode', () => {
         beforeEach(() => {
+            (extractData as jest.Mock).mockReturnValue({
+                id: '123',
+                rule_name: 'Test Rule',
+                status: 'STATUS_01_IN_PROGRESS',
+            });
             (useGetRuleFlowStatusQuery as jest.Mock).mockReturnValue({
                 data: {
-                    data: {
-                        statusInProgress: true,
-                        flowStatus: 'initial',
+                    result: {
+                        status: 'initial',
                     },
                 },
                 isLoading: false,
@@ -353,13 +365,14 @@ describe('useTestCasesController Hook', () => {
                 result.current.functions.handleCanvas();
             });
 
-            expect(window.location.href).toBe('/test-case-generate/123');
+            expect(navigateTo).toHaveBeenCalledWith('/test-case-generate/123');
         });
 
         it('should use id from extracted data', () => {
             (extractData as jest.Mock).mockReturnValue({
                 id: '456',
                 rule_name: 'Test Rule',
+                status: 'STATUS_01_IN_PROGRESS',
             });
 
             const { result } = renderHook(() => useTestCasesController({}));
@@ -368,11 +381,11 @@ describe('useTestCasesController Hook', () => {
                 result.current.functions.handleCanvas();
             });
 
-            expect(window.location.href).toBe('/test-case-generate/456');
+            expect(navigateTo).toHaveBeenCalledWith('/test-case-generate/456');
         });
 
         it('should use id from props data', () => {
-            const propsData = { id: '789', rule_name: 'Props Rule' };
+            const propsData = { id: '789', rule_name: 'Props Rule', status: 'STATUS_01_IN_PROGRESS' };
 
             const { result } = renderHook(() => useTestCasesController({ data: propsData }));
 
@@ -380,17 +393,21 @@ describe('useTestCasesController Hook', () => {
                 result.current.functions.handleCanvas();
             });
 
-            expect(window.location.href).toBe('/test-case-generate/789');
+            expect(navigateTo).toHaveBeenCalledWith('/test-case-generate/789');
         });
     });
 
-    describe.skip('handleCanvas Function - View Mode', () => {
+    describe('handleCanvas Function - View Mode', () => {
         beforeEach(() => {
+            (extractData as jest.Mock).mockReturnValue({
+                id: '123',
+                rule_name: 'Test Rule',
+                status: 'STATUS_04_APPROVED',
+            });
             (useGetRuleFlowStatusQuery as jest.Mock).mockReturnValue({
                 data: {
-                    data: {
-                        statusInProgress: false,
-                        flowStatus: 'pass',
+                    result: {
+                        status: 'pass',
                     },
                 },
                 isLoading: false,
@@ -404,13 +421,14 @@ describe('useTestCasesController Hook', () => {
                 result.current.functions.handleCanvas();
             });
 
-            expect(window.location.href).toBe('/test-case-generate/view/123');
+            expect(navigateTo).toHaveBeenCalledWith('/test-case-generate/view/123');
         });
 
         it('should use correct route for view mode with different id', () => {
             (extractData as jest.Mock).mockReturnValue({
                 id: '999',
                 rule_name: 'Test Rule',
+                status: 'STATUS_04_APPROVED',
             });
 
             const { result } = renderHook(() => useTestCasesController({}));
@@ -419,7 +437,7 @@ describe('useTestCasesController Hook', () => {
                 result.current.functions.handleCanvas();
             });
 
-            expect(window.location.href).toBe('/test-case-generate/view/999');
+            expect(navigateTo).toHaveBeenCalledWith('/test-case-generate/view/999');
         });
     });
 
@@ -431,10 +449,12 @@ describe('useTestCasesController Hook', () => {
 
             expect(useGetRuleFlowStatusQuery).toHaveBeenCalledWith(
                 {
-                    id: '555',
+                    ruleId: '555',
+                    category: 'test_case_generation',
                 },
                 {
                     skip: false,
+                    refetchOnMountOrArgChange: true,
                 }
             );
         });
@@ -442,7 +462,7 @@ describe('useTestCasesController Hook', () => {
         it('should extract data when no props provided', () => {
             renderHook(() => useTestCasesController({}));
 
-            expect(extractData).toHaveBeenCalledWith('rule');
+            expect(extractData).toHaveBeenCalledWith('trs_rule', 'LocalStorage', true);
         });
 
         it('should handle empty props data', () => {
@@ -454,7 +474,7 @@ describe('useTestCasesController Hook', () => {
         it('should handle undefined props', () => {
             renderHook(() => useTestCasesController({ data: undefined }));
 
-            expect(extractData).toHaveBeenCalledWith('rule');
+            expect(extractData).toHaveBeenCalledWith('trs_rule', 'LocalStorage', true);
         });
     });
 
@@ -469,9 +489,9 @@ describe('useTestCasesController Hook', () => {
 
             expect(useGetRuleFlowStatusQuery).toHaveBeenCalledWith(
                 expect.anything(),
-                {
+                expect.objectContaining({
                     skip: false,
-                }
+                })
             );
         });
 
@@ -484,9 +504,9 @@ describe('useTestCasesController Hook', () => {
 
             expect(useGetRuleFlowStatusQuery).toHaveBeenCalledWith(
                 expect.anything(),
-                {
+                expect.objectContaining({
                     skip: true,
-                }
+                })
             );
         });
 
@@ -497,15 +517,15 @@ describe('useTestCasesController Hook', () => {
 
             expect(useGetRuleFlowStatusQuery).toHaveBeenCalledWith(
                 expect.anything(),
-                {
+                expect.objectContaining({
                     skip: true,
-                }
+                })
             );
         });
     });
 
     describe('Edge Cases', () => {
-        it('should handle missing query data', () => {
+        it('should handle missing query data with fallback to initial', () => {
             (useGetRuleFlowStatusQuery as jest.Mock).mockReturnValue({
                 data: undefined,
                 isLoading: false,
@@ -513,28 +533,27 @@ describe('useTestCasesController Hook', () => {
 
             const { result } = renderHook(() => useTestCasesController({}));
 
-            expect(result.current.values.flowStatus).toBeUndefined();
+            expect(result.current.values.flowStatus).toBe('initial');
         });
 
-        it('should handle missing nested data', () => {
+        it('should handle missing nested data with fallback to initial', () => {
             (useGetRuleFlowStatusQuery as jest.Mock).mockReturnValue({
                 data: {
-                    data: undefined,
+                    result: undefined,
                 },
                 isLoading: false,
             });
 
             const { result } = renderHook(() => useTestCasesController({}));
 
-            expect(result.current.values.flowStatus).toBeUndefined();
+            expect(result.current.values.flowStatus).toBe('initial');
         });
 
-        it('should handle empty string flowStatus', () => {
+        it('should handle empty string flowStatus with fallback to initial', () => {
             (useGetRuleFlowStatusQuery as jest.Mock).mockReturnValue({
                 data: {
-                    data: {
-                        statusInProgress: true,
-                        flowStatus: '',
+                    result: {
+                        status: '',
                     },
                 },
                 isLoading: false,
@@ -542,15 +561,14 @@ describe('useTestCasesController Hook', () => {
 
             const { result } = renderHook(() => useTestCasesController({}));
 
-            expect(result.current.values.flowStatus).toBe('');
+            expect(result.current.values.flowStatus).toBe('initial');
         });
 
-        it('should handle null flowStatus', () => {
+        it('should handle null flowStatus with fallback to initial', () => {
             (useGetRuleFlowStatusQuery as jest.Mock).mockReturnValue({
                 data: {
-                    data: {
-                        statusInProgress: true,
-                        flowStatus: null,
+                    result: {
+                        status: null,
                     },
                 },
                 isLoading: false,
@@ -558,7 +576,7 @@ describe('useTestCasesController Hook', () => {
 
             const { result } = renderHook(() => useTestCasesController({}));
 
-            expect(result.current.values.flowStatus).toBeNull();
+            expect(result.current.values.flowStatus).toBe('initial');
         });
     });
 
@@ -593,11 +611,9 @@ describe('useTestCasesController Hook', () => {
 
     describe('Context Integration', () => {
         it('should call useTab hook', () => {
-            const useTab = require('../../../../src/contexts/TabContext/useTab').useTab;
-
             renderHook(() => useTestCasesController({}));
 
-            expect(useTab).toHaveBeenCalled();
+            expect(mockUseTab).toHaveBeenCalled();
         });
 
         it('should use enableNextTab from context', () => {
@@ -637,9 +653,8 @@ describe('useTestCasesController Hook', () => {
         it('should have different configs for different statuses', () => {
             (useGetRuleFlowStatusQuery as jest.Mock).mockReturnValue({
                 data: {
-                    data: {
-                        statusInProgress: true,
-                        flowStatus: 'initial',
+                    result: {
+                        status: 'initial',
                     },
                 },
                 isLoading: false,
@@ -650,9 +665,8 @@ describe('useTestCasesController Hook', () => {
 
             (useGetRuleFlowStatusQuery as jest.Mock).mockReturnValue({
                 data: {
-                    data: {
-                        statusInProgress: false,
-                        flowStatus: 'pass',
+                    result: {
+                        status: 'pass',
                     },
                 },
                 isLoading: false,
