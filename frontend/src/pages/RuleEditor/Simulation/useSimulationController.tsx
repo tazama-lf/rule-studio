@@ -3,7 +3,6 @@ import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { useSearchParams } from "react-router-dom";
 import Approval from "../../../components/Modals/Approval";
-import { SIMULATION_ENDPOINT } from "../../../config/environment";
 import { useModal } from "../../../contexts/ModalContext";
 import { useTab } from "../../../contexts/TabContext/useTab";
 import useToggle from "../../../hooks/useToggle";
