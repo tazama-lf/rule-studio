@@ -10,7 +10,7 @@ import { useLazyGetSamplePayloadQuery } from "../../../redux/Api/Config";
 import { useEndToEndMutation, useLazyGetEndReportQuery, useRuleOnlyMutation } from "../../../redux/Api/Nats";
 import { useGetAllFlowQuery, useLazyGetGlobalVariablesQuery } from "../../../redux/Api/Rule-builder";
 import { useUpdateMetadataMutation } from "../../../redux/Api/Rules";
-import { useLazyGetReportStatusQuery, useMergeBranchMutation, useUploadCodeMutation } from "../../../redux/Api/Simulation";
+import { useLazyGetOrganizationQuery, useLazyGetReportStatusQuery, useMergeBranchMutation, useUploadCodeMutation } from "../../../redux/Api/Simulation";
 import { useAddSimulationlogsMutation } from "../../../redux/Api/SimulationLogs";
 import { LocalStorage } from "../../../utils/Common/enums";
 import { extractData } from "../../../utils/Common/storage";
@@ -28,6 +28,8 @@ const useSimulationController = (props: ISimulation) => {
         () => extractData('trs_rule', LocalStorage, true) ?? props.data,
         [props.data]
     )
+
+    const { tenant_id, rule_name } : { tenant_id?: string, rule_name?: string } = data || {};
 
     const user = useMemo(() => extractData('user'), [])
 
@@ -70,6 +72,7 @@ const useSimulationController = (props: ISimulation) => {
     const [upload, { isLoading: uploading }] = useUploadCodeMutation()
     const [deploy, { isLoading: deploying }] = useMergeBranchMutation()
     const [getReportStatus, { isLoading: statusLoading }] = useLazyGetReportStatusQuery()
+    const [getOrganization] = useLazyGetOrganizationQuery();
     const [getRuleRequest, { isFetching: variablesLoading }] = useLazyGetGlobalVariablesQuery()
     const [getPayload, { isFetching: sampleLoading }] = useLazyGetSamplePayloadQuery()
     const { data: flowData, isFetching: flowLoading } = useGetAllFlowQuery({ ruleId: data?.id })
@@ -190,10 +193,10 @@ const useSimulationController = (props: ISimulation) => {
     }, [data?.id, upload, toggleCodeSynced, updateMetadata, flowData, handleLoader])
 
     const handleDeploy = useCallback(() => {
-        if (codeSynced) {
-            toast.error('Please sync code on GitHub before deploying')
-            return
-        }
+        // if (codeSynced) {
+        //     toast.error('Please sync code on GitHub before deploying')
+        //     return
+        // }
         const rule_config_id = data?.rule_config_id
         const body = {
             ruleId: rule_config_id?.toString().split('@')[0],
@@ -210,23 +213,52 @@ const useSimulationController = (props: ISimulation) => {
                         deploy: true,
                         simulation: false
                     })
-                    open(
-                        'Deployment Successful',
-                        <div style={{ textAlign: 'center', padding: '16px 0' }}>
-                            <p style={{ fontSize: '15px', color: '#333', lineHeight: 1.6 }}>
-                                The rule has been deployed successfully. A workflow is currently in progress — please allow up to 30 minutes for both simulations to complete and verify that the rule is functioning as expected.
-                            </p>
-                        </div>,
-                        null,
-                        { maxWidth: 'sm' }
-                    )
+                    const showFallbackModal = () => {
+                        open(
+                            'Deployment Successful',
+                            <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                                <p style={{ fontSize: '15px', color: '#333', lineHeight: 1.6 }}>
+                                    The rule has been deployed successfully. A workflow is currently in progress — please allow up to 30 minutes for both simulations to complete and verify that the rule is functioning as expected.
+                                </p>
+                            </div>,
+                            null,
+                            { maxWidth: 'sm' }
+                        )
+                    }
+                    getOrganization().unwrap()
+                        .then((res) => {
+                            const organization = res?.organization
+                            if (!organization || !rule_name) {
+                                showFallbackModal()
+                                return
+                            }
+                            const actionsUrl = `https://github.com/${organization}/${rule_name}/actions`
+                            open(
+                                'Deployment Successful',
+                                <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                                    <p style={{ fontSize: '15px', color: '#333', lineHeight: 1.6 }}>
+                                        The rule has been deployed successfully. A workflow is currently in progress — please wait until the workflow completes and verify that the rule is functioning as expected.
+                                    </p>
+                                    <p style={{ fontSize: '14px', marginTop: '12px' }}>
+                                        <a href={actionsUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#1976d2', textDecoration: 'underline' }}>
+                                            View GitHub Actions
+                                        </a>
+                                    </p>
+                                </div>,
+                                null,
+                                { maxWidth: 'sm' }
+                            )
+                        })
+                        .catch(() => {
+                            showFallbackModal()
+                        })
                 }
             })
             .catch(() => {
                 toast.error('Failed to deploy code')
             })
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [codeSynced, data?.id, deploy, toggleCodeDeployed, updateMetadata, open])
+    }, [codeSynced, data?.id, deploy, toggleCodeDeployed, updateMetadata, open, getOrganization, rule_name])
 
     const handleSelect = (id: number) => {
         if (!codeDeployed && claims.editor === user?.claims && mode != 'view') {
@@ -284,11 +316,17 @@ const useSimulationController = (props: ISimulation) => {
         let logCategory: 'read_only' | 'end_to_end';
         let onSuccess;
 
+
         const parsedPayload = typeof
             _values?.payload === 'string'
             ? JSON.parse(_values.payload)
             : _values?.payload || {};
         if (isReadOnly) {
+
+            if (!tenant_id) {
+                toast.error('Tenant ID is missing. Cannot run simulation.')
+                return
+            }
 
             const rule_config_id = data?.rule_config_id
             const id = rule_config_id?.toString().split('@')[0]
@@ -296,8 +334,8 @@ const useSimulationController = (props: ISimulation) => {
             body = {
                 functionName: '',
                 awaitReply: true,
-                destination: `sub-rule-${id}@${version}`,
-                consumer: `pub-rule-${id}@${version}`,
+                destination: `sub-rule-${tenant_id}-rule-${id}@${version}`,
+                consumer: `pub-rule-${tenant_id}-rule-${id}@${version}`,
                 message: parsedPayload
             };
             mutation = ruleOnly;
@@ -357,7 +395,7 @@ const useSimulationController = (props: ISimulation) => {
                 setResult(null);
             });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selected, user?.claims, ruleOnly, endToEnd, toggleSimulationExecuted, updateMetadata, addSimulationLog])
+    }, [selected, user?.claims, ruleOnly, endToEnd, toggleSimulationExecuted, updateMetadata, addSimulationLog, tenant_id])
 
     const handleReport = () => {
         open('Test Report', <ViewReport data={data} />, null, { maxWidth: 'xl' })
@@ -367,8 +405,6 @@ const useSimulationController = (props: ISimulation) => {
         open('View Network Map', <ViewNetworkMap />, null, { maxWidth: 'md' })
     }
 
-
-    console.log('simulationExecuted', simulationExecuted)
 
     return {
         values: {
