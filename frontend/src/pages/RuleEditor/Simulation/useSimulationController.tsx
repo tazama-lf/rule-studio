@@ -268,6 +268,10 @@ const useSimulationController = (props: ISimulation) => {
             setSelected(id)
         }
 
+        // Reset payload and result whenever a tab is (re)selected
+        setValue('payload', '')
+        setResult(null)
+
         if (id === 1) {
             getRuleRequest(data?.id).unwrap()
                 .then((res) => {
@@ -365,22 +369,27 @@ const useSimulationController = (props: ISimulation) => {
             onSuccess = (res: unknown) => {
                 const msgId = (res as Record<string, unknown>)?.transactionRelationship as Record<string, unknown> | undefined;
                 getEndReport({ msgId: msgId?.MsgId as string })
-                    .then((response) => {
-                        const responseData = response as Record<string, unknown>;
-                        if (responseData?.data) {
-                            setResult(responseData.data);
-                            toggleSimulationExecuted();
-                            if (claims.editor === user?.claims) {
-                                updateMetadata({
-                                    sync: false,
-                                    test: true,
-                                    deploy: true,
-                                    simulation: true
-                                });
-                            }
-                            addSimulationLog(body, responseData.data, logCategory);
+                    .unwrap()
+                    .then((reportData) => {
+                        const finalResult = reportData ?? {};
+                        setResult(finalResult);
+                        toggleSimulationExecuted();
+                        if (claims.editor === user?.claims) {
+                            updateMetadata({
+                                sync: false,
+                                test: true,
+                                deploy: true,
+                                simulation: true
+                            });
                         }
+                        addSimulationLog(body, finalResult, logCategory);
                     })
+                    .catch(() => {
+                        // report not available — show empty object
+                        setResult({});
+                        toggleSimulationExecuted();
+                        addSimulationLog(body, {}, logCategory);
+                    });
             };
         }
         mutation(body).unwrap()
