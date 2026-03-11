@@ -20,6 +20,11 @@ const config: Config = {
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
       tsconfig: '<rootDir>/tsconfig.test.json',
+      astTransformers: {
+        before: [
+          { path: '<rootDir>/jest-transforms/replaceImportMetaEnv.cjs' },
+        ],
+      },
     }],
   },
   collectCoverageFrom: [
