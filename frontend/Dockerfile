@@ -1,4 +1,4 @@
-FROM node:22-alpine
+FROM node:20-alpine
 
 # Install dumb-init for proper signal handling
 RUN apk add --no-cache dumb-init
@@ -19,6 +19,7 @@ COPY . .
 ENV VITE_API_BASE_URL=http://localhost:3005
 ENV VITE_APP_NAME="Tazama Model Management"
 ENV VITE_APP_VERSION=0.0.1
+ENV VITE_CRYPTO_KEY=your-encryption-key
 
 # Expose port
 EXPOSE 5174

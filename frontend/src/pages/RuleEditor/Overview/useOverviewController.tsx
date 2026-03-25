@@ -143,8 +143,7 @@ const useOverviewController = (props: IOverviewProps) => {
     const getRuleName = useCallback((id: string) => {
         if (!id) return ''
         const rule_no = id.toString().split('@')
-        const tenantId = user?.tenantId ?? ''
-        return `${tenantId}-rule-${rule_no?.[0]}`
+        return `${rule_no?.[0]}`
     }, [user?.tenantId])
 
     const handleRuleValue = (val: DropdownOption) => {
