@@ -7,8 +7,8 @@ Tazama Rule Studio (TRS) is a comprehensive design-time rule management platform
 - A visual node-based rule builder with drag-and-drop flow editing, automatic TypeScript code generation, and real-time validation
 - A test case generation system for creating rule test harnesses directly from the visual interface
 - A simulation sandbox supporting both rule-only (NATS) and end-to-end (DEMS-driven) execution modes
-- A lifecycle management system with editor-approver-publisher workflow for rule artifacts
-- A multi-tenant platform with role-based access control (Editor, Approver, Publisher)
+- A lifecycle management system with maker-checker-deployer workflow for rule artifacts
+- A multi-tenant platform with role-based access control (Maker, Checker, Deployer)
 - An audit logging system tracking all rule changes, status transitions, and workflow events
 - An ISO 20022 message parsing and validation engine
 
@@ -16,8 +16,23 @@ Tazama Rule Studio (TRS) is a comprehensive design-time rule management platform
 
 ### High-Level Flow
 
-```
-Editor (Frontend) → TRS Backend API → PostgreSQL Database → Admin Service → NATS / DEMS → Runtime Execution
+```mermaid
+flowchart LR
+    A["🖥️ Maker (Frontend)"]
+    B["⚙️ TRS Backend API"]
+    C[("🗄️ PostgreSQL Database")]
+    D["📡 Admin Service"]
+    E["📨 NATS / DEMS"]
+    F["🏁 Runtime Execution"]
+
+    A --> B --> C --> D --> E --> F
+
+    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+    style B fill:#fff8e1,stroke:#f57f17,stroke-width:2px,color:#000
+    style C fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style D fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    style E fill:#fce4ec,stroke:#c62828,stroke-width:2px,color:#000
+    style F fill:#e0f7fa,stroke:#00838f,stroke-width:2px,color:#000
 ```
 
 ---
@@ -295,44 +310,42 @@ VITE_CRYPTO_KEY=your-crypto-key
 #### Backend (`.env`)
 
 ```bash
-# Application
-NODE_ENV=production
-PORT=3005
-API_HOST=localhost
-API_PORT=3005
-FUNCTION_NAME=rule-studio-backend
-MAX_CPU=4
-ALLOWED_ORIGINS=http://localhost:5174
+# Environment Configuration
+NODE_ENV=development
+MAX_CPU=2
+FUNCTION_NAME=your-service-name
+PORT=3000
 
-# Authentication
-TAZAMA_AUTH_URL=https://keycloak-server/v1/auth
-AUTH_PUBLIC_KEY_PATH=public-key.pem
-CERT_PATH_PUBLIC=/path/to/cert
-
-# Database (via Docker Compose)
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_DB=rule_studio
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=YourPassword
+# Authentication Service
+TAZAMA_AUTH_URL=http://localhost:3000/v1/auth
+AUTH_PUBLIC_KEY_PATH=path/to/public-key.pem
+CERT_PATH_PUBLIC=path/to/public-key.pem
 
 # Admin Service
-ADMIN_SERVICE_URL=http://admin-service:3105
+ADMIN_SERVICE_URL=http://localhost:3001
 
-# Email Notifications
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
-SMTP_SECURE=false
-SMTP_FROM_EMAIL=noreply@tazama.com
-SMTP_FROM_NAME=Tazama Rule Studio
+# OpenSearch Configuration
+OPENSEARCH_NODE=http://localhost:9200
+OPENSEARCH_SSL_REJECT_UNAUTHORIZED=false
+OPENSEARCH_USERNAME=your-username
+OPENSEARCH_PASSWORD=your-password
 
-# Cryptography
+# CORS
+ALLOWED_ORIGINS=*
+
+# Security Keys 
 CRYPTO_SECRET_KEY=your-secret-key
+ENCRYPTION_KEY=your-encryption-key
+IV_LENGTH=your-16-char-iv
 
-# Swagger Documentation
-WRITE_SWAGGER_JSON=true
+# SMTP Configuration (Email Notifications)
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-email@example.com
+SMTP_PASS=your-email-password
+SMTP_FROM_EMAIL=your-email@example.com
+SMTP_FROM_NAME="Your App Name"
 ```
 
 ### Docker Deployment
@@ -380,7 +393,7 @@ docker-compose down
 ### Backend Security
 
 - **JWT Validation**: Signature verification using Keycloak public key via Tazama Auth Service
-- **Role-Based Access Control (RBAC)**: Three roles — `editor`, `approver`, `publisher`
+- **Role-Based Access Control (RBAC)**: Three roles — `Maker`, `Checker`, `Deployer`
 - **Three-Tier Permission Model**: Role assignment → status-based access → status transitions
 - **Authorization Guards**: NestJS guards for endpoint protection with custom decorators (`@RequireEditorRole()`, `@RequireApproverRole()`, `@RequirePublisherRole()`)
 - **Tenant Isolation**: Complete multi-tenant data separation via `tenant_id`
@@ -426,9 +439,9 @@ docker-compose down
 
 ### Role-Based Workflows
 
-- **Editor**: Create, edit, build rules, run simulations, and submit for review
-- **Approver**: Review rules, approve or reject with comments
-- **Publisher**: Deploy approved rules to production and manage activation state
+- **Maker**: Create, edit, build rules, run simulations, and submit for review
+- **Checker**: Review rules, approve or reject with comments
+- **Deployer**: Deploy approved rules to production and manage activation state
 
 ### Configuration Management
 
