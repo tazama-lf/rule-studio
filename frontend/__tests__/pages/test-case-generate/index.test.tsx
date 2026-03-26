@@ -82,6 +82,8 @@ jest.mock('../../../src/utils/Constants', () => ({
 }));
 
 const mockUpdateFn = jest.fn(() => ({ unwrap: () => Promise.resolve({ success: true }) }));
+jest.mock('../../../src/redux/Api/Rule-builder');
+
 jest.mock('../../../src/redux/Api/Rules', () => ({
     useUpdateMetadataMutation: () => [mockUpdateFn, { isLoading: false }],
 }));

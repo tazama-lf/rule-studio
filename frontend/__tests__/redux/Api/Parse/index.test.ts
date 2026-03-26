@@ -3,6 +3,24 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 import { parseApi, useParsePayloadMutation } from '../../../../src/redux/Api/Parse';
 import { getAuthToken } from '../../../../src/utils/Common/storage';
 
+type ParseTestGlobal = typeof global & {
+    __parseApiInnerBaseQuery: jest.Mock;
+    __parseApiPrepareHeaders: ((headers: Headers) => Headers) | undefined;
+};
+
+jest.mock('@reduxjs/toolkit/query/react', () => {
+    const actual = jest.requireActual<typeof import('@reduxjs/toolkit/query/react')>('@reduxjs/toolkit/query/react');
+    const innerMock = jest.fn();
+    (global as ParseTestGlobal).__parseApiInnerBaseQuery = innerMock;
+    return {
+        ...actual,
+        fetchBaseQuery: jest.fn((config: { prepareHeaders?: (headers: Headers) => Headers }) => {
+            (global as ParseTestGlobal).__parseApiPrepareHeaders = config.prepareHeaders;
+            return innerMock;
+        }),
+    };
+});
+
 jest.mock('../../../../src/utils/Common/storage', () => ({
     getAuthToken: jest.fn(),
     extractData: jest.fn(),
@@ -213,19 +231,95 @@ describe('parseApi (redux/Api/Parse)', () => {
         });
     });
 
-    describe('prepareHeaders – token attachment', () => {
+    describe('prepareHeaders – direct invocation', () => {
+        const getPrepareHeaders = () =>
+            (global as ParseTestGlobal).__parseApiPrepareHeaders as (h: Headers) => Headers;
+
         beforeEach(() => {
             jest.clearAllMocks();
         });
 
-        it('should call getAuthToken when preparing headers', () => {
-            mockedGetAuthToken.mockReturnValue('test-bearer-token');
-            makeRealStore();
-            expect(mockedGetAuthToken).not.toThrow();
+        it('should set the Authorization header when a token is present', () => {
+            mockedGetAuthToken.mockReturnValue('my-token-123');
+            const headers = new Headers();
+            const result = getPrepareHeaders()(headers);
+            expect(result.get('authorization')).toBe('Bearer my-token-123');
         });
 
-        it('should export getAuthToken from storage module', () => {
-            expect(mockedGetAuthToken).toBeDefined();
+        it('should not set the Authorization header when no token is returned', () => {
+            mockedGetAuthToken.mockReturnValue(null);
+            const headers = new Headers();
+            const result = getPrepareHeaders()(headers);
+            expect(result.get('authorization')).toBeNull();
+        });
+
+        it('should not set the Authorization header when token is an empty string', () => {
+            mockedGetAuthToken.mockReturnValue('');
+            const headers = new Headers();
+            const result = getPrepareHeaders()(headers);
+            expect(result.get('authorization')).toBeNull();
+        });
+
+        it('should return the same headers object', () => {
+            mockedGetAuthToken.mockReturnValue(null);
+            const headers = new Headers();
+            const result = getPrepareHeaders()(headers);
+            expect(result).toBe(headers);
+        });
+
+        it('should not overwrite existing headers unrelated to authorization', () => {
+            mockedGetAuthToken.mockReturnValue('tok');
+            const headers = new Headers({ 'content-type': 'application/json' });
+            const result = getPrepareHeaders()(headers);
+            expect(result.get('content-type')).toBe('application/json');
+            expect(result.get('authorization')).toBe('Bearer tok');
+        });
+    });
+
+    describe('parsePayload endpoint – query function via real parseApi', () => {
+        const getInnerMock = () => (global as ParseTestGlobal).__parseApiInnerBaseQuery;
+
+        beforeEach(() => {
+            getInnerMock().mockResolvedValue({ data: { valid: true } });
+        });
+
+        afterEach(() => {
+            jest.clearAllMocks();
+        });
+
+        it('should call the base query with url "validatePayload"', async () => {
+            const store = makeRealStore();
+            await store.dispatch(parseApi.endpoints.parsePayload.initiate({ txtp: 'pain001' }));
+            const [arg] = getInnerMock().mock.calls[0] as [{ url: string; method: string }];
+            expect(arg.url).toBe('validatePayload');
+        });
+
+        it('should call the base query with method POST', async () => {
+            const store = makeRealStore();
+            await store.dispatch(parseApi.endpoints.parsePayload.initiate({ txtp: 'pain001' }));
+            const [arg] = getInnerMock().mock.calls[0] as [{ url: string; method: string }];
+            expect(arg.method).toBe('POST');
+        });
+
+        it('should spread the body fields into the base query argument', async () => {
+            const store = makeRealStore();
+            const payload = { txtp: 'pain001', amount: 500 };
+            await store.dispatch(parseApi.endpoints.parsePayload.initiate(payload));
+            const [arg] = getInnerMock().mock.calls[0] as [{ body: unknown }];
+            expect(arg.body).toEqual(payload);
+        });
+
+        it('should call the base query exactly once per dispatch', async () => {
+            const store = makeRealStore();
+            await store.dispatch(parseApi.endpoints.parsePayload.initiate({ txtp: 'pacs.002' }));
+            expect(getInnerMock()).toHaveBeenCalledTimes(1);
+        });
+
+        it('should handle an empty body via real parseApi', async () => {
+            const store = makeRealStore();
+            await store.dispatch(parseApi.endpoints.parsePayload.initiate({}));
+            const [arg] = getInnerMock().mock.calls[0] as [{ body: unknown }];
+            expect(arg.body).toEqual({});
         });
     });
 });

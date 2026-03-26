@@ -39,8 +39,30 @@ export const useUpdateMetadataMutation = () => [
   { isLoading: false },
 ];
 
+export const useLazyGetGlobalVariablesQuery = () => [
+  () => Promise.resolve({ data: null }),
+  { data: null, isLoading: false, error: null },
+];
+
+export const useGetRuleFlowStatusQuery = () => ({
+  data: null,
+  isLoading: false,
+  error: null,
+});
+
+const initialRuleBuilderState = { queries: {}, mutations: {} };
+
 export const ruleBuilderApi = {
   reducerPath: 'ruleBuilderApi',
-  reducer: () => ({}),
+  reducer: (state = initialRuleBuilderState) => state,
   middleware: () => (next: (action: unknown) => unknown) => (action: unknown) => next(action),
+  endpoints: {
+    getNodes: {},
+    getFlow: {},
+    getAllFlow: {},
+    saveFlow: {},
+    getGlobalVariables: {},
+    executeQuery: {},
+    getRuleFlowStatus: {},
+  },
 };

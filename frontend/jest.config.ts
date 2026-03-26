@@ -13,8 +13,6 @@ const config: Config = {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
     '\\.(gif|ttf|eot|svg|png|jpg|jpeg)$': '<rootDir>/__mocks__/fileMock.js',
     '^@/(.*)$': '<rootDir>/src/$1',
-    '.*utils/Common/extractQueryParameters.*': '<rootDir>/__mocks__/extractQueryParameters.ts',
-    '^.*redux/Api/Rule-builder.*$': '<rootDir>/__mocks__/redux/Api/Rule-builder/index.ts',
   },
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   transform: {

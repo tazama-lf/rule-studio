@@ -118,6 +118,8 @@ jest.mock('../../../src/utils/Constants', () => ({
 }));
 
 const mockUpdateFn = jest.fn(() => ({ unwrap: () => Promise.resolve({ success: true }) }));
+jest.mock('../../../src/redux/Api/Rule-builder');
+
 jest.mock('../../../src/redux/Api/Rules', () => ({
     useUpdateMetadataMutation: () => [mockUpdateFn, { isLoading: false }],
 }));
@@ -233,9 +235,9 @@ const mockUseGetNodesQuery = jest.fn(() => mockGetNodesQueryReturn);
 const mockUseGetFlowQuery = jest.fn(() => mockGetFlowQueryReturn);
 const mockUseSaveFlowMutation = jest.fn(() => [mockSaveFlowFn, { isLoading: false }]);
 
-// Override the auto-mock hooks via require manipulation in beforeEach
-// Since moduleNameMapper maps to __mocks__/redux/Api/Rule-builder,
-// we need to mutate the exports at runtime.
+// Override the auto-mock hooks via require mutation in beforeAll.
+// jest.mock() (above) loads the adjacent __mocks__ file; we then
+// replace specific exports with jest.fn() spies at runtime.
 beforeAll(() => {
     const ruleBuilderMock = require('../../../src/redux/Api/Rule-builder');
     ruleBuilderMock.useGetNodesQuery = mockUseGetNodesQuery;
