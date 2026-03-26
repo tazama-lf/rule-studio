@@ -160,6 +160,12 @@ const useOverviewController = (props: IOverviewProps) => {
 
     useEffect(() => {
         if (data) {
+            setValue('rule_config_id', toDropdown(data?.rule_config_id as string) as { label: string, value: string } | null)
+            setValue('rule_type', toDropdown(data?.rule_type as string) as { label: string, value: string } | null)
+            setValue('txtp', toDropdown(data?.txtp as string) as { label: string, value: string } | null)
+            setValue('txtpVersion', toDropdown(data?.txtp_version as string) as { label: string, value: string } | null)
+            setValue('version', (data?.version as string) ?? '')
+            setValue('description', (data?.description as string) ?? '')
             const name = getRuleName(data?.rule_config_id as string)
             setValue('rule_name', name)
         }
