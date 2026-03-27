@@ -41,7 +41,7 @@ export class RuleBaseDto {
   @IsNotEmpty()
   ruleName: string;
 
-  @ApiProperty({ description: 'Rule name', example: 'cbe-rule-061' })
+  @ApiPropertyOptional({ description: 'Rule name', example: 'cbe-rule-061' })
   @IsString()
   @IsOptional()
   rule_name?: string | undefined;
