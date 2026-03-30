@@ -338,8 +338,8 @@ const useSimulationController = (props: ISimulation) => {
             body = {
                 functionName: '',
                 awaitReply: true,
-                destination: `sub-rule-${tenant_id}-rule-${id}@${version}`,
-                consumer: `pub-rule-${tenant_id}-rule-${id}@${version}`,
+                destination: `sub-rule-${id}@${version}`,
+                consumer: `pub-rule-${id}@${version}`,
                 message: parsedPayload
             };
             mutation = ruleOnly;
