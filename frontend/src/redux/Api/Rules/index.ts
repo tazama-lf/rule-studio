@@ -68,6 +68,7 @@ export const rulesApi = createApi({
                 method: "GET",
                 providesTags: ['rule']
             }),
+            transformResponse: (response: Record<string, unknown>) => ({ rules: response }),
         }),
         getRuleConfigsIds: builder.query({
             query: () => ({

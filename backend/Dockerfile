@@ -1,7 +1,5 @@
-# SPDX-License-Identifier: Apache-2.0
-
-ARG BUILD_IMAGE=node:22-alpine
-ARG RUN_IMAGE=node:22-alpine
+ARG BUILD_IMAGE=node:20-bullseye
+ARG RUN_IMAGE=gcr.io/distroless/nodejs20-debian11:nonroot
 
 FROM ${BUILD_IMAGE} AS builder
 LABEL stage=build
@@ -17,6 +15,7 @@ ARG GH_TOKEN
 RUN npm ci --ignore-scripts
 RUN npm run build
 
+
 FROM ${BUILD_IMAGE} AS dep-resolver
 LABEL stage=pre-prod
 # To filter out dev dependencies from final build
@@ -24,9 +23,10 @@ LABEL stage=pre-prod
 COPY package*.json ./
 COPY .npmrc ./
 ARG GH_TOKEN
-RUN npm ci --omit=dev --ignore-scripts
+RUN npm ci --ignore-scripts
 
 FROM ${RUN_IMAGE} AS run-env
+USER nonroot
 
 WORKDIR /home/app
 COPY --from=dep-resolver /node_modules ./node_modules
@@ -34,4 +34,4 @@ COPY --from=builder /home/app/dist ./build
 COPY package.json ./
 
 # Execute watchdog command
-CMD ["node", "build/main.js"]
+CMD ["build/main.js"]
