@@ -29,7 +29,7 @@ const useSimulationController = (props: ISimulation) => {
         [props.data]
     )
 
-    const { tenant_id, rule_name } : { tenant_id?: string, rule_name?: string } = data || {};
+    const { rule_name } : { rule_name?: string } = data || {};
 
     const user = useMemo(() => extractData('user'), [])
 
@@ -327,19 +327,14 @@ const useSimulationController = (props: ISimulation) => {
             : _values?.payload || {};
         if (isReadOnly) {
 
-            if (!tenant_id) {
-                toast.error('Tenant ID is missing. Cannot run simulation.')
-                return
-            }
-
             const rule_config_id = data?.rule_config_id
             const id = rule_config_id?.toString().split('@')[0]
             const version = data?.version
             body = {
                 functionName: '',
                 awaitReply: true,
-                destination: `sub-rule-${tenant_id}-rule-${id}@${version}`,
-                consumer: `pub-rule-${tenant_id}-rule-${id}@${version}`,
+                destination: `sub-rule-${id}@${version}`,
+                consumer: `pub-rule-${id}@${version}`,
                 message: parsedPayload
             };
             mutation = ruleOnly;
@@ -404,7 +399,7 @@ const useSimulationController = (props: ISimulation) => {
                 setResult(null);
             });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selected, user?.claims, ruleOnly, endToEnd, toggleSimulationExecuted, updateMetadata, addSimulationLog, tenant_id])
+    }, [selected, user?.claims, ruleOnly, endToEnd, toggleSimulationExecuted, updateMetadata, addSimulationLog])
 
     const handleReport = () => {
         open('Test Report', <ViewReport data={data} />, null, { maxWidth: 'xl' })
