@@ -1,6 +1,5 @@
 import CryptoJS from "crypto-js";
-
-const CRYPTO_KEY = import.meta.env.VITE_CRYPTO_KEY as string;
+import { CRYPTO_KEY } from "../../config/environment";
 
 if (!CRYPTO_KEY) {
   throw new Error("VITE_CRYPTO_KEY is not defined in environment variables");

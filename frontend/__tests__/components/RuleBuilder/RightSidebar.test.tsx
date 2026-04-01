@@ -1,8 +1,20 @@
  
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import RightSidebar from '../../../src/components/RuleBuilder/RightSidebar';
 import type { Node } from '@xyflow/react';
+import toast from 'react-hot-toast';
+import { usesDynamicParameters } from '../../../src/utils/Flow/functionParameterUtils';
+
+jest.mock('react-hot-toast', () => ({
+  __esModule: true,
+  default: {
+    success: jest.fn(),
+    error: jest.fn(),
+    loading: jest.fn(),
+    custom: jest.fn(),
+  },
+}));
 
 jest.mock('../../../src/redux/Api/Rule-builder', () => ({
   useGetNodesQuery: () => ({
@@ -117,13 +129,42 @@ jest.mock('../../../src/utils/Flow/nodeTemplateService', () => ({
           { key: 'variableName', label: 'Variable Name', type: 'text', required: true, defaultValue: 'loggerService' },
         ],
       },
+      'RuleResultFactory': {
+        displayName: 'Rule Result Factory',
+        type: 'RuleResultFactory',
+        inputs: [
+          { key: 'factoryName', label: 'Factory Name', type: 'text', required: true, defaultValue: 'ruleResult' },
+        ],
+      },
+      'DataCacheFactory': {
+        displayName: 'Data Cache Factory',
+        type: 'DataCacheFactory',
+        inputs: [
+          { key: 'variableName', label: 'Variable Name', type: 'text', required: true, defaultValue: 'dataCache' },
+        ],
+      },
+      'DatabaseManager': {
+        displayName: 'Database Manager',
+        type: 'DatabaseManager',
+        inputs: [
+          { key: 'variableName', label: 'Variable Name', type: 'text', required: true, defaultValue: 'databaseManager' },
+        ],
+      },
+      'DynamicFunctionNode': {
+        displayName: 'Dynamic Function Node',
+        type: 'DynamicFunctionNode',
+        function_name: 'dynamicFn',
+        inputs: [],
+      },
     };
     return templates[nodeType as string] || null;
   },
 }));
 
 jest.mock('../../../src/utils/Flow/functionParameterUtils', () => ({
-  usesDynamicParameters: () => false,
+  usesDynamicParameters: jest.fn(() => false),
+  getFunctionParameters: jest.fn(() => []),
+  generateFunctionArgs: jest.fn(() => ''),
 }));
 
 jest.mock('../../../src/utils/Flow/transformRuleRequest', () => ({
@@ -167,6 +208,9 @@ jest.mock('../../../src/hooks/RuleBuilder/useTernaryConditions', () => ({
 }));
 
 describe('RuleBuilder RightSidebar Component', () => {
+  const mockUsesDynamicParameters = usesDynamicParameters as jest.Mock;
+  const mockToastError = toast.error as jest.Mock;
+
   const mockNode: Node = {
     id: 'node-1',
     type: 'editableNode',
@@ -194,6 +238,7 @@ describe('RuleBuilder RightSidebar Component', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUsesDynamicParameters.mockReturnValue(false);
   });
 
   const renderSidebar = (props = {}) => {
@@ -946,6 +991,220 @@ describe('RuleBuilder RightSidebar Component', () => {
       
       renderSidebar({ selectedNode: nodeWithUnknownType });
       expect(screen.getByText(/This node may not be properly configured/i)).toBeInTheDocument();
+    });
+
+    it('should show mode for missing template when available', () => {
+      const nodeWithUnknownTypeAndMode: Node = {
+        ...mockNode,
+        data: { ...mockNode.data, nodeType: 'UnknownNodeType', generation_type: 'call' },
+      };
+
+      renderSidebar({ selectedNode: nodeWithUnknownTypeAndMode });
+      expect(screen.getByText(/Mode: call/i)).toBeInTheDocument();
+    });
+
+    it('should split namespaced unknown node type in missing-template state', () => {
+      const nodeWithNamespacedUnknownType: Node = {
+        ...mockNode,
+        data: { ...mockNode.data, nodeType: 'UnknownNodeType::call' },
+      };
+
+      renderSidebar({ selectedNode: nodeWithNamespacedUnknownType });
+      expect(screen.getByText(/Node Type: UnknownNodeType/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('Index Branch Flows', () => {
+    it('shows toast when mock request edit is triggered without global data', () => {
+      (window as Window & { globalVariablesData?: unknown }).globalVariablesData = undefined;
+
+      const ruleRequestNode: Node = {
+        ...mockNode,
+        data: {
+          label: 'Rule Request Factory',
+          nodeType: 'RuleRequestFactory',
+          params: { factoryName: 'getMockRequest' },
+        },
+      };
+
+      renderSidebar({ selectedNode: ruleRequestNode });
+      fireEvent.click(screen.getByRole('button', { name: /Edit Mock Rule Request/i }));
+
+      expect(mockToastError).toHaveBeenCalled();
+    });
+
+    it('opens and saves mock request editor', () => {
+      (window as Window & { globalVariablesData?: unknown }).globalVariablesData = { RuleRequest: { id: 'r1' } };
+      const onUpdateNode = jest.fn();
+
+      const ruleRequestNode: Node = {
+        ...mockNode,
+        data: {
+          label: 'Rule Request Factory',
+          nodeType: 'RuleRequestFactory',
+          params: { factoryName: 'getMockRequest' },
+        },
+      };
+
+      renderSidebar({ selectedNode: ruleRequestNode, onUpdateNode });
+      fireEvent.click(screen.getByRole('button', { name: /Edit Mock Rule Request/i }));
+      const dialog = screen.getByRole('dialog');
+      expect(dialog).toBeInTheDocument();
+
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+
+      expect(onUpdateNode).toHaveBeenCalledWith('node-1', {
+        params: expect.objectContaining({ ruleRequestData: 'const ruleRequest = {};' }),
+      });
+    });
+
+    it('opens and saves rule result editor', () => {
+      const onUpdateNode = jest.fn();
+
+      const ruleResultNode: Node = {
+        ...mockNode,
+        data: {
+          label: 'Rule Result Factory',
+          nodeType: 'RuleResultFactory',
+          params: { factoryName: 'ruleResult', ruleResultData: '{"status":"ok"}' },
+        },
+      };
+
+      renderSidebar({ selectedNode: ruleResultNode, onUpdateNode });
+      fireEvent.click(screen.getByRole('button', { name: /Edit Rule Result/i }));
+      const dialog = screen.getByRole('dialog');
+      expect(dialog).toBeInTheDocument();
+
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+
+      expect(onUpdateNode).toHaveBeenCalledWith('node-1', {
+        params: expect.objectContaining({ ruleResultData: 'const ruleResult = {};' }),
+      });
+    });
+
+    it('opens and closes rule result editor without saving', () => {
+      const onUpdateNode = jest.fn();
+
+      const ruleResultNode: Node = {
+        ...mockNode,
+        data: {
+          label: 'Rule Result Factory',
+          nodeType: 'RuleResultFactory',
+          params: { factoryName: 'ruleResult' },
+        },
+      };
+
+      renderSidebar({ selectedNode: ruleResultNode, onUpdateNode });
+      fireEvent.click(screen.getByRole('button', { name: /Edit Rule Result/i }));
+      const dialog = screen.getByRole('dialog');
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+      expect(onUpdateNode).not.toHaveBeenCalled();
+    });
+
+    it('opens and saves beforeEach editor', () => {
+      const onUpdateNode = jest.fn();
+
+      const beforeEachNode: Node = {
+        ...mockNode,
+        data: {
+          label: 'Before Each',
+          nodeType: 'BeforeEach',
+          params: {},
+        },
+      };
+
+      renderSidebar({ selectedNode: beforeEachNode, onUpdateNode });
+      fireEvent.click(screen.getByRole('button', { name: /Edit beforeEach Code/i }));
+      const dialog = screen.getByRole('dialog');
+      expect(dialog).toBeInTheDocument();
+
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+
+      expect(onUpdateNode).toHaveBeenCalledWith('node-1', {
+        params: expect.objectContaining({ beforeEachCode: expect.stringContaining('MockDatabaseManagerFactory') }),
+      });
+    });
+
+    it('opens and closes beforeEach editor without saving', () => {
+      const onUpdateNode = jest.fn();
+
+      const beforeEachNode: Node = {
+        ...mockNode,
+        data: {
+          label: 'Before Each',
+          nodeType: 'BeforeEach',
+          params: {},
+        },
+      };
+
+      renderSidebar({ selectedNode: beforeEachNode, onUpdateNode });
+      fireEvent.click(screen.getByRole('button', { name: /Edit beforeEach Code/i }));
+      const dialog = screen.getByRole('dialog');
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+      expect(onUpdateNode).not.toHaveBeenCalled();
+    });
+
+    it('opens and saves beforeAll editor', () => {
+      const onUpdateNode = jest.fn();
+
+      const beforeAllNode: Node = {
+        ...mockNode,
+        data: {
+          label: 'Before All',
+          nodeType: 'BeforeAll',
+          params: {},
+        },
+      };
+
+      renderSidebar({ selectedNode: beforeAllNode, onUpdateNode });
+      fireEvent.click(screen.getByRole('button', { name: /Edit beforeAll Code/i }));
+      const dialog = screen.getByRole('dialog');
+      expect(dialog).toBeInTheDocument();
+
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+
+      expect(onUpdateNode).toHaveBeenCalledWith('node-1', {
+        params: expect.objectContaining({ beforeAllCode: '// Add global setup code here' }),
+      });
+    });
+
+    it('opens and closes beforeAll editor without saving', () => {
+      const onUpdateNode = jest.fn();
+
+      const beforeAllNode: Node = {
+        ...mockNode,
+        data: {
+          label: 'Before All',
+          nodeType: 'BeforeAll',
+          params: {},
+        },
+      };
+
+      renderSidebar({ selectedNode: beforeAllNode, onUpdateNode });
+      fireEvent.click(screen.getByRole('button', { name: /Edit beforeAll Code/i }));
+      const dialog = screen.getByRole('dialog');
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+      expect(onUpdateNode).not.toHaveBeenCalled();
+    });
+
+    it('renders function call section when dynamic parameters are used', () => {
+      mockUsesDynamicParameters.mockReturnValue(true);
+
+      const dynamicNode: Node = {
+        ...mockNode,
+        data: {
+          label: 'Dynamic Function',
+          nodeType: 'DynamicFunctionNode',
+          generation_type: 'call',
+          params: {},
+        },
+      };
+
+      renderSidebar({ selectedNode: dynamicNode });
+      expect(screen.getByText(/Function Call/i)).toBeInTheDocument();
     });
   });
 });
