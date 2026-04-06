@@ -8,6 +8,7 @@ import { TransactionalMessage, RuleRequest, NetworkMap, DataCache, MetaData } fr
 import { AdminServiceClient } from '../admin-service-client';
 import { formatValidationErrors } from '../../utils/validation.utils';
 import type { AuthenticatedUser } from '../auth/auth.types';
+import { isBaseMessageTransaction } from '@tazama-lf/frms-coe-lib';
 
 @Injectable()
 export class ParseExtractService {
@@ -49,7 +50,7 @@ export class ParseExtractService {
       this.logger.log(`Processing transaction data for rule creation - TxTp: ${transactionType} [${correlationId}]`);
       const payloadToValidate = { ...payloadResult, TxTp: transactionType, TenantId: user.tenantId };
 
-      const validationResult = this.validatePayload(payloadToValidate, schemaResult, transactionType, correlationId);
+      const validationResult = this.validatePayload(payloadResult, schemaResult, transactionType, correlationId);
       if (!validationResult.isValid) {
         return {
           success: false,
@@ -178,8 +179,20 @@ export class ParseExtractService {
       transactionType: transaction.TxTp,
     };
 
+    let tx = transaction;
+
+    if (isBaseMessageTransaction(transaction)) {
+      tx = {
+        TxTp: tx.TxTp,
+        TenantId: tx.TenantId,
+        Payload: {
+          ...tx,
+        },
+      };
+    }
+
     const ruleRequest: RuleRequest = {
-      transaction,
+      transaction: tx,
       networkMap,
       DataCache: dataCache,
       metaData,
