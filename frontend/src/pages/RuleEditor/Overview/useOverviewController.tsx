@@ -51,6 +51,13 @@ const useOverviewController = (props: IOverviewProps) => {
     const { open } = useModal()
     const user = extractData('user') || {}
 
+    const resolveTxtp = (val: unknown): string | null => {
+        if (!val) return null;
+        if (typeof val === 'string') return val;
+        if (typeof val === 'object' && 'transaction_type' in (val as object)) return (val as { transaction_type: string }).transaction_type;
+        return null;
+    };
+
     const getTxtpVersions = useCallback((type: string | number) => {
         getVersions({ type }).unwrap()
             .then((res) => {
@@ -66,7 +73,7 @@ const useOverviewController = (props: IOverviewProps) => {
     const initial: RuleFormValues = {
         rule_name: (data?.ruleName as string) ?? '',
         description: (data?.description as string) ?? '',
-        txtp: toDropdown(data?.txtp as string) as { label: string, value: string } | null,
+        txtp: toDropdown(resolveTxtp(data?.txtp)) as { label: string, value: string } | null,
         txtpVersion: toDropdown(data?.txtp_version as string) as { label: string, value: string } | null,
         version: (data?.version as string) ?? '',
         rule_config_id: toDropdown(data?.rule_config_id as string) as { label: string, value: string } | null,
@@ -162,7 +169,7 @@ const useOverviewController = (props: IOverviewProps) => {
         if (data) {
             setValue('rule_config_id', toDropdown(data?.rule_config_id as string) as { label: string, value: string } | null)
             setValue('rule_type', toDropdown(data?.rule_type as string) as { label: string, value: string } | null)
-            setValue('txtp', toDropdown(data?.txtp as string) as { label: string, value: string } | null)
+            setValue('txtp', toDropdown(resolveTxtp(data?.txtp)) as { label: string, value: string } | null)
             setValue('txtpVersion', toDropdown(data?.txtp_version as string) as { label: string, value: string } | null)
             setValue('version', (data?.version as string) ?? '')
             setValue('description', (data?.description as string) ?? '')
@@ -176,6 +183,10 @@ const useOverviewController = (props: IOverviewProps) => {
         setValue('txtpVersion', null)
         if (val?.value) {
             getTxtpVersions(val?.value)
+            const matched = (types as { transaction_type: string; endpoint_path: string }[] | undefined)
+                ?.find(item => item.transaction_type === val.value)
+            const existing = extractData('trs_rule', LocalStorage, true) ?? {}
+            insertData({ ...existing, endpoint_path: matched?.endpoint_path ?? null }, 'trs_rule', LocalStorage, true)
         }
     }
 
@@ -196,7 +207,13 @@ const useOverviewController = (props: IOverviewProps) => {
             isLoading,
             rule_config_id: getValues('rule_config_id'),
             createLoading: createLoading || repoLoading,
-            transactions: types?.map((item: string) => ({ label: item, value: item })) || [],
+            transactions: (types as { transaction_type: string; endpoint_path: string }[] | undefined)
+                ?.reduce((acc: { label: string; value: string }[], item) => {
+                    if (!acc.some(t => t.value === item.transaction_type)) {
+                        acc.push({ label: item.transaction_type, value: item.transaction_type });
+                    }
+                    return acc;
+                }, []) || [],
             txtpVersions: versions?.map((item: string) => ({ label: item, value: item })) || [],
             ruleTypes: ruleTypes.map(({ display, value }) => { return { label: display, value } }),
         },

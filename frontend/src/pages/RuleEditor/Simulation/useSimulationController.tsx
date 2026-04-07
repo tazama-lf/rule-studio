@@ -355,9 +355,7 @@ const useSimulationController = (props: ISimulation) => {
         } else {
             body = {
                 body: parsedPayload,
-                tenantId: user.tenantId,
-                version: data.txtp_version,
-                txtp: data.txtp
+                endpointPath: data.endpoint_path,
             };
             mutation = endToEnd;
             logCategory = 'end_to_end';
