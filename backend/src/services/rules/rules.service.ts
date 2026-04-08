@@ -75,7 +75,11 @@ export class RulesService {
       throw new ForbiddenException(tier2.reason ?? 'Not authorized to access rules');
     }
     if (tier2.allowedStatuses && tier2.allowedStatuses.length > 0) {
-      updatedFilters.status = tier2.allowedStatuses.join(',');
+      if (filters.status && tier2.allowedStatuses.includes(filters.status)) {
+        updatedFilters.status = filters.status;
+      } else {  
+        updatedFilters.status = tier2.allowedStatuses.join(',');
+      }
     } else {
       delete updatedFilters.status;
     }
