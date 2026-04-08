@@ -29,7 +29,7 @@ describe('ParseExtractService - AJV Validation', () => {
         required: ['GrpHdr'],
       },
     },
-    required: ['FIToFICstmrCdtTrf', 'TxTp', 'TenantId'],
+    required: ['FIToFICstmrCdtTrf'],
   };
 
   const mockConfig = {
