@@ -12,6 +12,10 @@ Tazama Rule Studio (TRS) is a comprehensive design-time rule management platform
 - An audit logging system tracking all rule changes, status transitions, and workflow events
 - An ISO 20022 message parsing and validation engine
 
+## User Manual and Video Demonstration
+- Please refer to the user manual here: https://github.com/tazama-lf/docs/blob/dev/Guides/User%20Manuals%20for%20Downloading/Tazama%20Rule%20Studio.docx
+- Please refer to the demonstration video here: https://www.youtube.com/watch?v=c6HAFGqO-xE
+
 ## Architecture
 
 ### High-Level Flow
@@ -379,6 +383,8 @@ docker-compose logs -f
 docker-compose down
 ```
 
+Please refer to the deployment guide here: https://github.com/tazama-lf/docs/blob/dev/Technical/Deployment-Guides/TRS-Deployment-Guide.md
+
 ---
 
 ## Security
@@ -502,12 +508,7 @@ docker-compose down
 
 ---
 
-## Support
-
-For support and questions:
-
-- Create an issue in the [GitHub repository](https://github.com/tazama-lf/rule-studio)
-- Review existing issues and pull requests
-- Check environment configuration and database connectivity
-- Enable debug logging for troubleshooting
-- Consult the API documentation at `/api/docs` (Swagger UI)
+# For support or questions
+- Review existing issues, discussions and pull requests
+- Start a discussion in the **Discussions** tab or create an issue in the **Issues** tab in this repository
+- Join the Tazama Slack workspace and post your question in the **#get-help** channel - :point_right: Join here: https://slack.tazama.org
