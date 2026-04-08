@@ -1287,7 +1287,8 @@ ${codeBody}
 export const generateTypeScriptCode = (
   nodes: Node[],
   edges: Edge[],
-  nestedCanvasData: Record<string, NestedCanvasData>
+  nestedCanvasData: Record<string, NestedCanvasData>,
+  txtp?: string
 ): string => {
   const handleTransactionNode = nodes.find((node) => node.data.nodeType === 'HandleTransaction');
   
@@ -1315,8 +1316,14 @@ export const generateTypeScriptCode = (
     .filter(Boolean)
     .join('\n');
   
+  const isPacs002 = txtp === 'pacs.002.001.12';
+  const txTypeImport = isPacs002
+    ? `\nimport type { Pacs002 } from '@tazama-lf/frms-coe-lib/lib/interfaces/Pacs.002.001.12';`
+    : `\nimport type { BaseMessage } from '@tazama-lf/frms-coe-lib/lib/interfaces';`;
+  const reqType = isPacs002 ? 'RuleRequest<Pacs002>' : 'RuleRequest<BaseMessage>';
+
   const baseImports = `import type { DatabaseManagerInstance, LoggerService, ManagerConfig } from '@tazama-lf/frms-coe-lib';
-import type { RuleConfig, RuleRequest, RuleResult } from '@tazama-lf/frms-coe-lib/lib/interfaces';`;
+import type { RuleConfig, RuleRequest, RuleResult } from '@tazama-lf/frms-coe-lib/lib/interfaces';${txTypeImport}`;
   
   const allImports = customImportStatements 
     ? `${baseImports}\n${customImportStatements}` 
@@ -1344,7 +1351,7 @@ import type { RuleConfig, RuleRequest, RuleResult } from '@tazama-lf/frms-coe-li
   const code = `${allImports}
 ${functionDefinitions ? '\n' + functionDefinitions + '\n' : ''}
 export async function handleTransaction(
-  req: RuleRequest,
+  req: ${reqType},
   determineOutcome: (value: number, ruleConfig: RuleConfig, ruleResult: RuleResult) => RuleResult,
   ruleRes: RuleResult,
   loggerService: LoggerService,
