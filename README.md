@@ -366,6 +366,8 @@ docker build -t trs-backend:latest .
 docker run -p 3005:3005 --env-file .env trs-backend:latest
 ```
 
+Please refer to the deployment guide here: https://github.com/tazama-lf/docs/blob/dev/Technical/Deployment-Guides/TRS-Deployment-Guide.md
+
 #### Full Stack with Docker Compose
 
 ```bash
@@ -502,12 +504,7 @@ docker-compose down
 
 ---
 
-## Support
-
-For support and questions:
-
-- Create an issue in the [GitHub repository](https://github.com/tazama-lf/rule-studio)
-- Review existing issues and pull requests
-- Check environment configuration and database connectivity
-- Enable debug logging for troubleshooting
-- Consult the API documentation at `/api/docs` (Swagger UI)
+# For support or questions
+- Review existing issues, discussions and pull requests
+- Start a discussion in the **Discussions** tab or create an issue in the **Issues** tab in this repository
+- Join the Tazama Slack workspace and post your question in the **#get-help** channel - :point_right: Join here: https://slack.tazama.org
