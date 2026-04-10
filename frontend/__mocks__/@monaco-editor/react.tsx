@@ -14,5 +14,7 @@ export const Editor = ({ value, onChange, language, ...props }: any) => (
 );
 
 export const DiffEditor = () => <div data-testid="monaco-diff-editor" />;
+
 export const useMonaco = () => null;
+
 export default Editor;
