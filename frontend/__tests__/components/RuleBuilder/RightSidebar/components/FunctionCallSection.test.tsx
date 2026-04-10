@@ -745,5 +745,256 @@ describe('FunctionCallSection Component', () => {
       expect(screen.getByText('Function name is required')).toBeInTheDocument();
     });
   });
+
+  // ── Select onChange handlers (lines 88-92, 128-132, 172-176) ─────────────
+  // ── Checkbox onChange: e.target.checked=true branch (line 200) ────────────
+  describe('Checkbox storeResult - checked=true branch', () => {
+    it('passes "true" value to onParamChange when an unchecked storeResult checkbox is clicked', () => {
+      mockGetFunctionParameters.mockReturnValue([
+        { name: 'param1', label: 'Parameter 1', type: 'string' },
+      ]);
+      mockGenerateFunctionArgs.mockReturnValue('param1Value');
+
+      const onParamChangeHandler = jest.fn();
+      const onParamChange = jest.fn(() => onParamChangeHandler);
+
+      render(
+        <FunctionCallSection
+          {...defaultProps}
+          functionName="testFunction"
+          // storeResult: 'false' makes checkbox unchecked; clicking it fires checked=true
+          currentParams={{ storeResult: 'false' }}
+          onParamChange={onParamChange}
+        />
+      );
+
+      const checkbox = screen.getByRole('checkbox', { name: /store result in variable/i });
+      expect(checkbox).not.toBeChecked();
+      fireEvent.click(checkbox);
+
+      expect(onParamChange).toHaveBeenCalledWith('storeResult');
+      expect(onParamChangeHandler).toHaveBeenCalledWith(
+        expect.objectContaining({ target: expect.objectContaining({ value: 'true' }) })
+      );
+    });
+  });
+
+  // Each Select's onChange fires onParamChange('function_name') + optionally onParamBlur.
+  // The existing tests only open the dropdown; these tests actually select an option.
+  describe('Select onChange handlers - function_name selection', () => {
+    const customFunctionNode: Node = {
+      id: 'func-1',
+      type: 'editableNode',
+      position: { x: 0, y: 0 },
+      data: {
+        nodeType: 'CustomFunction',
+        mode: 'definition',
+        params: { function_name: 'myFunc' },
+      },
+    };
+
+    // ── Early-return branch: isCustomFunctionCall && !selectedFunctionName (lines 88-92)
+    it('calls onParamChange and onParamBlur when selecting a function from the no-function-selected dropdown', () => {
+      mockGetFunctionParameters.mockReturnValue(null);
+      const onParamChangeHandler = jest.fn();
+      const onParamChange = jest.fn(() => onParamChangeHandler);
+      const onParamBlur = jest.fn();
+
+      render(
+        <FunctionCallSection
+          {...defaultProps}
+          functionName=""
+          nodeType="CustomFunction"
+          currentParams={{}}
+          allNodes={[customFunctionNode]}
+          onParamChange={onParamChange}
+          onParamBlur={onParamBlur}
+        />
+      );
+
+      fireEvent.mouseDown(screen.getByRole('combobox'));
+      fireEvent.click(screen.getByRole('option', { name: 'myFunc' }));
+
+      expect(onParamChange).toHaveBeenCalledWith('function_name');
+      expect(onParamChangeHandler).toHaveBeenCalledWith(
+        expect.objectContaining({ target: expect.objectContaining({ value: 'myFunc' }) })
+      );
+      expect(onParamBlur).toHaveBeenCalled();
+    });
+
+    it('does not throw when onParamBlur is absent in the no-function-selected dropdown (lines 88-92 if-branch)', () => {
+      mockGetFunctionParameters.mockReturnValue(null);
+      const onParamChange = jest.fn(() => jest.fn());
+
+      expect(() => {
+        render(
+          <FunctionCallSection
+            {...defaultProps}
+            functionName=""
+            nodeType="CustomFunction"
+            currentParams={{}}
+            allNodes={[customFunctionNode]}
+            onParamChange={onParamChange}
+            onParamBlur={undefined}
+          />
+        );
+        fireEvent.mouseDown(screen.getByRole('combobox'));
+        fireEvent.click(screen.getByRole('option', { name: 'myFunc' }));
+      }).not.toThrow();
+    });
+
+    // ── No-parameters branch: isCustomFunctionCall && parameters.length === 0 (lines 128-132)
+    it('calls onParamChange and onParamBlur when selecting a function from the no-parameters dropdown', () => {
+      mockGetFunctionParameters.mockReturnValue([]);
+      const onParamChangeHandler = jest.fn();
+      const onParamChange = jest.fn(() => onParamChangeHandler);
+      const onParamBlur = jest.fn();
+
+      const secondNode: Node = {
+        id: 'func-2',
+        type: 'editableNode',
+        position: { x: 0, y: 0 },
+        data: {
+          nodeType: 'CustomFunction',
+          mode: 'definition',
+          params: { function_name: 'otherFunc' },
+        },
+      };
+
+      render(
+        <FunctionCallSection
+          {...defaultProps}
+          functionName="myFunc"
+          nodeType="CustomFunction"
+          currentParams={{ function_name: 'myFunc' }}
+          allNodes={[customFunctionNode, secondNode]}
+          onParamChange={onParamChange}
+          onParamBlur={onParamBlur}
+        />
+      );
+
+      // Select a DIFFERENT value so MUI fires onChange
+      fireEvent.mouseDown(screen.getByRole('combobox'));
+      fireEvent.click(screen.getByRole('option', { name: 'otherFunc' }));
+
+      expect(onParamChange).toHaveBeenCalledWith('function_name');
+      expect(onParamChangeHandler).toHaveBeenCalledWith(
+        expect.objectContaining({ target: expect.objectContaining({ value: 'otherFunc' }) })
+      );
+      expect(onParamBlur).toHaveBeenCalled();
+    });
+
+    it('does not throw when onParamBlur is absent in the no-parameters dropdown (lines 128-132 if-branch)', () => {
+      mockGetFunctionParameters.mockReturnValue([]);
+      const onParamChange = jest.fn(() => jest.fn());
+
+      const secondNode: Node = {
+        id: 'func-2',
+        type: 'editableNode',
+        position: { x: 0, y: 0 },
+        data: {
+          nodeType: 'CustomFunction',
+          mode: 'definition',
+          params: { function_name: 'otherFunc' },
+        },
+      };
+
+      expect(() => {
+        render(
+          <FunctionCallSection
+            {...defaultProps}
+            functionName="myFunc"
+            nodeType="CustomFunction"
+            currentParams={{ function_name: 'myFunc' }}
+            allNodes={[customFunctionNode, secondNode]}
+            onParamChange={onParamChange}
+            onParamBlur={undefined}
+          />
+        );
+        fireEvent.mouseDown(screen.getByRole('combobox'));
+        fireEvent.click(screen.getByRole('option', { name: 'otherFunc' }));
+      }).not.toThrow();
+    });
+
+    // ── Main-render branch: parameters exist (lines 172-176)
+    it('calls onParamChange and onParamBlur when changing function from the main-render dropdown', () => {
+      mockGetFunctionParameters.mockReturnValue([
+        { name: 'x', label: 'X', type: 'number' },
+      ]);
+      mockGenerateFunctionArgs.mockReturnValue('xValue');
+
+      const secondNode: Node = {
+        id: 'func-2',
+        type: 'editableNode',
+        position: { x: 0, y: 0 },
+        data: {
+          nodeType: 'CustomFunction',
+          mode: 'definition',
+          params: { function_name: 'otherFunc' },
+        },
+      };
+
+      const onParamChangeHandler = jest.fn();
+      const onParamChange = jest.fn(() => onParamChangeHandler);
+      const onParamBlur = jest.fn();
+
+      render(
+        <FunctionCallSection
+          {...defaultProps}
+          functionName="myFunc"
+          nodeType="CustomFunction"
+          currentParams={{ function_name: 'myFunc' }}
+          allNodes={[customFunctionNode, secondNode]}
+          onParamChange={onParamChange}
+          onParamBlur={onParamBlur}
+        />
+      );
+
+      fireEvent.mouseDown(screen.getByRole('combobox'));
+      fireEvent.click(screen.getByRole('option', { name: 'otherFunc' }));
+
+      expect(onParamChange).toHaveBeenCalledWith('function_name');
+      expect(onParamChangeHandler).toHaveBeenCalledWith(
+        expect.objectContaining({ target: expect.objectContaining({ value: 'otherFunc' }) })
+      );
+      expect(onParamBlur).toHaveBeenCalled();
+    });
+
+    it('does not throw when onParamBlur is absent in the main-render dropdown (lines 172-176 if-branch)', () => {
+      mockGetFunctionParameters.mockReturnValue([
+        { name: 'x', label: 'X', type: 'number' },
+      ]);
+      mockGenerateFunctionArgs.mockReturnValue('xValue');
+
+      const secondNode: Node = {
+        id: 'func-2',
+        type: 'editableNode',
+        position: { x: 0, y: 0 },
+        data: {
+          nodeType: 'CustomFunction',
+          mode: 'definition',
+          params: { function_name: 'otherFunc' },
+        },
+      };
+
+      const onParamChange = jest.fn(() => jest.fn());
+
+      expect(() => {
+        render(
+          <FunctionCallSection
+            {...defaultProps}
+            functionName="myFunc"
+            nodeType="CustomFunction"
+            currentParams={{ function_name: 'myFunc' }}
+            allNodes={[customFunctionNode, secondNode]}
+            onParamChange={onParamChange}
+            onParamBlur={undefined}
+          />
+        );
+        fireEvent.mouseDown(screen.getByRole('combobox'));
+        fireEvent.click(screen.getByRole('option', { name: 'otherFunc' }));
+      }).not.toThrow();
+    });
+  });
 });
 

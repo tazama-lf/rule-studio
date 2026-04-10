@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { extractData } from "../../../utils/Common/storage";
 import { LocalStorage } from "../../../utils/Common/enums";
 import { useGetRuleFlowStatusQuery } from "../../../redux/Api/Rule-builder";
+import { navigateTo } from "../../../utils/Common/navigation";
 
 
 export interface ITestCases {
@@ -37,10 +38,10 @@ const useTestCasesController = (props: ITestCases) => {
         if (!data?.id) return;
         
         if(statusInProgress){
-            window.location.href = `/test-case-generate/${data?.id}`
+            navigateTo(`/test-case-generate/${data?.id}`)
         }
         else {
-            window.location.href = `/test-case-generate/view/${data?.id}`
+            navigateTo(`/test-case-generate/view/${data?.id}`)
         }
     }
 
