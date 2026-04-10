@@ -75,7 +75,11 @@ export class RulesService {
       throw new ForbiddenException(tier2.reason ?? 'Not authorized to access rules');
     }
     if (tier2.allowedStatuses && tier2.allowedStatuses.length > 0) {
-      updatedFilters.status = tier2.allowedStatuses.join(',');
+      if (filters.status && tier2.allowedStatuses.includes(filters.status)) {
+        updatedFilters.status = filters.status;
+      } else {  
+        updatedFilters.status = tier2.allowedStatuses.join(',');
+      }
     } else {
       delete updatedFilters.status;
     }
@@ -320,7 +324,7 @@ export class RulesService {
       const currentStatus = rule.status ?? '';
       const tier2 = this.rbacService.checkTier2({ role: normalizedRole, endpointKey, currentStatus });
       if (!tier2.allowed) throw new ForbiddenException(tier2.reason ?? 'Tier 2 authorization failed');
-      return await this.adminServiceClient.getGlobalVariables(ruleId, user.tenantId, user.token.tokenString);
+      return await this.adminServiceClient.getGlobalVariables(ruleId, user.token.tokenString);
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Error fetching global variables for rule ${ruleId}: ${err.message}`);

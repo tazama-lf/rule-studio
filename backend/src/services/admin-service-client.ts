@@ -304,8 +304,8 @@ export class AdminServiceClient {
     return await this.executeHttpRequest<ResponseUpdatedRuleFlowDto>('PUT', `${RULE_FLOW}/${ruleId}`, token, payload);
   }
 
-  async getGlobalVariables(ruleId: string, tenantId: string, token: string): Promise<GlobalVariableDto> {
-    return await this.executeHttpRequest<GlobalVariableDto>('GET', `${GLOBAL_VARIABLES}/${ruleId}/${tenantId}`, token);
+  async getGlobalVariables(ruleId: string, token: string): Promise<GlobalVariableDto> {
+    return await this.executeHttpRequest<GlobalVariableDto>('GET', `${GLOBAL_VARIABLES}/${ruleId}`, token);
   }
 
   async updateRuleStatus(ruleId: string, status: string, reason: string, token: string): Promise<Rules> {
