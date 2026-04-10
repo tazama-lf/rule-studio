@@ -365,7 +365,7 @@ describe('OutputModal', () => {
       expect(screen.getByText('Another error')).toBeInTheDocument();
     });
 
-    it('should toggle errors section when header is clicked', () => {
+    it('should toggle errors section when header is clicked', async () => {
       render(
         <OutputModal
           {...defaultProps}
@@ -381,7 +381,7 @@ describe('OutputModal', () => {
 
       fireEvent.click(errorsHeader);
 
-      waitFor(() => {
+      await waitFor(() => {
         expect(screen.getByText('Syntax error here')).not.toBeVisible();
       });
     });
@@ -438,7 +438,7 @@ describe('OutputModal', () => {
       expect(screen.getByText('Deprecated method')).toBeInTheDocument();
     });
 
-    it('should toggle warnings section when header is clicked', () => {
+    it('should toggle warnings section when header is clicked', async () => {
       render(
         <OutputModal
           {...defaultProps}
@@ -454,7 +454,7 @@ describe('OutputModal', () => {
 
       fireEvent.click(warningsHeader);
 
-      waitFor(() => {
+      await waitFor(() => {
         expect(screen.getByText('Unused variable')).not.toBeVisible();
       });
     });
