@@ -57,7 +57,7 @@ export class TazamaAuthGuard implements CanActivate {
     const realmAccess = innerDecoded.realm_access as { roles?: string[] } | undefined;
     const realmRoles = realmAccess?.roles;
 
-    const supportedRoles = new Set(['editor', 'approver', 'publisher']);
+    const supportedRoles = new Set(['editor', 'approver', 'publisher', 'data_engineer_editor', 'data_engineer_approver']);
     const actorRole = realmRoles?.find((role: string) => supportedRoles.has(role.toLowerCase()));
     if (!actorRole) {
       throw new UnauthorizedException('No supported RBAC role found in token');
