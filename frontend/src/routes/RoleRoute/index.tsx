@@ -14,6 +14,13 @@ const RoleRoute = ({ group }: RoleRouteProps) => {
         ? DATA_ENGINEER_ROLES.includes(role)
         : TRS_ROLES.includes(role)
 
+    const isKnownRole =
+        DATA_ENGINEER_ROLES.includes(role) || TRS_ROLES.includes(role)
+
+    if (!isKnownRole) {
+        return <Navigate to="/login" replace />
+    }
+
     if (!allowed) {
         const fallback = DATA_ENGINEER_ROLES.includes(role) ? '/masking-config' : '/home'
         return <Navigate to={fallback} replace />

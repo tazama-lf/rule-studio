@@ -17,10 +17,14 @@ const trsMenuItems: { icon: React.ReactElement, label: string, route: string, co
     { icon: <ScienceOutlinedIcon />, label: "Sandbox", route: "sandbox", color: "#2bc08f" },
 ];
 
+const dataEngineerMenuItems: { icon: React.ReactElement, label: string, route: string, color: string }[] = [
+    { icon: <HomeOutlinedIcon />, label: "Masking Configuration", route: "masking-config", color: "#8f57ee" },
+];
+
 const Sidebar = ({ expanded }: { expanded: boolean; }) => {
     const user = extractData('user') || {};
     const isTrs = TRS_ROLES.includes(user?.claims ?? '');
-    const menuItems = isTrs ? [...sharedMenuItems, ...trsMenuItems] : sharedMenuItems;
+    const menuItems = isTrs ? [...sharedMenuItems, ...trsMenuItems] : dataEngineerMenuItems;
 
     const [activeIdx, setActiveIdx] = useState(0);
 
