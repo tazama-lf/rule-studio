@@ -11,6 +11,10 @@ export const CLONE_RULE = `${RULE}/clone`;
 export const UPDATE_RULE_STATUS = `${RULES_BASE_URL}/rule/updateStatus`;
 export const SAVE_RULE_REQUEST = `${RULES_BASE_URL}/saveRuleRequest`;
 
+
+//MASK
+export const CREATE_MASK = `${RULES_BASE_URL}/mask/create`;
+
 // Config
 export const CONFIG = '/v1/admin/config';
 export const CONFIG_VERSIONS = `${CONFIG}/versions`;

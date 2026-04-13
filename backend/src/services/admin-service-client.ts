@@ -15,7 +15,7 @@ import {
 import { firstValueFrom } from 'rxjs';
 import { CreateNodeDto, RequestQueryNodeDto, ResponseNodesDto } from './nodes/dto';
 import { GetNodesQuery } from './nodes/interfaces/node.interface';
-import { FieldMapping } from '@tazama-lf/tcs-lib';
+import { FieldMapping, ISuccess } from '@tazama-lf/tcs-lib';
 import {
   GLOBAL_VARIABLES,
   NODES,
@@ -37,12 +37,14 @@ import {
   GET_SIMULATION_LOGS,
   INSERT_SIMULATION_LOGS,
   MASKING_ALL,
+  CREATE_MASK,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto } from './masking/dto/masking.dto';
 import { ResponseQueryNodeDto } from './nodes/dto/responseNode.dto';
 import { RuleRequest } from '../services/parse-extract/dto/message.dto';
 import { SimulationLogsDto } from './simulation-logs/dto';
 import { ISimulationLog } from './simulation-logs/interface/simulation-logs.interface';
+import { CreateMaskDto } from './masking/dto/mask.dto';
 
 @Injectable()
 export class AdminServiceClient {
@@ -339,5 +341,11 @@ export class AdminServiceClient {
 
   async getAllMaskWithFilters(offset: number, limit: number, filters: MaskingFiltersDto, token: string): Promise<MaskingListResponseDto> {
     return await this.executeHttpRequest<MaskingListResponseDto>('POST', `${MASKING_ALL}/${offset}/${limit}`, token, filters);
+  }
+  // ====================  MASKING OPERATIONS ====================
+
+  async createMask(maskData: CreateMaskDto, token: string): Promise<ISuccess> {
+    const response = await this.executeHttpRequest<ISuccess>('POST', CREATE_MASK, token, { maskData });
+    return response;
   }
 }
