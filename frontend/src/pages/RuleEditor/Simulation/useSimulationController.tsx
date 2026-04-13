@@ -353,11 +353,13 @@ const useSimulationController = (props: ISimulation) => {
                 addSimulationLog(body, res, logCategory);
             };
         } else {
+            if (!data?.endpoint_path) {
+                toast.error('Transaction type endpoint path not found. Please select a valid transaction type.')
+                return;
+            }
             body = {
                 body: parsedPayload,
-                tenantId: user.tenantId,
-                version: data.txtp_version,
-                txtp: data.txtp
+                endpointPath: data.endpoint_path,
             };
             mutation = endToEnd;
             logCategory = 'end_to_end';

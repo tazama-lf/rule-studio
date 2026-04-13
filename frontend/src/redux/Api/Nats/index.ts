@@ -26,8 +26,8 @@ export const natsApi = createApi({
             }),
         }),
         endToEnd: builder.mutation({
-            query: ({ body, tenantId, version, txtp }) => ({
-                url: `${DEMS_URL}/${tenantId}/${version}/evaluate/${txtp}`,
+            query: ({ body, endpointPath }) => ({
+                url: `${DEMS_URL}${endpointPath}`,
                 method: "POST",
                 body: { ...body },
             }),
