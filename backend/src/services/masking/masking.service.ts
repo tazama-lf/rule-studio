@@ -1,0 +1,32 @@
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { ISuccess } from '@tazama-lf/tcs-lib';
+import { AuthenticatedUser } from '../auth/auth.types';
+import { AdminServiceClient } from '../admin-service-client';
+import { CreateMaskDto } from './dto/mask.dto';
+
+@Injectable()
+export class MaskingService {
+
+    private readonly logger = new Logger(MaskingService.name);
+
+    constructor(
+        private readonly adminServiceClient: AdminServiceClient
+    ) { }
+
+    async create(
+        masking: CreateMaskDto,
+        user: AuthenticatedUser
+    ): Promise<ISuccess> {
+        try {
+            return await this.adminServiceClient.createMask(
+                masking,
+                user.token.tokenString,
+            );
+        } catch (error) {
+            this.logger.error(
+                `Error While Creating Masking : ${error instanceof Error ? error.message : String(error)}`,
+            );
+            throw new BadRequestException(error instanceof Error ? error.message : String(error));
+        }
+    }
+}
