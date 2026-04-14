@@ -9,9 +9,9 @@ import { NodesModule } from './services/nodes/nodes.module';
 import { ParseExtractModule } from './services/parse-extract/parse-extract.module';
 import { SimulationLogsModule } from './services/simulation-logs/simulation-logs.module';
 import { AuditModule } from './audit/audit.module';
-
+import { MaskingModule } from './services/masking/masking.module';
 @Module({
-  imports: [AuditModule, AuthModule, LoggerModule, RulesModule, ConfigModule, NodesModule, ParseExtractModule, SimulationLogsModule],
+  imports: [AuditModule, AuthModule, LoggerModule, RulesModule, ConfigModule, NodesModule, ParseExtractModule, SimulationLogsModule, MaskingModule],
   controllers: [AppController],
   providers: [AppService],
 })
