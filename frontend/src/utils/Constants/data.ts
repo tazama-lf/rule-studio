@@ -240,6 +240,19 @@ export const Tabs = [
     },
 ]
 
+export const MaskingTabs = [
+    {
+        label: 'Dataset',
+        value: 'create',
+        enabled: false
+    },
+    {
+        label: 'Configure',
+        value: 'configure',
+        enabled: false
+    }
+]
+
 
 export const claims = {
     editor: 'editor',
