@@ -22,161 +22,54 @@ export interface SimulationResult {
 export class SendToDemsService {
   private readonly logger = new Logger(SendToDemsService.name);
 
+  // Dummy bearer token for DEMS authentication
+  private readonly dummyBearerToken =
+    'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbGllbnRJZCI6IjM4NGRjOTM1LTdhMGYtNGI1OS04OWMwLTMwZDg4OWE1MWRiNiIsImlzcyI6Imh0dHA6Ly8xMC4xMC44MC4zMzo4MDgwL3JlYWxtcy90Y3MiLCJzaWQiOiI0NTRlNTlhMC1kOTA0LTRkNDgtOGYwMy1jY2VmYjIzYjU1YTMiLCJleHAiOjE3NzYyMDQzNjksInRva2VuU3RyaW5nIjoiZXlKaGJHY2lPaUpTVXpJMU5pSXNJblI1Y0NJZ09pQWlTbGRVSWl3aWEybGtJaUE2SUNKT05GRlBWa0kyVUMxT1VtTjBaa3htTUd0V04zVmxaemQwWlU1UFVHOTBVbkJzWm5wUk1YUllZWFZSSW4wLmV5SmxlSEFpT2pFM056WXlNRFF6Tmprc0ltbGhkQ0k2TVRjM05qRTJPRE0yT1N3aWFuUnBJam9pWXpSbVpHVXpOVFV0TkdSalppMDBaVFJtTFRneFl6Z3ROREpqT1RZM04yTXlOVE5qSWl3aWFYTnpJam9pYUhSMGNEb3ZMekV3TGpFd0xqZ3dMak16T2pnd09EQXZjbVZoYkcxekwzUmpjeUlzSW1GMVpDSTZJbUZqWTI5MWJuUWlMQ0p6ZFdJaU9pSXpPRFJrWXprek5TMDNZVEJtTFRSaU5Ua3RPRGxqTUMwek1HUTRPRGxoTlRGa1lqWWlMQ0owZVhBaU9pSkNaV0Z5WlhJaUxDSmhlbkFpT2lKMFkzTXRZMnhwWlc1MElpd2ljMlZ6YzJsdmJsOXpkR0YwWlNJNklqUTFOR1UxT1dFd0xXUTVNRFF0TkdRME9DMDRaakF6TFdOalpXWmlNak5pTlRWaE15SXNJbUZqY2lJNklqRWlMQ0poYkd4dmQyVmtMVzl5YVdkcGJuTWlPbHNpTHlvaVhTd2ljbVZoYkcxZllXTmpaWE56SWpwN0luSnZiR1Z6SWpwYkltUmxabUYxYkhRdGNtOXNaWE10ZEdOeklpd2laR1Z0Y3pwM2NtbDBaU0lzSW05bVpteHBibVZmWVdOalpYTnpJaXdpZFcxaFgyRjFkR2h2Y21sNllYUnBiMjRpWFgwc0luSmxjMjkxY21ObFgyRmpZMlZ6Y3lJNmV5SmhZMk52ZFc1MElqcDdJbkp2YkdWeklqcGJJbTFoYm1GblpTMWhZMk52ZFc1MElpd2liV0Z1WVdkbExXRmpZMjkxYm5RdGJHbHVhM01pTENKMmFXVjNMWEJ5YjJacGJHVWlYWDE5TENKelkyOXdaU0k2SW1WdFlXbHNJSEJ5YjJacGJHVWlMQ0p6YVdRaU9pSTBOVFJsTlRsaE1DMWtPVEEwTFRSa05EZ3RPR1l3TXkxalkyVm1Zakl6WWpVMVlUTWlMQ0owWlc1aGJuUmZhV1FpT2lKalltVWlMQ0psYldGcGJGOTJaWEpwWm1sbFpDSTZabUZzYzJVc0luUmxibUZ1ZEY5a1pYUmhhV3h6SWpwYklpOURiMjF0WlhKamFXRnNJRUpoYm1zZ2IyWWdSWFJvYVc5d2FXRWlMQ0l2UTI5dGJXVnlZMmxoYkNCQ1lXNXJJRzltSUVWMGFHbHZjR2xoTDJSbGJYTWlYU3dpY0hKbFptVnljbVZrWDNWelpYSnVZVzFsSWpvaVkySmxMbk41YzNSbGJTNTFjMlZ5UUdkdFlXbHNMbU52YlNKOS5Lb1FmV3JXX01lNWFVR1A2b3ZxSXIxWTJNaHp4VDVWeFRvcTItT3BUb25lX3c2Z3BjcWNWMTdyLVVsRWthUzZXU29DWlYtNFFMLXQ4OXgtYVozN2M1THdWSWp3ZFZHZHhWMlZFZjdJSTV0S2RPNTNLMXo0VzhFTFMwOEJqMm9tem12T0s2QUdIUDBoZ1R3VmlIdUczeHVkZmpBamhtNkRfdFlMZDJjMUV5ZW5mbVU2OUZxS2xfWTFmUlBaeExlZWhYM1RYWVV5QUtJc0ZCZk93Z2RZb1dhY0NEQVRjUks3Y3dkOEd6a3NpWmQzVEVON3VYSXRNdGJQMmhjSmdxQU5xOHVCZUxuQmNFMV9aT1BCMnNYa2l1cmVZRTV1UGt4UUpMdlFxTVppbG5aS0FXSXZzV1Nla1RPQnVRTE5Gdks1T0FFNlRSbXFjMlJYUUdJU2t1NmdGanciLCJjbGFpbXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSIsImRlZmF1bHQtcm9sZXMtdGNzIiwiZGVtczp3cml0ZSIsIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXSwidGVuYW50SWQiOiJjYmUiLCJpYXQiOjE3NzYxNjg0Nzh9.mnRt9_G88dlkvNrW1oqp2jhKUC5jX0E22DquMymrYtCBY_jM8bEiUc_-XMWBC3IcF2JnnBgO4vSEFgSHBZjxoUBpHQ31YMkhJawnKiA3Nw-ZmNzkJQBDIpUC_Nm0HwbxFk2jgq4YgoVDrm8SXXtNG5iH2maTxHySiOl4lMHy9otXRkp_mG-t1FyzjE_SlnRMj5zO0b5jwgJaXBXImiGDXiPE0TiHDj3S0bTrdz-7oGzTJWg_Zf2xABXjqy4QVtYM17id5flAYDCQecvdQRUhWsImukK7NptIgweFCcc1TQA3rnARD8SXU7OvP6q6JZuz4z52ZdyL8t2f3rZhd-_qwA';
+
   // Dummy JSON objects for simulation
   private readonly dummyMessages = {
     simulationData: [
       {
         messageId: 'msg_001',
         timestamp: '2024-04-14T10:00:00.000Z',
+        endpoint: 'http://localhost:3002/dems-engine/cbe/1.0.0/iso/test_transaction',
         data: {
-          TxTp: 'pacs.008.001.10',
-          FIToFICstmrCdtTrf: {
-            GrpHdr: {
-              MsgId: 'TXN001',
-              CreDtTm: '2024-04-14T10:00:00.000Z',
-              NbOfTxs: '1',
-            },
-            CdtTrfTxInf: {
-              PmtId: {
-                EndToEndId: 'E2E001',
-                TxId: 'TXN001',
-              },
-              IntrBkSttlmAmt: {
-                Ccy: 'USD',
-                value: '1000.00',
-              },
-              ChrgBr: 'SLEV',
-              Dbtr: {
-                Nm: 'John Doe',
-                Id: {
-                  PrvtId: {
-                    DtAndPlcOfBirth: {
-                      BirthDt: '1985-05-15',
-                      CityOfBirth: 'New York',
-                      CtryOfBirth: 'US',
-                    },
-                  },
-                },
-              },
-              Cdtr: {
-                Nm: 'Jane Smith',
-                Id: {
-                  PrvtId: {
-                    DtAndPlcOfBirth: {
-                      BirthDt: '1990-08-22',
-                      CityOfBirth: 'Los Angeles',
-                      CtryOfBirth: 'US',
-                    },
-                  },
-                },
-              },
-            },
-          },
+          msgid: 'msg001',
+          amount: 1000,
+          currency: 'PKR',
+          country: 'PK',
+          cnic: '1234-5678-910',
+          date: '10-10-2025'
         },
       },
       {
         messageId: 'msg_002',
         timestamp: '2024-04-14T10:00:03.000Z',
+        endpoint: 'http://localhost:3002/dems-engine/cbe/1.0.0/iso/test_transaction',
         data: {
-          TxTp: 'pacs.008.001.10',
-          FIToFICstmrCdtTrf: {
-            GrpHdr: {
-              MsgId: 'TXN002',
-              CreDtTm: '2024-04-14T10:00:03.000Z',
-              NbOfTxs: '1',
-            },
-            CdtTrfTxInf: {
-              PmtId: {
-                EndToEndId: 'E2E002',
-                TxId: 'TXN002',
-              },
-              IntrBkSttlmAmt: {
-                Ccy: 'EUR',
-                value: '2500.00',
-              },
-              ChrgBr: 'SLEV',
-              Dbtr: {
-                Nm: 'Alice Johnson',
-                Id: {
-                  PrvtId: {
-                    DtAndPlcOfBirth: {
-                      BirthDt: '1988-03-10',
-                      CityOfBirth: 'London',
-                      CtryOfBirth: 'GB',
-                    },
-                  },
-                },
-              },
-              Cdtr: {
-                Nm: 'Bob Wilson',
-                Id: {
-                  PrvtId: {
-                    DtAndPlcOfBirth: {
-                      BirthDt: '1992-12-05',
-                      CityOfBirth: 'Manchester',
-                      CtryOfBirth: 'GB',
-                    },
-                  },
-                },
-              },
-            },
-          },
+          msgid: 'msg002',
+          amount: 2500,
+          currency: 'PKR',
+          country: 'PK',
+          cnic: '9876-5432-109',
+          date: '11-10-2025'
         },
       },
       {
         messageId: 'msg_003',
         timestamp: '2024-04-14T10:00:08.000Z',
+        endpoint: 'http://localhost:3002/dems-engine/cbe/1.0.0/iso/test_transaction',
         data: {
-          TxTp: 'pacs.008.001.10',
-          FIToFICstmrCdtTrf: {
-            GrpHdr: {
-              MsgId: 'TXN003',
-              CreDtTm: '2024-04-14T10:00:08.000Z',
-              NbOfTxs: '1',
-            },
-            CdtTrfTxInf: {
-              PmtId: {
-                EndToEndId: 'E2E003',
-                TxId: 'TXN003',
-              },
-              IntrBkSttlmAmt: {
-                Ccy: 'ZAR',
-                value: '15000.00',
-              },
-              ChrgBr: 'SLEV',
-              Dbtr: {
-                Nm: 'Michael Brown',
-                Id: {
-                  PrvtId: {
-                    DtAndPlcOfBirth: {
-                      BirthDt: '1987-07-20',
-                      CityOfBirth: 'Cape Town',
-                      CtryOfBirth: 'ZA',
-                    },
-                  },
-                },
-              },
-              Cdtr: {
-                Nm: 'Sarah Davis',
-                Id: {
-                  PrvtId: {
-                    DtAndPlcOfBirth: {
-                      BirthDt: '1995-11-18',
-                      CityOfBirth: 'Johannesburg',
-                      CtryOfBirth: 'ZA',
-                    },
-                  },
-                },
-              },
-            },
-          },
+          msgid: 'msg003',
+          amount: 5000,
+          currency: 'PKR',
+          country: 'PK',
+          cnic: '5555-4444-333',
+          date: '12-10-2025'
         },
       },
     ],
   };
-
-  // DEMS Dev endpoint configuration
-  private readonly demsDevEndpoint = process.env.DEMS_DEV_ENDPOINT ?? 'http://localhost:3000/dems/ingest';
 
   constructor(private readonly httpService: HttpService) {}
 
@@ -224,14 +117,15 @@ export class SendToDemsService {
         deliveryTracker[trackerIndex].status = 'sent';
         sentCount += 1;
 
-        this.logger.log(`Sending message ${message.messageId} to DEMS Dev endpoint`);
+        this.logger.log(`Sending message ${message.messageId} to DEMS endpoint: ${message.endpoint}`);
 
-        // Send message to DEMS Dev endpoint
+        // Send message to DEMS endpoint
         // eslint-disable-next-line no-await-in-loop -- Sequential delivery required by user story
         await firstValueFrom(
-          this.httpService.post(this.demsDevEndpoint, message.data, {
+          this.httpService.post(message.endpoint, message.data, {
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': `Bearer ${this.dummyBearerToken}`,
               'X-Message-Id': message.messageId,
               'X-Timestamp': message.timestamp,
             },
@@ -243,7 +137,7 @@ export class SendToDemsService {
         deliveryTracker[trackerIndex].status = 'delivered';
         deliveredCount += 1;
 
-        this.logger.log(`Message ${message.messageId} delivered successfully`);
+        this.logger.log(`Message ${message.messageId} delivered successfully to ${message.endpoint}`);
       } catch (error: unknown) {
         // Handle individual message failure
         deliveryTracker[trackerIndex].status = 'failed';
