@@ -8,10 +8,21 @@ import { ConfigModule } from './services/config/config.module';
 import { NodesModule } from './services/nodes/nodes.module';
 import { ParseExtractModule } from './services/parse-extract/parse-extract.module';
 import { SimulationLogsModule } from './services/simulation-logs/simulation-logs.module';
+import { SendToDemsModule } from './services/send-to-dems/send-to-dems.module';
 import { AuditModule } from './audit/audit.module';
 
 @Module({
-  imports: [AuditModule, AuthModule, LoggerModule, RulesModule, ConfigModule, NodesModule, ParseExtractModule, SimulationLogsModule],
+  imports: [
+    AuditModule,
+    AuthModule,
+    LoggerModule,
+    RulesModule,
+    ConfigModule,
+    NodesModule,
+    ParseExtractModule,
+    SimulationLogsModule,
+    SendToDemsModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
