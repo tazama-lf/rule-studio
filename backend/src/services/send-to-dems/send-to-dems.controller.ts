@@ -15,15 +15,40 @@ export class SendToDemsController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Simulation completed successfully',
+    description: 'Simulation completed successfully - all messages delivered',
     type: SimulationResultDto,
   })
-  @ApiResponse({ status: 500, description: 'Simulation failed' })
+  @ApiResponse({
+    status: 207,
+    description: 'Simulation completed with some failures - partial success',
+    type: SimulationResultDto,
+  })
+  @ApiResponse({ status: 500, description: 'Simulation failed completely' })
   async startSimulation(): Promise<SimulationResult> {
     try {
-      return await this.sendToDemsService.startSimulation();
+      const result = await this.sendToDemsService.startSimulation();
+      
+      if (result.failedMessages > 0) {
+        if (result.deliveredMessages === 0) {
+          throw new HttpException({
+            message: `Simulation failed completely: all ${result.totalMessages} message(s) failed to be delivered`,
+            result: result
+          }, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        
+        throw new HttpException({
+          message: `Simulation completed with ${result.failedMessages} failed message(s) out of ${result.totalMessages}`,
+          result: result
+        }, HttpStatus.MULTI_STATUS);
+      }
+      
+      return result;
     } catch (error) {
-      throw new HttpException(`Simulation failed: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+      if (error instanceof HttpException && error.getStatus() === HttpStatus.MULTI_STATUS) {
+        throw error; 
+      }
+      
+      throw new HttpException(`Simulation failed completely: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }
