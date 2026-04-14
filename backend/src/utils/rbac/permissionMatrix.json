@@ -19,6 +19,9 @@
       },
       "publisher": {
         "bypassAllTiers": false
+      },
+      "trs_data_engineer_editor": {
+        "bypassAllTiers": false
       }
     }
   },

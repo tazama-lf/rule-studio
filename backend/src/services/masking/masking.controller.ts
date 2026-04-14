@@ -19,7 +19,7 @@ export class MaskingController {
     constructor(private readonly maskingService: MaskingService) { }
 
     @Post('/api/create')
-    @RequireAnyClaims(TazamaClaims.EDITOR)
+    @RequireAnyClaims(TazamaClaims.DATA_ENGINEER_EDITOR)
     @Audit()
     @ApiBody({ type: Masking, description: 'Rule data for creation' })
     @ApiSwagger({
@@ -34,7 +34,11 @@ export class MaskingController {
         @Body() body: CreateMaskDto,
         @User() user: AuthenticatedUser,
     ): Promise<ISuccess> {
-        return await this.maskingService.create(body, user);
+        const req = {
+            txtp: body.txtp,
+            txtp_version: body.txtpVersion
+        }
+        return await this.maskingService.create(req, user);
     }
 
 }
