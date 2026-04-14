@@ -181,13 +181,6 @@ export class SendToDemsService {
   constructor(private readonly httpService: HttpService) {}
 
   /**
-   * Get the dummy messages for inspection
-   */
-  getDummyMessages(): Record<string, unknown> {
-    return this.dummyMessages;
-  }
-
-  /**
    * Start the simulation - sends messages to DEMS one by one with proper time intervals
    */
   async startSimulation(): Promise<SimulationResult> {
@@ -279,71 +272,6 @@ export class SendToDemsService {
     );
 
     return result;
-  }
-
-  /**
-   * Send a single message to DEMS (for testing individual messages)
-   */
-  async sendSingleMessage(messageId: string): Promise<MessageDeliveryStatus> {
-    const message = this.dummyMessages.simulationData.find((msg) => msg.messageId === messageId);
-
-    if (!message) {
-      throw new Error(`Message with ID ${messageId} not found`);
-    }
-
-    const deliveryStatus: MessageDeliveryStatus = {
-      messageId: message.messageId,
-      timestamp: new Date(),
-      status: 'pending',
-    };
-
-    try {
-      this.logger.log(`Sending single message ${messageId} to DEMS Dev endpoint`);
-
-      deliveryStatus.status = 'sent';
-
-      await firstValueFrom(
-        this.httpService.post(this.demsDevEndpoint, message.data, {
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Message-Id': message.messageId,
-            'X-Timestamp': message.timestamp,
-          },
-          timeout: 10000,
-        }),
-      );
-
-      deliveryStatus.status = 'delivered';
-      this.logger.log(`Single message ${messageId} delivered successfully`);
-    } catch (error: unknown) {
-      deliveryStatus.status = 'failed';
-      deliveryStatus.error = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Failed to deliver single message ${messageId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-
-    return deliveryStatus;
-  }
-
-  /**
-   * Get simulation statistics
-   */
-  getSimulationInfo(): Record<string, unknown> {
-    const messages = this.dummyMessages.simulationData;
-    const totalDuration = new Date(messages[messages.length - 1].timestamp).getTime() - new Date(messages[0].timestamp).getTime();
-
-    return {
-      totalMessages: messages.length,
-      timeSpan: totalDuration,
-      timeSpanFormatted: `${totalDuration / 1000} seconds`,
-      endpoint: this.demsDevEndpoint,
-      messages: messages.map((msg) => ({
-        messageId: msg.messageId,
-        timestamp: msg.timestamp,
-        transactionId: msg.data.FIToFICstmrCdtTrf.CdtTrfTxInf.PmtId.TxId,
-        amount: msg.data.FIToFICstmrCdtTrf.CdtTrfTxInf.IntrBkSttlmAmt.value,
-        currency: msg.data.FIToFICstmrCdtTrf.CdtTrfTxInf.IntrBkSttlmAmt.Ccy,
-      })),
-    };
   }
 
   // eslint-disable-next-line @typescript-eslint/promise-function-async -- Avoiding circular lint conflicts
