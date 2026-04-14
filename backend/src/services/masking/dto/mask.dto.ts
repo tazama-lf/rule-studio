@@ -10,7 +10,7 @@ export class MaskDto {
     @ApiPropertyOptional({ description: 'Transaction type version', example: '11' })
     @IsOptional()
     @IsString()
-    txtp_version?: string;
+    txtpVersion?: string;
 }
 
 

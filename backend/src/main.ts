@@ -42,7 +42,7 @@ async function bootstrap(): Promise<void> {
 
   // Swagger Configuration
   const apiHost = process.env.API_HOST ?? 'localhost';
-  const apiPort = process.env.API_PORT ?? '3005';
+  const apiPort = process.env.PORT ?? '3005';
   const baseUrl = `http://${apiHost}:${apiPort}`;
 
   const config = new DocumentBuilder()
