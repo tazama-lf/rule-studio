@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { useTab } from "../../contexts/TabContext/useTab";
+import { useMaskingTab } from "../../contexts/MaskingTabContext/useMaskingTab";
 import * as S from './Tabs.styles';
 
 export type TabItem = {
@@ -8,11 +9,22 @@ export type TabItem = {
     enabled: boolean
 };
 
-const Tabs = () => {
-    const context = useTab()
+interface TabsProps {
+    variant?: 'default' | 'masking';
+}
 
-    const tabs = context.tabs
-    const selected = context.selectedTab
+const Tabs = ({ variant = 'default' }: TabsProps) => {
+    const defaultContext = variant === 'default' ? useTab() : null;
+    const maskingContext = variant === 'masking' ? useMaskingTab() : null;
+    
+    const context = defaultContext || maskingContext;
+    
+    if (!context) {
+        return null;
+    }
+
+    const tabs = context.tabs;
+    const selected = context.selectedTab;
 
     return (
         <S.Wrapper>
