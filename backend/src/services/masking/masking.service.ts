@@ -22,7 +22,14 @@ export class MaskingService {
       this.logger.error(
         `Error While Creating Masking : ${error instanceof Error ? error.message : String(error)}`,
       );
-      throw new BadRequestException(error instanceof Error ? error.message : String(error));
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('duplicate key value violates unique constraint')) {
+        throw new BadRequestException(
+          'A masking configuration with this type and version already exists. Please use a different type or version combination.'
+        );
+      } else {
+        throw new BadRequestException(errorMessage);
+      }
     }
   }
 }
