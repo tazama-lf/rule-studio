@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from "react"
 import { useParams, useSearchParams } from "react-router-dom"
-import { useMaskingTab } from "../../contexts/MaskingTabContext"
+import { useMaskingTab } from "../../contexts/MaskingTabContext/useMaskingTab"
 import { useGetRuleByIdQuery } from "../../redux/Api/Rules"
 import { LocalStorage } from "../../utils/Common/enums"
 import { extractData, insertData } from "../../utils/Common/storage"

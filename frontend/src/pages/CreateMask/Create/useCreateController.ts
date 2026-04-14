@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import type { DropdownOption } from "../../../components/DropDown";
-import { useMaskingTab } from "../../../contexts/MaskingTabContext";
+import { useMaskingTab } from "../../../contexts/MaskingTabContext/useMaskingTab";
 import { useGetTypesQuery, useLazyGetTxtpVersionsQuery } from "../../../redux/Api/Config";
 import { LocalStorage } from "../../../utils/Common/enums";
 import { insertData } from "../../../utils/Common/storage";

@@ -7,6 +7,7 @@ import Tabs from '../../components/Tabs';
 import { Text } from "../../components/Text";
 import BoxWrapper from "../../components/Wrappers/BoxWrapper";
 import { MaskingTabProvider } from '../../contexts/MaskingTabContext';
+import { useMaskingTab } from '../../contexts/MaskingTabContext/useMaskingTab';
 import { claims, Status } from '../../utils/Constants/data';
 import useCreateMaskController from './useCreateMaskController';
 
@@ -14,6 +15,7 @@ import useCreateMaskController from './useCreateMaskController';
 const MaskingContent = () => {
 
     const { values, functions } = useCreateMaskController()
+    const { tabs, selectedTab } = useMaskingTab()
 
     if (values?.isLoading) {
         return <SuspenseLoader />
@@ -36,7 +38,7 @@ const MaskingContent = () => {
                 </Box>
             }
 
-            <Tabs variant="masking" />
+            <Tabs tabs={tabs} selectedTab={selectedTab} />
 
             {functions.renderComponent()}
         </>
