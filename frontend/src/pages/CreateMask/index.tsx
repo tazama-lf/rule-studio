@@ -14,12 +14,8 @@ import useCreateMaskController from './useCreateMaskController';
 
 const MaskingContent = () => {
 
-    const { values, functions } = useCreateMaskController()
+    const { functions } = useCreateMaskController()
     const { tabs, selectedTab } = useMaskingTab()
-
-    if (values?.isLoading) {
-        return <SuspenseLoader />
-    }
 
     return (
         <>
@@ -29,14 +25,6 @@ const MaskingContent = () => {
                     <Text weight={'bold'} color="black" size={'header'}>Masking</Text>
                 </Box>
             </Box>
-
-            {values?.user?.claims === claims.editor &&
-                <Box display={'flex'} alignItems={'center'} justifyContent={'space-between'} >
-                    {(values?.data?.status === Status.STATUS_04_APPROVED || values?.data?.status === Status.STATUS_05_REJECTED) &&
-                        <CommentCard success={values?.data?.status === Status.STATUS_04_APPROVED} message={values?.data?.comments as string} />
-                    }
-                </Box>
-            }
 
             <Tabs tabs={tabs} selectedTab={selectedTab} />
 

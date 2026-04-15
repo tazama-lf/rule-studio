@@ -9,20 +9,12 @@ import Configure from "./Configure"
 
 const useCreateMaskController = () => {
 
-    const { id } = useParams<{ id: string }>();
     const [searchParams] = useSearchParams();
     const mode = searchParams.get('mode') ?? null
 
-    const { data, isFetching: isLoading, isSuccess } = useGetRuleByIdQuery({ id }, { skip: !id, refetchOnMountOrArgChange: true })
     const { selectedTab } = useMaskingTab()
 
     const user = extractData('user')
-
-    useEffect(() => {
-        if (isSuccess && data?.rules) {
-            insertData(data.rules, 'trs_rule', LocalStorage, true)
-        }
-    }, [isSuccess, data])
 
     const renderComponent = useCallback(() => {
         switch (selectedTab) {
@@ -33,13 +25,11 @@ const useCreateMaskController = () => {
             default:
                 return null;
         }
-    }, [selectedTab, data, mode])
+    }, [selectedTab, mode])
 
     return {
         values: {
-            isLoading,
             mode,
-            data: data?.rules,
             user
         },
         functions: {

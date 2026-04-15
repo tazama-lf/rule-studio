@@ -29,7 +29,7 @@ const useSimulationController = (props: ISimulation) => {
         [props.data]
     )
 
-    const { rule_name } : { rule_name?: string } = data || {};
+    const { rule_name }: { rule_name?: string } = data || {};
 
     const user = useMemo(() => extractData('user'), [])
 
@@ -88,12 +88,6 @@ const useSimulationController = (props: ISimulation) => {
             body: { metadata }
         }
         update(body).unwrap()
-            .then(() => {
-                console.log('Metadata updated successfully', metadata)
-            })
-            .catch((error) => {
-                console.error('Failed to update metadata', error)
-            })
     }, [data?.id, update])
 
     const handleApproval = (type: 'review' | 'approve' | 'reject' | 'deploy') => {

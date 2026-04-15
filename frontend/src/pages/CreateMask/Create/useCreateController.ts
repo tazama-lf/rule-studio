@@ -64,9 +64,9 @@ const useCreateController = () => {
             txtpVersion: values?.txtpVersion?.value,
         }
 
-        const res = await submit(payload).unwrap()
+        await submit(payload).unwrap()
 
-        insertData(res, 'mask_config', LocalStorage, true)
+        insertData(payload, 'mask_config', LocalStorage, true)
         toast.success('Configuration Successfully Created')
 
         enableNextTab()
