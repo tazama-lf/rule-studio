@@ -258,8 +258,8 @@ export const claims = {
     editor: 'editor',
     approver: 'approver',
     publisher: 'publisher',
-    data_engineer_editor: 'data_engineer_editor',
-    data_engineer_approver: 'data_engineer_approver',
+    data_engineer_editor: 'trs_data_engineer_editor',
+    data_engineer_approver: 'trs_data_engineer_approver',
 }
 
 export const DATA_ENGINEER_ROLES: string[] = [

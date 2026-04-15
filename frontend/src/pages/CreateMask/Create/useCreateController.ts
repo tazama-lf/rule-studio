@@ -29,13 +29,13 @@ const useCreateController = () => {
     };
 
     const getTxtpVersions = useCallback((type: string | number) => {
+        setVersions([])
         getVersions({ type }).unwrap()
             .then((res) => {
-                if (res) {
-                    setVersions(res)
-                }
+                setVersions(res ?? [])
             })
             .catch(() => {
+                setVersions([])
                 toast.error('Failed to load transaction type versions')
             })
     }, [getVersions])
