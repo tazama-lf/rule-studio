@@ -1,14 +1,11 @@
 import CodeIcon from '@mui/icons-material/Code';
 import { Box } from "@mui/material";
 import { useSearchParams } from 'react-router-dom';
-import CommentCard from '../../components/Cards/CommentCard';
-import SuspenseLoader from '../../components/SuspenseLoader';
 import Tabs from '../../components/Tabs';
 import { Text } from "../../components/Text";
 import BoxWrapper from "../../components/Wrappers/BoxWrapper";
 import { MaskingTabProvider } from '../../contexts/MaskingTabContext';
 import { useMaskingTab } from '../../contexts/MaskingTabContext/useMaskingTab';
-import { claims, Status } from '../../utils/Constants/data';
 import useCreateMaskController from './useCreateMaskController';
 
 

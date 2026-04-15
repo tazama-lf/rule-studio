@@ -33,6 +33,7 @@ const Create = () => {
                         <Controller
                             control={values.control}
                             name="txtp"
+                            rules={{ required: "Transaction type is required" }}
                             render={({ field }) => (
                                 <DropDown
                                     required
@@ -50,6 +51,7 @@ const Create = () => {
                         <Controller
                             control={values.control}
                             name="txtpVersion"
+                            rules={{ required: "Transaction type version is required" }}
                             render={({ field }) => (
                                 <DropDown
                                     required

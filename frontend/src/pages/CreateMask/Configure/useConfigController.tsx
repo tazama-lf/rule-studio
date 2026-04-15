@@ -33,7 +33,13 @@ const extractAllKeys = (obj: unknown, prefix: string = ''): string[] => {
 
 const useConfigController = () => {
 
-    const data = useMemo(() => extractData('mask_config', LocalStorage, true), [])
+    const data = useMemo(() => {
+        try {
+            return extractData('mask_config', LocalStorage, true)
+        } catch {
+            return null
+        }
+    }, [])
 
     const { enablePreviousTab, enableNextTab } = useMaskingTab()
 
