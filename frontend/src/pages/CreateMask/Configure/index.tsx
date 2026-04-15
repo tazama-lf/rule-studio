@@ -38,13 +38,6 @@ const Configure = () => {
                 }
             </Grid>
 
-            <Section header={'Preview Payload'}>
-                {values?.previewPayload &&
-                    <FormattedJsonSection value={values.previewPayload} />
-                }
-            </Section>
-
-
             <Box mt={2} width={'100%'} display={'flex'} justifyContent={'space-between'}>
                 <Button height="40px" type="secondary" size="md" text="Back" onClick={functions.handlePrevious} />
                 <Button height="40px" type="secondary" size="md" text="Send For Approval" onClick={functions.handleNext} />
