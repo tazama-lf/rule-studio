@@ -31,5 +31,8 @@ export const SIMULATION_LOGS = '/v1/admin/simulation-logs';
 export const INSERT_SIMULATION_LOGS = `${SIMULATION_LOGS}/insert`;
 export const GET_SIMULATION_LOGS = `${SIMULATION_LOGS}/:ruleId`;
 
+// Simulation Messages
+export const SIMULATION_MESSAGES = '/v1/admin/simulation/messages';
+
 // Base rule for cloning flow
 export const BASE_RULE_ID = '21';

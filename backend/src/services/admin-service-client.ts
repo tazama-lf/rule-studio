@@ -36,11 +36,19 @@ import {
   BASE_URL,
   GET_SIMULATION_LOGS,
   INSERT_SIMULATION_LOGS,
+  SIMULATION_MESSAGES,
 } from '../constants/constant';
 import { ResponseQueryNodeDto } from './nodes/dto/responseNode.dto';
 import { RuleRequest } from '../services/parse-extract/dto/message.dto';
 import { SimulationLogsDto } from './simulation-logs/dto';
 import { ISimulationLog } from './simulation-logs/interface/simulation-logs.interface';
+
+export interface SimulationMessage {
+  messageId: string;
+  timestamp: string;
+  endpoint: string;
+  data: Record<string, unknown>;
+}
 
 @Injectable()
 export class AdminServiceClient {
@@ -333,5 +341,12 @@ export class AdminServiceClient {
 
   async insertSimulationLogs(token: string, logs: ISimulationLog): Promise<SimulationLogsDto> {
     return await this.executeHttpRequest('POST', INSERT_SIMULATION_LOGS, token, logs);
+  }
+
+  async getSimulationMessages(token: string): Promise<SimulationMessage[]> {
+    const response = await this.executeHttpRequest<{
+      messages: SimulationMessage[];
+    }>('GET', SIMULATION_MESSAGES, token);
+    return response.messages;
   }
 }
