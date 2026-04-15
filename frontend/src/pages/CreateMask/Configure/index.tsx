@@ -38,6 +38,34 @@ const Configure = () => {
                 }
             </Grid>
 
+            {values?.summary && (
+                <Grid size={12} mt={2}>
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            gap: 3,
+                            p: 2,
+                            borderRadius: 2,
+                            bgcolor: '#f8fafc',
+                            border: '1px solid #e2e8f0'
+                        }}
+                    >
+                        <Box>
+                            <Text size="sub" color="text.secondary" sx={{ mb: 0.5 }}>Total Fields</Text>
+                            <Text weight="bold" size="body" color="primary.main">
+                                {values.summary.totalFields}
+                            </Text>
+                        </Box>
+                        <Box sx={{ borderLeft: '1px solid #e2e8f0', pl: 3 }}>
+                            <Text size="sub" color="text.secondary" sx={{ mb: 0.5 }}>Fields Selected for Tokenization</Text>
+                            <Text weight="bold" size="body" color="success.main">
+                                {values.summary.tokenizedFields}
+                            </Text>
+                        </Box>
+                    </Box>
+                </Grid>
+            )}
+
             <Box mt={2} width={'100%'} display={'flex'} justifyContent={'space-between'}>
                 <Button height="40px" type="secondary" size="md" text="Back" onClick={functions.handlePrevious} />
                 <Button height="40px" type="secondary" size="md" text="Send For Approval" onClick={functions.handleNext} />
