@@ -62,3 +62,33 @@ export class MaskingListResponseDto {
   @ApiProperty({ description: 'Total count of matching records', example: 25 })
   total!: number;
 }
+
+export class UpdateMaskDto {
+  @ApiPropertyOptional({ description: 'Transaction type', example: 'pain.001.001.11' })
+  @IsOptional()
+  @IsString()
+  txtp?: string;
+
+  @ApiPropertyOptional({ description: 'Transaction type version', example: '11' })
+  @IsOptional()
+  @IsString()
+  txtp_version?: string;
+
+  @ApiPropertyOptional({ description: 'Status', example: 'STATUS_02_READY_FOR_REVIEW' })
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @ApiPropertyOptional({ description: 'Number of fields masked', example: 5 })
+  @IsOptional()
+  fields_masked?: number;
+
+  @ApiPropertyOptional({ description: 'Total number of fields', example: 10 })
+  @IsOptional()
+  total_fields?: number;
+
+  @ApiPropertyOptional({ description: 'Comments', example: 'Updated masking configuration' })
+  @IsOptional()
+  @IsString()
+  comments?: string;
+}

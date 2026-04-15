@@ -23,9 +23,34 @@ export const maskingApi = createApi({
                 body: { ...body },
             }),
         }),
+        getAllMasks: builder.mutation({
+            query: ({ body, params }) => ({
+                url: `all`,
+                method: "POST",
+                body: { ...body },
+                params,
+            }),
+        }),
+        getMaskById: builder.query({
+            query: ({ id }) => ({
+                url: `${id}`,
+                method: "GET",
+            }),
+        }),
+        updateMask: builder.mutation({
+            query: ({ id, body }) => ({
+                url: `${id}`,
+                method: "PUT",
+                body: { ...body },
+            }),
+        }),
     }),
 })
 
 export const {
     useCreateMaskingMutation,
+    useGetAllMasksMutation,
+    useGetMaskByIdQuery,
+    useLazyGetMaskByIdQuery,
+    useUpdateMaskMutation,
 } = maskingApi

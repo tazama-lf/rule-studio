@@ -37,6 +37,7 @@ import {
   GET_SIMULATION_LOGS,
   INSERT_SIMULATION_LOGS,
   MASKING_ALL,
+  MASKING_UPDATE,
   CREATE_MASK,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto } from './masking/dto/masking.dto';
@@ -347,5 +348,14 @@ export class AdminServiceClient {
   async createMask(maskData: CreateMaskDto, token: string): Promise<ISuccess> {
     const response = await this.executeHttpRequest<ISuccess>('POST', CREATE_MASK, token, { maskData });
     return response;
+  }
+
+  async updateMask(id: number, updateData: Record<string, unknown>, token: string): Promise<Record<string, unknown>> {
+    return await this.executeHttpRequest<Record<string, unknown>>('PUT', `${MASKING_UPDATE}/${id}`, token, updateData);
+  }
+
+  async getMaskById(id: number, token: string): Promise<Record<string, unknown>> {
+    const response = await this.executeHttpRequest<{ mask: Record<string, unknown> }>('GET', `${MASKING_UPDATE}/${id}`, token);
+    return response.mask;
   }
 }

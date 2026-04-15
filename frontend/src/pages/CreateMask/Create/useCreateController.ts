@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import type { DropdownOption } from "../../../components/DropDown";
@@ -6,20 +6,28 @@ import { useMaskingTab } from "../../../contexts/MaskingTabContext";
 import { useGetTypesQuery, useLazyGetTxtpVersionsQuery } from "../../../redux/Api/Config";
 import { LocalStorage } from "../../../utils/Common/enums";
 import { insertData } from "../../../utils/Common/storage";
-import { useCreateMaskingMutation } from "../../../redux/Api/Masking";
+import { useCreateMaskingMutation, useUpdateMaskMutation } from "../../../redux/Api/Masking";
 
 interface MaskFormValues {
     txtp: { label: string, value: string } | null;
     txtpVersion: { label: string, value: string } | null;
 }
 
-const useCreateController = () => {
+interface CreateControllerProps {
+    mode?: string | null;
+    id?: string;
+    maskData?: Record<string, unknown>;
+}
+
+const useCreateController = ({ mode, id, maskData }: CreateControllerProps = {}) => {
 
     const [versions, setVersions] = useState<string[]>([])
+    const [versionsLoading, setVersionsLoading] = useState(false)
 
     const { data: types, isLoading } = useGetTypesQuery({})
     const [getVersions] = useLazyGetTxtpVersionsQuery()
     const [submit, { isLoading: createLoading }] = useCreateMaskingMutation()
+    const [update, { isLoading: updateLoading }] = useUpdateMaskMutation()
 
     const { enableNextTab } = useMaskingTab()
 
@@ -27,26 +35,6 @@ const useCreateController = () => {
         txtp: null,
         txtpVersion: null,
     };
-
-    const getTxtpVersions = useCallback((type: string | number) => {
-        getVersions({ type }).unwrap()
-            .then((res) => {
-                if (res) {
-                    setVersions(res)
-                }
-            })
-            .catch(() => {
-                toast.error('Failed to load transaction type versions')
-            })
-    }, [getVersions])
-
-    const handleTxTp = (val: DropdownOption) => {
-        setValue('txtp', val as { label: string, value: string })
-        setValue('txtpVersion', null)
-        if (val?.value) {
-            getTxtpVersions(val?.value)
-        }
-    }
 
     const {
         handleSubmit,
@@ -57,8 +45,57 @@ const useCreateController = () => {
         defaultValues: initial
     })
 
+    const getTxtpVersions = useCallback((type: string | number) => {
+        setVersionsLoading(true)
+        getVersions({ type }).unwrap()
+            .then((res) => {
+                if (res) {
+                    setVersions(res)
+                }
+            })
+            .catch(() => {
+                toast.error('Failed to load transaction type versions')
+            })
+            .finally(() => {
+                setVersionsLoading(false)
+            })
+    }, [getVersions])
+
+    // Pre-populate form fields in edit mode when mask data is available
+    useEffect(() => {
+        if (mode === 'edit' && maskData?.txtp) {
+            const txtp = maskData.txtp as string;
+            const txtp_version = maskData.txtp_version as string;
+            setValue('txtp', { label: txtp, value: txtp });
+            if (txtp_version) {
+                setValue('txtpVersion', { label: txtp_version, value: txtp_version });
+            }
+            getTxtpVersions(txtp);
+            insertData(maskData, 'mask_config', LocalStorage, true);
+        }
+    }, [mode, maskData])
+
+    const handleTxTp = (val: DropdownOption) => {
+        setValue('txtp', val as { label: string, value: string })
+        setValue('txtpVersion', null)
+        if (val?.value) {
+            getTxtpVersions(val?.value)
+        }
+    }
 
     const onSubmit = async (values: MaskFormValues) => {
+        if (mode === 'edit') {
+            const payload = {
+                txtp: values?.txtp?.value,
+                txtp_version: values?.txtpVersion?.value,
+            }
+            const res = await update({ id, body: payload }).unwrap()
+            insertData(res, 'mask_config', LocalStorage, true)
+            toast.success('Configuration Successfully Updated')
+            enableNextTab()
+            return;
+        }
+
         const payload = {
             txtp: values?.txtp?.value,
             txtpVersion: values?.txtpVersion?.value,
@@ -77,6 +114,7 @@ const useCreateController = () => {
         values: {
             control,
             errors,
+            mode,
             transactions: (types as { transaction_type: string; endpoint_path: string }[] | undefined)
                 ?.reduce((acc: { label: string; value: string }[], item) => {
                     if (!acc.some(t => t.value === item.transaction_type)) {
@@ -85,7 +123,8 @@ const useCreateController = () => {
                     return acc;
                 }, []) || [],
             txtpVersions: versions?.map((item: string) => ({ label: item, value: item })) || [],
-            createLoading,
+            createLoading: createLoading || updateLoading,
+            versionsLoading,
             isLoading
         },
         functions: {

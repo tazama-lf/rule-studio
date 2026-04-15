@@ -118,7 +118,7 @@ export const ROUTES = [
         roleGroup: 'data-engineer' as const,
     },
     {
-        path: "/masking/create",
+        path: "/masking-config/action",
         element: <CreateMasking />,
         private: true,
         layout: true,

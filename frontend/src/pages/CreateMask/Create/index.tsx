@@ -8,9 +8,15 @@ import { Text } from "../../../components/Text";
 import Section from "../../../components/Wrappers/Section";
 import useCreateController from "./useCreateController";
 
-const Create = () => {
+interface CreateProps {
+    mode?: string | null;
+    id?: string;
+    maskData?: Record<string, unknown>;
+}
 
-    const { values, functions } = useCreateController()
+const Create = ({ mode, id, maskData }: CreateProps) => {
+
+    const { values, functions } = useCreateController({ mode, id, maskData })
 
     if (values?.isLoading) {
         return <Loader center />
@@ -33,6 +39,7 @@ const Create = () => {
                         <Controller
                             control={values.control}
                             name="txtp"
+                            rules={{ required: 'Transaction type is required' }}
                             render={({ field }) => (
                                 <DropDown
                                     required
@@ -41,7 +48,7 @@ const Create = () => {
                                     {...field}
                                     onChange={(val) => functions.handleTxTp(val as DropdownOption)}
                                     placeholder="Select Transaction type"
-                                    error={!field?.value ? values.errors.txtp?.message : undefined}
+                                    error={values.errors.txtp?.message}
                                 />
                             )}
                         />
@@ -50,13 +57,15 @@ const Create = () => {
                         <Controller
                             control={values.control}
                             name="txtpVersion"
+                            rules={{ required: 'Transaction type version is required' }}
                             render={({ field }) => (
                                 <DropDown
                                     required
                                     label="Transaction Type Versions"
                                     options={values.txtpVersions}
                                     {...field}
-                                    placeholder="Select Version"
+                                    placeholder={values.versionsLoading ? 'Loading versions...' : 'Select Version'}
+                                    disabled={values.versionsLoading}
                                     error={values.errors.txtpVersion?.message}
                                 />
                             )}
