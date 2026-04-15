@@ -39,6 +39,8 @@ export const GET_SIMULATION_LOGS = `${SIMULATION_LOGS}/:ruleId`;
 export const MASKING_BASE_URL = '/v1/admin/trs/masking';
 export const MASKING_ALL = `${MASKING_BASE_URL}/all`;
 export const MASKING_UPDATE = MASKING_BASE_URL;
+// Simulation Messages
+export const SIMULATION_MESSAGES = '/v1/admin/simulation/messages';
 
 // Base rule for cloning flow
 export const BASE_RULE_ID = '21';

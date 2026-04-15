@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
+import { HttpModule } from '@nestjs/axios';
+import { AdminServiceClient } from '../admin-service-client';
 import { SendToDemsService } from './send-to-dems.service';
 import { SendToDemsController } from './send-to-dems.controller';
-import { HttpModule } from '@nestjs/axios';
-import { LoggerModule } from '../../logger-service/logger-service.module';
 
 @Module({
-  imports: [LoggerModule, HttpModule],
-  providers: [SendToDemsService],
+  imports: [HttpModule],
+  providers: [SendToDemsService, AdminServiceClient],
   exports: [SendToDemsService],
   controllers: [SendToDemsController],
 })
