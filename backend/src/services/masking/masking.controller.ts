@@ -1,11 +1,11 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 import { ISuccess } from '@tazama-lf/tcs-lib';
-import { Audit } from 'src/decorators/audit.decorator';
-import { RequireAnyClaims, TazamaClaims } from 'src/decorators/auth.decorator';
-import { ApiSwagger, CommonResponses, mergeResponses } from 'src/decorators/swagger.decorator';
-import { User } from 'src/decorators/user.decorator';
-import { TazamaAuthGuard } from 'src/guards/tazama-auth.guard';
+import { Audit } from '../../decorators/audit.decorator';
+import { RequireAnyClaims, TazamaClaims } from '../../decorators/auth.decorator';
+import { ApiSwagger, CommonResponses, mergeResponses } from '../../decorators/swagger.decorator';
+import { User } from '../../decorators/user.decorator';
+import { TazamaAuthGuard } from '../../guards/tazama-auth.guard';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { CreateMaskDto, Masking } from './dto/mask.dto';
 import { MaskingService } from './masking.service';
