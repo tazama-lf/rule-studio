@@ -28,45 +28,6 @@ const extractAllKeys = (obj: unknown, prefix: string = ''): string[] => {
     return keys;
 };
 
-const buildPreviewPayload = (originalPayload: Record<string, unknown>, piiStates: Record<string, boolean>): Record<string, unknown> => {
-    const preview: Record<string, unknown> = {};
-
-    const piiKeys = Object.entries(piiStates)
-        .filter(([_, isPii]) => isPii)
-        .map(([key]) => key);
-
-    piiKeys.forEach(keyPath => {
-        const parts = keyPath.split(/\.|\[|\]/).filter(Boolean);
-        let current: Record<string, unknown> = preview;
-        let sourceCurrent: unknown = originalPayload;
-
-        for (let i = 0; i < parts.length; i++) {
-            const part = parts[i];
-            const isLast = i === parts.length - 1;
-
-            if (sourceCurrent && typeof sourceCurrent === 'object' && !Array.isArray(sourceCurrent)) {
-                sourceCurrent = (sourceCurrent as Record<string, unknown>)[part];
-            } else if (Array.isArray(sourceCurrent)) {
-                sourceCurrent = sourceCurrent[Number(part)];
-            }
-
-            if (isLast) {
-                current[part] = sourceCurrent;
-            } else {
-                const nextPart = parts[i + 1];
-                const isNextArray = !isNaN(Number(nextPart));
-
-                if (!current[part]) {
-                    current[part] = isNextArray ? [] : {};
-                }
-                current = current[part] as Record<string, unknown>;
-            }
-        }
-    });
-
-    return preview;
-};
-
 const useConfigController = () => {
 
     const data = useMemo(() => extractData('mask_config', LocalStorage, true), [])
@@ -156,25 +117,14 @@ const useConfigController = () => {
         is_pii: piiStates[key] ?? false
     }))
 
-    const previewPayload = useMemo(() => {
-        if (!payload) return null;
-        try {
-            const parsedPayload = JSON.parse(payload);
-            const preview = buildPreviewPayload(parsedPayload, piiStates);
-            return JSON.stringify(preview, null, 4);
-        } catch {
-            return null;
-        }
-    }, [payload, piiStates]);
-
+ 
     return {
         values: {
             payload,
             columns,
             sampleLoader,
             txtp: data?.txtp,
-            data: tableData,
-            previewPayload
+            data: tableData
         },
         functions: {
             fetchJson,
