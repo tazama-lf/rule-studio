@@ -17,14 +17,12 @@ export const MaskingTabProvider = ({ children }: MaskingTabProviderProps) => {
     const [selectedTab, setSelectedTab] = useState<string>(tabFromUrl)
     const [enabledTabs, setEnabledTabs] = useState<string[]>([MaskingTabs[0].value])
 
-
     const filteredTabs = useMemo(() => {
-        if (user?.claims !== claims.editor) {
+        if (user?.claims !== claims.data_engineer_editor) {
             return MaskingTabs.filter(tab => tab.value !== 'configure')
         }
         return MaskingTabs
     }, [user?.claims])
-
 
     const handleSetSelectedTab = useCallback((tab: string) => {
         setSelectedTab(tab)
