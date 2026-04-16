@@ -173,8 +173,22 @@ const useConfigController = () => {
     const summary = useMemo(() => {
         const totalFields = payloadKeys.length;
         const tokenizedFields = Object.values(piiStates).filter(Boolean).length;
-        return { totalFields, tokenizedFields };
+
+        const hasUncheckedPIIFields = payloadKeys.some(key => {
+            const shouldBePII = isPIIField(key);
+            const isMarkedAsPII = piiStates[key] ?? false;
+            return shouldBePII && !isMarkedAsPII;
+        });
+
+        const allFieldsOff = totalFields > 0 && tokenizedFields === 0;
+
+        const status = (hasUncheckedPIIFields || allFieldsOff) ? { message: 'Warning: Check Sensitive Fields', bgColor: '#fef3c7', textColor: '#92400e' } : { message: 'All fields tokenized', bgColor: '#bbf7d0', textColor : '#166534' };
+
+        return { totalFields, tokenizedFields, status };
     }, [payloadKeys, piiStates]);
+
+
+    console.log("SUMMARY", summary)
 
     return {
         values: {
