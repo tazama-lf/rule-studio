@@ -18,10 +18,11 @@ export class MaskingService {
         user: AuthenticatedUser
     ): Promise<ISuccess> {
         try {
-            return await this.adminServiceClient.createMask(
-                masking,
-                user.token.tokenString,
-            );
+            const payload = {
+                txtp: masking.txtp,
+                txtp_version: masking.txtpVersion,
+            };
+            return await this.adminServiceClient.createMask(payload, user.token.tokenString);
         } catch (error) {
             this.logger.error(
                 `Error While Creating Masking : ${error instanceof Error ? error.message : String(error)}`,

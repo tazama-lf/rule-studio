@@ -63,13 +63,14 @@ const useCreateController = () => {
             txtp: values?.txtp?.value,
             txtpVersion: values?.txtpVersion?.value,
         }
-
-        await submit(payload).unwrap()
-
-        insertData(payload, 'mask_config', LocalStorage, true)
-        toast.success('Configuration Successfully Created')
-
-        enableNextTab()
+        try {
+            await submit(payload).unwrap()
+            insertData(payload, 'mask_config', LocalStorage, true)
+            toast.success('Configuration Successfully Created')
+            enableNextTab()
+        } catch {
+            toast.error('Failed to create configuration')
+        }
     }
 
 

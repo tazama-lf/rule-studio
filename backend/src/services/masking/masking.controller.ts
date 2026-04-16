@@ -7,7 +7,7 @@ import { ApiSwagger, CommonResponses, mergeResponses } from '../../decorators/sw
 import { User } from '../../decorators/user.decorator';
 import { TazamaAuthGuard } from '../../guards/tazama-auth.guard';
 import type { AuthenticatedUser } from '../auth/auth.types';
-import { CreateMaskDto, Masking } from './dto/mask.dto';
+import { CreateMaskDto, SuccessResponseDto } from './dto/mask.dto';
 import { MaskingService } from './masking.service';
 
 @ApiTags('Maskings')
@@ -21,12 +21,12 @@ export class MaskingController {
     @Post('/api/create')
     @RequireAnyClaims(TazamaClaims.DATA_ENGINEER_EDITOR)
     @Audit()
-    @ApiBody({ type: Masking, description: 'Rule data for creation' })
+    @ApiBody({ type: CreateMaskDto, description: 'Masking data for creation' })
     @ApiSwagger({
         summary: 'Create new masking configuration',
         description: 'Creates a new masking configuration',
         responses: mergeResponses(
-            CommonResponses.CREATED_201(Masking, 'Masking created successfully'),
+            CommonResponses.CREATED_201(SuccessResponseDto, 'Masking created successfully'),
             CommonResponses.BAD_REQUEST_400('Invalid input data or masking already exists'),
         ),
     })
