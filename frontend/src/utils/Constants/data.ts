@@ -314,11 +314,10 @@ export const ruleTypes = [
 ]
 
 export const PII = [
-  "Customer Name",
+  "Creditor Name",
+  "Debtor Name",
   "Account Number",
   "Identity",
   "Phone Number",
-  "Beneficiary Name",
-  "Contact Information",
-  "Demographic data",
+  "Demographic",
 ];
