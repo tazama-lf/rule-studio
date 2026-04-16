@@ -365,10 +365,10 @@ export class AdminServiceClient {
     const response = await this.executeHttpRequest<{ mask: Record<string, unknown> }>('GET', `${MASKING_UPDATE}/${id}`, token);
     return response.mask;
   }
-  async getSimulationMessages(token: string): Promise<SimulationMessage[]> {
+  async getSimulationMessages(token: string, tableName: string): Promise<SimulationMessage[]> {
     const response = await this.executeHttpRequest<{
       messages: SimulationMessage[];
-    }>('GET', SIMULATION_MESSAGES, token);
+    }>('GET', SIMULATION_MESSAGES, token, undefined, { tableName });
     return response.messages;
   }
 }
