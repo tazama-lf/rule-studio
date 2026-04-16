@@ -30,7 +30,7 @@ export class MaskingController {
             CommonResponses.BAD_REQUEST_400('Invalid input data or masking already exists'),
         ),
     })
-    async createRule(
+    async createMask(
         @Body() body: CreateMaskDto,
         @User() user: AuthenticatedUser,
     ): Promise<ISuccess> {
