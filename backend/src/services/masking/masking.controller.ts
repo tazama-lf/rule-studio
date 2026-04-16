@@ -9,6 +9,7 @@ import { TazamaAuthGuard } from '../../guards/tazama-auth.guard';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { CreateMaskDto, SuccessResponseDto } from './dto/mask.dto';
 import { MaskingService } from './masking.service';
+import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('Maskings')
 @ApiBearerAuth('JWT-auth')
@@ -19,6 +20,7 @@ export class MaskingController {
     constructor(private readonly maskingService: MaskingService) { }
 
     @Post('/api/create')
+    @Throttle({ default: { limit: 5, ttl: 30 } })
     @RequireAnyClaims(TazamaClaims.DATA_ENGINEER_EDITOR)
     @Audit()
     @ApiBody({ type: CreateMaskDto, description: 'Masking data for creation' })
