@@ -13,43 +13,35 @@ interface TabsProps {
     variant?: 'default' | 'masking';
 }
 
+const TabList = ({ tabs, selected }: { tabs: TabItem[]; selected: string }) => (
+    <S.Wrapper>
+        <S.TabsContainer>
+            {tabs.map((item: TabItem) => {
+                const active = selected === item.value;
+                return (
+                    <S.TabItemWrapper active={active} key={item.value}>
+                        <S.TabLabel active={active}>{item.label}</S.TabLabel>
+                        {active && <S.Underline layoutId="underline" />}
+                    </S.TabItemWrapper>
+                );
+            })}
+        </S.TabsContainer>
+    </S.Wrapper>
+);
+
+const DefaultTabs = () => {
+    const { tabs, selectedTab } = useTab();
+    return <TabList tabs={tabs} selected={selectedTab} />;
+};
+
+const MaskingTabs = () => {
+    const { tabs, selectedTab } = useMaskingTab();
+    return <TabList tabs={tabs} selected={selectedTab} />;
+};
+
 const Tabs = ({ variant = 'default' }: TabsProps) => {
-    const defaultContext = variant === 'default' ? useTab() : null;
-    const maskingContext = variant === 'masking' ? useMaskingTab() : null;
-    
-    const context = defaultContext || maskingContext;
-    
-    if (!context) {
-        return null;
-    }
-
-    const tabs = context.tabs;
-    const selected = context.selectedTab;
-
-    return (
-        <S.Wrapper>
-            <S.TabsContainer>
-                {tabs.map((item: TabItem) => {
-                    const active = selected === item.value;
-
-                    return (
-                        <S.TabItemWrapper
-                            active={active}
-                            key={item.value}
-                        >
-                            <S.TabLabel active={active}>
-                                {item.label}
-                            </S.TabLabel>
-
-                            {active && (
-                                <S.Underline layoutId="underline" />
-                            )}
-                        </S.TabItemWrapper>
-                    );
-                })}
-            </S.TabsContainer>
-        </S.Wrapper>
-    );
+    if (variant === 'masking') return <MaskingTabs />;
+    return <DefaultTabs />;
 };
 
 export default memo(Tabs);

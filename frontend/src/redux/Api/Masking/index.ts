@@ -33,13 +33,13 @@ export const maskingApi = createApi({
         }),
         getMaskById: builder.query({
             query: ({ id }) => ({
-                url: `${id}`,
+                url: `${encodeURIComponent(id)}`,
                 method: "GET",
             }),
         }),
         updateMask: builder.mutation({
             query: ({ id, body }) => ({
-                url: `${id}`,
+                url: `${encodeURIComponent(id)}`,
                 method: "PUT",
                 body: { ...body },
             }),

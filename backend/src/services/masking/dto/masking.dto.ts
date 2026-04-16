@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsEnum } from 'class-validator';
+import { IsOptional, IsString, IsEnum, IsInt, Min } from 'class-validator';
 import { ApiPropertyOptional, ApiProperty } from '@nestjs/swagger';
 
 export class MaskingFiltersDto {
@@ -81,10 +81,14 @@ export class UpdateMaskDto {
 
   @ApiPropertyOptional({ description: 'Number of fields masked', example: 5 })
   @IsOptional()
+  @IsInt()
+  @Min(0)
   fields_masked?: number;
 
   @ApiPropertyOptional({ description: 'Total number of fields', example: 10 })
   @IsOptional()
+  @IsInt()
+  @Min(0)
   total_fields?: number;
 
   @ApiPropertyOptional({ description: 'Comments', example: 'Updated masking configuration' })

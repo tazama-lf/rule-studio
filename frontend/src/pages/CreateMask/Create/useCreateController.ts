@@ -85,14 +85,22 @@ const useCreateController = ({ mode, id, maskData }: CreateControllerProps = {})
 
     const onSubmit = async (values: MaskFormValues) => {
         if (mode === 'edit') {
+            if (!id) {
+                toast.error('Missing configuration ID — cannot update')
+                return;
+            }
             const payload = {
                 txtp: values?.txtp?.value,
                 txtp_version: values?.txtpVersion?.value,
             }
-            const res = await update({ id, body: payload }).unwrap()
-            insertData(res, 'mask_config', LocalStorage, true)
-            toast.success('Configuration Successfully Updated')
-            enableNextTab()
+            try {
+                const res = await update({ id, body: payload }).unwrap()
+                insertData(res, 'mask_config', LocalStorage, true)
+                toast.success('Configuration Successfully Updated')
+                enableNextTab()
+            } catch {
+                toast.error('Failed to update configuration')
+            }
             return;
         }
 
@@ -101,12 +109,14 @@ const useCreateController = ({ mode, id, maskData }: CreateControllerProps = {})
             txtpVersion: values?.txtpVersion?.value,
         }
 
-        const res = await submit(payload).unwrap()
-
-        insertData(res, 'mask_config', LocalStorage, true)
-        toast.success('Configuration Successfully Created')
-
-        enableNextTab()
+        try {
+            const res = await submit(payload).unwrap()
+            insertData(res, 'mask_config', LocalStorage, true)
+            toast.success('Configuration Successfully Created')
+            enableNextTab()
+        } catch {
+            toast.error('Failed to create configuration')
+        }
     }
 
 
