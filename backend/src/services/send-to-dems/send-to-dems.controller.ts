@@ -1,11 +1,11 @@
-import { Controller, Post, UseGuards, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, HttpException, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { TazamaAuthGuard } from '../../guards/tazama-auth.guard';
 import { TazamaClaims, RequireAnyClaims } from '../../decorators/auth.decorator';
 import { User } from '../../decorators/user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { SendToDemsService, SimulationResult } from './send-to-dems.service';
-import { SimulationResultDto } from './dto/send-to-dems.dto';
+import { SimulationResultDto, StartSimulationDto } from './dto/send-to-dems.dto';
 
 @ApiTags('DEMS Simulation')
 @ApiBearerAuth('JWT-auth')
@@ -31,9 +31,9 @@ export class SendToDemsController {
     type: SimulationResultDto,
   })
   @ApiResponse({ status: 500, description: 'Simulation failed completely' })
-  async startSimulation(@User() user: AuthenticatedUser): Promise<SimulationResult> {
+  async startSimulation(@User() user: AuthenticatedUser, @Body() body: StartSimulationDto): Promise<SimulationResult> {
     try {
-      const result = await this.sendToDemsService.startSimulation(user.token.tokenString);
+      const result = await this.sendToDemsService.startSimulation(user.token.tokenString, body.tableNames);
 
       if (result.failedMessages > 0) {
         if (result.deliveredMessages === 0) {

@@ -1,4 +1,18 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsArray, IsString, IsNotEmpty, ArrayMinSize } from 'class-validator';
+
+export class StartSimulationDto {
+  @ApiProperty({
+    description: 'One or more simulation table names to load messages from',
+    example: ['sim001'],
+    type: [String],
+  })
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  tableNames: string[];
+}
 
 export class SimulationResultDto {
   @ApiProperty({ description: 'Total number of messages in simulation', example: 3 })

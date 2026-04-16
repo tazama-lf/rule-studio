@@ -28,10 +28,12 @@ export class SendToDemsService {
     private readonly httpService: HttpService,
   ) {}
 
-  async startSimulation(token: string): Promise<SimulationResult> {
+  async startSimulation(token: string, tableNames: string[]): Promise<SimulationResult> {
     const startTime = Date.now();
-    const tableName = 'sim001'; 
-    const messages = await this.adminServiceClient.getSimulationMessages(token, tableName);
+    const messageArrays = await Promise.all(
+      tableNames.map((tableName) => this.adminServiceClient.getSimulationMessages(token, tableName)),
+    );
+    const messages = messageArrays.flat();
     const deliveryTracker: MessageDeliveryStatus[] = [];
 
     this.logger.log(`Starting DEMS simulation with ${messages.length} messages`);
