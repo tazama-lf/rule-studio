@@ -9,6 +9,7 @@ import { PII } from "../../../utils/Constants/data";
 import { generateKey } from "../../../utils/Common/helpers";
 import { Paper } from "@mui/material";
 import { Text } from "../../../components/Text";
+import toast from "react-hot-toast";
 
 const extractAllKeys = (obj: unknown, prefix: string = ''): string[] => {
     const keys: string[] = [];
@@ -96,6 +97,7 @@ const useConfigController = () => {
                 setPayloadKeys([])
                 setPiiStates({})
                 setTokenizedValues({})
+                toast.error('Failed to load sample payload')
             })
     }, [data?.txtp, data?.txtpVersion])
 
