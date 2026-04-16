@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import type { DropdownOption } from "../../../components/DropDown";
@@ -9,13 +9,14 @@ import { insertData } from "../../../utils/Common/storage";
 import { useCreateMaskingMutation } from "../../../redux/Api/Masking";
 
 interface MaskFormValues {
-    txtp: { label: string, value: string } | null;
-    txtpVersion: { label: string, value: string } | null;
+    txtp: { label: string, value: string } | undefined;
+    txtpVersion: { label: string, value: string } | undefined;
 }
 
 const useCreateController = () => {
 
     const [versions, setVersions] = useState<string[]>([])
+    const latestRequestIdRef = useRef(0)
 
     const { data: types, isLoading } = useGetTypesQuery({})
     const [getVersions] = useLazyGetTxtpVersionsQuery()
@@ -24,25 +25,31 @@ const useCreateController = () => {
     const { enableNextTab } = useMaskingTab()
 
     const initial: MaskFormValues = {
-        txtp: null,
-        txtpVersion: null,
+        txtp: undefined,
+        txtpVersion: undefined,
     };
 
     const getTxtpVersions = useCallback((type: string | number) => {
+        setVersions([])
+        latestRequestIdRef.current += 1
+        const currentRequestId = latestRequestIdRef.current
         getVersions({ type }).unwrap()
             .then((res) => {
-                if (res) {
-                    setVersions(res)
+                if (currentRequestId === latestRequestIdRef.current) {
+                    setVersions(res ?? [])
                 }
             })
             .catch(() => {
-                toast.error('Failed to load transaction type versions')
+                if (currentRequestId === latestRequestIdRef.current) {
+                    setVersions([])
+                    toast.error('Failed to load transaction type versions')
+                }
             })
     }, [getVersions])
 
     const handleTxTp = (val: DropdownOption) => {
         setValue('txtp', val as { label: string, value: string })
-        setValue('txtpVersion', null)
+        setValue('txtpVersion', undefined)
         if (val?.value) {
             getTxtpVersions(val?.value)
         }
@@ -63,13 +70,14 @@ const useCreateController = () => {
             txtp: values?.txtp?.value,
             txtpVersion: values?.txtpVersion?.value,
         }
-
-        await submit(payload).unwrap()
-
-        insertData(payload, 'mask_config', LocalStorage, true)
-        toast.success('Configuration Successfully Created')
-
-        enableNextTab()
+        try {
+            await submit(payload).unwrap()
+            insertData(payload, 'mask_config', LocalStorage, true)
+            toast.success('Configuration Successfully Created')
+            enableNextTab()
+        } catch {
+            toast.error('Failed to create configuration')
+        }
     }
 
 

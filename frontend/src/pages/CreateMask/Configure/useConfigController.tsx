@@ -9,6 +9,7 @@ import { PII } from "../../../utils/Constants/data";
 import { generateKey } from "../../../utils/Common/helpers";
 import { Paper } from "@mui/material";
 import { Text } from "../../../components/Text";
+import toast from "react-hot-toast";
 
 const extractAllKeys = (obj: unknown, prefix: string = ''): string[] => {
     const keys: string[] = [];
@@ -25,7 +26,11 @@ const extractAllKeys = (obj: unknown, prefix: string = ''): string[] => {
         }
     } else if (Array.isArray(obj) && obj.length > 0) {
         const arrayPath = prefix ? `${prefix}[0]` : '[0]';
-        keys.push(...extractAllKeys(obj[0], arrayPath));
+        if (typeof obj[0] === 'object' && obj[0] !== null) {
+            keys.push(...extractAllKeys(obj[0], arrayPath));
+        } else {
+            keys.push(arrayPath);
+        }
     }
 
     return keys;
@@ -33,7 +38,13 @@ const extractAllKeys = (obj: unknown, prefix: string = ''): string[] => {
 
 const useConfigController = () => {
 
-    const data = useMemo(() => extractData('mask_config', LocalStorage, true), [])
+    const data = useMemo(() => {
+        try {
+            return extractData('mask_config', LocalStorage, true)
+        } catch {
+            return null
+        }
+    }, [])
 
     const { enablePreviousTab, enableNextTab } = useMaskingTab()
 
@@ -64,7 +75,7 @@ const useConfigController = () => {
     }
 
     const getData = useCallback(() => {
-        if (!data?.txtp) return
+        if (!data?.txtp || !data?.txtpVersion) return
         getPayload({ type: data.txtp, version: data.txtpVersion })
             .unwrap()
             .then((res) => {
@@ -86,13 +97,13 @@ const useConfigController = () => {
                 setPayloadKeys([])
                 setPiiStates({})
                 setTokenizedValues({})
+                toast.error('Failed to load sample payload')
             })
-    }, [data?.txtp, data?.txtpVersion, getPayload])
+    }, [data?.txtp, data?.txtpVersion])
 
     useEffect(() => {
-        if (!data?.txtp) return
         getData()
-    }, [data?.txtp, getData])
+    }, [getData])
 
     const fetchJson = () => {
         getData()

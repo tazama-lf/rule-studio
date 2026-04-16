@@ -19,14 +19,14 @@ export const MaskingTabProvider = ({ children }: MaskingTabProviderProps) => {
 
     const filteredTabs = useMemo(() => {
         if (user?.claims !== claims.data_engineer_editor) {
-            return MaskingTabs.filter(tab => tab.value !== 'configure')
+            return []
         }
         return MaskingTabs
     }, [user?.claims])
 
     const handleSetSelectedTab = useCallback((tab: string) => {
         setSelectedTab(tab)
-        setSearchParams(prev => {
+        setSearchParams((prev: string) => {
             const newParams = new URLSearchParams(prev)
             newParams.set('maskingTab', tab)
             return newParams
@@ -37,7 +37,7 @@ export const MaskingTabProvider = ({ children }: MaskingTabProviderProps) => {
         const currentIndex = filteredTabs.findIndex(t => t.value === selectedTab)
         if (currentIndex >= 0 && currentIndex < filteredTabs.length - 1) {
             const nextTab = filteredTabs[currentIndex + 1]
-            setEnabledTabs(prev => {
+            setEnabledTabs((prev: string) => {
                 if (!prev.includes(nextTab.value)) {
                     return [...prev, nextTab.value]
                 }
@@ -51,7 +51,7 @@ export const MaskingTabProvider = ({ children }: MaskingTabProviderProps) => {
         const currentIndex = filteredTabs.findIndex(t => t.value === selectedTab)
         if (currentIndex > 0 && currentIndex < filteredTabs.length) {
             const prevTab = filteredTabs[currentIndex - 1]
-            setEnabledTabs(prev => {
+            setEnabledTabs((prev: string) => {
                 if (!prev.includes(prevTab.value)) {
                     return [...prev, prevTab.value]
                 }

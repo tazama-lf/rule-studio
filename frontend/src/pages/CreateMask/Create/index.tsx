@@ -33,15 +33,19 @@ const Create = () => {
                         <Controller
                             control={values.control}
                             name="txtp"
+                            rules={{ required: "Transaction type is required" }}
                             render={({ field }) => (
                                 <DropDown
                                     required
                                     label="Transaction Type"
                                     options={values.transactions}
-                                    {...field}
-                                    onChange={(val) => functions.handleTxTp(val as DropdownOption)}
+                                    value={field.value ?? null}
+                                    onChange={(val) => {
+                                        field.onChange(val);
+                                        functions.handleTxTp(val as DropdownOption);
+                                    }}
                                     placeholder="Select Transaction type"
-                                    error={!field?.value ? values.errors.txtp?.message : undefined}
+                                    error={values.errors.txtp?.message}
                                 />
                             )}
                         />
@@ -50,12 +54,14 @@ const Create = () => {
                         <Controller
                             control={values.control}
                             name="txtpVersion"
+                            rules={{ required: "Transaction type version is required" }}
                             render={({ field }) => (
                                 <DropDown
                                     required
                                     label="Transaction Type Versions"
                                     options={values.txtpVersions}
-                                    {...field}
+                                    value={field.value ?? null}
+                                    onChange={field.onChange}
                                     placeholder="Select Version"
                                     error={values.errors.txtpVersion?.message}
                                 />

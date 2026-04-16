@@ -33,7 +33,7 @@ const RuleEditorContent = () => {
             {values?.user?.claims === claims.editor &&
                 <Box display={'flex'} alignItems={'center'} justifyContent={'space-between'} >
                     {(values?.data?.status === Status.STATUS_04_APPROVED || values?.data?.status === Status.STATUS_05_REJECTED) &&
-                        <CommentCard success={values?.data?.status === Status.STATUS_04_APPROVED} message={values?.data?.comments as string} />
+                        <CommentCard success={values?.data?.status === Status.STATUS_04_APPROVED} message={String(values?.data?.comments ?? '')} />
                     }
                 </Box>
             }

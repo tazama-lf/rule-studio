@@ -341,7 +341,7 @@ export class AdminServiceClient {
   // ====================  MASKING OPERATIONS ====================
 
   async createMask(maskData: CreateMaskDto, token: string): Promise<ISuccess> {
-    const response = await this.executeHttpRequest<ISuccess>('POST', CREATE_MASK, token, { maskData });
+    const response = await this.executeHttpRequest<ISuccess>('POST', CREATE_MASK, token, maskData);
     return response;
   }
 }
