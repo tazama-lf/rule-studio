@@ -60,6 +60,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "5174:5174"
+    environment:
+      - VITE_ALLOWED_HOSTS=all
     depends_on:
       - rule-studio-backend
 
