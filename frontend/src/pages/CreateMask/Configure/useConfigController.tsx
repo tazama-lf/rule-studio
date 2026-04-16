@@ -25,7 +25,11 @@ const extractAllKeys = (obj: unknown, prefix: string = ''): string[] => {
         }
     } else if (Array.isArray(obj) && obj.length > 0) {
         const arrayPath = prefix ? `${prefix}[0]` : '[0]';
-        keys.push(...extractAllKeys(obj[0], arrayPath));
+        if (typeof obj[0] === 'object' && obj[0] !== null) {
+            keys.push(...extractAllKeys(obj[0], arrayPath));
+        } else {
+            keys.push(arrayPath);
+        }
     }
 
     return keys;
@@ -70,7 +74,7 @@ const useConfigController = () => {
     }
 
     const getData = useCallback(() => {
-        if (!data?.txtp) return
+        if (!data?.txtp || !data?.txtpVersion) return
         getPayload({ type: data.txtp, version: data.txtpVersion })
             .unwrap()
             .then((res) => {
@@ -93,14 +97,11 @@ const useConfigController = () => {
                 setPiiStates({})
                 setTokenizedValues({})
             })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [data?.txtp, data?.txtpVersion])
 
     useEffect(() => {
-        if (!data?.txtp) return
         getData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [data?.txtp])
+    }, [getData])
 
     const fetchJson = () => {
         getData()

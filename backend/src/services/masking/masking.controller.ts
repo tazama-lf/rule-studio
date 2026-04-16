@@ -34,11 +34,7 @@ export class MaskingController {
         @Body() body: CreateMaskDto,
         @User() user: AuthenticatedUser,
     ): Promise<ISuccess> {
-        const req = {
-            txtp: body.txtp,
-            txtp_version: body.txtpVersion
-        }
-        return await this.maskingService.create(req, user);
+        return await this.maskingService.create(body, user);
     }
 
 }
