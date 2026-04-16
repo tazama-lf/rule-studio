@@ -33,6 +33,7 @@ export const TazamaClaims = {
   DEFAULT_ROLES_TAZAMA_CMS: 'default-roles-tazama-cms',
   OFFLINE_ACCESS: 'offline_access',
   UMA_AUTHORIZATION: 'uma_authorization',
+  DEMS: 'dems:write',
 } as const;
 
 export const RequireEditorRole = (): MethodDecorator => RequireClaim(TazamaClaims.EDITOR);

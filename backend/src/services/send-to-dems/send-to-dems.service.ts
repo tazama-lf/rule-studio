@@ -30,7 +30,8 @@ export class SendToDemsService {
 
   async startSimulation(token: string): Promise<SimulationResult> {
     const startTime = Date.now();
-    const messages = await this.adminServiceClient.getSimulationMessages(token);
+    const tableName = 'sim001'; 
+    const messages = await this.adminServiceClient.getSimulationMessages(token, tableName);
     const deliveryTracker: MessageDeliveryStatus[] = [];
 
     this.logger.log(`Starting DEMS simulation with ${messages.length} messages`);

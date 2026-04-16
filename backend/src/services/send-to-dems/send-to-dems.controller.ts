@@ -15,7 +15,7 @@ export class SendToDemsController {
   constructor(private readonly sendToDemsService: SendToDemsService) {}
 
   @Post('simulate')
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @RequireAnyClaims(TazamaClaims.DEMS)
   @ApiOperation({
     summary: 'Start the full simulation',
     description: 'Sends all messages to DEMS Dev endpoint one by one with proper time intervals',
