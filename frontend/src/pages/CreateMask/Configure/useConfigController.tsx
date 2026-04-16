@@ -99,7 +99,7 @@ const useConfigController = () => {
                 setTokenizedValues({})
                 toast.error('Failed to load sample payload')
             })
-    }, [data?.txtp, data?.txtpVersion])
+    }, [data?.txtp, data?.txtpVersion, getPayload])
 
     useEffect(() => {
         getData()
