@@ -22,6 +22,9 @@
       },
       "trs_data_engineer_editor": {
         "bypassAllTiers": false
+      },
+      "trs_data_engineer_approver": {
+        "bypassAllTiers": false
       }
     }
   },

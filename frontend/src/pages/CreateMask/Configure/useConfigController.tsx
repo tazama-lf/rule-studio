@@ -93,12 +93,14 @@ const useConfigController = () => {
                 setPiiStates({})
                 setTokenizedValues({})
             })
-    }, [data?.txtp, data?.txtpVersion, getPayload])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [data?.txtp, data?.txtpVersion])
 
     useEffect(() => {
         if (!data?.txtp) return
         getData()
-    }, [data?.txtp, getData])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [data?.txtp])
 
     const fetchJson = () => {
         getData()

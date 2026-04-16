@@ -1,5 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsDateString, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+
+export class SuccessResponseDto {
+    @ApiProperty({ description: 'Operation success status', example: true })
+    @IsBoolean()
+    success!: boolean;
+
+    @ApiProperty({ description: 'Success message', example: 'Masking created successfully' })
+    @IsString()
+    message!: string;
+}
 
 export class MaskDto {
     @ApiProperty({ description: 'Transaction type', example: 'pain.001.001.11' })
