@@ -253,6 +253,14 @@ export const MaskingTabs = [
     }
 ]
 
+export const SimulationTabs = [
+    {
+        label: 'New Simulation',
+        value: 'new_simulation',
+        enabled: false
+    }
+]
+
 
 export const claims = {
     editor: 'editor',
@@ -314,10 +322,10 @@ export const ruleTypes = [
 ]
 
 export const PII = [
-  "Creditor Name",
-  "Debtor Name",
-  "Account Number",
-  "Identity",
-  "Phone Number",
-  "Demographic",
+    "Creditor Name",
+    "Debtor Name",
+    "Account Number",
+    "Identity",
+    "Phone Number",
+    "Demographic",
 ];
