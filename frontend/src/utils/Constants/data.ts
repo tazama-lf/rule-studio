@@ -244,8 +244,21 @@ export const Tabs = [
 export const claims = {
     editor: 'editor',
     approver: 'approver',
-    publisher: 'publisher'
+    publisher: 'publisher',
+    data_engineer_editor: 'data_engineer_editor',
+    data_engineer_approver: 'data_engineer_approver',
 }
+
+export const DATA_ENGINEER_ROLES: string[] = [
+    claims.data_engineer_editor,
+    claims.data_engineer_approver,
+]
+
+export const TRS_ROLES: string[] = [
+    claims.editor,
+    claims.approver,
+    claims.publisher,
+]
 
 export const RoleStatusMap: Record<string, string[]> = {
     editor: Object.values(Status),
