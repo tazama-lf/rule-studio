@@ -59,7 +59,7 @@ export class MaskingController {
   @ApiParam({ name: 'id', description: 'Masking configuration ID (integer)', type: Number, example: 1 })
   @ApiSwagger({
     summary: 'Get masking configuration by ID',
-    description: 'Retrieves a masking configuration by its UUID',
+    description: 'Retrieves a masking configuration by its numeric ID',
     responses: mergeResponses(
       CommonResponses.SUCCESS_200(undefined, 'Masking configuration retrieved successfully'),
       CommonResponses.NOT_FOUND_404('Masking configuration not found'),

@@ -24,8 +24,8 @@ export class MaskingFiltersDto {
 }
 
 export class MaskingDto {
-  @ApiProperty({ description: 'Unique identifier', example: 'uuid-...' })
-  id!: string;
+  @ApiProperty({ description: 'Unique identifier', example: 1 })
+  id!: number;
 
   @ApiProperty({ description: 'Tenant identifier', example: 'DEFAULT' })
   tenant_id!: string;
