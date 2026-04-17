@@ -5,14 +5,12 @@ import Tabs from '../../components/Tabs';
 import { Text } from "../../components/Text";
 import BoxWrapper from "../../components/Wrappers/BoxWrapper";
 import { SimulationTabProvider } from '../../contexts/SimulationTabContext';
-import { useSimulationTab } from '../../contexts/SimulationTabContext/useSimulationTab';
 import useSimulationController from './useSimulationController';
 
 
 const SimulationContent = () => {
 
     const { functions } = useSimulationController()
-    const { tabs, selectedTab } = useSimulationTab()
 
     return (
         <>
@@ -23,7 +21,7 @@ const SimulationContent = () => {
                 </Box>
             </Box>
 
-            <Tabs tabs={tabs} selectedTab={selectedTab} />
+            <Tabs variant='simulation' />
 
             {functions.renderComponent()}
         </>
