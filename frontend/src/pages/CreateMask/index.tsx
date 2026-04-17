@@ -1,18 +1,23 @@
 import CodeIcon from '@mui/icons-material/Code';
 import { Box } from "@mui/material";
 import { useSearchParams } from 'react-router-dom';
+import CommentCard from '../../components/Cards/CommentCard';
+import SuspenseLoader from '../../components/SuspenseLoader';
 import Tabs from '../../components/Tabs';
 import { Text } from "../../components/Text";
 import BoxWrapper from "../../components/Wrappers/BoxWrapper";
 import { MaskingTabProvider } from '../../contexts/MaskingTabContext';
-import { useMaskingTab } from '../../contexts/MaskingTabContext/useMaskingTab';
+import { claims, Status } from '../../utils/Constants/data';
 import useCreateMaskController from './useCreateMaskController';
 
 
 const MaskingContent = () => {
 
-    const { functions } = useCreateMaskController()
-    const { tabs, selectedTab } = useMaskingTab()
+    const { values, functions } = useCreateMaskController()
+
+    if (values?.isLoading) {
+        return <SuspenseLoader />
+    }
 
     return (
         <>
@@ -23,7 +28,16 @@ const MaskingContent = () => {
                 </Box>
             </Box>
 
-            <Tabs tabs={tabs} selectedTab={selectedTab} />
+            {values?.user?.claims === claims.editor &&
+                <Box display={'flex'} alignItems={'center'} justifyContent={'space-between'} >
+                    {(values?.data?.status === Status.STATUS_04_APPROVED || values?.data?.status === Status.STATUS_05_REJECTED) &&
+                        typeof values?.data?.comments === 'string' &&
+                        <CommentCard success={values?.data?.status === Status.STATUS_04_APPROVED} message={values.data.comments} />
+                    }
+                </Box>
+            }
+
+            <Tabs variant="masking" />
 
             {functions.renderComponent()}
         </>

@@ -35,5 +35,10 @@ export const SIMULATION_LOGS = '/v1/admin/simulation-logs';
 export const INSERT_SIMULATION_LOGS = `${SIMULATION_LOGS}/insert`;
 export const GET_SIMULATION_LOGS = `${SIMULATION_LOGS}/:ruleId`;
 
+// Masking
+export const MASKING_BASE_URL = '/v1/admin/trs/masking';
+export const MASKING_ALL = `${MASKING_BASE_URL}/all`;
+export const MASKING_UPDATE = MASKING_BASE_URL;
+
 // Base rule for cloning flow
 export const BASE_RULE_ID = '21';

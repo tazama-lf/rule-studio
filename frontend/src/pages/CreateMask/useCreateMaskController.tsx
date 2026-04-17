@@ -1,15 +1,18 @@
 import { useCallback } from "react"
 import { useSearchParams } from "react-router-dom"
-import { useMaskingTab } from "../../contexts/MaskingTabContext/useMaskingTab"
+import { useMaskingTab } from "../../contexts/MaskingTabContext"
+import { useGetMaskByIdQuery } from "../../redux/Api/Masking"
 import { extractData } from "../../utils/Common/storage"
-import Configure from "./Configure"
 import Create from "./Create"
+import Configure from "./Configure"
 
 const useCreateMaskController = () => {
 
     const [searchParams] = useSearchParams();
     const mode = searchParams.get('mode') ?? null
+    const id = searchParams.get('id') ?? undefined
 
+    const { data, isFetching: isLoading } = useGetMaskByIdQuery({ id }, { skip: !id, refetchOnMountOrArgChange: true })
     const { selectedTab } = useMaskingTab()
 
     const user = extractData('user')
@@ -17,17 +20,19 @@ const useCreateMaskController = () => {
     const renderComponent = useCallback(() => {
         switch (selectedTab) {
             case 'create':
-                return <Create />
+                return <Create mode={mode} id={id} maskData={data as Record<string, unknown> | undefined} />
             case 'configure':
                 return <Configure />
             default:
                 return null;
         }
-    }, [selectedTab])
+    }, [selectedTab, data, mode])
 
     return {
         values: {
+            isLoading,
             mode,
+            data,
             user
         },
         functions: {

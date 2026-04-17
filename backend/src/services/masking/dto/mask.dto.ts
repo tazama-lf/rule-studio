@@ -1,13 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsDateString, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsDateString, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class SuccessResponseDto {
-    @ApiProperty({ description: 'Operation success status', example: true })
-    @IsBoolean()
+    @ApiProperty({ description: 'Whether the operation succeeded', example: true })
     success!: boolean;
 
-    @ApiProperty({ description: 'Success message', example: 'Masking created successfully' })
-    @IsString()
+    @ApiProperty({ description: 'Result message', example: 'Masking configuration created successfully' })
     message!: string;
 }
 

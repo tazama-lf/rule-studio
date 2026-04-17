@@ -1,45 +1,107 @@
-import { BadRequestException, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { ISuccess } from '@tazama-lf/tcs-lib';
-import { AuthenticatedUser } from '../auth/auth.types';
 import { AdminServiceClient } from '../admin-service-client';
-import { CreateMaskDto } from './dto/mask.dto';
+import type { AuthenticatedUser } from '../auth/auth.types';
+import type { MaskingFiltersDto, MaskingListResponseDto, UpdateMaskDto } from './dto/masking.dto';
+import type { CreateMaskDto } from './dto/mask.dto';
+import { EndpointKey, RbacService } from '../../utils/rbac/rbacHelper';
 
 @Injectable()
 export class MaskingService {
+  private readonly logger = new Logger(MaskingService.name);
+  private readonly rbacService = new RbacService();
 
-    private readonly logger = new Logger(MaskingService.name);
+  constructor(private readonly adminServiceClient: AdminServiceClient) {}
 
-    constructor(
-        private readonly adminServiceClient: AdminServiceClient
-    ) { }
-
-    async create(
-        masking: CreateMaskDto,
-        user: AuthenticatedUser
-    ): Promise<ISuccess> {
-        try {
-            const payload = {
-                txtp: masking.txtp,
-                txtp_version: masking.txtpVersion,
-            };
-            return await this.adminServiceClient.createMask(payload, user.token.tokenString);
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            
-            if (errorMessage.includes('duplicate key value violates unique constraint')) {
-                this.logger.error(
-                    `Duplicate masking configuration: ${errorMessage}`,
-                );
-                throw new BadRequestException(
-                    'A masking configuration with this type and version already exists. Please use a different type or version combination.'
-                );
-            } else {
-                this.logger.error(
-                    `Error While Creating Masking : ${errorMessage}`,
-                    error instanceof Error ? error.stack : undefined
-                );
-                throw new InternalServerErrorException('Failed to create masking configuration');
-            }
-        }
+  async getAllMask(offset: number, limit: number, filters: MaskingFiltersDto, user: AuthenticatedUser): Promise<MaskingListResponseDto> {
+    const updatedFilters = { ...filters };
+    const normalizedRole = this.rbacService.getNormalizedRole(user);
+    const tier2 = this.rbacService.getTier2({ role: normalizedRole, endpointKey: 'POST /masking/api/all' as EndpointKey });
+    if (!tier2.allowed) {
+      throw new ForbiddenException(tier2.reason ?? 'Not authorized to access masking configurations');
     }
+    if (tier2.allowedStatuses && tier2.allowedStatuses.length > 0) {
+      if (filters.status && tier2.allowedStatuses.includes(filters.status)) {
+        updatedFilters.status = filters.status;
+      } else {
+        updatedFilters.status = tier2.allowedStatuses.join(',');
+      }
+    } else {
+      delete updatedFilters.status;
+    }
+    return await this.adminServiceClient.getAllMaskWithFilters(offset, limit, updatedFilters, user.token.tokenString);
+  }
+
+  async create(masking: CreateMaskDto, user: AuthenticatedUser): Promise<ISuccess> {
+    try {
+      const payload = {
+        txtp: masking.txtp,
+        txtp_version: masking.txtpVersion,
+      };
+      return await this.adminServiceClient.createMask(payload, user.token.tokenString);
+    } catch (error) {
+      this.logger.error(
+        `Error While Creating Masking : ${error instanceof Error ? error.message : String(error)}`,
+      );
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('duplicate key value violates unique constraint')) {
+        throw new BadRequestException(
+          'A masking configuration with this type and version already exists. Please use a different type or version combination.'
+        );
+      } else {
+        throw new BadRequestException(errorMessage);
+      }
+    }
+  }
+
+  async updateMask(id: number, updateData: UpdateMaskDto, user: AuthenticatedUser): Promise<Record<string, unknown>> {
+    try {
+      const normalizedRole = this.rbacService.getNormalizedRole(user);
+      const mask = await this.adminServiceClient.getMaskById(id, user.token.tokenString);
+      const currentStatus = (mask.status as string) ?? '';
+
+      const tier2 = this.rbacService.checkTier2({
+        role: normalizedRole,
+        endpointKey: 'PUT /masking/api/:id' as EndpointKey,
+        currentStatus,
+      });
+      if (!tier2.allowed) throw new ForbiddenException(tier2.reason ?? 'Not authorized to update this masking configuration');
+
+      if (updateData.status && updateData.status !== currentStatus) {
+        const tier3 = this.rbacService.checkTier3({
+          role: normalizedRole,
+          endpointKey: 'PUT /masking/api/:id' as EndpointKey,
+          currentStatus,
+          targetStatus: updateData.status,
+        });
+        if (!tier3.allowed) throw new ForbiddenException(tier3.reason ?? 'Status transition not permitted');
+      }
+
+      return await this.adminServiceClient.updateMask(id, updateData as Record<string, unknown>, user.token.tokenString);
+    } catch (error) {
+      this.logger.error(`Error While Updating Masking : ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+  }
+
+  async getMaskById(id: number, user: AuthenticatedUser): Promise<Record<string, unknown>> {
+    try {
+      const normalizedRole = this.rbacService.getNormalizedRole(user);
+      const mask = await this.adminServiceClient.getMaskById(id, user.token.tokenString);
+      const currentStatus = (mask.status as string) ?? '';
+
+      const tier2 = this.rbacService.checkTier2({
+        role: normalizedRole,
+        endpointKey: 'GET /masking/api/:id' as EndpointKey,
+        currentStatus,
+      });
+      if (!tier2.allowed) throw new ForbiddenException(tier2.reason ?? 'Not authorized to access this masking configuration');
+
+      return mask;
+    } catch (error) {
+      this.logger.error(`Error While Getting Masking By Id : ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+  }
 }
+

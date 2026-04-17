@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
+import { HttpModule } from '@nestjs/axios';
 import { MaskingController } from './masking.controller';
 import { MaskingService } from './masking.service';
 import { AdminServiceClient } from '../admin-service-client';
-import { HttpModule } from '@nestjs/axios';
 
 @Module({
   imports: [HttpModule],
   controllers: [MaskingController],
-  providers: [MaskingService, AdminServiceClient]
+  providers: [MaskingService, AdminServiceClient],
+  exports: [MaskingService],
 })
-export class MaskingModule { }
+export class MaskingModule {}

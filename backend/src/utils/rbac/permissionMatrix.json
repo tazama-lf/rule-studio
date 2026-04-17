@@ -55,6 +55,20 @@
               "STATUS_04_APPROVED",
               "STATUS_08_DEPLOYED"
             ]
+          },
+          "trs_data_engineer_editor": {
+            "allowedCurrentStatuses": [
+              "STATUS_01_IN_PROGRESS",
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED",
+              "STATUS_05_REJECTED"
+            ]
+          },
+          "trs_data_engineer_approver": {
+            "allowedCurrentStatuses": [
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED"
+            ]
           }
         }
       }
@@ -349,6 +363,86 @@
     "POST /parse/api/validatePayload": {},
     "GET /config/api/transaction-types": {},
     "GET /config/api/versions/:transactionType": {},
-    "GET /config/api/payload/:transactionType/:transactionVersion": {}  
+    "GET /config/api/payload/:transactionType/:transactionVersion": {},
+    "POST /masking/api/all": {
+      "tier2": {
+        "description": "Retrieves paginated list of masking configurations with optional filters. Results are filtered by statuses the role is allowed to see.",
+        "rolePermissions": {
+          "trs_data_engineer_editor": {
+            "allowedCurrentStatuses": [
+              "STATUS_01_IN_PROGRESS",
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED",
+              "STATUS_05_REJECTED"
+            ]
+          },
+          "trs_data_engineer_approver": {
+            "allowedCurrentStatuses": [
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED"
+            ]
+          }
+        }
+      }
+    },
+    "POST /masking/api/create": {},
+    "GET /masking/api/:id": {
+      "tier2": {
+        "description": "Retrieves a masking configuration by ID. Access is restricted based on the resource's current status and the user's role.",
+        "rolePermissions": {
+          "trs_data_engineer_editor": {
+            "allowedCurrentStatuses": [
+              "STATUS_01_IN_PROGRESS",
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED",
+              "STATUS_05_REJECTED"
+            ]
+          },
+          "trs_data_engineer_approver": {
+            "allowedCurrentStatuses": [
+              "STATUS_03_UNDER_REVIEW",
+              "STATUS_04_APPROVED"
+            ]
+          }
+        }
+      }
+    },
+    "PUT /masking/api/:id": {
+      "tier2": {
+        "description": "Controls which current resource statuses each role may act upon when updating a masking configuration.",
+        "rolePermissions": {
+          "trs_data_engineer_editor": {
+            "allowedCurrentStatuses": [
+              "STATUS_01_IN_PROGRESS",
+              "STATUS_05_REJECTED"
+            ]
+          },
+          "trs_data_engineer_approver": {
+            "allowedCurrentStatuses": [
+              "STATUS_03_UNDER_REVIEW"
+            ]
+          }
+        }
+      },
+      "tier3": {
+        "description": "Allowed status transitions per role, keyed by currentStatus → [targetStatusCode]",
+        "transitions": {
+          "trs_data_engineer_editor": {
+            "STATUS_01_IN_PROGRESS": [
+              "STATUS_03_UNDER_REVIEW"
+            ],
+            "STATUS_05_REJECTED": [
+              "STATUS_01_IN_PROGRESS"
+            ]
+          },
+          "trs_data_engineer_approver": {
+            "STATUS_03_UNDER_REVIEW": [
+              "STATUS_04_APPROVED",
+              "STATUS_05_REJECTED"
+            ]
+          }
+        }
+      }
+    }
   }
 }
