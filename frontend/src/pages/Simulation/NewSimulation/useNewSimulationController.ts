@@ -4,6 +4,7 @@ import { useSimulationTab } from "../../../contexts/SimulationTabContext";
 import { useCreateMaskingMutation } from "../../../redux/Api/Masking";
 import { LocalStorage } from "../../../utils/Common/enums";
 import { insertData } from "../../../utils/Common/storage";
+import { useState } from "react";
 
 interface SimulationFormValues {
     date: string;
@@ -17,6 +18,8 @@ const useNewSimulationController = () => {
 
     const { enableNextTab } = useSimulationTab()
 
+    const [dataFetched, setDataFetched] = useState(false)
+
     const initial: SimulationFormValues = {
         date: '',
         startTime: '',
@@ -29,6 +32,7 @@ const useNewSimulationController = () => {
         control,
         getValues,
         trigger,
+        watch,
     } = useForm<SimulationFormValues>({
         defaultValues: initial
     })
@@ -73,6 +77,7 @@ const useNewSimulationController = () => {
         try {
             await submit(payload).unwrap()
             insertData(payload, 'simulation_config', LocalStorage, true)
+            setDataFetched(true)
             toast.success('Time Window Successfully Configured')
             enableNextTab()
         } catch {
@@ -81,11 +86,20 @@ const useNewSimulationController = () => {
     }
 
 
+    const formValues = {
+        date: watch('date'),
+        startTime: watch('startTime'),
+        endTime: watch('endTime'),
+    }
+
+
     return {
         values: {
             control,
             errors,
             createLoading,
+            dataFetched,
+            formValues
         },
         functions: {
             handleSubmit: handleSubmit(onSubmit),
