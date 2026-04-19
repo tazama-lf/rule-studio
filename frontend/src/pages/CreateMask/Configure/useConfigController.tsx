@@ -10,6 +10,7 @@ import { generateKey } from "../../../utils/Common/helpers";
 import { Paper } from "@mui/material";
 import { Text } from "../../../components/Text";
 import toast from "react-hot-toast";
+import { useUpdateMaskMutation } from "../../../redux/Api/Masking";
 
 const extractAllKeys = (obj: unknown, prefix: string = ''): string[] => {
     const keys: string[] = [];
@@ -49,6 +50,8 @@ const useConfigController = () => {
     const { enablePreviousTab, enableNextTab } = useMaskingTab()
 
     const [getPayload, { isFetching: sampleLoader }] = useLazyGetSamplePayloadQuery()
+    const [update, { isLoading: updateLoading }] = useUpdateMaskMutation()
+
     const [payload, setPayload] = useState<string | null>(null)
     const [payloadKeys, setPayloadKeys] = useState<string[]>([])
     const [piiStates, setPiiStates] = useState<Record<string, boolean>>({})
@@ -161,6 +164,21 @@ const useConfigController = () => {
         },
     ], [handleTogglePII])
 
+
+    const onSubmit = async () => {
+        const payload = {
+            txtp: data?.txtp,
+            txtp_version: data?.txtpVersion,
+            tokenize: piiStates
+        }
+        try {
+            await update({ id: data?.id, body: payload }).unwrap()
+            toast.success('Configuration Successfully Updated')
+        } catch {
+            toast.error('Failed to update configuration')
+        }
+    }
+
     const tableData = useMemo(() =>
         payloadKeys.map(key => ({
             field_name: key,
@@ -173,7 +191,18 @@ const useConfigController = () => {
     const summary = useMemo(() => {
         const totalFields = payloadKeys.length;
         const tokenizedFields = Object.values(piiStates).filter(Boolean).length;
-        return { totalFields, tokenizedFields };
+
+        const hasUncheckedPIIFields = payloadKeys.some(key => {
+            const shouldBePII = isPIIField(key);
+            const isMarkedAsPII = piiStates[key] ?? false;
+            return shouldBePII && !isMarkedAsPII;
+        });
+
+        const allFieldsOff = totalFields > 0 && tokenizedFields === 0;
+
+        const status = (hasUncheckedPIIFields || allFieldsOff) ? { message: 'Warning: Check Sensitive Fields', bgColor: '#fef3c7', textColor: '#92400e' } : { message: 'All fields tokenized', bgColor: '#bbf7d0', textColor: '#166534' };
+
+        return { totalFields, tokenizedFields, status };
     }, [payloadKeys, piiStates]);
 
     return {
@@ -183,9 +212,11 @@ const useConfigController = () => {
             sampleLoader,
             txtp: data?.txtp,
             data: tableData,
-            summary
+            summary,
+            updateLoading,
         },
         functions: {
+            onSubmit,
             fetchJson,
             handleNext,
             handlePrevious

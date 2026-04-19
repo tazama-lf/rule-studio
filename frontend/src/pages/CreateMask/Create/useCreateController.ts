@@ -111,7 +111,7 @@ const useCreateController = ({ mode, id, maskData }: CreateControllerProps = {})
 
         try {
             const res = await submit(payload).unwrap()
-            insertData(res, 'mask_config', LocalStorage, true)
+            insertData({ ...payload, id: res.id }, 'mask_config', LocalStorage, true)
             toast.success('Configuration Successfully Created')
             enableNextTab()
         } catch {
