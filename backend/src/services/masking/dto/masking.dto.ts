@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsEnum, IsInt, Min } from 'class-validator';
+import { IsOptional, IsString, IsEnum, IsInt, Min, IsObject } from 'class-validator';
 import { ApiPropertyOptional, ApiProperty } from '@nestjs/swagger';
 
 export class MaskingFiltersDto {
@@ -95,4 +95,12 @@ export class UpdateMaskDto {
   @IsOptional()
   @IsString()
   comments?: string;
+
+  @ApiPropertyOptional({ 
+    description: 'Tokenize Fields',
+    example: { field1: true, field2: false }
+  })
+  @IsOptional()
+  @IsObject()
+  tokenize?: object;
 }

@@ -110,7 +110,7 @@ export class AdminServiceClient {
       request?: unknown;
       message: string;
     };
-  if (err.response) {
+    if (err.response) {
       const { status, data } = err.response;
       this.logger.error(`${operation} failed with status ${status}: ${JSON.stringify(data)}`);
 
@@ -344,7 +344,7 @@ export class AdminServiceClient {
     return await this.executeHttpRequest<MaskingListResponseDto>('POST', `${MASKING_ALL}/${offset}/${limit}`, token, filters);
   }
 
-  async createMask(maskData: CreateMaskDto, token: string): Promise<ISuccess> {
+  async createMask(maskData: CreateMaskDto, token: string): Promise<Partial<ISuccess>> {
     const response = await this.executeHttpRequest<ISuccess>('POST', CREATE_MASK, token, { maskData });
     return response;
   }
