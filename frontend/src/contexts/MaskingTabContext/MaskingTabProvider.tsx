@@ -19,8 +19,8 @@ export const MaskingTabProvider = ({ children }: MaskingTabProviderProps) => {
 
 
     const filteredTabs = useMemo(() => {
-        if (user?.claims !== claims.editor) {
-            return MaskingTabs.filter(tab => tab.value !== 'configure')
+        if (user?.claims !== claims.data_engineer_editor) {
+            return []
         }
         return MaskingTabs
     }, [user?.claims])
