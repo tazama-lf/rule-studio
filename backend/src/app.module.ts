@@ -10,6 +10,7 @@ import { ParseExtractModule } from './services/parse-extract/parse-extract.modul
 import { SimulationLogsModule } from './services/simulation-logs/simulation-logs.module';
 import { SendToDemsModule } from './services/send-to-dems/send-to-dems.module';
 import { AuditModule } from './audit/audit.module';
+import { GatewaysModule } from './gateways/gateways.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AuditModule } from './audit/audit.module';
     ParseExtractModule,
     SimulationLogsModule,
     SendToDemsModule,
+    GatewaysModule,
   ],
   controllers: [AppController],
   providers: [AppService],
