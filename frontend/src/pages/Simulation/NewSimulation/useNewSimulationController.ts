@@ -1,10 +1,8 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { useSimulationTab } from "../../../contexts/SimulationTabContext";
 import { useCreateMaskingMutation } from "../../../redux/Api/Masking";
-import { LocalStorage } from "../../../utils/Common/enums";
-import { insertData } from "../../../utils/Common/storage";
-import { useState } from "react";
 
 interface SimulationFormValues {
     date: string;
@@ -69,17 +67,17 @@ const useNewSimulationController = () => {
 
 
     const onSubmit = async (values: SimulationFormValues) => {
-        const payload = {
-            date: values.date,
-            startTime: values.startTime,
-            endTime: values.endTime,
-        }
+        // const payload = {
+        //     date: values.date,
+        //     startTime: values.startTime,
+        //     endTime: values.endTime,
+        // }
         try {
-            await submit(payload).unwrap()
-            insertData(payload, 'simulation_config', LocalStorage, true)
+            // await submit(payload).unwrap()
+            // insertData(payload, 'simulation_config', LocalStorage, true)
             setDataFetched(true)
-            toast.success('Time Window Successfully Configured')
-            enableNextTab()
+            // toast.success('Time Window Successfully Configured')
+            // enableNextTab()
         } catch {
             toast.error('Failed to configure time window')
         }
@@ -91,7 +89,6 @@ const useNewSimulationController = () => {
         startTime: watch('startTime'),
         endTime: watch('endTime'),
     }
-
 
     return {
         values: {
