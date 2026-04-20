@@ -11,6 +11,7 @@ import { Paper } from "@mui/material";
 import { Text } from "../../../components/Text";
 import toast from "react-hot-toast";
 import { useUpdateMaskMutation } from "../../../redux/Api/Masking";
+import { useNavigate } from "react-router-dom";
 
 const extractAllKeys = (obj: unknown, prefix: string = ''): string[] => {
     const keys: string[] = [];
@@ -48,6 +49,7 @@ const useConfigController = () => {
     }, [])
 
     const { enablePreviousTab, enableNextTab } = useMaskingTab()
+    const navigate = useNavigate()
 
     const [getPayload, { isFetching: sampleLoader }] = useLazyGetSamplePayloadQuery()
     const [update, { isLoading: updateLoading }] = useUpdateMaskMutation()
@@ -174,6 +176,7 @@ const useConfigController = () => {
         try {
             await update({ id: data?.id, body: payload }).unwrap()
             toast.success('Configuration Successfully Updated')
+            navigate('/masking-config')
         } catch {
             toast.error('Failed to update configuration')
         }

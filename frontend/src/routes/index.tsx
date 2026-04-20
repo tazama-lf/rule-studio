@@ -2,7 +2,6 @@ import { lazy } from "react";
 import { Navigate } from "react-router-dom";
 import RuleBuilder from "../pages/rule-builder";
 import TestCaseGenerate from "../pages/test-case-generate";
-import Simulation from "../pages/Simulation";
 
 const Components = lazy(() => import("../components"));
 const Login = lazy(() => import("../pages/Auth/Login"));
@@ -124,12 +123,5 @@ export const ROUTES = [
         private: true,
         layout: true,
         roleGroup: 'data-engineer' as const,
-    },
-    {
-        path: "/simulation/create",
-        element: <Simulation />,
-        private: true,
-        layout: true,
-        roleGroup: 'trs' as const,
-    },
+    }
 ];

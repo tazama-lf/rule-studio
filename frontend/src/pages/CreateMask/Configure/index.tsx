@@ -64,7 +64,7 @@ const Configure = () => {
                         {values.summary.status && (
                             <Box sx={{ borderLeft: '1px solid #e2e8f0', pl: 3 }}>
                                 <Text size="sub" color="text.secondary">
-                                    Status: 
+                                    Status:
                                     <Paper
                                         component="span"
                                         variant="outlined"
@@ -97,7 +97,7 @@ const Configure = () => {
 
             <Box mt={2} width={'100%'} display={'flex'} justifyContent={'space-between'}>
                 <Button height="40px" type="secondary" size="md" text="Back" onClick={functions.handlePrevious} />
-                <Button height="40px" type="secondary" size="md" text="Send For Approval" onClick={functions.onSubmit} />
+                <Button height="40px" type="secondary" size="md" text="Send For Approval" loading={values.updateLoading} onClick={functions.onSubmit} />
             </Box>
         </Grid >
     )
