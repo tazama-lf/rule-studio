@@ -97,7 +97,7 @@ const Configure = () => {
 
             <Box mt={2} width={'100%'} display={'flex'} justifyContent={'space-between'}>
                 <Button height="40px" type="secondary" size="md" text="Back" onClick={functions.handlePrevious} />
-                <Button height="40px" type="secondary" size="md" text="Send For Approval" loading={values.updateLoading} onClick={functions.onSubmit} />
+                <Button height="40px" type="secondary" size="md" text="Submit" loading={values.updateLoading} onClick={functions.onSubmit} />
             </Box>
         </Grid >
     )

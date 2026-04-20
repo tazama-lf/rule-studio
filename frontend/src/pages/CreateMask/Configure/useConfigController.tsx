@@ -12,6 +12,8 @@ import { Text } from "../../../components/Text";
 import toast from "react-hot-toast";
 import { useUpdateMaskMutation } from "../../../redux/Api/Masking";
 import { useNavigate } from "react-router-dom";
+import { useModal } from "../../../contexts/ModalContext";
+import SubmitMasking from "../Modals/SubmitMasking";
 
 const extractAllKeys = (obj: unknown, prefix: string = ''): string[] => {
     const keys: string[] = [];
@@ -50,6 +52,7 @@ const useConfigController = () => {
 
     const { enablePreviousTab, enableNextTab } = useMaskingTab()
     const navigate = useNavigate()
+    const { open } = useModal()
 
     const [getPayload, { isFetching: sampleLoader }] = useLazyGetSamplePayloadQuery()
     const [update, { isLoading: updateLoading }] = useUpdateMaskMutation()
@@ -173,13 +176,15 @@ const useConfigController = () => {
             txtp_version: data?.txtpVersion,
             tokenize: piiStates
         }
-        try {
-            await update({ id: data?.id, body: payload }).unwrap()
-            toast.success('Configuration Successfully Updated')
-            navigate('/masking-config')
-        } catch {
-            toast.error('Failed to update configuration')
-        }
+        // try {
+        //     await update({ id: data?.id, body: payload }).unwrap()
+        //     toast.success('Configuration Successfully Updated')
+        //     navigate('/masking-config')
+        // } catch {
+        //     toast.error('Failed to update configuration')
+        // }
+
+        open('Submit for Approval', <SubmitMasking id={data.id} payload={payload} />, null, { maxWidth: 'md' })
     }
 
     const tableData = useMemo(() =>
