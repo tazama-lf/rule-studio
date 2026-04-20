@@ -1,4 +1,4 @@
-import { Box } from "@mui/material";
+import { Box, Paper } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import Button from "../../../components/Button";
 import FormattedJsonSection from "../../../components/JsonFormatter";
@@ -6,6 +6,7 @@ import { Text } from "../../../components/Text";
 import Section from "../../../components/Wrappers/Section";
 import useConfigController from "./useConfigController";
 import Table from "../../../components/Table";
+
 
 const Configure = () => {
 
@@ -51,24 +52,52 @@ const Configure = () => {
                         }}
                     >
                         <Box>
-                            <Text size="sub" color="text.secondary" sx={{ mb: 0.5 }}>Total Fields</Text>
-                            <Text weight="bold" size="body" color="primary.main">
-                                {values.summary.totalFields}
+                            <Text size="sub" color="text.secondary">
+                                Total Fields: <Text component="span" weight="bold" size="body" color="primary.main">{values.summary.totalFields}</Text>
                             </Text>
                         </Box>
                         <Box sx={{ borderLeft: '1px solid #e2e8f0', pl: 3 }}>
-                            <Text size="sub" color="text.secondary" sx={{ mb: 0.5 }}>Fields Selected for Tokenization</Text>
-                            <Text weight="bold" size="body" color="success.main">
-                                {values.summary.tokenizedFields}
+                            <Text size="sub" color="text.secondary">
+                                Fields Selected for Tokenization: <Text component="span" weight="bold" size="body" color="success.main">{values.summary.tokenizedFields}</Text>
                             </Text>
                         </Box>
+                        {values.summary.status && (
+                            <Box sx={{ borderLeft: '1px solid #e2e8f0', pl: 3 }}>
+                                <Text size="sub" color="text.secondary">
+                                    Status:
+                                    <Paper
+                                        component="span"
+                                        variant="outlined"
+                                        sx={{
+                                            display: 'inline-block',
+                                            borderRadius: 4,
+                                            px: 1.5,
+                                            py: 0.5,
+                                            bgcolor: values.summary.status.bgColor,
+                                            ml: 1
+                                        }}
+                                    >
+                                        <Text
+                                            size="sub"
+                                            sx={{
+                                                fontSize: '0.75rem',
+                                                whiteSpace: 'nowrap',
+                                                color: values.summary.status.textColor
+                                            }}
+                                        >
+                                            {values.summary.status.message}
+                                        </Text>
+                                    </Paper>
+                                </Text>
+                            </Box>
+                        )}
                     </Box>
                 </Grid>
             )}
 
             <Box mt={2} width={'100%'} display={'flex'} justifyContent={'space-between'}>
                 <Button height="40px" type="secondary" size="md" text="Back" onClick={functions.handlePrevious} />
-                <Button height="40px" type="secondary" size="md" text="Send For Approval" onClick={functions.handleNext} />
+                <Button height="40px" type="secondary" size="md" text="Submit" loading={values.updateLoading} onClick={functions.onSubmit} />
             </Box>
         </Grid >
     )

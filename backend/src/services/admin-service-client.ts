@@ -39,6 +39,7 @@ import {
   MASKING_ALL,
   MASKING_UPDATE,
   CREATE_MASK,
+  SIMULATION_MESSAGES,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto } from './masking/dto/masking.dto';
 import { ResponseQueryNodeDto } from './nodes/dto/responseNode.dto';
@@ -46,6 +47,13 @@ import { RuleRequest } from '../services/parse-extract/dto/message.dto';
 import { SimulationLogsDto } from './simulation-logs/dto';
 import { ISimulationLog } from './simulation-logs/interface/simulation-logs.interface';
 import { CreateMaskDto } from './masking/dto/mask.dto';
+
+export interface SimulationMessage {
+  messageId: string;
+  timestamp: string;
+  endpoint: string;
+  data: Record<string, unknown>;
+}
 
 @Injectable()
 export class AdminServiceClient {
@@ -110,7 +118,7 @@ export class AdminServiceClient {
       request?: unknown;
       message: string;
     };
-  if (err.response) {
+    if (err.response) {
       const { status, data } = err.response;
       this.logger.error(`${operation} failed with status ${status}: ${JSON.stringify(data)}`);
 
@@ -344,7 +352,7 @@ export class AdminServiceClient {
     return await this.executeHttpRequest<MaskingListResponseDto>('POST', `${MASKING_ALL}/${offset}/${limit}`, token, filters);
   }
 
-  async createMask(maskData: CreateMaskDto, token: string): Promise<ISuccess> {
+  async createMask(maskData: CreateMaskDto, token: string): Promise<Partial<ISuccess>> {
     const response = await this.executeHttpRequest<ISuccess>('POST', CREATE_MASK, token, { maskData });
     return response;
   }
@@ -356,5 +364,11 @@ export class AdminServiceClient {
   async getMaskById(id: number, token: string): Promise<Record<string, unknown>> {
     const response = await this.executeHttpRequest<{ mask: Record<string, unknown> }>('GET', `${MASKING_UPDATE}/${id}`, token);
     return response.mask;
+  }
+  async getSimulationMessages(token: string, tableName: string): Promise<SimulationMessage[]> {
+    const response = await this.executeHttpRequest<{
+      messages: SimulationMessage[];
+    }>('GET', SIMULATION_MESSAGES, token, undefined, { tableName });
+    return response.messages;
   }
 }

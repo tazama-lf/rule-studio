@@ -30,7 +30,7 @@ const MaskingConfig = () => {
                 <Box display="flex" alignItems="center" gap={1}>
                     <SettingsOutlinedIcon sx={{ color: "#4789f6", fontSize: 30 }} />
                     <Text weight="bold" color="black" size="header">
-                        My Configuration
+                        Tokenization - Dashboard
                     </Text>
                 </Box>
                 {values?.user?.claims === claims.data_engineer_editor ? (

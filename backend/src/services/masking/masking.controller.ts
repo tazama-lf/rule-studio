@@ -18,7 +18,7 @@ import { Throttle } from '@nestjs/throttler';
 @Controller('masking')
 @UseGuards(TazamaAuthGuard)
 export class MaskingController {
-  constructor(private readonly maskingService: MaskingService) {}
+  constructor(private readonly maskingService: MaskingService) { }
 
   @Post('/api/all')
   @RequireAnyClaims(TazamaClaims.DATA_ENGINEER_EDITOR, TazamaClaims.DATA_ENGINEER_APPROVER)
@@ -50,7 +50,7 @@ export class MaskingController {
   async createMask(
     @Body() body: CreateMaskDto,
     @User() user: AuthenticatedUser,
-  ): Promise<ISuccess> {
+  ): Promise<Partial<ISuccess>> {
     return await this.maskingService.create(body, user);
   }
 

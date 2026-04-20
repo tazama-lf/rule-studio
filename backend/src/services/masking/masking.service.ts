@@ -11,7 +11,7 @@ export class MaskingService {
   private readonly logger = new Logger(MaskingService.name);
   private readonly rbacService = new RbacService();
 
-  constructor(private readonly adminServiceClient: AdminServiceClient) {}
+  constructor(private readonly adminServiceClient: AdminServiceClient) { }
 
   async getAllMask(offset: number, limit: number, filters: MaskingFiltersDto, user: AuthenticatedUser): Promise<MaskingListResponseDto> {
     const updatedFilters = { ...filters };
@@ -32,7 +32,7 @@ export class MaskingService {
     return await this.adminServiceClient.getAllMaskWithFilters(offset, limit, updatedFilters, user.token.tokenString);
   }
 
-  async create(masking: CreateMaskDto, user: AuthenticatedUser): Promise<ISuccess> {
+  async create(masking: CreateMaskDto, user: AuthenticatedUser): Promise<Partial<ISuccess>> {
     try {
       const payload = {
         txtp: masking.txtp,
