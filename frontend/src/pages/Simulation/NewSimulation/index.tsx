@@ -94,52 +94,57 @@ const NewSimulation = () => {
             </Box>
 
             {values.dataFetched && (
-                <Section header={'Data Summary'}>
-                    <Grid container size={12} spacing={4} display={'flex'} justifyContent={'space-between'}>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <Box p={2} bgcolor={'rgb(248 250 252)'} borderRadius={1} >
-                                <Text color="text.ternary" size={'sub'}>Date/Time Range</Text>
-                                <Text color="black" size={'body'}>
-                                    {values.formValues.date && values.formValues.startTime && values.formValues.endTime
-                                        ? `${values.formValues.date} ${values.formValues.startTime} - ${values.formValues.endTime}`
-                                        : values.formValues.date || 'Not set'}
-                                </Text>
-                            </Box>
+                <>
+                    <Section header={'Data Summary'}>
+                        <Grid container size={12} spacing={4} display={'flex'} justifyContent={'space-between'}>
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <Box p={2} bgcolor={'rgb(248 250 252)'} borderRadius={1} >
+                                    <Text color="text.ternary" weight={'500'} size={'sub'}>DATE / TIME RANGE</Text>
+                                    <Text color="black" size={'body'}>
+                                        {values.formValues.date}
+                                    </Text>
+                                    <Text color="text.ternary" size={'body'}>{values.formValues.startTime} - {values.formValues.endTime}</Text>
+                                </Box>
+                            </Grid>
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <Box p={2} bgcolor={'rgb(248 250 252)'} borderRadius={1} >
+                                    <Text color="text.ternary" weight={'500'} size={'sub'}>SIMULATION READINESS</Text>
+                                    <Paper
+                                        variant="outlined"
+                                        sx={{
+                                            display: 'inline-block',
+                                            mt: 1,
+                                            borderRadius: 6,
+                                            px: 1.5,
+                                            py: 0.8,
+                                            bgcolor: '#f0fdf4',
+                                            borderColor: '#bbf7d0',
+                                        }}
+                                    >
+                                        <Box display={'flex'}>
+                                            <TaskAltIcon sx={{ color: '#166534' }} />
+                                            <Text
+                                                size="sub"
+                                                sx={{
+                                                    px: 1,
+                                                    fontSize: '0.95rem',
+                                                    whiteSpace: 'nowrap',
+                                                    color: '#166534',
+                                                }}
+                                            >
+                                                Ready to run
+                                            </Text>
+                                        </Box>
+                                    </Paper>
+                                </Box>
+                            </Grid>
                         </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <Box p={2} bgcolor={'rgb(248 250 252)'} borderRadius={1} >
-                                <Text color="text.ternary" size={'sub'}>Simulation Readiness</Text>
-                                <Paper
-                                    variant="outlined"
-                                    sx={{
-                                        display: 'inline-block',
-                                        mt: 1,
-                                        borderRadius: 4,
-                                        px: 1.5,
-                                        py: 0.5,
-                                        bgcolor: '#f0fdf4',
-                                        borderColor: '#bbf7d0',
-                                    }}
-                                >
-                                    <Box display={'flex'}>
-                                        <TaskAltIcon sx={{ color: '#166534' }} />
-                                        <Text
-                                            size="sub"
-                                            sx={{
-                                                px: 1,
-                                                fontSize: '0.95rem',
-                                                whiteSpace: 'nowrap',
-                                                color: '#166534',
-                                            }}
-                                        >
-                                            Ready to run
-                                        </Text>
-                                    </Box>
-                                </Paper>
-                            </Box>
-                        </Grid>
-                    </Grid>
-                </Section >
+                    </Section >
+                    <Box mt={2} width={'100%'} display={'flex'} justifyContent={'flex-end'}>
+                        <Button height="40px" type="secondary" size="" text="Run Simulation" onClick={() => { }} />
+                    </Box>
+
+                </>
             )}
         </Grid >
     )
