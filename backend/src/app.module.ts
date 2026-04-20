@@ -11,6 +11,8 @@ import { SimulationLogsModule } from './services/simulation-logs/simulation-logs
 import { SendToDemsModule } from './services/send-to-dems/send-to-dems.module';
 import { AuditModule } from './audit/audit.module';
 import { MaskingModule } from './services/masking/masking.module';
+import { GatewaysModule } from './gateways/gateways.module';
+
 @Module({
   imports: [
     AuditModule,
@@ -22,7 +24,8 @@ import { MaskingModule } from './services/masking/masking.module';
     ParseExtractModule,
     SimulationLogsModule,
     SendToDemsModule,
-    MaskingModule
+    MaskingModule,
+    GatewaysModule,
   ],
   controllers: [AppController],
   providers: [AppService],

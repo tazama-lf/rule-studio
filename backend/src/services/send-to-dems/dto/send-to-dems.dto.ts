@@ -1,6 +1,28 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsString, IsNotEmpty, ArrayMinSize } from 'class-validator';
 
+export class StartSimulationResponseDto {
+  @ApiProperty({ description: 'Unique job identifier for tracking progress via WebSocket', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
+  jobId: string;
+}
+
+export class ProgressUpdateDto {
+  @ApiProperty({ description: 'Job identifier' })
+  jobId: string;
+
+  @ApiProperty({ description: 'Progress percentage (0–100)', example: 55 })
+  progress: number;
+
+  @ApiProperty({ description: 'Number of messages processed so far', example: 110 })
+  processed: number;
+
+  @ApiProperty({ description: 'Total number of messages in the job', example: 200 })
+  total: number;
+
+  @ApiProperty({ description: 'Current job status', enum: ['running', 'completed', 'failed'], example: 'running' })
+  status: 'running' | 'completed' | 'failed';
+}
+
 export class StartSimulationDto {
   @ApiProperty({
     description: 'One or more simulation table names to load messages from',
