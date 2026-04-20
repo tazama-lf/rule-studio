@@ -206,6 +206,10 @@ const generateNodeCode = (
     return generateDetermineOutcomeCode(params, indent, generationMode);
   }
 
+  if (nodeType === 'ExclusiveDetermineOutcome') {
+    return generateExclusiveDetermineOutcomeCode(params, indent, generationMode);
+  }
+
   if (mode === 'call' && (nodeData.function_name || params.function_name)) {
     const dynamicCode = generateFunctionCallCode(node, allNodes || [], indent);
     if (dynamicCode) {
@@ -671,6 +675,13 @@ const generateDetermineOutcomeCode = (params: Record<string, string>, indent: st
   const arg3 = stripVariableIndicators(params.argument3 || 'ruleRes', mode);
   
   return `${indent}return determineOutcome(${arg1}, ${arg2}, ${arg3});`;
+};
+
+const generateExclusiveDetermineOutcomeCode = (params: Record<string, string>, indent: string, mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
+  const arg1 = stripVariableIndicators(params.argument1 || 'countOfMatchingAmounts', mode);
+  const arg2 = stripVariableIndicators(params.argument2 || 'ruleConfig.config.cases', mode);
+  
+  return `${indent}return exclusiveDetermineOutcome(${arg1}, ${arg2});`;
 };
 
 const generateFetchDBCode = (params: Record<string, string>, indent: string, mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
@@ -1323,7 +1334,7 @@ export const generateTypeScriptCode = (
   const reqType = isPacs002 ? 'RuleRequest<Pacs002>' : 'RuleRequest<BaseMessage>';
 
   const baseImports = `import type { DatabaseManagerInstance, LoggerService, ManagerConfig } from '@tazama-lf/frms-coe-lib';
-import type { RuleConfig, RuleRequest, RuleResult } from '@tazama-lf/frms-coe-lib/lib/interfaces';${txTypeImport}`;
+import type { Case, RuleConfig, RuleRequest, RuleResult } from '@tazama-lf/frms-coe-lib/lib/interfaces';${txTypeImport}`;
   
   const allImports = customImportStatements 
     ? `${baseImports}\n${customImportStatements}` 
