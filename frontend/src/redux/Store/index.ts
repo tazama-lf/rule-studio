@@ -10,6 +10,7 @@ import { simulationApi } from '../Api/Simulation'
 import { natsApi } from '../Api/Nats'
 import { logsApi } from '../Api/SimulationLogs'
 import { maskingApi } from '../Api/Masking'
+import { sendToDemsApi } from '../Api/SendToDems'
 
 export default configureStore({
     reducer: {
@@ -22,6 +23,7 @@ export default configureStore({
         [natsApi.reducerPath]: natsApi.reducer,
         [logsApi.reducerPath]: logsApi.reducer,
         [maskingApi.reducerPath]: maskingApi.reducer,
+        [sendToDemsApi.reducerPath]: sendToDemsApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
@@ -36,6 +38,7 @@ export default configureStore({
             .concat(natsApi.middleware)
             .concat(logsApi.middleware)
             .concat(maskingApi.middleware)
+            .concat(sendToDemsApi.middleware)
             .concat(errorLogger)
             .concat(successLogger)
 })

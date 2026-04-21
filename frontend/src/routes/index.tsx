@@ -2,7 +2,6 @@ import { lazy } from "react";
 import { Navigate } from "react-router-dom";
 import RuleBuilder from "../pages/rule-builder";
 import TestCaseGenerate from "../pages/test-case-generate";
-import Simulation from "../pages/Simulation";
 
 const Components = lazy(() => import("../components"));
 const Login = lazy(() => import("../pages/Auth/Login"));
@@ -11,6 +10,8 @@ const RuleEditor = lazy(() => import("../pages/RuleEditor"));
 const ComingSoon = lazy(() => import("../pages/ComingSoon"));
 const MaskingConfig = lazy(() => import("../pages/MaskingConfig"));
 const CreateMasking = lazy(() => import("../pages/CreateMask"));
+const NewSimulation = lazy(() => import("../pages/Simulation/NewSimulation"));
+const Evaluation = lazy(() => import("../pages/Simulation/Evaluation"));
 
 export const ROUTES = [
     {
@@ -127,7 +128,14 @@ export const ROUTES = [
     },
     {
         path: "/simulation/create",
-        element: <Simulation />,
+        element: <NewSimulation />,
+        private: true,
+        layout: true,
+        roleGroup: 'trs' as const,
+    },
+    {
+        path: "/simulation/evaluation",
+        element: <Evaluation />,
         private: true,
         layout: true,
         roleGroup: 'trs' as const,
