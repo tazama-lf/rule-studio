@@ -59,7 +59,7 @@ const useMaskingConfigController = () => {
 
     useEffect(() => {
         setOffset(0);
-    }, [status, txtp, setOffset]);
+}, [status, txtp, setOffset]);
 
     const pagination = useMemo(() => ({
         offset,
@@ -70,8 +70,8 @@ const useMaskingConfigController = () => {
 
     const handleView = (row: Record<string, unknown>) => {
         open(
-            `Masking Configuration — ${row.txtp as string}`,
-            <MaskView id={row.id as number} />,
+            `Tokenization Configuration — ${row.txtp as string}`,
+            <MaskView id={row.id as number} onSuccess={fetchMasks} />,
             null,
             { maxWidth: 'md' },
         );
@@ -82,7 +82,7 @@ const useMaskingConfigController = () => {
     };
 
     const columns: TableColumn[] = [
-        { label: "Transaction Type", key: "txtp" },
+        { label: "Message Type", key: "txtp" },
         { label: "Version", key: "txtp_version" },
         {
             label: "Status",
@@ -100,7 +100,7 @@ const useMaskingConfigController = () => {
             render: (row: Record<string, unknown>) => (
                 <TableActions
                     onView={() => handleView(row)}
-                    {...(isEditor && { onEdit: () => handleEdit(row) })}
+                    {...(isEditor && row.status !== 'STATUS_03_UNDER_REVIEW' && { onEdit: () => handleEdit(row) })}
                 />
             ),
         },
