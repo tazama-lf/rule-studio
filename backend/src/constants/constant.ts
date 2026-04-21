@@ -40,6 +40,7 @@ export const MASKING_REVIEW = MASKING_BASE_URL;
 export const MASKING_ACTIVE_CONFIGS = `${MASKING_BASE_URL}/active-configs`;
 export const MASKING_REVIEW = MASKING_BASE_URL;
 export const MASKING_ACTIVE_CONFIGS = `${MASKING_BASE_URL}/active-configs`;
+export const MASKING_REVIEW = MASKING_BASE_URL;
 // Simulation Messages
 export const CREATE_MASK = `${RULES_BASE_URL}/masking/create`;
 
