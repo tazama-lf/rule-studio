@@ -39,6 +39,7 @@ import {
   MASKING_ALL,
   MASKING_UPDATE,
   MASKING_ACTIVE_CONFIGS,
+  MASKING_REVIEW,
   CREATE_MASK,
   SIMULATION_MESSAGES,
   FETCH_FROM_DLH,
@@ -365,6 +366,16 @@ export class AdminServiceClient {
 
   async getMaskById(id: number, token: string): Promise<Record<string, unknown>> {
     const response = await this.executeHttpRequest<{ mask: Record<string, unknown> }>('GET', `${MASKING_UPDATE}/${id}`, token);
+    return response.mask;
+  }
+
+  async reviewMask(id: number, action: 'approve' | 'reject', comments: string | undefined, token: string): Promise<Record<string, unknown>> {
+    const response = await this.executeHttpRequest<{ mask: Record<string, unknown> }>(
+      'PATCH',
+      `${MASKING_REVIEW}/${id}/review`,
+      token,
+      { action, ...(comments?.trim() ? { comments: comments.trim() } : {}) },
+    );
     return response.mask;
   }
   async getSimulationMessages(token: string, tableName: string): Promise<SimulationMessage[]> {
