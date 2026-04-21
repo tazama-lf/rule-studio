@@ -6,6 +6,17 @@ export class StartSimulationResponseDto {
   jobId: string;
 }
 
+export class SimulationLogDto {
+  @ApiProperty({ description: 'ISO timestamp of the log entry', example: '2026-04-21T16:26:40.000Z' })
+  timestamp: string;
+
+  @ApiProperty({ description: 'Log level driving frontend colour', enum: ['info', 'success', 'warning', 'error'], example: 'info' })
+  level: 'info' | 'success' | 'warning' | 'error';
+
+  @ApiProperty({ description: 'Human-readable log message', example: 'Initializing simulation environment...' })
+  message: string;
+}
+
 export class ProgressUpdateDto {
   @ApiProperty({ description: 'Job identifier' })
   jobId: string;
@@ -21,6 +32,9 @@ export class ProgressUpdateDto {
 
   @ApiProperty({ description: 'Current job status', enum: ['running', 'completed', 'failed'], example: 'running' })
   status: 'running' | 'completed' | 'failed';
+
+  @ApiProperty({ description: 'Log entry emitted alongside this progress update', required: false, type: () => SimulationLogDto })
+  log?: SimulationLogDto;
 }
 
 export class StartSimulationDto {

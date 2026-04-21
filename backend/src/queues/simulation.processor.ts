@@ -7,7 +7,7 @@ import { SIMULATION_QUEUE } from './simulation-queue.constants';
 import type { SimulationJobPayload } from './simulation-queue.constants';
 import { SimulationProgressGateway } from '../gateways/simulation-progress.gateway';
 import { AdminServiceClient } from '../services/admin-service-client';
-import type { ProgressUpdateDto } from '../services/send-to-dems/dto/send-to-dems.dto';
+import type { ProgressUpdateDto, SimulationLogDto } from '../services/send-to-dems/dto/send-to-dems.dto';
 
 @Processor(SIMULATION_QUEUE, { concurrency: 2 })
 export class SimulationProcessor extends WorkerHost {
@@ -28,6 +28,11 @@ export class SimulationProcessor extends WorkerHost {
     let lastEmittedPercent = -1;
     let processed = 0;
 
+    this.gateway.emitProgress(jobId, {
+      jobId, progress: 0, processed: 0, total: 0, status: 'running',
+      log: this.makeLog('info', 'Initializing simulation environment...'),
+    });
+
     try {
       const messageArrays = await Promise.all(
         tableNames.map(async (tableName) => await this.adminServiceClient.getSimulationMessages(token, tableName)),
@@ -37,12 +42,25 @@ export class SimulationProcessor extends WorkerHost {
 
       // Edge case: no messages to process
       if (total === 0) {
-        this.gateway.emitProgress(jobId, { jobId, progress: 100, processed: 0, total: 0, status: 'completed' });
+        this.gateway.emitProgress(jobId, {
+          jobId, progress: 100, processed: 0, total: 0, status: 'completed',
+          log: this.makeLog('success', 'Simulation completed successfully.'),
+        });
         this.logger.log(`Simulation job ${jobId} completed with 0 messages`);
         return;
       }
 
+      this.gateway.emitProgress(jobId, {
+        jobId, progress: 0, processed: 0, total, status: 'running',
+        log: this.makeLog('success', 'Records loaded successfully.'),
+      });
+
       const authHeader = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+
+      this.gateway.emitProgress(jobId, {
+        jobId, progress: 0, processed: 0, total, status: 'running',
+        log: this.makeLog('info', 'Replay started. Processing transactions in historical sequence...'),
+      });
 
       for (const [i, message] of messages.entries()) {
         // Honour the original inter-message timing from the simulation dataset
@@ -71,10 +89,17 @@ export class SimulationProcessor extends WorkerHost {
           );
           this.logger.debug(`Job ${jobId}: message ${message.messageId} delivered`);
         } catch (error: unknown) {
-          // Per-message failures are non-fatal; log and continue
-          this.logger.error(
-            `Job ${jobId}: failed to deliver ${message.messageId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          );
+          // Per-message failures are non-fatal; emit immediately (outside threshold gate) and continue
+          const errMsg = error instanceof Error ? error.message : 'Unknown error';
+          this.logger.error(`Job ${jobId}: failed to deliver ${message.messageId}: ${errMsg}`);
+          this.gateway.emitProgress(jobId, {
+            jobId,
+            progress: Math.floor((processed / total) * 100),
+            processed,
+            total,
+            status: 'running',
+            log: this.makeLog('error', `Failed to deliver message ${message.messageId}: ${errMsg}`),
+          });
         }
 
         processed += 1;
@@ -82,7 +107,10 @@ export class SimulationProcessor extends WorkerHost {
       }
 
       // Always emit a final 100% completed event, regardless of where the last threshold fell
-      this.gateway.emitProgress(jobId, { jobId, progress: 100, processed: total, total, status: 'completed' });
+      this.gateway.emitProgress(jobId, {
+        jobId, progress: 100, processed: total, total, status: 'completed',
+        log: this.makeLog('success', 'Simulation completed successfully.'),
+      });
       this.logger.log(`Simulation job ${jobId} completed (${total} messages processed)`);
     } catch (error: unknown) {
       // Outer failure: e.g. could not fetch messages from admin service
@@ -95,6 +123,7 @@ export class SimulationProcessor extends WorkerHost {
         processed,
         total: 0,
         status: 'failed',
+        log: this.makeLog('error', `Simulation failed: ${errMessage}`),
       });
 
       throw error; // re-throw so BullMQ marks the job as failed
@@ -113,12 +142,19 @@ export class SimulationProcessor extends WorkerHost {
     const roundedPct = Math.floor(pct / 5) * 5;
 
     if (roundedPct > lastEmittedPercent && roundedPct < 100) {
-      const update: ProgressUpdateDto = { jobId, progress: roundedPct, processed, total, status: 'running' };
+      const update: ProgressUpdateDto = {
+        jobId, progress: roundedPct, processed, total, status: 'running',
+        log: this.makeLog('warning', 'Rule engine processing... Alerts triggered.'),
+      };
       this.gateway.emitProgress(jobId, update);
       return roundedPct;
     }
 
     return lastEmittedPercent;
+  }
+
+  private makeLog(level: SimulationLogDto['level'], message: string): SimulationLogDto {
+    return { timestamp: new Date().toISOString(), level, message };
   }
 
   // eslint-disable-next-line @typescript-eslint/promise-function-async -- Avoiding circular lint conflicts
