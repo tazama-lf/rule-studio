@@ -34,7 +34,6 @@ const connect = async (): Promise<void> => {
 
         socket.once('connect', () => {
             clearTimeout(timeout);
-            console.log('Socket connected:', socket?.id);
             resolve();
         });
 
@@ -66,7 +65,6 @@ export const joinRoom = async (jobId: string): Promise<void> => {
 
         currentJobId = jobId;
         socket?.emit('joinJob', { jobId });
-        console.log(`Joining room for job: ${jobId}`);
     } catch (error) {
         console.error('Failed to join room:', error);
         throw error;
