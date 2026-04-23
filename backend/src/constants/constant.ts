@@ -44,3 +44,6 @@ export const SIMULATION_MESSAGES = '/v1/admin/simulation/messages';
 
 // Base rule for cloning flow
 export const BASE_RULE_ID = '21';
+
+// Fetch from DLH
+export const FETCH_FROM_DLH = '/v1/dlh/fetch';

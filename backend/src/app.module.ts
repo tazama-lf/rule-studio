@@ -12,6 +12,7 @@ import { SendToDemsModule } from './services/send-to-dems/send-to-dems.module';
 import { AuditModule } from './audit/audit.module';
 import { MaskingModule } from './services/masking/masking.module';
 import { GatewaysModule } from './gateways/gateways.module';
+import { FetchFromDlhModule } from './services/fetch-from-dlh/fetch-from-dlh.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { GatewaysModule } from './gateways/gateways.module';
     SendToDemsModule,
     MaskingModule,
     GatewaysModule,
+    FetchFromDlhModule,
   ],
   controllers: [AppController],
   providers: [AppService],
