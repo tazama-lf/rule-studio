@@ -6,6 +6,7 @@ import { insertData } from '../../../utils/Common/storage';
 import { useNavigate } from 'react-router-dom';
 import { decodeToken } from '../../../utils/Common/helpers';
 import { loginValidation } from '../../../validation/schemas/authSchema';
+import { DATA_ENGINEER_ROLES } from '../../../utils/Constants/data';
 
 const initial = {
     username: '',
@@ -29,7 +30,8 @@ const useLoginController = () => {
             insertData(data?.token, "access_token")
             const details = decodeToken(data?.token)
             insertData(details, 'user')
-            navigate("/home")
+            const target = DATA_ENGINEER_ROLES.includes(details?.claims ?? '') ? '/masking-config' : '/home'
+            navigate(target)
         }
     }, [isSuccess, data, navigate])
 

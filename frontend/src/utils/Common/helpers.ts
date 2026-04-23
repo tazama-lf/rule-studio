@@ -179,7 +179,9 @@ export const toDropdown = (value?: string | null): DropdownOption | null =>
   value ? { label: value, value } : null;
 
 export const capitalize = (value: string) =>
-  value.charAt(0).toUpperCase() + value.slice(1);
+  value
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 
 
 const decodeJwtPayload = (token: string): Record<string, unknown> | null => {
