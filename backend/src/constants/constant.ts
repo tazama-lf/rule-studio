@@ -45,3 +45,6 @@ export const EXCLUDED_TYPES = `${RULES_BASE_URL}/excluded/types`;
 
 // Base rule for cloning flow
 export const BASE_RULE_ID = '21';
+
+// Fetch from DLH
+export const FETCH_FROM_DLH = '/v1/dlh/fetch';

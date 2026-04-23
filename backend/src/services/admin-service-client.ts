@@ -42,6 +42,7 @@ import {
   CREATE_MASK,
   SIMULATION_MESSAGES,
   EXCLUDED_TYPES,
+  FETCH_FROM_DLH,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto } from './masking/dto/masking.dto';
 import { ResponseQueryNodeDto } from './nodes/dto/responseNode.dto';
@@ -383,6 +384,10 @@ export class AdminServiceClient {
       messages: SimulationMessage[];
     }>('GET', SIMULATION_MESSAGES, token, undefined, { tableName });
     return response.messages;
+  }
+
+  async fetchFromDlh(queries: Array<Record<string, unknown>>, token: string): Promise<Record<string, unknown>> {
+    return await this.executeHttpRequest('POST', FETCH_FROM_DLH, token, queries);
   }
 
   async getExcludedTypes(token: string): Promise<ExcludedTypeProps[]> {
