@@ -23,7 +23,6 @@ const useViewReportController = (props: IViewReport) => {
     const body = {
       organization: 'psl-copilot',
       ruleId: rule_config_id?.toString().split('@')[0],
-      branchName: 'staging'
     }
     getReport({ ...body })
       .unwrap()
