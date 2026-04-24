@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, Logger } from '@ne
 import { ISuccess } from '@tazama-lf/tcs-lib';
 import { AdminServiceClient } from '../admin-service-client';
 import type { AuthenticatedUser } from '../auth/auth.types';
-import type { MaskingFiltersDto, MaskingListResponseDto, UpdateMaskDto } from './dto/masking.dto';
+import type { MaskingFiltersDto, MaskingListResponseDto, UpdateMaskDto, ReviewMaskDto } from './dto/masking.dto';
 import type { CreateMaskDto } from './dto/mask.dto';
 import { EndpointKey, RbacService } from '../../utils/rbac/rbacHelper';
 
@@ -100,6 +100,30 @@ export class MaskingService {
       return mask;
     } catch (error) {
       this.logger.error(`Error While Getting Masking By Id : ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+  }
+
+  async reviewMask(id: number, reviewData: ReviewMaskDto, user: AuthenticatedUser): Promise<Record<string, unknown>> {
+    try {
+      const normalizedRole = this.rbacService.getNormalizedRole(user);
+      const mask = await this.adminServiceClient.getMaskById(id, user.token.tokenString);
+      const currentStatus = (mask.status as string) ?? '';
+
+      const tier2 = this.rbacService.checkTier2({
+        role: normalizedRole,
+        endpointKey: 'PATCH /masking/api/:id/review' as EndpointKey,
+        currentStatus,
+      });
+      if (!tier2.allowed) throw new ForbiddenException(tier2.reason ?? 'Not authorized to review this masking configuration');
+
+      if (reviewData.action === 'reject' && !reviewData.comments?.trim()) {
+        throw new BadRequestException('A comment is required when rejecting a masking configuration');
+      }
+
+      return await this.adminServiceClient.reviewMask(id, reviewData.action, reviewData.comments, user.token.tokenString);
+    } catch (error) {
+      this.logger.error(`Error While Reviewing Masking : ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
   }

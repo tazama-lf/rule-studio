@@ -6,7 +6,7 @@ import { useMaskingTab } from "../../../contexts/MaskingTabContext";
 import { useGetTypesQuery, useLazyGetTxtpVersionsQuery } from "../../../redux/Api/Config";
 import { LocalStorage } from "../../../utils/Common/enums";
 import { insertData } from "../../../utils/Common/storage";
-import { useCreateMaskingMutation, useUpdateMaskMutation } from "../../../redux/Api/Masking";
+import { useCreateMaskingMutation } from "../../../redux/Api/Masking";
 
 interface MaskFormValues {
     txtp: { label: string, value: string } | null;
@@ -19,7 +19,7 @@ interface CreateControllerProps {
     maskData?: Record<string, unknown>;
 }
 
-const useCreateController = ({ mode, id, maskData }: CreateControllerProps = {}) => {
+const useCreateController = ({ mode, maskData }: CreateControllerProps = {}) => {
 
     const [versions, setVersions] = useState<string[]>([])
     const [versionsLoading, setVersionsLoading] = useState(false)
@@ -27,7 +27,6 @@ const useCreateController = ({ mode, id, maskData }: CreateControllerProps = {})
     const { data: types, isLoading } = useGetTypesQuery({})
     const [getVersions] = useLazyGetTxtpVersionsQuery()
     const [submit, { isLoading: createLoading }] = useCreateMaskingMutation()
-    const [update, { isLoading: updateLoading }] = useUpdateMaskMutation()
 
     const { enableNextTab } = useMaskingTab()
 
@@ -65,13 +64,19 @@ const useCreateController = ({ mode, id, maskData }: CreateControllerProps = {})
     useEffect(() => {
         if (mode === 'edit' && maskData?.txtp) {
             const txtp = maskData.txtp as string;
-            const txtp_version = maskData.txtp_version as string;
+            const txtpVersion = maskData.txtp_version as string;
             setValue('txtp', { label: txtp, value: txtp });
-            if (txtp_version) {
-                setValue('txtpVersion', { label: txtp_version, value: txtp_version });
+            if (txtpVersion) {
+                setValue('txtpVersion', { label: txtpVersion, value: txtpVersion });
             }
             getTxtpVersions(txtp);
-            insertData(maskData, 'mask_config', LocalStorage, true);
+
+            const updateLocalStorageMask = {
+                txtp: maskData.txtp,
+                txtpVersion: maskData.txtp_version,
+                id: maskData.id,
+            }
+            insertData(updateLocalStorageMask, 'mask_config', LocalStorage, true);
         }
     }, [mode, maskData])
 
@@ -85,22 +90,8 @@ const useCreateController = ({ mode, id, maskData }: CreateControllerProps = {})
 
     const onSubmit = async (values: MaskFormValues) => {
         if (mode === 'edit') {
-            if (!id) {
-                toast.error('Missing configuration ID — cannot update')
-                return;
-            }
-            const payload = {
-                txtp: values?.txtp?.value,
-                txtp_version: values?.txtpVersion?.value,
-            }
-            try {
-                const res = await update({ id, body: payload }).unwrap()
-                insertData(res, 'mask_config', LocalStorage, true)
-                toast.success('Configuration Successfully Updated')
-                enableNextTab()
-            } catch {
-                toast.error('Failed to update configuration')
-            }
+            // txtp/txtpVersion are read-only in edit mode — just proceed to the next tab
+            enableNextTab()
             return;
         }
 
@@ -133,7 +124,7 @@ const useCreateController = ({ mode, id, maskData }: CreateControllerProps = {})
                     return acc;
                 }, []) || [],
             txtpVersions: versions?.map((item: string) => ({ label: item, value: item })) || [],
-            createLoading: createLoading || updateLoading,
+            createLoading,
             versionsLoading,
             isLoading
         },

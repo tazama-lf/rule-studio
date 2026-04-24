@@ -8,7 +8,14 @@ import { useModal } from "../../../../contexts/ModalContext";
 
 export interface ISubmitMask {
     id: string,
-    payload: { txtp: string, txtp_version: string, tokenize: Record<string, boolean> }
+    payload: {
+        txtp: string,
+        txtp_version: string,
+        tokenize: Record<string, boolean>,
+        total_fields: number,
+        fields_masked: number,
+        status: string,
+    }
 }
 
 const useSubmitMaskingController = (props: ISubmitMask) => {

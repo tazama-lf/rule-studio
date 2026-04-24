@@ -44,6 +44,13 @@ export const maskingApi = createApi({
                 body: { ...body },
             }),
         }),
+        reviewMask: builder.mutation({
+            query: ({ id, body }) => ({
+                url: `${encodeURIComponent(id)}/review`,
+                method: "PATCH",
+                body: { ...body },
+            }),
+        }),
     }),
 })
 
@@ -53,4 +60,5 @@ export const {
     useGetMaskByIdQuery,
     useLazyGetMaskByIdQuery,
     useUpdateMaskMutation,
+    useReviewMaskMutation,
 } = maskingApi
