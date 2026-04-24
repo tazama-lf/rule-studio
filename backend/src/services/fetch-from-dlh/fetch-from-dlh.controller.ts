@@ -31,7 +31,8 @@ export class FetchFromDlhController {
     @Body() queries: FetchFromDlhQueryDto[],
     @User() user: AuthenticatedUser,
   ): Promise<FetchFromDlhResponseDto> {
-    const tenantId = getTenantId(user);
+    // const tenantId = getTenantId(user);
+    const tenantId = 'DEFAULT'
     return await this.fetchFromDlhService.fetchFromDlh(queries, tenantId, user.token.tokenString);
   }
 }
