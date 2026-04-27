@@ -1,4 +1,5 @@
 export const BASE_URL: string = process.env.ADMIN_SERVICE_URL ?? 'http://localhost:3100';
+export const DEMS_BASE_URL: string = process.env.DEMS_BASE_URL ?? 'http://localhost:3002/dems-engine';
 // Rules
 export const RULES_BASE_URL = '/v1/admin/trs';
 export const RULE_IDS = `${RULES_BASE_URL}/rule-ids`;

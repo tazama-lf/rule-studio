@@ -19,6 +19,9 @@ export class FetchFromDlhQueryDto {
   @ApiProperty({ example: '2026-01-28T23:59:59', description: 'End date-time filter (ISO 8601)' })
   @IsDateString()
   endDtTm!: string;
+
+  @ApiProperty({ example: '/cbe/1.0.0/evaluate/dems_pacs002', description: 'Endpoint path appended to the DEMS base URL', required: false })
+  endpoint_path?: string;
 }
 
 export class DlhResultFiltersDto {
