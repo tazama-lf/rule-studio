@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { DEMS_BASE_URL } from '../../constants/constant';
 import { AdminServiceClient } from '../admin-service-client';
 import { SendToDemsService } from '../send-to-dems/send-to-dems.service';
 import type { FetchFromDlhQueryDto, FetchFromDlhResponseDto } from './dto/fetch-from-dlh.dto';
@@ -13,7 +14,7 @@ export class FetchFromDlhService {
   ) {}
 
   private readonly LIMIT = 3; //hardcoded for now since no paginations
-  private readonly DEMS_ENDPOINT = 'http://localhost:3002/dems-engine/cbe/1.0.0/evaluate/dems_pacs002';
+  private readonly DEMS_ENDPOINT = DEMS_BASE_URL;
 
   async fetchFromDlh(queries: FetchFromDlhQueryDto[], tenantId: string, token: string): Promise<FetchFromDlhResponseDto> {
     try {
@@ -25,16 +26,20 @@ export class FetchFromDlhService {
 
       this.logger.log(`Successfully fetched data from DLH for tenantId: ${tenantId}`);
 
-      console.log('DLH response:', JSON.stringify(response.results[0].data, null, 2)); // Debug log to inspect DLH response structure
+      // console.log('DLH response:', JSON.stringify(response.results[0].data, null, 2)); // Debug log to inspect DLH response structure
 
-      const messages = response.results.flatMap((r) =>
-        r.data.map((item) => ({
+      const messages = response.results.flatMap((r, i) => {
+        const query = queries[i];
+        const endpoint = query?.endpoint_path
+          ? `${this.DEMS_ENDPOINT}${query.endpoint_path}`
+          : this.DEMS_ENDPOINT;
+        return r.data.map((item) => ({
           messageId: item.message_id,
           timestamp: item.credttm_ts,
-          endpoint: this.DEMS_ENDPOINT, // this needs to change
+          endpoint,
           data: item.document,
-        })),
-      );
+        }));
+      });
 
       this.logger.log(`Mapped ${messages.length} message(s) from DLH response — enqueueing simulation`);
 
