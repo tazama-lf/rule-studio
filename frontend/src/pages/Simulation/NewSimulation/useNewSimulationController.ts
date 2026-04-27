@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { useSimulationTab } from "../../../contexts/SimulationTabContext";
 import { useCreateMaskingMutation } from "../../../redux/Api/Masking";
+import { useLazyGetExcludedTypesQuery } from "../../../redux/Api/RuleSimulation";
 
 interface SimulationFormValues {
     date: string;
@@ -10,13 +11,24 @@ interface SimulationFormValues {
     endTime: string;
 }
 
+export interface ExcludedTypeProps {
+    masking_id: null | string;
+    txtp: string;
+    txtp_version: string;
+    record_status: string;
+}
+
+
 const useNewSimulationController = () => {
 
     const [submit, { isLoading: createLoading }] = useCreateMaskingMutation()
+    const [getTypes, { isLoading: typesLoading }] = useLazyGetExcludedTypesQuery()
 
     const { enableNextTab } = useSimulationTab()
 
     const [dataFetched, setDataFetched] = useState(false)
+    const [count, setCount] = useState<number>()
+    const [excluded, setExcluded] = useState<ExcludedTypeProps[]>([])
 
     const initial: SimulationFormValues = {
         date: '',
@@ -76,6 +88,12 @@ const useNewSimulationController = () => {
             // await submit(payload).unwrap()
             // insertData(payload, 'simulation_config', LocalStorage, true)
             setDataFetched(true)
+            setCount(50)
+            getTypes({}).then((res) => {
+                if (res) {
+                    setExcluded(res.data.excludedTypes)
+                }
+            })
             // toast.success('Time Window Successfully Configured')
             // enableNextTab()
         } catch {
@@ -96,7 +114,9 @@ const useNewSimulationController = () => {
             errors,
             createLoading,
             dataFetched,
-            formValues
+            formValues,
+            count,
+            excluded
         },
         functions: {
             handleSubmit: handleSubmit(onSubmit),
