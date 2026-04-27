@@ -140,7 +140,7 @@ const NewSimulation = () => {
             </Section>
 
             <Box sx={styles.actionBox}>
-                <Button loading={values?.createLoading} height="40px" type="secondary" size="" text="Fetch Tokenized Data" Icon={StorageRoundedIcon} onClick={functions.handleSubmit} />
+                <Button height="40px" type="secondary" size="" text="Fetch Tokenized Data" Icon={StorageRoundedIcon} onClick={functions.handleSubmit} />
             </Box>
 
             {values.dataFetched && (
@@ -180,7 +180,7 @@ const NewSimulation = () => {
                         </Grid>
                     </Section>
                     <Box sx={styles.actionBox}>
-                        <Button height="40px" type="secondary" size="md" text="Run Simulation" onClick={() => { }} />
+                        <Button height="40px" type="secondary" size="md" text="Run Simulation" onClick={functions.confirm} />
                     </Box>
 
                     <ExcludedMessagesAccordion

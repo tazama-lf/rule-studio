@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
-import { useSimulationTab } from "../../../contexts/SimulationTabContext";
-import { useCreateMaskingMutation } from "../../../redux/Api/Masking";
 import { useLazyGetExcludedTypesQuery } from "../../../redux/Api/RuleSimulation";
+import { useModal } from "../../../contexts/ModalContext";
+import Confirmation from "../../../components/Modals/Confirmation";
+import { useSimulationTab } from "../../../contexts/SimulationTabContext";
 
 interface SimulationFormValues {
     date: string;
@@ -18,12 +19,10 @@ export interface ExcludedTypeProps {
     record_status: string;
 }
 
-
 const useNewSimulationController = () => {
 
-    const [submit, { isLoading: createLoading }] = useCreateMaskingMutation()
-    const [getTypes, { isLoading: typesLoading }] = useLazyGetExcludedTypesQuery()
-
+    const [getTypes] = useLazyGetExcludedTypesQuery()
+    const { open } = useModal()
     const { enableNextTab } = useSimulationTab()
 
     const [dataFetched, setDataFetched] = useState(false)
@@ -101,6 +100,14 @@ const useNewSimulationController = () => {
         }
     }
 
+    const runSimulation = () => {
+        enableNextTab()
+    }
+
+    const confirm = () => {
+        open('Confirm Simulation Run', <Confirmation message="You are about to run a simulation using tokenized historical data for the selected time window. The replay will follow the original order and timing of occurrence of the transactions. Do you want to proceed?" onSubmit={runSimulation} btnTitle="Confirm & Run" />, null, { maxWidth: 'sm' })
+    }
+
 
     const formValues = {
         date: watch('date'),
@@ -112,7 +119,6 @@ const useNewSimulationController = () => {
         values: {
             control,
             errors,
-            createLoading,
             dataFetched,
             formValues,
             count,
@@ -122,6 +128,7 @@ const useNewSimulationController = () => {
             handleSubmit: handleSubmit(onSubmit),
             validateTimeDifference,
             handleStartTimeChange,
+            confirm
         },
     }
 }
