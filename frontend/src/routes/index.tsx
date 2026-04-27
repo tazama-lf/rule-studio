@@ -10,7 +10,7 @@ const RuleEditor = lazy(() => import("../pages/RuleEditor"));
 const ComingSoon = lazy(() => import("../pages/ComingSoon"));
 const MaskingConfig = lazy(() => import("../pages/MaskingConfig"));
 const CreateMasking = lazy(() => import("../pages/CreateMask"));
-const NewSimulation = lazy(() => import("../pages/Simulation"));
+const Simulation = lazy(() => import("../pages/Simulation"));
 
 export const ROUTES = [
     {
@@ -127,9 +127,9 @@ export const ROUTES = [
     },
     {
         path: "/simulation/create",
-        element: <NewSimulation />,
+        element: <Simulation />,
         private: true,
         layout: true,
         roleGroup: 'trs' as const,
-    }
+    },
 ];

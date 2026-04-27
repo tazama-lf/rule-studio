@@ -1,7 +1,6 @@
 import ElectricBoltIcon from '@mui/icons-material/ElectricBolt';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 
-
 export const simulations = [
     {
         id: 1,
@@ -20,6 +19,171 @@ export const simulations = [
         cost: "High"
     },
 ]
+
+
+export const simulationTableData = [
+    {
+        message_id: "MSG-2026-04-27-001",
+        txtp: "pacs.008",
+        time: "10:23:15",
+        outcome: "Hit",
+        score: 87,
+        reason: "High-risk transaction pattern detected",
+    },
+    {
+        message_id: "MSG-2026-04-27-002",
+        txtp: "pacs.002",
+        time: "10:24:32",
+        outcome: "No-Hit",
+        score: 12,
+        reason: "Normal transaction behavior",
+    },
+    {
+        message_id: "MSG-2026-04-27-003",
+        txtp: "pacs.008",
+        time: "10:25:47",
+        outcome: "Hit",
+        score: 92,
+        reason: "Unusual transfer amount",
+    },
+    {
+        message_id: "MSG-2026-04-27-004",
+        txtp: "pain.001",
+        time: "10:26:18",
+        outcome: "No-Hit",
+        score: 8,
+        reason: "Standard payment initiation",
+    },
+    {
+        message_id: "MSG-2026-04-27-005",
+        txtp: "pacs.008",
+        time: "10:27:55",
+        outcome: "Hit",
+        score: 95,
+        reason: "Multiple rule violations detected",
+    },
+    {
+        message_id: "MSG-2026-04-27-006",
+        txtp: "pacs.004",
+        time: "10:28:12",
+        outcome: "No-Hit",
+        score: 15,
+        reason: "Valid return transaction",
+    },
+    {
+        message_id: "MSG-2026-04-27-007",
+        txtp: "pacs.008",
+        time: "10:29:33",
+        outcome: "Hit",
+        score: 78,
+        reason: "Velocity check triggered",
+    },
+    {
+        message_id: "MSG-2026-04-27-008",
+        txtp: "pain.001",
+        time: "10:30:45",
+        outcome: "No-Hit",
+        score: 5,
+        reason: "Low-risk customer profile",
+    },
+    {
+        message_id: "MSG-2026-04-27-009",
+        txtp: "pacs.008",
+        time: "10:31:22",
+        outcome: "Hit",
+        score: 98,
+        reason: "Sanctioned entity match found",
+    },
+    {
+        message_id: "MSG-2026-04-27-010",
+        txtp: "pacs.002",
+        time: "10:32:08",
+        outcome: "No-Hit",
+        score: 10,
+        reason: "Payment status report - normal",
+    },
+    {
+        message_id: "MSG-2026-04-27-011",
+        txtp: "pacs.008",
+        time: "10:33:41",
+        outcome: "Hit",
+        score: 82,
+        reason: "Geographic risk indicator",
+    },
+    {
+        message_id: "MSG-2026-04-27-012",
+        txtp: "pain.001",
+        time: "10:34:56",
+        outcome: "No-Hit",
+        score: 18,
+        reason: "Authorized merchant transaction",
+    },
+    {
+        message_id: "MSG-2026-04-27-013",
+        txtp: "pacs.008",
+        time: "10:35:19",
+        outcome: "Hit",
+        score: 89,
+        reason: "Structuring pattern identified",
+    },
+    {
+        message_id: "MSG-2026-04-27-014",
+        txtp: "pacs.004",
+        time: "10:36:27",
+        outcome: "No-Hit",
+        score: 7,
+        reason: "Legitimate refund request",
+    },
+    {
+        message_id: "MSG-2026-04-27-015",
+        txtp: "pacs.008",
+        time: "10:37:53",
+        outcome: "No-Hit",
+        score: 22,
+        reason: "Within normal thresholds",
+    },
+    {
+        message_id: "MSG-2026-04-27-016",
+        txtp: "pain.001",
+        time: "10:38:14",
+        outcome: "Hit",
+        score: 75,
+        reason: "New payee - increased scrutiny",
+    },
+    {
+        message_id: "MSG-2026-04-27-017",
+        txtp: "pacs.008",
+        time: "10:39:02",
+        outcome: "No-Hit",
+        score: 14,
+        reason: "Recurring payment - verified",
+    },
+    {
+        message_id: "MSG-2026-04-27-018",
+        txtp: "pacs.002",
+        time: "10:40:28",
+        outcome: "No-Hit",
+        score: 9,
+        reason: "Status confirmation - no issues",
+    },
+    {
+        message_id: "MSG-2026-04-27-019",
+        txtp: "pacs.008",
+        time: "10:41:37",
+        outcome: "Hit",
+        score: 93,
+        reason: "PEP (Politically Exposed Person) match",
+    },
+    {
+        message_id: "MSG-2026-04-27-020",
+        txtp: "pain.001",
+        time: "10:42:55",
+        outcome: "No-Hit",
+        score: 11,
+        reason: "Established customer relationship",
+    },
+];
+
 
 export const sampleRuleRequest = {
     "transaction": {
@@ -258,7 +422,12 @@ export const SimulationTabs = [
         label: 'New Simulation',
         value: 'new_simulation',
         enabled: false
-    }
+    },
+    {
+        label: 'Execution',
+        value: 'evaluation',
+        enabled: false
+    },
 ]
 
 
