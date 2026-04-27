@@ -13,6 +13,7 @@ import { AuditModule } from './audit/audit.module';
 import { MaskingModule } from './services/masking/masking.module';
 import { GatewaysModule } from './gateways/gateways.module';
 import { FetchFromDlhModule } from './services/fetch-from-dlh/fetch-from-dlh.module';
+import { FetchCountModule } from './services/fetch-count/fetch-count.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { FetchFromDlhModule } from './services/fetch-from-dlh/fetch-from-dlh.mod
     MaskingModule,
     GatewaysModule,
     FetchFromDlhModule,
+    FetchCountModule,
   ],
   controllers: [AppController],
   providers: [AppService],
