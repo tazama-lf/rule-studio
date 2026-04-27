@@ -35,6 +35,7 @@ import { FetchCountModule } from './services/fetch-count/fetch-count.module';
     FetchCountModule,
     RuleSimulationModule,
     FetchFromDlhModule,
+    FetchCountModule,
   ],
   controllers: [AppController],
   providers: [AppService],

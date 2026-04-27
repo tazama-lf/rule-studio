@@ -27,8 +27,6 @@ export class FetchFromDlhService {
       this.logger.log(`Successfully fetched data from DLH for tenantId: ${tenantId}`);
 
 
-      // console.log('DLH response:', JSON.stringify(response.results[0].data, null, 2)); // Debug log to inspect DLH response structure
-
       const messages = response.results.flatMap((r, i) => {
         const query = queries[i];
         const endpoint = query?.endpoint_path
