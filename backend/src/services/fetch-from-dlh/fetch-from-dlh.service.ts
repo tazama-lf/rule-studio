@@ -26,6 +26,7 @@ export class FetchFromDlhService {
 
       this.logger.log(`Successfully fetched data from DLH for tenantId: ${tenantId}`);
 
+      
 
       const messages = response.results.flatMap((r, i) => {
         const query = queries[i];
