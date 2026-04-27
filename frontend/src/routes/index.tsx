@@ -127,9 +127,9 @@ export const ROUTES = [
     },
     {
         path: "/simulation/create",
-        element: <NewSimulation />,
+        element: <Simulation />,
         private: true,
         layout: true,
         roleGroup: 'trs' as const,
-    }
+    },
 ];
