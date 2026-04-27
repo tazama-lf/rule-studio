@@ -9,6 +9,7 @@ import { ruleBuilderApi } from '../Api/Rule-builder'
 import { simulationApi } from '../Api/Simulation'
 import { natsApi } from '../Api/Nats'
 import { logsApi } from '../Api/SimulationLogs'
+import { maskingApi } from '../Api/Masking'
 
 export default configureStore({
     reducer: {
@@ -20,6 +21,7 @@ export default configureStore({
         [simulationApi.reducerPath]: simulationApi.reducer,
         [natsApi.reducerPath]: natsApi.reducer,
         [logsApi.reducerPath]: logsApi.reducer,
+        [maskingApi.reducerPath]: maskingApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
@@ -33,6 +35,7 @@ export default configureStore({
             .concat(simulationApi.middleware)
             .concat(natsApi.middleware)
             .concat(logsApi.middleware)
+            .concat(maskingApi.middleware)
             .concat(errorLogger)
             .concat(successLogger)
 })

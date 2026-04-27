@@ -15,7 +15,7 @@ import {
 import { firstValueFrom } from 'rxjs';
 import { CreateNodeDto, RequestQueryNodeDto, ResponseNodesDto } from './nodes/dto';
 import { GetNodesQuery } from './nodes/interfaces/node.interface';
-import { FieldMapping } from '@tazama-lf/tcs-lib';
+import { FieldMapping, ISuccess } from '@tazama-lf/tcs-lib';
 import {
   GLOBAL_VARIABLES,
   NODES,
@@ -36,11 +36,25 @@ import {
   BASE_URL,
   GET_SIMULATION_LOGS,
   INSERT_SIMULATION_LOGS,
+  MASKING_ALL,
+  MASKING_UPDATE,
+  MASKING_REVIEW,
+  CREATE_MASK,
+  SIMULATION_MESSAGES,
 } from '../constants/constant';
+import type { MaskingFiltersDto, MaskingListResponseDto } from './masking/dto/masking.dto';
 import { ResponseQueryNodeDto } from './nodes/dto/responseNode.dto';
 import { RuleRequest } from '../services/parse-extract/dto/message.dto';
 import { SimulationLogsDto } from './simulation-logs/dto';
 import { ISimulationLog } from './simulation-logs/interface/simulation-logs.interface';
+import { CreateMaskDto } from './masking/dto/mask.dto';
+
+export interface SimulationMessage {
+  messageId: string;
+  timestamp: string;
+  endpoint: string;
+  data: Record<string, unknown>;
+}
 
 @Injectable()
 export class AdminServiceClient {
@@ -333,5 +347,39 @@ export class AdminServiceClient {
 
   async insertSimulationLogs(token: string, logs: ISimulationLog): Promise<SimulationLogsDto> {
     return await this.executeHttpRequest('POST', INSERT_SIMULATION_LOGS, token, logs);
+  }
+
+  async getAllMaskWithFilters(offset: number, limit: number, filters: MaskingFiltersDto, token: string): Promise<MaskingListResponseDto> {
+    return await this.executeHttpRequest<MaskingListResponseDto>('POST', `${MASKING_ALL}/${offset}/${limit}`, token, filters);
+  }
+
+  async createMask(maskData: CreateMaskDto, token: string): Promise<Partial<ISuccess>> {
+    const response = await this.executeHttpRequest<ISuccess>('POST', CREATE_MASK, token, { maskData });
+    return response;
+  }
+
+  async updateMask(id: number, updateData: Record<string, unknown>, token: string): Promise<Record<string, unknown>> {
+    return await this.executeHttpRequest<Record<string, unknown>>('PUT', `${MASKING_UPDATE}/${id}`, token, updateData);
+  }
+
+  async getMaskById(id: number, token: string): Promise<Record<string, unknown>> {
+    const response = await this.executeHttpRequest<{ mask: Record<string, unknown> }>('GET', `${MASKING_UPDATE}/${id}`, token);
+    return response.mask;
+  }
+
+  async reviewMask(id: number, action: 'approve' | 'reject', comments: string | undefined, token: string): Promise<Record<string, unknown>> {
+    const response = await this.executeHttpRequest<{ mask: Record<string, unknown> }>(
+      'PATCH',
+      `${MASKING_REVIEW}/${id}/review`,
+      token,
+      { action, ...(comments?.trim() ? { comments: comments.trim() } : {}) },
+    );
+    return response.mask;
+  }
+  async getSimulationMessages(token: string, tableName: string): Promise<SimulationMessage[]> {
+    const response = await this.executeHttpRequest<{
+      messages: SimulationMessage[];
+    }>('GET', SIMULATION_MESSAGES, token, undefined, { tableName });
+    return response.messages;
   }
 }
