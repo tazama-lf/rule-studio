@@ -185,8 +185,7 @@ const useOverviewController = (props: IOverviewProps) => {
             getTxtpVersions(val?.value)
             const matched = (types as { transaction_type: string; endpoint_path: string }[] | undefined)
                 ?.find(item => item.transaction_type === val.value)
-            const existing = extractData('trs_rule', LocalStorage, true) ?? {}
-            insertData({ ...existing, endpoint_path: matched?.endpoint_path ?? null }, 'trs_rule', LocalStorage, true)
+            insertData(matched?.endpoint_path ?? null, 'trs_endpoint_path', LocalStorage, true)
         }
     }
 
