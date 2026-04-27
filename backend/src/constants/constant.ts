@@ -1,4 +1,5 @@
 export const BASE_URL: string = process.env.ADMIN_SERVICE_URL ?? 'http://localhost:3100';
+export const DEMS_BASE_URL: string = process.env.DEMS_BASE_URL ?? 'http://localhost:3002/dems-engine';
 // Rules
 export const RULES_BASE_URL = '/v1/admin/trs';
 export const RULE_IDS = `${RULES_BASE_URL}/rule-ids`;
@@ -39,9 +40,13 @@ export const GET_SIMULATION_LOGS = `${SIMULATION_LOGS}/:ruleId`;
 export const MASKING_BASE_URL = '/v1/admin/trs/masking';
 export const MASKING_ALL = `${MASKING_BASE_URL}/all`;
 export const MASKING_UPDATE = MASKING_BASE_URL;
+export const MASKING_ACTIVE_CONFIGS = `${MASKING_BASE_URL}/active-configs`;
 export const MASKING_REVIEW = MASKING_BASE_URL;
 // Simulation Messages
 export const SIMULATION_MESSAGES = '/v1/admin/simulation/messages';
 
 // Base rule for cloning flow
 export const BASE_RULE_ID = '21';
+
+// Fetch from DLH
+export const FETCH_FROM_DLH = '/v1/dlh/fetch';

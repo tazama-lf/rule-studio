@@ -39,8 +39,10 @@ import {
   MASKING_ALL,
   MASKING_UPDATE,
   MASKING_REVIEW,
+  MASKING_ACTIVE_CONFIGS,
   CREATE_MASK,
   SIMULATION_MESSAGES,
+  FETCH_FROM_DLH,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto } from './masking/dto/masking.dto';
 import { ResponseQueryNodeDto } from './nodes/dto/responseNode.dto';
@@ -381,5 +383,26 @@ export class AdminServiceClient {
       messages: SimulationMessage[];
     }>('GET', SIMULATION_MESSAGES, token, undefined, { tableName });
     return response.messages;
+  }
+
+  async fetchFromDlh(queries: Array<Record<string, unknown>>, token: string): Promise<Record<string, unknown>> {
+    return await this.executeHttpRequest('POST', FETCH_FROM_DLH, token, queries);
+  }
+
+  async fetchMaskingConfig(token: string): Promise<Record<string, unknown>> {
+    return await this.executeHttpRequest('GET', '/v1/admin/trs/masking/all-fetch', token);
+  }
+
+  async fetchActiveMaskingConfigs(
+    tuples: Array<{ tenant_id: string; txtp: string; txtp_version: string }>,
+    token: string,
+  ): Promise<Array<{ tenant_id: string; txtp: string; txtp_version: string, endpoint_path: string }>> {
+    const response = await this.executeHttpRequest<{ masks: Array<{ tenant_id: string; txtp: string; txtp_version: string, endpoint_path: string }> }>(
+      'POST',
+      MASKING_ACTIVE_CONFIGS,
+      token,
+      tuples,
+    );
+    return response.masks ?? [];
   }
 }
