@@ -1,6 +1,7 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
-import type { FetchCountResponseDto } from './dto/fetch-count.dto';
 import { AdminServiceClient } from '../admin-service-client';
+import { FetchFromDlhService } from '../fetch-from-dlh/fetch-from-dlh.service';
+import type { FetchFromDlhResponseDto } from '../fetch-from-dlh/dto/fetch-from-dlh.dto';
 
 interface RawMask {
   id: number;
@@ -22,9 +23,10 @@ export class FetchCountService {
 
    constructor(
       private readonly adminServiceClient: AdminServiceClient,
+      private readonly fetchFromDlhService: FetchFromDlhService,
     ) {}
 
-  async fetchCount(token: string): Promise<FetchCountResponseDto> {
+  async fetchCount(startDtTm: string, endDtTm: string, token: string): Promise<FetchFromDlhResponseDto> {
     const response = await this.adminServiceClient.fetchMaskingConfig(token);
 
     console.log('Raw response from fetchMaskingConfig:', response);
@@ -46,30 +48,7 @@ export class FetchCountService {
       tokenize: tokenizeByTxtp.get(m.txtp) ?? null,
     }));
 
-    console.log('Active masks with tokenize field:', masksWithTokenize);
-
-    // payload
-    // {
-    //     "txtp": "pacs002",
-    //     "mask_fields": [
-    //         "name",
-    //         "address"
-    //     ],
-    //     "startDtTm": "2026-01-28T00:00:00",
-    //     "endDtTm": "2026-01-28T23:59:59"
-    // }
-
-    // const activeMasks = [
-    //     {
-    //         tenant_id: "cbe",
-    //         txtp: "pacs002",
-    //         txtp_version: "1.0.0",
-    //         endpoint_path: "/cbe/1.0.0/evaluate/dems_pacs002"
-    //     }
-    // ];
-
-
-    // ------------------ if txtp repeats in active configs, throw error ------------------
+     // ------------------ if txtp repeats in active configs, throw error ------------------
     // const txtp_counts = activeMasks.reduce<Record<string, number>>((acc, m) => {
     //   acc[m.txtp] = (acc[m.txtp] ?? 0) + 1;
     //   return acc;
@@ -87,6 +66,22 @@ export class FetchCountService {
     // }
     // ---------------------------------------------------------------------------------------
 
-    return { masks: masksWithTokenize, total: masksWithTokenize.length };
+
+    // Build one DLH query per active masked txtp.
+    // mask_fields: if tokenize is an array use it directly, otherwise use its keys.
+    const queries = masksWithTokenize.map((m) => ({
+      txtp: m.txtp,
+      mask_fields: Array.isArray(m.tokenize)
+        ? (m.tokenize as string[])
+        : Object.keys(m.tokenize ?? {}),
+      startDtTm,
+      endDtTm,
+    }));
+
+    console.log('Constructed DLH queries:', queries);
+
+    this.logger.log(`Fetching DLH data for ${queries.length} txtp(s): ${queries.map((q) => q.txtp).join(', ')}`);
+
+    return await this.fetchFromDlhService.fetchFromDlh(queries, 'DEFAULT', token);
   }
 }
