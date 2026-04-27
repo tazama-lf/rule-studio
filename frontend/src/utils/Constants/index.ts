@@ -11,7 +11,7 @@ export const REGEX = {
 
 export const baseFontSizes = {
   bigHeader: {
-    default: '2.2rem',
+    default: '2rem',
     small: '1.75rem',
   },
   header: {
