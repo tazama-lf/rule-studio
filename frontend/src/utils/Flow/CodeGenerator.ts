@@ -1327,11 +1327,13 @@ export const generateTypeScriptCode = (
     .filter(Boolean)
     .join('\n');
   
-  const isPacs002 = txtp === 'pacs.002.001.12';
-  const txTypeImport = isPacs002
-    ? `\nimport type { Pacs002 } from '@tazama-lf/frms-coe-lib/lib/interfaces/Pacs.002.001.12';`
-    : `\nimport type { BaseMessage } from '@tazama-lf/frms-coe-lib/lib/interfaces';`;
-  const reqType = isPacs002 ? 'RuleRequest<Pacs002>' : 'RuleRequest<BaseMessage>';
+  // const isPacs002 = txtp === 'pacs.002.001.12';
+  // const txTypeImport = isPacs002
+  //   ? `\nimport type { Pacs002 } from '@tazama-lf/frms-coe-lib/lib/interfaces/Pacs.002.001.12';`
+  //   : `\nimport type { BaseMessage } from '@tazama-lf/frms-coe-lib/lib/interfaces';`;
+  const txTypeImport = `\nimport type { SupportedTransactionMessage } from '@tazama-lf/frms-coe-lib/lib/interfaces';`;
+  // const reqType = isPacs002 ? 'RuleRequest<Pacs002>' : 'RuleRequest<BaseMessage>';
+  const reqType = 'RuleRequest<SupportedTransactionMessage>';
 
   const baseImports = `import type { DatabaseManagerInstance, LoggerService, ManagerConfig } from '@tazama-lf/frms-coe-lib';
 import type { Case, RuleConfig, RuleRequest, RuleResult } from '@tazama-lf/frms-coe-lib/lib/interfaces';${txTypeImport}`;
