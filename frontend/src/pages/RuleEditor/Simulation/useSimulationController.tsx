@@ -296,7 +296,8 @@ const useSimulationController = (props: ISimulation) => {
                 .unwrap()
                 .then((res) => {
                     if (res) {
-                        setValue('payload', JSON.stringify(res, null, 4))
+                        const { TenantId: _, TxTp: __, ...cleanPayload } = res as Record<string, unknown>;
+                        setValue('payload', JSON.stringify(cleanPayload, null, 4))
                     }
                 })
                 .catch((error) => {
