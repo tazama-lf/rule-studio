@@ -131,12 +131,5 @@ export const ROUTES = [
         private: true,
         layout: true,
         roleGroup: 'trs' as const,
-    },
-    {
-        path: "/simulation/evaluation",
-        element: <Evaluation />,
-        private: true,
-        layout: true,
-        roleGroup: 'trs' as const,
-    },
+    }
 ];
