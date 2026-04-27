@@ -29,6 +29,11 @@ const useSimulationController = (props: ISimulation) => {
         [props.data]
     )
 
+    const endpointPath = useMemo(
+        () => extractData('trs_endpoint_path', LocalStorage, true) as string | null,
+        []
+    )
+
     const { rule_name } : { rule_name?: string } = data || {};
 
     const user = useMemo(() => extractData('user'), [])
@@ -353,13 +358,13 @@ const useSimulationController = (props: ISimulation) => {
                 addSimulationLog(body, res, logCategory);
             };
         } else {
-            if (!data?.endpoint_path) {
+            if (!endpointPath) {
                 toast.error('Transaction type endpoint path not found. Please select a valid transaction type.')
                 return;
             }
             body = {
                 body: parsedPayload,
-                endpointPath: data.endpoint_path,
+                endpointPath,
             };
             mutation = endToEnd;
             logCategory = 'end_to_end';
