@@ -42,7 +42,6 @@ export const MASKING_ALL = `${MASKING_BASE_URL}/all`;
 export const MASKING_UPDATE = MASKING_BASE_URL;
 export const MASKING_ACTIVE_CONFIGS = `${MASKING_BASE_URL}/active-configs`;
 export const MASKING_REVIEW = MASKING_BASE_URL;
-export const MASKING_ACTIVE_CONFIGS = `${MASKING_BASE_URL}/active-configs`;
 // Simulation Messages
 export const SIMULATION_MESSAGES = '/v1/admin/simulation/messages';
 
