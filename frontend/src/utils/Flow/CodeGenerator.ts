@@ -1327,20 +1327,20 @@ export const generateTypeScriptCode = (
     .filter(Boolean)
     .join('\n');
   
-  // const isPacs002 = txtp === 'pacs.002.001.12';
-  // const txTypeImport = isPacs002
-  //   ? `\nimport type { Pacs002 } from '@tazama-lf/frms-coe-lib/lib/interfaces/Pacs.002.001.12';`
-  //   : `\nimport type { BaseMessage } from '@tazama-lf/frms-coe-lib/lib/interfaces';`;
+  const isPacs002 = txtp === 'pacs.002.001.12';
   const txTypeImport = `\nimport type { SupportedTransactionMessage } from '@tazama-lf/frms-coe-lib/lib/interfaces';`;
-  // const reqType = isPacs002 ? 'RuleRequest<Pacs002>' : 'RuleRequest<BaseMessage>';
   const reqType = 'RuleRequest<SupportedTransactionMessage>';
+  const txnType = isPacs002 ? 'Pacs002' : 'BaseMessage';
 
   const baseImports = `import type { DatabaseManagerInstance, LoggerService, ManagerConfig } from '@tazama-lf/frms-coe-lib';
 import type { Case, RuleConfig, RuleRequest, RuleResult } from '@tazama-lf/frms-coe-lib/lib/interfaces';${txTypeImport}`;
-  
-  const allImports = customImportStatements 
-    ? `${baseImports}\n${customImportStatements}` 
-    : baseImports;
+  // Pacs002 or BaseMessage import for the transaction cast
+  const txCastImport = isPacs002
+    ? `\nimport type { Pacs002 } from '@tazama-lf/frms-coe-lib/lib/interfaces/Pacs.002.001.12';`
+    : `\nimport type { BaseMessage } from '@tazama-lf/frms-coe-lib/lib/interfaces';`;
+  const allImports = customImportStatements
+    ? `${baseImports}${txCastImport}\n${customImportStatements}`
+    : `${baseImports}${txCastImport}`;
 
   const functionNodes = nodes.filter((node) => {
     const nodeData = node.data as EditableNodeData;
@@ -1371,6 +1371,7 @@ export async function handleTransaction(
   ruleConfig: RuleConfig,
   databaseManager: DatabaseManagerInstance<RuleExecutorConfig>,
 ): Promise<RuleResult> {
+  const transaction = req.transaction as ${txnType};
   
 ${nestedCode}
   
