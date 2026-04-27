@@ -414,6 +414,7 @@
           "trs_data_engineer_editor": {
             "allowedCurrentStatuses": [
               "STATUS_01_IN_PROGRESS",
+              "STATUS_04_APPROVED",
               "STATUS_05_REJECTED"
             ]
           },
@@ -431,6 +432,9 @@
             "STATUS_01_IN_PROGRESS": [
               "STATUS_03_UNDER_REVIEW"
             ],
+            "STATUS_04_APPROVED": [
+              "STATUS_03_UNDER_REVIEW"
+            ],
             "STATUS_05_REJECTED": [
               "STATUS_01_IN_PROGRESS"
             ]
@@ -442,7 +446,17 @@
             ]
           }
         }
-      }
-    }
+      }    },
+    "PATCH /masking/api/:id/review": {
+      "tier2": {
+        "description": "Approves or rejects a masking configuration that is under review. Restricted to trs_data_engineer_approver role.",
+        "rolePermissions": {
+          "trs_data_engineer_approver": {
+            "allowedCurrentStatuses": [
+              "STATUS_03_UNDER_REVIEW"
+            ]
+          }
+        }
+      }    }
   }
 }

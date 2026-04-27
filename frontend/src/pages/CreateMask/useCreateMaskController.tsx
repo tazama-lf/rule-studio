@@ -13,6 +13,7 @@ const useCreateMaskController = () => {
     const id = searchParams.get('id') ?? undefined
 
     const { data, isFetching: isLoading } = useGetMaskByIdQuery({ id }, { skip: !id, refetchOnMountOrArgChange: true })
+    console.log('Fetched mask data:', data)
     const { selectedTab } = useMaskingTab()
 
     const user = extractData('user')

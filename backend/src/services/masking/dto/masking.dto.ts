@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsEnum, IsInt, Min, IsObject } from 'class-validator';
+import { IsOptional, IsString, IsEnum, IsInt, Min, IsObject, IsNotEmpty } from 'class-validator';
 import { ApiPropertyOptional, ApiProperty } from '@nestjs/swagger';
 
 export class MaskingFiltersDto {
@@ -35,6 +35,9 @@ export class MaskingDto {
 
   @ApiProperty({ description: 'Transaction type version', example: '11' })
   txtp_version!: string;
+
+  @ApiPropertyOptional({ description: 'JSON object describing which fields are tokenized', example: {} })
+  tokenize?: Record<string, unknown>;
 
   @ApiProperty({ description: 'Status', example: 'STATUS_01_IN_PROGRESS' })
   status!: string;
@@ -103,4 +106,17 @@ export class UpdateMaskDto {
   @IsOptional()
   @IsObject()
   tokenize?: object;
+}
+
+export class ReviewMaskDto {
+  @ApiProperty({ description: 'Review action', enum: ['approve', 'reject'], example: 'approve' })
+  @IsString()
+  @IsNotEmpty()
+  @IsEnum(['approve', 'reject'], { message: 'action must be either approve or reject' })
+  action!: 'approve' | 'reject';
+
+  @ApiPropertyOptional({ description: 'Comment (required when rejecting)', example: 'Needs revision' })
+  @IsOptional()
+  @IsString()
+  comments?: string;
 }
