@@ -5,7 +5,8 @@ import { TazamaClaims, RequireAnyClaims } from '../../decorators/auth.decorator'
 import { User } from '../../decorators/user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { FetchCountService } from './fetch-count.service';
-import {  FetchCountResponseDto } from './dto/fetch-count.dto';
+import { FetchCountRequestDto } from './dto/fetch-count.dto';
+import type { FetchFromDlhResponseDto } from '../fetch-from-dlh/dto/fetch-from-dlh.dto';
 
 @ApiTags('Fetch Count')
 @ApiBearerAuth('JWT-auth')
@@ -16,17 +17,20 @@ export class FetchCountController {
 
   @Post()
   @RequireAnyClaims(TazamaClaims.DEMS)
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({
-    summary: 'Fetch count for a resource',
-    description: 'Returns the count for the specified resource.',
+    summary: 'Run simulation for all active masked transaction types',
+    description: 'Resolves active masking configs, fetches DLH data for each txtp, and enqueues a simulation job.',
   })
-  @ApiResponse({ status: 200, description: 'Count retrieved successfully.', type: FetchCountResponseDto })
+  @ApiResponse({ status: 202, description: 'Simulation job accepted.' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Insufficient claims' })
+  @ApiResponse({ status: 409, description: 'Duplicate transaction type in active configs' })
   async fetchCount(
-    @User() _user: AuthenticatedUser,
-  ): Promise<FetchCountResponseDto> {
-    return await this.fetchCountService.fetchCount(_user.token.tokenString);
+    @User() user: AuthenticatedUser,
+    @Body() body: { startDtTm: string; endDtTm: string },
+  ): Promise<FetchFromDlhResponseDto> {
+    console.log(`Received fetch count request from user ${user.userId} with body:`, body);
+    return await this.fetchCountService.fetchCount(body.startDtTm, body.endDtTm, user.token.tokenString);
   }
 }   
