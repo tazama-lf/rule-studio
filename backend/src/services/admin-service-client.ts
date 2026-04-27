@@ -39,6 +39,7 @@ import {
   MASKING_ALL,
   MASKING_UPDATE,
   MASKING_REVIEW,
+  MASKING_ACTIVE_CONFIGS,
   CREATE_MASK,
   SIMULATION_MESSAGES,
   EXCLUDED_TYPES,
@@ -390,7 +391,20 @@ export class AdminServiceClient {
     return await this.executeHttpRequest('POST', FETCH_FROM_DLH, token, queries);
   }
 
-  async getExcludedTypes(token: string): Promise<ExcludedTypeProps[]> {
-    return await this.executeHttpRequest<ExcludedTypeProps[]>('GET', `${EXCLUDED_TYPES}`, token);
+  async fetchMaskingConfig(token: string): Promise<Record<string, unknown>> {
+    return await this.executeHttpRequest('GET', '/v1/admin/trs/masking/all-fetch', token);
+  }
+
+  async fetchActiveMaskingConfigs(
+    tuples: Array<{ tenant_id: string; txtp: string; txtp_version: string }>,
+    token: string,
+  ): Promise<Array<{ tenant_id: string; txtp: string; txtp_version: string, endpoint_path: string }>> {
+    const response = await this.executeHttpRequest<{ masks: Array<{ tenant_id: string; txtp: string; txtp_version: string, endpoint_path: string }> }>(
+      'POST',
+      MASKING_ACTIVE_CONFIGS,
+      token,
+      tuples,
+    );
+    return response.masks ?? [];
   }
 }
