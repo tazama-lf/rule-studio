@@ -1,15 +1,22 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { Job } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
 import { SIMULATION_QUEUE } from './simulation-queue.constants';
-import type { SimulationJobPayload } from './simulation-queue.constants';
+import type { SimulationJobPayload, DirectSimulationMessage } from './simulation-queue.constants';
 import { SimulationProgressGateway } from '../gateways/simulation-progress.gateway';
 import { AdminServiceClient } from '../services/admin-service-client';
+import type { SimulationMessage } from '../services/admin-service-client';
 import type { ProgressUpdateDto, SimulationLogDto } from '../services/send-to-dems/dto/send-to-dems.dto';
 
-@Processor(SIMULATION_QUEUE, { concurrency: 2 })
+@Processor(SIMULATION_QUEUE, {
+  concurrency: 2,
+  // Reduce from the 30s defaults so stalled job locks (e.g. from dev-server restarts)
+  // are detected and freed within ~15s instead of blocking slots for 30s.
+  lockDuration: 15000,
+  stalledInterval: 15000,
+})
 export class SimulationProcessor extends WorkerHost {
   private readonly logger = new Logger(SimulationProcessor.name);
 
@@ -21,23 +28,57 @@ export class SimulationProcessor extends WorkerHost {
     super();
   }
 
+  @OnWorkerEvent('ready')
+  onWorkerReady(): void {
+    this.logger.log('Simulation worker ready — connected to Redis and listening for jobs');
+  }
+
+  @OnWorkerEvent('error')
+  onWorkerError(err: Error): void {
+    this.logger.error(`Simulation worker error: ${err.message}`, err.stack);
+  }
+
+  @OnWorkerEvent('stalled')
+  onWorkerStalled(jobId: string): void {
+    // Fires when a job's lock expired without completion (typically a dead worker from a dev restart).
+    // With stalledInterval: 15000, this is detected within ~15s and the slot is freed.
+    this.logger.warn(`Job ${jobId} stalled (lock expired) — slot freed, job will be re-queued or failed`);
+  }
+
   async process(job: Job<SimulationJobPayload>): Promise<void> {
-    const { jobId, token, tableNames } = job.data;
-    this.logger.log(`Starting simulation job ${jobId} for tables: ${tableNames.join(', ')}`);
+    console.log('Processing job with data:', job.data); // Debug log to inspect incoming job data
+    const { jobId, token, tableNames, messages: directMessages } = job.data;
+    const source = directMessages ? `${directMessages.length} direct DLH messages` : `tables: ${(tableNames ?? []).join(', ')}`;
+    this.logger.log(`Starting simulation job ${jobId} from ${source}`);
 
     let lastEmittedPercent = -1;
     let processed = 0;
 
-    this.gateway.emitProgress(jobId, {
-      jobId, progress: 0, processed: 0, total: 0, status: 'running',
-      log: this.makeLog('info', 'Initializing simulation environment...'),
-    });
+    try {
+      this.gateway.emitProgress(jobId, {
+        jobId, progress: 0, processed: 0, total: 0, status: 'running',
+        log: this.makeLog('info', 'Initializing simulation environment...'),
+      });
+    } catch (gatewayErr) {
+      console.error(`[SimulationProcessor] Initial gateway emit failed for job ${jobId}:`, gatewayErr);
+    }
 
     try {
-      const messageArrays = await Promise.all(
-        tableNames.map(async (tableName) => await this.adminServiceClient.getSimulationMessages(token, tableName)),
-      );
-      const messages = messageArrays.flat();
+      let messages: (SimulationMessage | DirectSimulationMessage)[];
+
+      if (directMessages !== undefined) {
+        // DLH direct-data flow — messages were already mapped and stored in the job payload
+        console.log(`[SimulationProcessor] Job ${jobId}: using ${directMessages.length} direct DLH messages`);
+        messages = directMessages;
+      } else {
+        // DB-table flow — fetch messages from admin-service simulation tables
+        console.log(`[SimulationProcessor] Job ${jobId}: loading from tables: ${(tableNames ?? []).join(', ')}`);
+        const messageArrays = await Promise.all(
+          (tableNames ?? []).map(async (tableName) => await this.adminServiceClient.getSimulationMessages(token, tableName)),
+        );
+        messages = messageArrays.flat();
+      }
+
       const total = messages.length;
 
       // Edge case: no messages to process
@@ -62,18 +103,26 @@ export class SimulationProcessor extends WorkerHost {
         log: this.makeLog('info', 'Replay started. Processing transactions in historical sequence...'),
       });
 
+      const MAX_REPLAY_DELAY_MS = 2000; // Cap replay delay — real-world timestamps can be hours/days apart, which would stall worker slots indefinitely
+
       for (const [i, message] of messages.entries()) {
         // Honour the original inter-message timing from the simulation dataset
         if (i > 0) {
-          const delay = new Date(message.timestamp).getTime() - new Date(messages[i - 1].timestamp).getTime();
+          const rawDelay = new Date(message.timestamp).getTime() - new Date(messages[i - 1].timestamp).getTime();
+          const delay = Math.min(rawDelay, MAX_REPLAY_DELAY_MS);
           if (delay > 0) {
-            this.logger.debug(`Job ${jobId}: waiting ${delay}ms before message ${message.messageId}`);
+            if (rawDelay > MAX_REPLAY_DELAY_MS) {
+              this.logger.debug(`Job ${jobId}: original gap ${rawDelay}ms capped to ${MAX_REPLAY_DELAY_MS}ms before message ${message.messageId}`);
+            } else {
+              this.logger.debug(`Job ${jobId}: waiting ${delay}ms before message ${message.messageId}`);
+            }
             // eslint-disable-next-line no-await-in-loop -- Sequential execution is required for timing simulation
             await this.sleep(delay);
           }
         }
 
         try {
+          console.log(`[SimulationProcessor] Job ${jobId}: POSTing message ${i + 1}/${total} to ${message.endpoint}`);
           this.logger.debug(`Job ${jobId}: sending message ${message.messageId} → ${message.endpoint}`);
           // eslint-disable-next-line no-await-in-loop -- Sequential delivery required to preserve message order
           await firstValueFrom(
@@ -87,10 +136,12 @@ export class SimulationProcessor extends WorkerHost {
               timeout: 10000,
             }),
           );
+          console.log(`[SimulationProcessor] Job ${jobId}: message ${i + 1}/${total} delivered`);
           this.logger.debug(`Job ${jobId}: message ${message.messageId} delivered`);
         } catch (error: unknown) {
           // Per-message failures are non-fatal; emit immediately (outside threshold gate) and continue
           const errMsg = error instanceof Error ? error.message : 'Unknown error';
+          console.error(`[SimulationProcessor] Job ${jobId}: FAILED to deliver message ${i + 1}/${total}:`, errMsg);
           this.logger.error(`Job ${jobId}: failed to deliver ${message.messageId}: ${errMsg}`);
           this.gateway.emitProgress(jobId, {
             jobId,
