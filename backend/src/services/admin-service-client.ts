@@ -38,7 +38,6 @@ import {
   INSERT_SIMULATION_LOGS,
   MASKING_ALL,
   MASKING_UPDATE,
-  MASKING_ACTIVE_CONFIGS,
   MASKING_REVIEW,
   MASKING_ACTIVE_CONFIGS,
   MASKING_REVIEW,
@@ -388,6 +387,10 @@ export class AdminServiceClient {
       messages: SimulationMessage[];
     }>('GET', SIMULATION_MESSAGES, token, undefined, { tableName });
     return response.messages;
+  }
+
+  async getExcludedTypes(token: string): Promise<ExcludedTypeProps[]> {
+    return await this.executeHttpRequest<ExcludedTypeProps[]>('GET', `${EXCLUDED_TYPES}`, token);
   }
 
   async fetchFromDlh(queries: Array<Record<string, unknown>>, token: string): Promise<Record<string, unknown>> {
