@@ -178,6 +178,18 @@ const useOverviewController = (props: IOverviewProps) => {
         }
     }, [data, setValue, getRuleName])
 
+    // Backfill trs_endpoint_path when loading an existing rule (edit/resume) and types are available
+    useEffect(() => {
+        const txtp = resolveTxtp(data?.txtp)
+        if (!txtp || !types) {
+            insertData(null, 'trs_endpoint_path', LocalStorage, true)
+            return
+        }
+        const matched = (types as { transaction_type: string; endpoint_path: string }[] | undefined)
+            ?.find(item => item.transaction_type === txtp)
+        insertData(matched?.endpoint_path ?? null, 'trs_endpoint_path', LocalStorage, true)
+    }, [data?.txtp, types])
+
     const handleTxTp = (val: DropdownOption) => {
         setValue('txtp', val as { label: string, value: string })
         setValue('txtpVersion', null)
@@ -185,8 +197,9 @@ const useOverviewController = (props: IOverviewProps) => {
             getTxtpVersions(val?.value)
             const matched = (types as { transaction_type: string; endpoint_path: string }[] | undefined)
                 ?.find(item => item.transaction_type === val.value)
-            const existing = extractData('trs_rule', LocalStorage, true) ?? {}
-            insertData({ ...existing, endpoint_path: matched?.endpoint_path ?? null }, 'trs_rule', LocalStorage, true)
+            insertData(matched?.endpoint_path ?? null, 'trs_endpoint_path', LocalStorage, true)
+        } else {
+            insertData(null, 'trs_endpoint_path', LocalStorage, true)
         }
     }
 
