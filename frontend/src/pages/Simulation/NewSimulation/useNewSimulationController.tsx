@@ -22,7 +22,7 @@ export interface ExcludedTypeProps {
 const useNewSimulationController = () => {
 
     const [getTypes] = useLazyGetExcludedTypesQuery()
-    const { open } = useModal()
+    const { open, close } = useModal()
     const { enableNextTab } = useSimulationTab()
 
     const [dataFetched, setDataFetched] = useState(false)
@@ -101,6 +101,7 @@ const useNewSimulationController = () => {
     }
 
     const runSimulation = () => {
+        close()
         enableNextTab()
     }
 
