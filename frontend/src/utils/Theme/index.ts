@@ -23,6 +23,7 @@ const theme = () => {
         border: '#dfddde',
         grey: '#fbf9fa',
         lightGrey: '#f3f4f6',
+        darkGreen : '#166534'
     };
 
     return {
