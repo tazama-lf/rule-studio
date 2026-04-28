@@ -16,6 +16,7 @@ import { RuleSimulationModule } from './services/rule-simulation/rule-simulation
 import { SimulationModule } from './simulation/simulation.module';
 import { FetchFromDlhModule } from './services/fetch-from-dlh/fetch-from-dlh.module';
 import { FetchCountModule } from './services/fetch-count/fetch-count.module';
+import { FetchEvaluationModule } from './services/fetch-evaluation/fetch-evaluation.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { FetchCountModule } from './services/fetch-count/fetch-count.module';
     RuleSimulationModule,
     FetchFromDlhModule,
     FetchCountModule,
+    FetchEvaluationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
