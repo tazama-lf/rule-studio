@@ -42,6 +42,10 @@ export const MASKING_UPDATE = MASKING_BASE_URL;
 export const MASKING_REVIEW = MASKING_BASE_URL;
 // Simulation Messages
 export const SIMULATION_MESSAGES = '/v1/admin/simulation/messages';
+// Simulation Table
+export const SIMULATION_BASE_URL = `${RULES_BASE_URL}/simulation`;
+export const SIMULATION_ALL = `${SIMULATION_BASE_URL}/all`;
+export const SIMULATION_CREATE = `${SIMULATION_BASE_URL}/create`;
 
 // Base rule for cloning flow
 export const BASE_RULE_ID = '21';

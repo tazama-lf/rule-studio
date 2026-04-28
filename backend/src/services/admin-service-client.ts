@@ -41,8 +41,11 @@ import {
   MASKING_REVIEW,
   CREATE_MASK,
   SIMULATION_MESSAGES,
+  SIMULATION_ALL,
+  SIMULATION_CREATE,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto } from './masking/dto/masking.dto';
+import type { SimulationListResponseDto, CreateSimulationDto, CreateSimulationResponseDto } from '../simulation/dto/simulation.dto';
 import { ResponseQueryNodeDto } from './nodes/dto/responseNode.dto';
 import { RuleRequest } from '../services/parse-extract/dto/message.dto';
 import { SimulationLogsDto } from './simulation-logs/dto';
@@ -381,5 +384,13 @@ export class AdminServiceClient {
       messages: SimulationMessage[];
     }>('GET', SIMULATION_MESSAGES, token, undefined, { tableName });
     return response.messages;
+  }
+
+  async getAllSimulations(offset: number, limit: number, token: string): Promise<SimulationListResponseDto> {
+    return await this.executeHttpRequest<SimulationListResponseDto>('GET', `${SIMULATION_ALL}/${offset}/${limit}`, token);
+  }
+
+  async createSimulation(body: CreateSimulationDto, token: string): Promise<CreateSimulationResponseDto> {
+    return await this.executeHttpRequest<CreateSimulationResponseDto>('POST', SIMULATION_CREATE, token, body);
   }
 }
