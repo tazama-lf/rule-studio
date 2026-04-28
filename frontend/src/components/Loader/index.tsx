@@ -3,7 +3,7 @@ import { Box, CircularProgress } from "@mui/material";
 
 type LoaderProps = {
     size?: number;
-    color?: "primary" | "secondary" | "inherit" | "success" | "error" | "warning";
+    color?: "primary" | "secondary" | "inherit" | "success" | "error" | "warning" | 'info';
     center?: boolean;
     type?: "spinner" | "circular";
 };

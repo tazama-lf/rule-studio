@@ -8,7 +8,7 @@ const theme = () => {
     };
 
     const progressPalette = {
-        main: '#4caf50',
+        main: '#22c55e',
     };
 
 
@@ -25,7 +25,8 @@ const theme = () => {
         lightGrey: '#f3f4f6',
         pale: '#fffbeb',
         darkBrown : '#92400e',
-        creamy : "#fef3c7"
+        creamy : "#fef3c7",
+        darkGreen : '#166534'
     };
 
     return {
