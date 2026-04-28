@@ -12,6 +12,7 @@ import { Text } from "../../../components/Text";
 import Section from "../../../components/Wrappers/Section";
 import { styles } from './styles';
 import useNewSimulationController, { type ExcludedTypeProps } from "./useNewSimulationController";
+import Loader from '../../../components/Loader';
 
 interface TagProps {
     text: string;
@@ -20,7 +21,8 @@ interface TagProps {
 
 interface ExcludedMessagesProp {
     title: string,
-    tags: ExcludedTypeProps[]
+    tags: ExcludedTypeProps[],
+    isLoading: boolean
 }
 
 const Tag = memo(({ text, variant = 'filled' }: TagProps) => (
@@ -36,7 +38,7 @@ const Tag = memo(({ text, variant = 'filled' }: TagProps) => (
 
 Tag.displayName = 'Tag';
 
-const ExcludedMessagesAccordion = memo(({ title, tags }: ExcludedMessagesProp) => (
+const ExcludedMessagesAccordion = memo(({ title, tags, isLoading }: ExcludedMessagesProp) => (
     <Grid size={12} sx={styles.accordionContainer}>
         <Accordion sx={styles.accordion}>
             <AccordionSummary
@@ -49,12 +51,16 @@ const ExcludedMessagesAccordion = memo(({ title, tags }: ExcludedMessagesProp) =
                 </Text>
             </AccordionSummary>
             <AccordionDetails sx={styles.accordionDetails}>
-                {tags.map((tag, index) => (
-                    <Box display={'flex'} mb={1}>
-                        <Tag key={`${index}-type`} text={tag.txtp} variant={'filled'} />
-                        <Tag key={`${index}-version`} text={tag.txtp_version} variant={'outlined'} />
-                    </Box>
-                ))}
+
+                {!isLoading ?
+                    tags.map((tag, index) => (
+                        <Box display={'flex'} mb={1}>
+                            <Tag key={`${index}-type`} text={tag.txtp} variant={'filled'} />
+                            <Tag key={`${index}-version`} text={tag.txtp_version} variant={'outlined'} />
+                        </Box>
+                    )) :
+                    <Loader sx={{ color: 'static.darkBrown' }} />
+                }
             </AccordionDetails>
         </Accordion>
     </Grid>
@@ -184,11 +190,13 @@ const NewSimulation = () => {
                     </Box>
 
                     <ExcludedMessagesAccordion
+                        isLoading={values.isLoading}
                         title="Excluded Message Types (No tokenization configuration found)"
                         tags={values.excluded.filter((config) => config.record_status === 'Not Exists')}
                     />
 
                     <ExcludedMessagesAccordion
+                        isLoading={values.isLoading}
                         title="Excluded Message Types (No active Endpoints found)"
                         tags={values.excluded.filter((config) => config.record_status === 'Exists')}
                     />

@@ -21,7 +21,7 @@ export interface ExcludedTypeProps {
 
 const useNewSimulationController = () => {
 
-    const [getTypes] = useLazyGetExcludedTypesQuery()
+    const [getTypes,{isLoading}] = useLazyGetExcludedTypesQuery()
     const { open, close } = useModal()
     const { enableNextTab } = useSimulationTab()
 
@@ -123,7 +123,8 @@ const useNewSimulationController = () => {
             dataFetched,
             formValues,
             count,
-            excluded
+            excluded,
+            isLoading
         },
         functions: {
             handleSubmit: handleSubmit(onSubmit),
