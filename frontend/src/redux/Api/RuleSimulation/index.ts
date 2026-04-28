@@ -6,7 +6,7 @@ const BASE_URL = import.meta.env.VITE_API_URL
 export const ruleSimulationApi = createApi({
     reducerPath: 'ruleSimulationApi',
     baseQuery: fetchBaseQuery({
-        baseUrl: `${BASE_URL}/rule-simulation/api`,
+        baseUrl: `${BASE_URL}/simulation/api`,
         prepareHeaders: (headers) => {
             const token = getAuthToken()
             if (token) headers.set("authorization", `Bearer ${token}`)
