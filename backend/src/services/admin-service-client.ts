@@ -38,11 +38,11 @@ import {
   INSERT_SIMULATION_LOGS,
   MASKING_ALL,
   MASKING_UPDATE,
-  MASKING_ACTIVE_CONFIGS,
   MASKING_REVIEW,
   MASKING_ACTIVE_CONFIGS,
   CREATE_MASK,
   SIMULATION_MESSAGES,
+  EXCLUDED_TYPES,
   FETCH_FROM_DLH,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto } from './masking/dto/masking.dto';
@@ -51,6 +51,7 @@ import { RuleRequest } from '../services/parse-extract/dto/message.dto';
 import { SimulationLogsDto } from './simulation-logs/dto';
 import { ISimulationLog } from './simulation-logs/interface/simulation-logs.interface';
 import { CreateMaskDto } from './masking/dto/mask.dto';
+import { ExcludedTypeProps } from './rule-simulation/dto/rule-simulation.dto';
 
 export interface SimulationMessage {
   messageId: string;
@@ -384,6 +385,10 @@ export class AdminServiceClient {
       messages: SimulationMessage[];
     }>('GET', SIMULATION_MESSAGES, token, undefined, { tableName });
     return response.messages;
+  }
+
+  async getExcludedTypes(token: string): Promise<ExcludedTypeProps[]> {
+    return await this.executeHttpRequest<ExcludedTypeProps[]>('GET', `${EXCLUDED_TYPES}`, token);
   }
 
   async fetchFromDlh(queries: Array<Record<string, unknown>>, token: string): Promise<Record<string, unknown>> {

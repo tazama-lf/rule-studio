@@ -12,10 +12,6 @@ export const CLONE_RULE = `${RULE}/clone`;
 export const UPDATE_RULE_STATUS = `${RULES_BASE_URL}/rule/updateStatus`;
 export const SAVE_RULE_REQUEST = `${RULES_BASE_URL}/saveRuleRequest`;
 
-
-//MASK
-export const CREATE_MASK = `${RULES_BASE_URL}/mask/create`;
-
 // Config
 export const CONFIG = '/v1/admin/config';
 export const CONFIG_VERSIONS = `${CONFIG}/versions`;
@@ -40,13 +36,13 @@ export const GET_SIMULATION_LOGS = `${SIMULATION_LOGS}/:ruleId`;
 export const MASKING_BASE_URL = '/v1/admin/trs/masking';
 export const MASKING_ALL = `${MASKING_BASE_URL}/all`;
 export const MASKING_UPDATE = MASKING_BASE_URL;
-export const MASKING_ACTIVE_CONFIGS = `${MASKING_BASE_URL}/active-configs`;
 export const MASKING_REVIEW = MASKING_BASE_URL;
 export const MASKING_ACTIVE_CONFIGS = `${MASKING_BASE_URL}/active-configs`;
-export const MASKING_REVIEW = MASKING_BASE_URL;
-export const MASKING_ACTIVE_CONFIGS = `${MASKING_BASE_URL}/active-configs`;
-// Simulation Messages
+export const CREATE_MASK = `${RULES_BASE_URL}/masking/create`;
+
+// Simulation
 export const SIMULATION_MESSAGES = '/v1/admin/simulation/messages';
+export const EXCLUDED_TYPES = `${RULES_BASE_URL}/excluded/types`;
 
 // Base rule for cloning flow
 export const BASE_RULE_ID = '21';
