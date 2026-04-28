@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { AdminServiceClient } from '../services/admin-service-client';
-import type { AuthenticatedUser } from '../services/auth/auth.types';
+import { AdminServiceClient } from '../admin-service-client';
+import type { AuthenticatedUser } from '../auth/auth.types';
 import type { SimulationListResponseDto, CreateSimulationDto, CreateSimulationResponseDto } from './dto/simulation.dto';
 
 @Injectable()

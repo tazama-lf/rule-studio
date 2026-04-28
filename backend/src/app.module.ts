@@ -12,7 +12,7 @@ import { SendToDemsModule } from './services/send-to-dems/send-to-dems.module';
 import { AuditModule } from './audit/audit.module';
 import { MaskingModule } from './services/masking/masking.module';
 import { GatewaysModule } from './gateways/gateways.module';
-import { SimulationModule } from './simulation/simulation.module';
+import { SimulationModule } from './services/simulation/simulation.module';
 
 @Module({
   imports: [

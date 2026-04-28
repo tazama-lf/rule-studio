@@ -1,9 +1,9 @@
 import { Controller, Get, Post, Body, Query, ParseIntPipe, UseGuards, DefaultValuePipe, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiQuery, ApiBody } from '@nestjs/swagger';
-import { TazamaAuthGuard } from '../guards/tazama-auth.guard';
-import { RequireAnyClaims, TazamaClaims } from '../decorators/auth.decorator';
-import { User } from '../decorators/user.decorator';
-import type { AuthenticatedUser } from '../services/auth/auth.types';
+import { TazamaAuthGuard } from '../../guards/tazama-auth.guard';
+import { RequireAnyClaims, TazamaClaims } from '../../decorators/auth.decorator';
+import { User } from '../../decorators/user.decorator';
+import type { AuthenticatedUser } from '../auth/auth.types';
 import { SimulationService } from './simulation.service';
 import type { SimulationListResponseDto, CreateSimulationResponseDto } from './dto/simulation.dto';
 import { CreateSimulationDto } from './dto/simulation.dto';
