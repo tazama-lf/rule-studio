@@ -224,7 +224,7 @@ const useConfigController = () => {
 
         const allFieldsOff = totalFields > 0 && tokenizedFields === 0;
 
-        const status = (hasUncheckedPIIFields || allFieldsOff) ? { message: 'Warning: Check Sensitive Fields', bgColor: '#fef3c7', textColor: '#92400e' } : { message: 'All fields tokenized', bgColor: '#bbf7d0', textColor: '#166534' };
+        const status = (hasUncheckedPIIFields || allFieldsOff) ? { message: 'Warning: Check Sensitive Fields', bgColor: 'theme.creamy', textColor: '#92400e' } : { message: 'All fields tokenized', bgColor: '#bbf7d0', textColor: '#166534' };
 
         return { totalFields, tokenizedFields, status };
     }, [payloadKeys, piiStates]);

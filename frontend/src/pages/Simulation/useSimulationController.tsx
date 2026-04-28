@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom"
 import { useSimulationTab } from "../../contexts/SimulationTabContext/useSimulationTab"
 import { extractData } from "../../utils/Common/storage"
 import NewSimulation from "./NewSimulation"
+import Evaluation from "./Evaluation"
 
 const useSimulationController = () => {
 
@@ -17,6 +18,8 @@ const useSimulationController = () => {
         switch (selectedTab) {
             case 'new_simulation':
                 return <NewSimulation />
+            case 'evaluation':
+                return <Evaluation />
             default:
                 return null;
         }

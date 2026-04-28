@@ -19,6 +19,10 @@ declare module '@mui/material/styles' {
             border: string;
             grey: string;
             lightGrey: string
+            pale: string;
+            darkBrown: string;
+            creamy: string;
+            darkGreen: string;
         };
         progressbar: {
             main: string;
@@ -37,6 +41,9 @@ declare module '@mui/material/styles' {
             border: string;
             grey: string;
             lightGrey: string
+            pale: string;
+            darkBrown: string;
+            creamy: string;
         };
         progressbar?: {
             main: string;

@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
+import { useLazyGetExcludedTypesQuery } from "../../../redux/Api/RuleSimulation";
+import { useModal } from "../../../contexts/ModalContext";
+import Confirmation from "../../../components/Modals/Confirmation";
 import { useSimulationTab } from "../../../contexts/SimulationTabContext";
-import { useCreateMaskingMutation } from "../../../redux/Api/Masking";
 
 interface SimulationFormValues {
     date: string;
@@ -10,13 +12,22 @@ interface SimulationFormValues {
     endTime: string;
 }
 
+export interface ExcludedTypeProps {
+    masking_id: null | string;
+    txtp: string;
+    txtp_version: string;
+    record_status: string;
+}
+
 const useNewSimulationController = () => {
 
-    const [submit, { isLoading: createLoading }] = useCreateMaskingMutation()
-
+    const [getTypes] = useLazyGetExcludedTypesQuery()
+    const { open, close } = useModal()
     const { enableNextTab } = useSimulationTab()
 
     const [dataFetched, setDataFetched] = useState(false)
+    const [count, setCount] = useState<number>()
+    const [excluded, setExcluded] = useState<ExcludedTypeProps[]>([])
 
     const initial: SimulationFormValues = {
         date: '',
@@ -76,11 +87,26 @@ const useNewSimulationController = () => {
             // await submit(payload).unwrap()
             // insertData(payload, 'simulation_config', LocalStorage, true)
             setDataFetched(true)
+            setCount(50)
+            getTypes({}).then((res) => {
+                if (res) {
+                    setExcluded(res.data.excludedTypes)
+                }
+            })
             // toast.success('Time Window Successfully Configured')
             // enableNextTab()
         } catch {
             toast.error('Failed to configure time window')
         }
+    }
+
+    const runSimulation = () => {
+        close()
+        enableNextTab()
+    }
+
+    const confirm = () => {
+        open('Confirm Simulation Run', <Confirmation message="You are about to run a simulation using tokenized historical data for the selected time window. The replay will follow the original order and timing of occurrence of the transactions. Do you want to proceed?" onSubmit={runSimulation} btnTitle="Confirm & Run" />, null, { maxWidth: 'sm' })
     }
 
 
@@ -94,14 +120,16 @@ const useNewSimulationController = () => {
         values: {
             control,
             errors,
-            createLoading,
             dataFetched,
-            formValues
+            formValues,
+            count,
+            excluded
         },
         functions: {
             handleSubmit: handleSubmit(onSubmit),
             validateTimeDifference,
             handleStartTimeChange,
+            confirm
         },
     }
 }
