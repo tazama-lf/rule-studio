@@ -9,6 +9,8 @@ import TrendingUpRoundedIcon from '@mui/icons-material/TrendingUpRounded';
 import TableActions from "../../../components/TableActions";
 import useFilters from "../../../hooks/useFilters";
 import { simulationTableData } from "../../../utils/Constants/data";
+import { Paper } from "@mui/material";
+import { Text } from "../../../components/Text";
 
 
 interface SimulationState {
@@ -244,7 +246,35 @@ const useEvaluationController = () => {
         },
         {
             label: 'Outcome',
-            key: 'outcome'
+            key: 'outcome',
+            render: (row: Record<string, unknown>) => {
+                const isHit = row.outcome == 'Hit';
+                return (
+                    <Paper
+                        variant="outlined"
+                        sx={{
+                            display: 'inline-block',
+                            borderRadius: 4,
+                            px: 1.8,
+                            py: 0.3,
+                            border: 0,
+                            bgcolor: !isHit ? '#dcfce7' : 'error.main',
+                        }}
+                    >
+                        <Text
+                            size="sub"
+                            weight={'600'}
+                            sx={{
+                                fontSize: '0.75rem',
+                                whiteSpace: 'nowrap',
+                                color: !isHit ? 'static.darkGreen' : 'white'
+                            }}
+                        >
+                            {row.outcome as string}
+                        </Text>
+                    </Paper>
+                );
+            }
         },
         {
             label: 'Score',
