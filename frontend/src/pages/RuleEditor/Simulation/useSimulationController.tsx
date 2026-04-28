@@ -29,7 +29,7 @@ const useSimulationController = (props: ISimulation) => {
         [props.data]
     )
 
-    const endpointPath = useMemo(
+    const getEndpointPath = useCallback(
         () => extractData('trs_endpoint_path', LocalStorage, true) as string | null,
         []
     )
@@ -358,6 +358,7 @@ const useSimulationController = (props: ISimulation) => {
                 addSimulationLog(body, res, logCategory);
             };
         } else {
+            const endpointPath = getEndpointPath();
             if (!endpointPath) {
                 toast.error('Transaction type endpoint path not found. Please select a valid transaction type.')
                 return;
