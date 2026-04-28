@@ -5,15 +5,16 @@ import { RequireAnyClaims, TazamaClaims } from '../../decorators/auth.decorator'
 import { User } from '../../decorators/user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { SimulationService } from './simulation.service';
-import type { SimulationListResponseDto, CreateSimulationResponseDto } from './dto/simulation.dto';
+import { type SimulationListResponseDto, type CreateSimulationResponseDto, ExcludedTypeProps } from './dto/simulation.dto';
 import { CreateSimulationDto } from './dto/simulation.dto';
+import { ApiSwagger, CommonResponses } from 'src/decorators/swagger.decorator';
 
 @ApiTags('Simulation')
 @ApiBearerAuth('JWT-auth')
 @Controller('simulation')
 @UseGuards(TazamaAuthGuard)
 export class SimulationController {
-  constructor(private readonly simulationService: SimulationService) {}
+  constructor(private readonly simulationService: SimulationService) { }
 
   @Get('/api/all')
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
@@ -36,5 +37,16 @@ export class SimulationController {
     @User() user: AuthenticatedUser,
   ): Promise<CreateSimulationResponseDto> {
     return await this.simulationService.createSimulation(body, user);
+  }
+
+  @Get('/api/excluded/types')
+  @RequireAnyClaims(TazamaClaims.EDITOR)
+  @ApiSwagger({
+    summary: 'Get all types',
+    description: 'Retreives active and inactive types with existence status',
+    responses: CommonResponses.SUCCESS_200([ExcludedTypeProps], 'Excluded Types retrieved successfully'),
+  })
+  async getExcludedTypes(@User() user: AuthenticatedUser): Promise<ExcludedTypeProps[]> {
+    return await this.simulationService.excludedTypes(user.token.tokenString);
   }
 }
