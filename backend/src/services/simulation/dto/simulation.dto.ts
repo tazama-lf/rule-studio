@@ -73,3 +73,21 @@ export class SimulationListResponseDto {
   @ApiProperty({ description: 'Total pages', example: 3 })
   pages!: number;
 }
+
+export class ExcludedTypeProps {
+  @IsOptional()
+  @IsString()
+  masking_id?: null | string;
+
+  @IsString()
+  @IsNotEmpty()
+  txtp?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  txtp_version?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  record_status?: string;
+}
