@@ -43,6 +43,7 @@ import {
   SIMULATION_MESSAGES,
   SIMULATION_ALL,
   SIMULATION_CREATE,
+  EXCLUDED_TYPES,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto } from './masking/dto/masking.dto';
 import type { SimulationListResponseDto, CreateSimulationDto, CreateSimulationResponseDto } from './simulation/dto/simulation.dto';
@@ -51,6 +52,7 @@ import { RuleRequest } from '../services/parse-extract/dto/message.dto';
 import { SimulationLogsDto } from './simulation-logs/dto';
 import { ISimulationLog } from './simulation-logs/interface/simulation-logs.interface';
 import { CreateMaskDto } from './masking/dto/mask.dto';
+import { ExcludedTypeProps } from './rule-simulation/dto/rule-simulation.dto';
 
 export interface SimulationMessage {
   messageId: string;
@@ -392,5 +394,9 @@ export class AdminServiceClient {
 
   async createSimulation(body: CreateSimulationDto, token: string): Promise<CreateSimulationResponseDto> {
     return await this.executeHttpRequest<CreateSimulationResponseDto>('POST', SIMULATION_CREATE, token, body);
+  }
+
+  async getExcludedTypes(token: string): Promise<ExcludedTypeProps[]> {
+    return await this.executeHttpRequest<ExcludedTypeProps[]>('GET', `${EXCLUDED_TYPES}`, token);
   }
 }
