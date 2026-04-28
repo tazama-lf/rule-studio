@@ -8,7 +8,21 @@ export class FetchEvaluationRequestDto {
   endDtTm!: string;
 }
 
+export interface EvaluationRow {
+  evaluation: Record<string, unknown>;
+  messageid: string;
+  tenantid: string;
+  credttm: string;
+  upddttm: string;
+}
+
 export class FetchEvaluationResponseDto {
   @ApiProperty({ example: true })
   success!: boolean;
+
+  @ApiProperty({ description: 'Fetched evaluation rows' })
+  data?: EvaluationRow[];
+
+  @ApiProperty({ example: 'Evaluations fetched successfully' })
+  message?: string;
 }
