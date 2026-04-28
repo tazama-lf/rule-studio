@@ -167,7 +167,8 @@ export const useLocalVariables = ({
               const num = Number(resolvedValue);
               localVars[varName] = isNaN(num) ? resolvedValue : num;
             } else if (dataType === 'boolean') {
-              localVars[varName] = resolvedValue === 'true' ? true : resolvedValue === 'false' ? false : resolvedValue;
+              const normalized = resolvedValue.trim().toLowerCase();
+              localVars[varName] = normalized === 'true' || normalized === '1';
             } else if (dataType === 'array') {
               try {
                 const parsed = JSON.parse(resolvedValue);
