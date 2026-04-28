@@ -1,7 +1,6 @@
 import { useModal } from "../../../contexts/ModalContext"
 
 export interface IConfirmation {
-    // header: string,
     message: string,
     btnTitle: string,
     onSubmit: () => void
@@ -9,10 +8,8 @@ export interface IConfirmation {
 
 const useConfirmationController = (props: IConfirmation) => {
 
-    const { message, btnTitle } = props
+    const { message, btnTitle, onSubmit } = props
     const { close } = useModal()
-
-    const handleSubmit = () => { }
 
     return {
         values: {
@@ -20,7 +17,7 @@ const useConfirmationController = (props: IConfirmation) => {
             btnTitle
         },
         functions: {
-            handleSubmit,
+            handleSubmit: onSubmit,
             close
         }
     }
