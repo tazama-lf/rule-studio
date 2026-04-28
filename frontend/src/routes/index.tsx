@@ -9,6 +9,7 @@ const Home = lazy(() => import("../pages/Home"));
 const RuleEditor = lazy(() => import("../pages/RuleEditor"));
 const ComingSoon = lazy(() => import("../pages/ComingSoon"));
 const MaskingConfig = lazy(() => import("../pages/MaskingConfig"));
+const CreateMasking = lazy(() => import("../pages/CreateMask"));
 
 export const ROUTES = [
     {
@@ -116,4 +117,11 @@ export const ROUTES = [
         layout: true,
         roleGroup: 'data-engineer' as const,
     },
+    {
+        path: "/masking-config/action",
+        element: <CreateMasking />,
+        private: true,
+        layout: true,
+        roleGroup: 'data-engineer' as const,
+    }
 ];

@@ -12,10 +12,10 @@ import { EndpointKey } from 'src/utils/rbac/rbacHelper';
 @Controller('config')
 @UseGuards(TazamaAuthGuard)
 export class ConfigController {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly configService: ConfigService) { }
 
   @Get('/api/transaction-types')
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER, TazamaClaims.DATA_ENGINEER_EDITOR, TazamaClaims.DATA_ENGINEER_APPROVER)
   @ApiOperation({
     summary: 'Get transaction types',
     description: 'Retrieve all available ISO 20022 transaction types from the configuration service',
@@ -45,7 +45,7 @@ export class ConfigController {
 
   // at this point, we need another API to get all versions for a transaction type
   @Get('/api/versions/:transactionType')
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER, TazamaClaims.DATA_ENGINEER_EDITOR)
   @ApiOperation({
     summary: 'Get versions by transaction type',
     description: 'Retrieve all available versions for a specific transaction type',
@@ -82,7 +82,7 @@ export class ConfigController {
   }
 
   @Get('/api/payload/:transactionType/:transactionVersion')
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER, TazamaClaims.DATA_ENGINEER_EDITOR)
   @ApiOperation({
     summary: 'Get payload schema by transaction type',
     description: 'Retrieve the payload schema structure for a specific transaction type',

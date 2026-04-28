@@ -181,12 +181,13 @@ const useOverviewController = (props: IOverviewProps) => {
     // Backfill trs_endpoint_path when loading an existing rule (edit/resume) and types are available
     useEffect(() => {
         const txtp = resolveTxtp(data?.txtp)
-        if (!txtp || !types) return
+        if (!txtp || !types) {
+            insertData(null, 'trs_endpoint_path', LocalStorage, true)
+            return
+        }
         const matched = (types as { transaction_type: string; endpoint_path: string }[] | undefined)
             ?.find(item => item.transaction_type === txtp)
-        if (matched?.endpoint_path) {
-            insertData(matched.endpoint_path, 'trs_endpoint_path', LocalStorage, true)
-        }
+        insertData(matched?.endpoint_path ?? null, 'trs_endpoint_path', LocalStorage, true)
     }, [data?.txtp, types])
 
     const handleTxTp = (val: DropdownOption) => {
@@ -197,6 +198,8 @@ const useOverviewController = (props: IOverviewProps) => {
             const matched = (types as { transaction_type: string; endpoint_path: string }[] | undefined)
                 ?.find(item => item.transaction_type === val.value)
             insertData(matched?.endpoint_path ?? null, 'trs_endpoint_path', LocalStorage, true)
+        } else {
+            insertData(null, 'trs_endpoint_path', LocalStorage, true)
         }
     }
 

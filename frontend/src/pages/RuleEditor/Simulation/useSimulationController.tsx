@@ -29,7 +29,7 @@ const useSimulationController = (props: ISimulation) => {
         [props.data]
     )
 
-    const endpointPath = useMemo(
+    const getEndpointPath = useCallback(
         () => extractData('trs_endpoint_path', LocalStorage, true) as string | null,
         []
     )
@@ -93,12 +93,6 @@ const useSimulationController = (props: ISimulation) => {
             body: { metadata }
         }
         update(body).unwrap()
-            .then(() => {
-                console.log('Metadata updated successfully', metadata)
-            })
-            .catch((error) => {
-                console.error('Failed to update metadata', error)
-            })
     }, [data?.id, update])
 
     const handleApproval = (type: 'review' | 'approve' | 'reject' | 'deploy') => {
@@ -358,6 +352,7 @@ const useSimulationController = (props: ISimulation) => {
                 addSimulationLog(body, res, logCategory);
             };
         } else {
+            const endpointPath = getEndpointPath();
             if (!endpointPath) {
                 toast.error('Transaction type endpoint path not found. Please select a valid transaction type.')
                 return;

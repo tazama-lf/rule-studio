@@ -6,6 +6,7 @@ import Tabs from '../../components/Tabs';
 import { Text } from "../../components/Text";
 import BoxWrapper from "../../components/Wrappers/BoxWrapper";
 import { TabProvider } from '../../contexts/TabContext/TabProvider';
+import { useTab } from '../../contexts/TabContext/useTab';
 import useRuleEditorController from './useRuleEditorController';
 import CommentCard from '../../components/Cards/CommentCard';
 import { claims, Status } from '../../utils/Constants/data';
@@ -14,6 +15,7 @@ import { claims, Status } from '../../utils/Constants/data';
 const RuleEditorContent = () => {
 
     const { values, functions } = useRuleEditorController()
+    const { tabs, selectedTab } = useTab()
 
     if (values?.isLoading) {
         return <SuspenseLoader />
@@ -31,12 +33,12 @@ const RuleEditorContent = () => {
             {values?.user?.claims === claims.editor &&
                 <Box display={'flex'} alignItems={'center'} justifyContent={'space-between'} >
                     {(values?.data?.status === Status.STATUS_04_APPROVED || values?.data?.status === Status.STATUS_05_REJECTED) &&
-                        <CommentCard success={values?.data?.status === Status.STATUS_04_APPROVED} message={values?.data?.comments} />
+                        <CommentCard success={values?.data?.status === Status.STATUS_04_APPROVED} message={String(values?.data?.comments ?? '')} />
                     }
                 </Box>
             }
 
-            <Tabs />
+            <Tabs tabs={tabs} selectedTab={selectedTab} />
 
             {functions.renderComponent()}
         </>

@@ -37,7 +37,7 @@ export class RulesController {
 
   // get available rule statuses
   @Get('/api/status')
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER, TazamaClaims.DATA_ENGINEER_EDITOR, TazamaClaims.DATA_ENGINEER_APPROVER)
   @ApiSwagger({
     summary: 'Get available rule statuses',
     description: 'Retrieves available rule statuses based on user role and permissions',
