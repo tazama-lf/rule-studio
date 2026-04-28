@@ -6,6 +6,7 @@ import { LoggerService } from '@tazama-lf/frms-coe-lib';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { RedisIoAdapter } from './adapters/redis-io.adapter';
 
 /**
  * Bootstraps, configures, and starts the NestJS application.
@@ -16,6 +17,10 @@ import * as path from 'node:path';
  */
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
+
+  const redisIoAdapter = new RedisIoAdapter(app);
+  await redisIoAdapter.connectToRedis();
+  app.useWebSocketAdapter(redisIoAdapter);
 
   const logger = app.get(LoggerService);
   app.useLogger(logger);
@@ -42,7 +47,7 @@ async function bootstrap(): Promise<void> {
 
   // Swagger Configuration
   const apiHost = process.env.API_HOST ?? 'localhost';
-  const apiPort = process.env.API_PORT ?? '3005';
+  const apiPort = process.env.PORT ?? '3005';
   const baseUrl = `http://${apiHost}:${apiPort}`;
 
   const config = new DocumentBuilder()

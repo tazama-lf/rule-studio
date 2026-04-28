@@ -42,6 +42,7 @@ type TableProps = {
     getRowClassName?: (row: unknown) => string;
     getRowStyle?: (row: unknown) => React.CSSProperties;
     title?: string;
+    containerSx?: object;
 };
 
 const Table = ({
@@ -54,6 +55,7 @@ const Table = ({
     getRowStyle,
     serial_no = false,
     title,
+    containerSx = {},
 }: TableProps) => {
     const headers = serial_no
         ? [{ key: 'serial_no', label: 'S.No.' }, ...columns]
@@ -93,7 +95,7 @@ const Table = ({
     );
 
     return (
-        <Box my={3}>
+        <Box my={2}>
             {title && (
                 <Box mb={2}>
                     <Text weight="bold" color="black" size="main">
@@ -101,7 +103,7 @@ const Table = ({
                     </Text>
                 </Box>
             )}
-            <TableContainer component={Paper} variant="outlined">
+            <TableContainer component={Paper} variant="outlined" sx={containerSx}>
                 <MuiTable stickyHeader sx={{ minWidth: 600 }}>
                     <TableHead>
                         <TableRow sx={{ bgcolor: "primary.main" }}>

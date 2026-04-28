@@ -32,7 +32,6 @@ const useRuleEditorController = () => {
                 .then((updatedRule: RuleResponse) => {
                     if (updatedRule?.rules) {
                         insertData(updatedRule.rules, 'trs_rule', LocalStorage, true)
-                        console.log('Rule data refreshed for simulation tab')
                     }
                 })
                 .catch((error: unknown) => {

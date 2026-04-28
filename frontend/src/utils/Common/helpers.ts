@@ -15,6 +15,13 @@ interface EdgeWithSourceTarget {
   [key: string]: unknown;
 }
 
+export const generateKey = (key: string): string => {
+  const prefix = key.replace(/\s+/g, '').substring(0, 3).toUpperCase();
+  const randomPart = Math.random().toString(36).substring(2, 2 + prefix.length + 7);
+  return `${prefix}_${randomPart.toUpperCase()}`;
+}
+
+
 export const sortNodesInFlowOrder = <T extends NodeWithId, E extends EdgeWithSourceTarget>(
   nodesToSort: T[],
   edgesToSort: E[]

@@ -93,12 +93,6 @@ const useSimulationController = (props: ISimulation) => {
             body: { metadata }
         }
         update(body).unwrap()
-            .then(() => {
-                console.log('Metadata updated successfully', metadata)
-            })
-            .catch((error) => {
-                console.error('Failed to update metadata', error)
-            })
     }, [data?.id, update])
 
     const handleApproval = (type: 'review' | 'approve' | 'reject' | 'deploy') => {

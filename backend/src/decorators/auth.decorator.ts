@@ -35,6 +35,7 @@ export const TazamaClaims = {
   UMA_AUTHORIZATION: 'uma_authorization',
   DATA_ENGINEER_EDITOR: 'trs_data_engineer_editor',
   DATA_ENGINEER_APPROVER: 'trs_data_engineer_approver',
+  DEMS: 'dems:write',
 } as const;
 
 export const RequireEditorRole = (): MethodDecorator => RequireClaim(TazamaClaims.EDITOR);
