@@ -40,6 +40,7 @@ import {
   MASKING_UPDATE,
   CREATE_MASK,
   SIMULATION_MESSAGES,
+  EXCLUDED_TYPES,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto } from './masking/dto/masking.dto';
 import { ResponseQueryNodeDto } from './nodes/dto/responseNode.dto';
@@ -47,6 +48,7 @@ import { RuleRequest } from '../services/parse-extract/dto/message.dto';
 import { SimulationLogsDto } from './simulation-logs/dto';
 import { ISimulationLog } from './simulation-logs/interface/simulation-logs.interface';
 import { CreateMaskDto } from './masking/dto/mask.dto';
+import { ExcludedTypeProps } from './rule-simulation/dto/rule-simulation.dto';
 
 export interface SimulationMessage {
   messageId: string;
@@ -370,5 +372,9 @@ export class AdminServiceClient {
       messages: SimulationMessage[];
     }>('GET', SIMULATION_MESSAGES, token, undefined, { tableName });
     return response.messages;
+  }
+
+  async getExcludedTypes(token: string): Promise<ExcludedTypeProps[]> {
+    return await this.executeHttpRequest<ExcludedTypeProps[]>('GET', `${EXCLUDED_TYPES}`, token);
   }
 }
