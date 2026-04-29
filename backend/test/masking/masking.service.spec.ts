@@ -53,7 +53,10 @@ describe('MaskingService', () => {
       const result = await service.create(maskingDto, user);
 
       expect(adminServiceClient.createMask).toHaveBeenCalledWith(
-        maskingDto,
+        {
+          txtp: maskingDto.txtp,
+          txtp_version: maskingDto.txtpVersion,
+        },
         user.token.tokenString,
       );
       expect(result).toEqual(expectedResponse);
@@ -73,7 +76,10 @@ describe('MaskingService', () => {
       await service.create(maskingDto, customUser);
 
       expect(adminServiceClient.createMask).toHaveBeenCalledWith(
-        maskingDto,
+        {
+          txtp: maskingDto.txtp,
+          txtp_version: maskingDto.txtpVersion,
+        },
         'custom-token',
       );
     });
@@ -152,7 +158,10 @@ describe('MaskingService', () => {
       const result = await service.create(maskingWithoutVersion, user);
 
       expect(adminServiceClient.createMask).toHaveBeenCalledWith(
-        maskingWithoutVersion,
+        {
+          txtp: maskingWithoutVersion.txtp,
+          txtp_version: maskingWithoutVersion.txtpVersion,
+        },
         user.token.tokenString,
       );
       expect(result).toEqual(expectedResponse);
@@ -202,7 +211,10 @@ describe('MaskingService', () => {
       await service.create(differentMasking, user);
 
       expect(adminServiceClient.createMask).toHaveBeenCalledWith(
-        differentMasking,
+        {
+          txtp: differentMasking.txtp,
+          txtp_version: differentMasking.txtpVersion,
+        },
         user.token.tokenString,
       );
     });
