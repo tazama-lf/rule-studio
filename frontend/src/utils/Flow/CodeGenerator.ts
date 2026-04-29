@@ -206,6 +206,10 @@ const generateNodeCode = (
     return generateDetermineOutcomeCode(params, indent, generationMode);
   }
 
+    if (nodeType === 'ExclusiveDetermineOutcome') {
+    return generateExclusiveDetermineOutcomeCode(params, indent, generationMode);
+  }
+
   if (mode === 'call' && (nodeData.function_name || params.function_name)) {
     const dynamicCode = generateFunctionCallCode(node, allNodes || [], indent);
     if (dynamicCode) {
@@ -671,6 +675,13 @@ const generateDetermineOutcomeCode = (params: Record<string, string>, indent: st
   const arg3 = stripVariableIndicators(params.argument3 || 'ruleRes', mode);
   
   return `${indent}return determineOutcome(${arg1}, ${arg2}, ${arg3});`;
+};
+
+const generateExclusiveDetermineOutcomeCode = (params: Record<string, string>, indent: string, mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
+  const arg1 = stripVariableIndicators(params.argument1 || 'countOfMatchingAmounts', mode);
+  const arg2 = stripVariableIndicators(params.argument2 || 'ruleConfig.config.cases', mode);
+  
+  return `${indent}return exclusiveDetermineOutcome(${arg1}, ${arg2});`;
 };
 
 const generateFetchDBCode = (params: Record<string, string>, indent: string, mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
@@ -1287,7 +1298,8 @@ ${codeBody}
 export const generateTypeScriptCode = (
   nodes: Node[],
   edges: Edge[],
-  nestedCanvasData: Record<string, NestedCanvasData>
+  nestedCanvasData: Record<string, NestedCanvasData>,
+  txtp?: string,
 ): string => {
   const handleTransactionNode = nodes.find((node) => node.data.nodeType === 'HandleTransaction');
   
@@ -1314,13 +1326,22 @@ export const generateTypeScriptCode = (
     .map(extractImportStatement)
     .filter(Boolean)
     .join('\n');
+
+    const isPacs002 = txtp === 'pacs.002.001.12';
+  const txTypeImport = `\nimport type { SupportedTransactionMessage } from '@tazama-lf/frms-coe-lib/lib/interfaces';`;
+  const reqType = 'RuleRequest<SupportedTransactionMessage>';
+  const txnType = isPacs002 ? 'Pacs002' : 'BaseMessage';
   
   const baseImports = `import type { DatabaseManagerInstance, LoggerService, ManagerConfig } from '@tazama-lf/frms-coe-lib';
-import type { RuleConfig, RuleRequest, RuleResult } from '@tazama-lf/frms-coe-lib/lib/interfaces';`;
-  
-  const allImports = customImportStatements 
-    ? `${baseImports}\n${customImportStatements}` 
-    : baseImports;
+  import type { Case, RuleConfig, RuleRequest, RuleResult } from '@tazama-lf/frms-coe-lib/lib/interfaces';${txTypeImport}`;
+  // Pacs002 or BaseMessage import for the transaction cast
+  const txCastImport = isPacs002
+    ? `\nimport type { Pacs002 } from '@tazama-lf/frms-coe-lib/lib/interfaces/Pacs.002.001.12';`
+    : `\nimport type { BaseMessage } from '@tazama-lf/frms-coe-lib/lib/interfaces';`;
+  const allImports = customImportStatements
+    ? `${baseImports}${txCastImport}\n${customImportStatements}`
+    : `${baseImports}${txCastImport}`;
+    
 
   const functionNodes = nodes.filter((node) => {
     const nodeData = node.data as EditableNodeData;
@@ -1344,13 +1365,14 @@ import type { RuleConfig, RuleRequest, RuleResult } from '@tazama-lf/frms-coe-li
   const code = `${allImports}
 ${functionDefinitions ? '\n' + functionDefinitions + '\n' : ''}
 export async function handleTransaction(
-  req: RuleRequest,
+  req: ${reqType},
   determineOutcome: (value: number, ruleConfig: RuleConfig, ruleResult: RuleResult) => RuleResult,
   ruleRes: RuleResult,
   loggerService: LoggerService,
   ruleConfig: RuleConfig,
   databaseManager: DatabaseManagerInstance<RuleExecutorConfig>,
 ): Promise<RuleResult> {
+  const transaction = req.transaction as ${txnType};
   
 ${nestedCode}
   

@@ -12,10 +12,16 @@ import { EndpointKey } from 'src/utils/rbac/rbacHelper';
 @Controller('config')
 @UseGuards(TazamaAuthGuard)
 export class ConfigController {
-  constructor(private readonly configService: ConfigService) { }
+  constructor(private readonly configService: ConfigService) {}
 
   @Get('/api/transaction-types')
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER, TazamaClaims.DATA_ENGINEER_EDITOR, TazamaClaims.DATA_ENGINEER_APPROVER)
+  @RequireAnyClaims(
+    TazamaClaims.EDITOR,
+    TazamaClaims.APPROVER,
+    TazamaClaims.PUBLISHER,
+    TazamaClaims.DATA_ENGINEER_EDITOR,
+    TazamaClaims.DATA_ENGINEER_APPROVER,
+  )
   @ApiOperation({
     summary: 'Get transaction types',
     description: 'Retrieve all available ISO 20022 transaction types from the configuration service',

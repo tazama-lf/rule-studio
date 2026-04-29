@@ -301,7 +301,7 @@ export class AdminServiceClient {
   async getRuleFlow(ruleId: string, token: string, filters?: RuleFlowFilterDto): Promise<ResponseRuleFlow> {
     return await this.executeHttpRequest<ResponseRuleFlow>(
       'GET',
-      `${RULE_FLOW}/${ruleId}${filters && Object.keys(filters).length ? '?' + new URLSearchParams(filters as Record<string, string>).toString() : ''}`,
+      `${RULE_FLOW}/${ruleId}${filters && Object.keys(filters).length ? '?' + new URLSearchParams(filters).toString() : ''}`,
       token,
     );
   }
@@ -309,7 +309,7 @@ export class AdminServiceClient {
   async getRuleFlowStatus(ruleId: string, token: string, filters?: RuleFlowFilterDto): Promise<ResponseRuleFlowStatusDto> {
     return await this.executeHttpRequest<ResponseRuleFlowStatusDto>(
       'GET',
-      `${RULE_FLOW}/status/${ruleId}${filters && Object.keys(filters).length ? '?' + new URLSearchParams(filters as Record<string, string>).toString() : ''}`,
+      `${RULE_FLOW}/status/${ruleId}${filters && Object.keys(filters).length ? '?' + new URLSearchParams(filters).toString() : ''}`,
       token,
     );
   }
@@ -337,7 +337,7 @@ export class AdminServiceClient {
   }
 
   async getSimulationLogs(token: string, ruleId: string, query: { category: string }): Promise<SimulationLogsDto> {
-    const queryString = Object.keys(query).length ? `?${new URLSearchParams(query as Record<string, string>).toString()}` : '';
+    const queryString = Object.keys(query).length ? `?${new URLSearchParams(query).toString()}` : '';
     return await this.executeHttpRequest<SimulationLogsDto>(
       'GET',
       `${GET_SIMULATION_LOGS.replace(':ruleId', ruleId)}${queryString}`,
@@ -367,13 +367,16 @@ export class AdminServiceClient {
     return response.mask;
   }
 
-  async reviewMask(id: number, action: 'approve' | 'reject', comments: string | undefined, token: string): Promise<Record<string, unknown>> {
-    const response = await this.executeHttpRequest<{ mask: Record<string, unknown> }>(
-      'PATCH',
-      `${MASKING_REVIEW}/${id}/review`,
-      token,
-      { action, ...(comments?.trim() ? { comments: comments.trim() } : {}) },
-    );
+  async reviewMask(
+    id: number,
+    action: 'approve' | 'reject',
+    comments: string | undefined,
+    token: string,
+  ): Promise<Record<string, unknown>> {
+    const response = await this.executeHttpRequest<{ mask: Record<string, unknown> }>('PATCH', `${MASKING_REVIEW}/${id}/review`, token, {
+      action,
+      ...(comments?.trim() ? { comments: comments.trim() } : {}),
+    });
     return response.mask;
   }
   async getSimulationMessages(token: string, tableName: string): Promise<SimulationMessage[]> {

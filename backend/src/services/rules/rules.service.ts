@@ -41,13 +41,12 @@ export class RulesService {
   ) {}
 
   private isRuleEnvelope(value: unknown): value is { rules: Rules } {
-    return (
-      typeof value === 'object' &&
-      value !== null &&
-      'rules' in value &&
-      typeof (value as { rules: unknown }).rules === 'object' &&
-      (value as { rules: unknown }).rules !== null
-    );
+    if (typeof value !== 'object' || value === null || !('rules' in value)) {
+      return false;
+    }
+
+    const rulesValue = Reflect.get(value, 'rules');
+    return typeof rulesValue === 'object' && rulesValue !== null;
   }
 
   private async getRuleOrThrow(id: number, token: string): Promise<Rules> {
@@ -70,14 +69,14 @@ export class RulesService {
   async getAllRules(offset: number, limit: number, filters: RuleFiltersDto, user: AuthenticatedUser): Promise<Rules[]> {
     const updatedFilters = filters;
     const normalizedRole = this.rbacService.getNormalizedRole(user);
-    const tier2 = this.rbacService.getTier2({ role: normalizedRole, endpointKey: 'POST /rules/api/all' as EndpointKey });
+    const tier2 = this.rbacService.getTier2({ role: normalizedRole, endpointKey: 'POST /rules/api/all' });
     if (!tier2.allowed) {
       throw new ForbiddenException(tier2.reason ?? 'Not authorized to access rules');
     }
     if (tier2.allowedStatuses && tier2.allowedStatuses.length > 0) {
       if (filters.status && tier2.allowedStatuses.includes(filters.status)) {
         updatedFilters.status = filters.status;
-      } else {  
+      } else {
         updatedFilters.status = tier2.allowedStatuses.join(',');
       }
     } else {
@@ -98,7 +97,7 @@ export class RulesService {
 
   async createRule(ruleData: Partial<Rules>, user: AuthenticatedUser): Promise<Rules> {
     try {
-      const endpointKey = 'POST /rules/api/create' as EndpointKey;
+      const endpointKey: EndpointKey = 'POST /rules/api/create';
       const normalizedRole = this.rbacService.getNormalizedRole(user);
       if (!this.rbacService.isRole(normalizedRole)) throw new ForbiddenException('Role is not authorized to create rules');
       const tier2 = this.rbacService.getTier2({ role: normalizedRole, endpointKey });
@@ -123,7 +122,7 @@ export class RulesService {
       }
       const rule = await this.adminServiceClient.createRule(ruleData, user.token.tokenString, parseResult.ruleRequest);
       if (rule.id) {
-        const baseRuleFlow = await this.getRuleFlow(BASE_RULE_ID, user, 'GET /rules/api/:ruleId/flow' as EndpointKey);
+        const baseRuleFlow = await this.getRuleFlow(BASE_RULE_ID, user, 'GET /rules/api/:ruleId/flow');
         await this.adminServiceClient.createRuleFlow(
           rule.id,
           {
@@ -143,7 +142,7 @@ export class RulesService {
 
   async cloneRule(ruleId: string, user: AuthenticatedUser, payload: CloneRulePayload): Promise<Rules> {
     try {
-      const endpointKey = 'POST /rules/api/clone/:ruleId' as EndpointKey;
+      const endpointKey: EndpointKey = 'POST /rules/api/clone/:ruleId';
       const normalizedRole = this.rbacService.getNormalizedRole(user);
       if (!this.rbacService.isRole(normalizedRole)) throw new ForbiddenException(`Role is not authorized to clone rule with ID ${ruleId}`);
       const numericId = Number(ruleId);
@@ -311,7 +310,7 @@ export class RulesService {
   getRulesStatusbyRole(user: AuthenticatedUser): string[] {
     const normalizedRole = this.rbacService.getNormalizedRole(user);
     if (!this.rbacService.isRole(normalizedRole)) return [];
-    const tier2 = this.rbacService.getTier2({ role: normalizedRole, endpointKey: 'GET /rules/api/status' as EndpointKey });
+    const tier2 = this.rbacService.getTier2({ role: normalizedRole, endpointKey: 'GET /rules/api/status' });
     return tier2.allowedStatuses ?? [];
   }
 
@@ -344,7 +343,7 @@ export class RulesService {
 
     const normalizedRole = this.rbacService.getNormalizedRole(user);
     const token = user.token.tokenString;
-    const rule = (await this.getRuleOrThrow(numericId, token)) as Partial<Rules>;
+    const rule = await this.getRuleOrThrow(numericId, token);
     const currentStatus = rule.status ?? '';
 
     // Authorization checks

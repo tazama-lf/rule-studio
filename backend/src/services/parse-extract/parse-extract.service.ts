@@ -8,6 +8,7 @@ import { TransactionalMessage, RuleRequest, NetworkMap, DataCache, MetaData } fr
 import { AdminServiceClient } from '../admin-service-client';
 import { formatValidationErrors } from '../../utils/validation.utils';
 import type { AuthenticatedUser } from '../auth/auth.types';
+import { isPacs002Transaction } from '@tazama-lf/frms-coe-lib';
 
 @Injectable()
 export class ParseExtractService {
@@ -66,7 +67,18 @@ export class ParseExtractService {
         `Processed mappings for ${transactionType}: extracted ${Object.keys(mappingOutcome.dataCache).length} data cache entries`,
       );
 
-      const ruleRequest: RuleRequest = this.createRuleRequest(payloadToValidate, user, correlationId, mappingOutcome.dataCache, networkMap);
+      const msgIdMapping = mappingResult.find((m) => m.destination === 'transactionDetails.MsgId');
+      const msgIdSourceKey = msgIdMapping?.source?.[0];
+      const msgId = msgIdSourceKey ? (payloadToValidate[msgIdSourceKey] as string | undefined) : undefined;
+
+      const ruleRequest: RuleRequest = this.createRuleRequest(
+        payloadToValidate,
+        user,
+        correlationId,
+        mappingOutcome.dataCache,
+        networkMap,
+        msgId,
+      );
 
       return {
         success: true,
@@ -163,6 +175,7 @@ export class ParseExtractService {
     correlationId: string,
     extractedDataCache?: DataCache,
     extractedNetworkMap?: NetworkMap,
+    msgId?: string,
   ): RuleRequest {
     // Use extracted networkMap or create empty one
     const networkMap: NetworkMap = extractedNetworkMap ?? {};
@@ -178,8 +191,20 @@ export class ParseExtractService {
       transactionType: transaction.TxTp,
     };
 
+    let tx = transaction;
+
+    if (!isPacs002Transaction(transaction)) {
+      const { TxTp, TenantId, ...payloadFields } = tx;
+      tx = {
+        TxTp,
+        TenantId,
+        MsgId: msgId,
+        Payload: payloadFields,
+      };
+    }
+
     const ruleRequest: RuleRequest = {
-      transaction,
+      transaction: tx,
       networkMap,
       DataCache: dataCache,
       metaData,

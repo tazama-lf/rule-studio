@@ -16,6 +16,7 @@ interface UseCanvasCodeGenerationProps {
   onCodeGenerate?: (code: string) => void;
   reactFlowInstance?: Record<string, unknown>;
   mode?: 'rule-builder' | 'test-case-generate';
+  txtp?: string;
 }
 
 export const useCanvasCodeGeneration = ({
@@ -24,7 +25,8 @@ export const useCanvasCodeGeneration = ({
   nestedCanvasData,
   onJsonGenerate,
   onCodeGenerate,
-  mode = 'rule-builder'
+  mode = 'rule-builder',
+  txtp
 }: UseCanvasCodeGenerationProps) => {
   const generateJson = useCallback(() => {
     const flowData = {
@@ -116,14 +118,14 @@ export const useCanvasCodeGeneration = ({
   const generateCode = useCallback(() => {
     const code = mode === 'test-case-generate' 
       ? generateTestCaseCode(nodes, edges)
-      : generateTypeScriptCode(nodes, edges, nestedCanvasData);
+      : generateTypeScriptCode(nodes, edges, nestedCanvasData, txtp);
 
     if (onCodeGenerate) {
       onCodeGenerate(code);
     }
     
     return code;
-  }, [nodes, edges, nestedCanvasData, onCodeGenerate, mode]);
+  }, [nodes, edges, nestedCanvasData, onCodeGenerate, mode, txtp]);
 
   useEffect(() => {
     window.generateFlowJson = generateJson;

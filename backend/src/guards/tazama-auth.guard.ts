@@ -178,7 +178,7 @@ export class TazamaAuthGuard implements CanActivate {
         return outerDecoded; // Return outer token if there's no inner token
       }
 
-      const innerDecoded = jwt.decode(outerDecoded.tokenString as string) as Record<string, unknown>;
+      const innerDecoded = jwt.decode(outerDecoded.tokenString) as Record<string, unknown>;
       return innerDecoded;
     } catch (error) {
       const err = error as Error;

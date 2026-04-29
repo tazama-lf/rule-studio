@@ -208,9 +208,12 @@ describe('ParseExtractService - AJV Validation', () => {
       // Verify RuleRequest structure
       expect(ruleRequest.transaction).toBeDefined();
       expect(ruleRequest.transaction).toEqual({
-        ...validPayload,
         TxTp: 'pacs.008.001.10',
         TenantId: 'tenant-123',
+         MsgId: undefined,
+        Payload: {
+          ...validPayload,
+        },
       });
       expect(ruleRequest.networkMap).toEqual({});
       expect(ruleRequest.DataCache).toEqual({});

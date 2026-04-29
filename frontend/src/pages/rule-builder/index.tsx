@@ -32,6 +32,8 @@ interface RuleBuilderProps {
 
 const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
   const { id: ruleId } = useParams<{ id: string }>();
+  const ruleData = extractData('trs_rule', LocalStorage, true) as Record<string, unknown> | null;
+  const txtp = ruleData?.txtp as string | undefined;
 
   const { data: nodesData, isLoading: isLoadingNodes, error: nodesError } = useGetNodesQuery('rule_builder');
 
@@ -438,6 +440,7 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ viewOnly = false }) => {
               initialEdges={transformedFlowData?.edges}
               onUpdateNodeInternalsReady={handleUpdateNodeInternalsReady}
               isNestedCanvasActive={Boolean(nestedCanvasManager.activeNestedCanvas)}
+              txtp={txtp}
             />
           </Box>
           <RightSidebar

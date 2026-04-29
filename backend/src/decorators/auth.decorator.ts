@@ -43,4 +43,3 @@ export const RequireApproverRole = (): MethodDecorator => RequireClaim(TazamaCla
 export const RequirePublisherRole = (): MethodDecorator => RequireClaim(TazamaClaims.PUBLISHER);
 export const RequireAccountManagement = (): MethodDecorator =>
   RequireClaims(TazamaClaims.MANAGE_ACCOUNT, TazamaClaims.MANAGE_ACCOUNT_LINKS);
-

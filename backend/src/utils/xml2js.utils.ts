@@ -186,6 +186,21 @@ export function convertNumberToStringAtPath(obj: unknown, path: string, loggerSe
   }
 }
 
+function isNonArrayRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function getParentRecordAtPath(root: unknown, pathParts: string[]): Record<string, unknown> | null {
+  let current: unknown = root;
+  for (let i = 0; i < pathParts.length - 1; i += 1) {
+    if (!isNonArrayRecord(current) || !(pathParts[i] in current)) {
+      return null;
+    }
+    current = current[pathParts[i]];
+  }
+  return isNonArrayRecord(current) ? current : null;
+}
+
 /**
  * Converts an object to an array at a specific dot-notation path
  * @param obj The object to modify
@@ -197,23 +212,18 @@ export function convertObjectToArrayAtPath(obj: unknown, path: string, loggerSer
     if (obj === null || obj === undefined) {
       throw new Error('Object cannot be null or undefined');
     }
+
     const pathParts = path.split('.');
-    let current: unknown = obj;
-    for (let i = 0; i < pathParts.length - 1; i += 1) {
-      if (typeof current === 'object' && current !== null && !Array.isArray(current) && pathParts[i] in current) {
-        current = (current as Record<string, unknown>)[pathParts[i]];
-      } else {
-        return;
-      }
-    }
+    const parent = getParentRecordAtPath(obj, pathParts);
+    if (!parent) return;
+
     const targetFieldName = pathParts[pathParts.length - 1];
-    if (typeof current === 'object' && current !== null && !Array.isArray(current)) {
-      const objCurrent = current as Record<string, unknown>;
-      if (objCurrent[targetFieldName] && typeof objCurrent[targetFieldName] === 'object' && !Array.isArray(objCurrent[targetFieldName])) {
-        objCurrent[targetFieldName] = [objCurrent[targetFieldName]];
-        if (loggerService) {
-          loggerService.log(`Convertnpm ed field '${path}' from object to array`);
-        }
+
+    const targetField = parent[targetFieldName];
+    if (isNonArrayRecord(targetField)) {
+      parent[targetFieldName] = [targetField];
+      if (loggerService) {
+        loggerService.log(`Converted field '${path}' from object to array`);
       }
     }
   } catch (error) {
