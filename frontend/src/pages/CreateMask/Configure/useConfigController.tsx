@@ -5,13 +5,12 @@ import { LocalStorage } from "../../../utils/Common/enums";
 import { extractData } from "../../../utils/Common/storage";
 import type { TableColumn } from "../../../components/Table";
 import SwitchButton from "../../../components/Switch";
-import { PII } from "../../../utils/Constants/data";
+import { PII, Status } from "../../../utils/Constants/data";
 import { generateKey } from "../../../utils/Common/helpers";
 import { Paper } from "@mui/material";
 import { Text } from "../../../components/Text";
 import toast from "react-hot-toast";
-import { useUpdateMaskMutation } from "../../../redux/Api/Masking";
-import { useNavigate } from "react-router-dom";
+import { useUpdateMaskMutation, useGetMaskByIdQuery } from "../../../redux/Api/Masking";
 import { useModal } from "../../../contexts/ModalContext";
 import SubmitMasking from "../Modals/SubmitMasking";
 
@@ -51,11 +50,12 @@ const useConfigController = () => {
     }, [])
 
     const { enablePreviousTab, enableNextTab } = useMaskingTab()
-    const navigate = useNavigate()
     const { open } = useModal()
 
+    const { data: maskRecord } = useGetMaskByIdQuery({ id: data?.id }, { skip: !data?.id })
+
     const [getPayload, { isFetching: sampleLoader }] = useLazyGetSamplePayloadQuery()
-    const [update, { isLoading: updateLoading }] = useUpdateMaskMutation()
+    const [ , { isLoading: updateLoading }] = useUpdateMaskMutation()
 
     const [payload, setPayload] = useState<string | null>(null)
     const [payloadKeys, setPayloadKeys] = useState<string[]>([])
@@ -112,6 +112,23 @@ const useConfigController = () => {
     useEffect(() => {
         getData()
     }, [getData])
+
+    useEffect(() => {
+        if (!maskRecord || payloadKeys.length === 0) return
+        const existingTokenize = (maskRecord as Record<string, unknown>)
+            ?.tokenize as Record<string, boolean> | undefined
+        if (!existingTokenize || Object.keys(existingTokenize).length === 0) return
+
+        setPiiStates(prev => {
+            const updated = { ...prev }
+            payloadKeys.forEach(key => {
+                if (key in existingTokenize) {
+                    updated[key] = existingTokenize[key]
+                }
+            })
+            return updated
+        })
+    }, [maskRecord, payloadKeys])
 
     const fetchJson = () => {
         getData()
@@ -171,18 +188,17 @@ const useConfigController = () => {
 
 
     const onSubmit = async () => {
+        const totalFields = payloadKeys.length
+        const fieldsMasked = Object.values(piiStates).filter(Boolean).length
+
         const payload = {
             txtp: data?.txtp,
             txtp_version: data?.txtpVersion,
-            tokenize: piiStates
+            tokenize: piiStates,
+            total_fields: totalFields,
+            fields_masked: fieldsMasked,
+            status: Status.STATUS_03_UNDER_REVIEW
         }
-        // try {
-        //     await update({ id: data?.id, body: payload }).unwrap()
-        //     toast.success('Configuration Successfully Updated')
-        //     navigate('/masking-config')
-        // } catch {
-        //     toast.error('Failed to update configuration')
-        // }
 
         open('Submit for Approval', <SubmitMasking id={data.id} payload={payload} />, null, { maxWidth: 'md' })
     }

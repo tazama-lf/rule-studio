@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Query, ParseIntPipe, UseGuards, Put, Param, Get } from '@nestjs/common';
+import { Controller, Post, Body, Query, ParseIntPipe, UseGuards, Put, Param, Get, Patch } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiQuery, ApiBody, ApiParam } from '@nestjs/swagger';
 import { ISuccess } from '@tazama-lf/tcs-lib';
 import { Audit } from '../../decorators/audit.decorator';
@@ -9,7 +9,7 @@ import { User } from '../../decorators/user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { MaskingService } from './masking.service';
 import type { MaskingListResponseDto } from './dto/masking.dto';
-import { MaskingFiltersDto, UpdateMaskDto } from './dto/masking.dto';
+import { MaskingFiltersDto, UpdateMaskDto, ReviewMaskDto } from './dto/masking.dto';
 import { CreateMaskDto, SuccessResponseDto } from './dto/mask.dto';
 import { Throttle } from '@nestjs/throttler';
 
@@ -91,5 +91,27 @@ export class MaskingController {
     @User() user: AuthenticatedUser,
   ): Promise<Record<string, unknown>> {
     return await this.maskingService.updateMask(id, updateData, user);
+  }
+
+  @Patch('/api/:id/review')
+  @RequireAnyClaims(TazamaClaims.DATA_ENGINEER_APPROVER)
+  @Audit()
+  @ApiParam({ name: 'id', description: 'Masking configuration ID', type: Number, example: 1 })
+  @ApiBody({ type: ReviewMaskDto, description: 'Review action (approve or reject) with optional comment' })
+  @ApiSwagger({
+    summary: 'Approve or reject a masking configuration',
+    description: 'Approves or rejects a masking configuration that is under review. Comment is required when rejecting.',
+    responses: mergeResponses(
+      CommonResponses.SUCCESS_200(undefined, 'Masking configuration reviewed successfully'),
+      CommonResponses.BAD_REQUEST_400('Comment is required when rejecting'),
+      CommonResponses.NOT_FOUND_404('Masking configuration not found'),
+    ),
+  })
+  async reviewMask(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() reviewData: ReviewMaskDto,
+    @User() user: AuthenticatedUser,
+  ): Promise<Record<string, unknown>> {
+    return await this.maskingService.reviewMask(id, reviewData, user);
   }
 }

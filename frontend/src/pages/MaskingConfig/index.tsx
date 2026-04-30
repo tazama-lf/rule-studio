@@ -64,9 +64,9 @@ const MaskingConfig = () => {
 
                 <DropDown
                     maxWidth={300}
-                    label="Transaction Type"
+                    label="Message Type"
                     height="sm"
-                    placeholder="Select transaction type"
+                    placeholder="Select Message Type"
                     options={values.transactionTypeOptions}
                     value={values.txtp ?? null}
                     onChange={(val) => functions.setTxtp(val)}

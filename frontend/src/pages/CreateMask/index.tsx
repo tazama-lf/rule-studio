@@ -24,7 +24,7 @@ const MaskingContent = () => {
             <Box display={'flex'} alignItems={'center'} justifyContent={'space-between'} >
                 <Box display={'flex'} alignItems={'center'} justifyContent={'space-between'} gap={1}>
                     <CodeIcon sx={{ color: '#4789f6', fontSize: '30px' }} />
-                    <Text weight={'bold'} color="black" size={'header'}>Masking</Text>
+                    <Text weight={'bold'} color="black" size={'header'}>Tokenization</Text>
                 </Box>
             </Box>
 

@@ -161,7 +161,32 @@ export const useLocalVariables = ({
           } else {
             // Resolve template variables in the value
             const resolvedValue = resolveTemplateVariables(varValue);
-            localVars[varName] = resolvedValue;
+            // Cast the stored value to the declared dataType so the variable tree
+            // shows the correct type label (number, boolean, array, object, string).
+            if (dataType === 'number') {
+              const num = Number(resolvedValue);
+              localVars[varName] = isNaN(num) ? resolvedValue : num;
+            } else if (dataType === 'boolean') {
+              const normalized = resolvedValue.trim().toLowerCase();
+              localVars[varName] = normalized === 'true' || normalized === '1';
+            } else if (dataType === 'array') {
+              try {
+                const parsed = JSON.parse(resolvedValue);
+                localVars[varName] = Array.isArray(parsed) ? parsed : [];
+              } catch {
+                localVars[varName] = [];
+              }
+            } else if (dataType === 'object') {
+              try {
+                const parsed = JSON.parse(resolvedValue);
+                localVars[varName] = (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : {};
+              } catch {
+                localVars[varName] = {};
+              }
+            } else {
+              // 'string' or 'any' — keep the resolved string value
+              localVars[varName] = resolvedValue;
+            }
           }
         }
       }

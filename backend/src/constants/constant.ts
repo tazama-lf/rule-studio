@@ -38,6 +38,8 @@ export const MASKING_UPDATE = MASKING_BASE_URL;
 export const CREATE_MASK = `${RULES_BASE_URL}/masking/create`;
 
 // Simulation
+export const MASKING_REVIEW = MASKING_BASE_URL;
+// Simulation Messages
 export const SIMULATION_MESSAGES = '/v1/admin/simulation/messages';
 export const EXCLUDED_TYPES = `${RULES_BASE_URL}/excluded/types`;
 
