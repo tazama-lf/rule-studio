@@ -544,6 +544,29 @@ describe('generateTestCaseCode — specific node type code generators', () => {
     });
   });
 
+  describe('ExclusiveDetermineOutcome node', () => {
+    it('should produce a return exclusiveDetermineOutcome() call', () => {
+      const result = single('ExclusiveDetermineOutcome', {});
+      expect(result).toContain('return exclusiveDetermineOutcome(');
+    });
+
+    it('should use argument1/argument2 when provided', () => {
+      const result = single('ExclusiveDetermineOutcome', {
+        argument1: 'unwrappedResult',
+        argument2: 'ruleConfig.config.cases',
+      });
+      expect(result).toContain('return exclusiveDetermineOutcome(unwrappedResult, ruleConfig.config.cases)');
+    });
+
+    it('should support legacy/alternate key names', () => {
+      const result = single('ExclusiveDetermineOutcome', {
+        value: 'result',
+        caseObj: 'cases',
+      });
+      expect(result).toContain('return exclusiveDetermineOutcome(result, cases)');
+    });
+  });
+
   // ─── FetchDB ──────────────────────────────────────────────────────────────
 
   describe('FetchDB node', () => {

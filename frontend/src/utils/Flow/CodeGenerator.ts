@@ -678,8 +678,12 @@ const generateDetermineOutcomeCode = (params: Record<string, string>, indent: st
 };
 
 const generateExclusiveDetermineOutcomeCode = (params: Record<string, string>, indent: string, mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
-  const arg1 = stripVariableIndicators(params.argument1 || 'countOfMatchingAmounts', mode);
-  const arg2 = stripVariableIndicators(params.argument2 || 'ruleConfig.config.cases', mode);
+
+  const arg1Raw = params.argument1 || params.arg1 || params.value || params.firstArgument || 'countOfMatchingAmounts';
+  const arg2Raw = params.argument2 || params.arg2 || params.caseObj || params.cases || params.secondArgument || 'ruleConfig.config.cases';
+
+  const arg1 = stripVariableIndicators(arg1Raw, mode);
+  const arg2 = stripVariableIndicators(arg2Raw, mode);
   
   return `${indent}return exclusiveDetermineOutcome(${arg1}, ${arg2});`;
 };
