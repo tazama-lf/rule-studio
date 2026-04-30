@@ -5,13 +5,17 @@ import type { AuthenticatedUser } from '../auth/auth.types';
 import type { MaskingFiltersDto, MaskingListResponseDto, UpdateMaskDto, ReviewMaskDto } from './dto/masking.dto';
 import type { CreateMaskDto } from './dto/mask.dto';
 import { EndpointKey, RbacService } from '../../utils/rbac/rbacHelper';
+import { ConfigService } from '../config/config.service';
 
 @Injectable()
 export class MaskingService {
   private readonly logger = new Logger(MaskingService.name);
   private readonly rbacService = new RbacService();
 
-  constructor(private readonly adminServiceClient: AdminServiceClient) { }
+  constructor(
+    private readonly adminServiceClient: AdminServiceClient,
+    private readonly configService: ConfigService
+  ) { }
 
   async getAllMask(offset: number, limit: number, filters: MaskingFiltersDto, user: AuthenticatedUser): Promise<MaskingListResponseDto> {
     const updatedFilters = { ...filters };
@@ -38,6 +42,27 @@ export class MaskingService {
         txtp: masking.txtp,
         txtp_version: masking.txtpVersion,
       };
+
+      if (masking.txtp) {
+        const transactionTypes = await this.configService.getTransactionTypes(user, 'GET /config/api/transaction-types' as EndpointKey);
+
+        this.logger.log(`Transaction types for ${masking.txtp} : ${JSON.stringify(transactionTypes, null, 2)}`);
+
+        const transactionTypeExists = transactionTypes.some(tt => tt.transaction_type === masking.txtp.trim());
+        if (!transactionTypeExists) {
+          throw new BadRequestException(`Transaction type '${masking.txtp}' does not exist in the configuration database`);
+        }
+
+        if (masking.txtpVersion) {
+          const version = masking.txtpVersion;
+          const versions = await this.configService.getVersionsOfTransactionType(masking.txtp, user, 'GET /config/api/versions/:transactionType' as EndpointKey);
+
+          if (!versions.includes(version)) {
+            throw new BadRequestException(`Transaction type version '${version}' does not exist for transaction type '${masking.txtp}' in the configuration database`);
+          }
+        }
+      }
+
       return await this.adminServiceClient.createMask(payload, user.token.tokenString);
     } catch (error) {
       this.logger.error(

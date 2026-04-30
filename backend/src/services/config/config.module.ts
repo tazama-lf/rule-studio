@@ -8,5 +8,6 @@ import { AdminServiceClient } from '../admin-service-client';
   imports: [HttpModule],
   controllers: [ConfigController],
   providers: [ConfigService, AdminServiceClient],
+  exports: [ConfigService],
 })
 export class ConfigModule {}
