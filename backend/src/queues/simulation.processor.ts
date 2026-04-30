@@ -124,9 +124,12 @@ export class SimulationProcessor extends WorkerHost {
         try {
           console.log(`[SimulationProcessor] Job ${jobId}: POSTing message ${i + 1}/${total} to ${message.endpoint}`);
           this.logger.debug(`Job ${jobId}: sending message ${message.messageId} → ${message.endpoint}`);
+          // removing DataCache from the payload before sendin
+          const { DataCache: _dc, ...payload } = message.data as Record<string, unknown>;
+
           // eslint-disable-next-line no-await-in-loop -- Sequential delivery required to preserve message order
           await firstValueFrom(
-            this.httpService.post(message.endpoint, message.data, {
+            this.httpService.post(message.endpoint, payload, {
               headers: {
                 'Content-Type': 'application/json',
                 Authorization: authHeader,
