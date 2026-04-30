@@ -133,8 +133,6 @@ export class ConfigController {
 
     return {
       ...response,
-      TxTp: transactionType,
-      TenantId: user.token.tenantId,
     };
   }
 }
