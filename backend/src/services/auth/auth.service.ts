@@ -22,7 +22,7 @@ export class AuthService {
   }
 
   private validateUserToken(token: string, username: string): void {
-    const claimsToCheck = ['editor', 'approver', 'publisher',  'trs_data_engineer_editor', 'trs_data_engineer_approver'];
+    const claimsToCheck = ['editor', 'approver', 'publisher', 'trs_data_engineer_editor', 'trs_data_engineer_approver'];
     let claimResult;
     try {
       claimResult = validateTokenAndClaims(token, claimsToCheck);

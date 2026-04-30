@@ -24,7 +24,6 @@ import {
   ResponseUpdatedRuleFlowDto,
   ResponseRuleFlowStatusDto,
 } from './dto/rules.dto';
-import { EndpointKey } from '../../utils/rbac/rbacHelper';
 
 @ApiTags('Rules')
 @ApiBearerAuth('JWT-auth')
@@ -37,7 +36,13 @@ export class RulesController {
 
   // get available rule statuses
   @Get('/api/status')
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER, TazamaClaims.DATA_ENGINEER_EDITOR, TazamaClaims.DATA_ENGINEER_APPROVER)
+  @RequireAnyClaims(
+    TazamaClaims.EDITOR,
+    TazamaClaims.APPROVER,
+    TazamaClaims.PUBLISHER,
+    TazamaClaims.DATA_ENGINEER_EDITOR,
+    TazamaClaims.DATA_ENGINEER_APPROVER,
+  )
   @ApiSwagger({
     summary: 'Get available rule statuses',
     description: 'Retrieves available rule statuses based on user role and permissions',
@@ -166,7 +171,7 @@ export class RulesController {
     ),
   })
   async updateRule(@Param('ruleId') ruleId: string, @Body() updateData: UpdateRuleDto, @User() user: AuthenticatedUser): Promise<Rules> {
-    return await this.rulesService.updateRule(ruleId, updateData, user, 'PUT /rules/api/:ruleId' as EndpointKey);
+    return await this.rulesService.updateRule(ruleId, updateData, user, 'PUT /rules/api/:ruleId');
   }
 
   // get rule by ID

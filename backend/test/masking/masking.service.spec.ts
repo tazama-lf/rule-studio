@@ -53,7 +53,10 @@ describe('MaskingService', () => {
       const result = await service.create(maskingDto, user);
 
       expect(adminServiceClient.createMask).toHaveBeenCalledWith(
-        maskingDto,
+        {
+          txtp: 'pain.001.001.11',
+          txtp_version: '11',
+        },
         user.token.tokenString,
       );
       expect(result).toEqual(expectedResponse);
@@ -73,7 +76,10 @@ describe('MaskingService', () => {
       await service.create(maskingDto, customUser);
 
       expect(adminServiceClient.createMask).toHaveBeenCalledWith(
-        maskingDto,
+        {
+          txtp: 'pain.001.001.11',
+          txtp_version: '11',
+        },
         'custom-token',
       );
     });
@@ -202,7 +208,10 @@ describe('MaskingService', () => {
       await service.create(differentMasking, user);
 
       expect(adminServiceClient.createMask).toHaveBeenCalledWith(
-        differentMasking,
+        {
+          txtp: 'pacs.008.001.10',
+          txtp_version: '10',
+        },
         user.token.tokenString,
       );
     });
