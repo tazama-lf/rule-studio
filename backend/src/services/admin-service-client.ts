@@ -48,13 +48,12 @@ import {
   FETCH_FROM_DLH,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto } from './masking/dto/masking.dto';
-import type { SimulationListResponseDto, CreateSimulationDto, CreateSimulationResponseDto } from './simulation/dto/simulation.dto';
+import type { SimulationListResponseDto, CreateSimulationDto, CreateSimulationResponseDto, ExcludedTypeProps } from './simulation/dto/simulation.dto';
 import { ResponseQueryNodeDto } from './nodes/dto/responseNode.dto';
 import { RuleRequest } from '../services/parse-extract/dto/message.dto';
 import { SimulationLogsDto } from './simulation-logs/dto';
 import { ISimulationLog } from './simulation-logs/interface/simulation-logs.interface';
 import { CreateMaskDto } from './masking/dto/mask.dto';
-import { ExcludedTypeProps } from './rule-simulation/dto/rule-simulation.dto';
 
 export interface SimulationMessage {
   messageId: string;

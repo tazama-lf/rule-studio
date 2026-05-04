@@ -1,10 +1,8 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { useSimulationTab } from "../../../contexts/SimulationTabContext";
-import { useCreateMaskingMutation } from "../../../redux/Api/Masking";
-import { LocalStorage } from "../../../utils/Common/enums";
-import { insertData } from "../../../utils/Common/storage";
-import { useState } from "react";
+import { useGetDlhCountMutation } from "../../../redux/Api/FetchDromDlh";
 import { useLazyGetExcludedTypesQuery } from "../../../redux/Api/RuleSimulation";
 
 interface SimulationFormValues {
@@ -23,10 +21,8 @@ export interface ExcludedTypeProps {
 
 const useNewSimulationController = () => {
 
-    const [submit, { isLoading: createLoading }] = useCreateMaskingMutation()
+    const [getCount, { isLoading: countLoading }] = useGetDlhCountMutation()
     const [getTypes, { isLoading: typesLoading }] = useLazyGetExcludedTypesQuery()
-
-    const { enableNextTab } = useSimulationTab()
 
     const [dataFetched, setDataFetched] = useState(false)
     const [count, setCount] = useState<number>()
@@ -81,23 +77,25 @@ const useNewSimulationController = () => {
 
 
     const onSubmit = async (values: SimulationFormValues) => {
+        const startDateTime = new Date(`${values.date}T${values.startTime}:00`).toISOString()
+        const endDateTime = new Date(`${values.date}T${values.endTime}:00`).toISOString()
+
         const payload = {
-            date: values.date,
-            startTime: values.startTime,
-            endTime: values.endTime,
+            startDtTm: startDateTime,
+            endDtTm: endDateTime,
         }
         try {
-            await submit(payload).unwrap()
-            insertData(payload, 'simulation_config', LocalStorage, true)
-            setDataFetched(true)
-            setCount(50)
-            getTypes({}).then((res) => {
-                if (res) {
-                    setExcluded(res.data.excludedTypes)
+            getCount(payload).then((response) => {
+                if (response) {
+                    setCount(response.data.rowCount)
+                    setDataFetched(true)
+                    getTypes({}).then((res) => {
+                        if (res) {
+                            setExcluded(res.data.excludedTypes)
+                        }
+                    })
                 }
             })
-            // toast.success('Time Window Successfully Configured')
-            // enableNextTab()
         } catch {
             toast.error('Failed to configure time window')
         }
@@ -115,11 +113,11 @@ const useNewSimulationController = () => {
         values: {
             control,
             errors,
-            createLoading,
             dataFetched,
             formValues,
             count,
-            excluded
+            excluded,
+            isLoading: typesLoading || countLoading
         },
         functions: {
             handleSubmit: handleSubmit(onSubmit),

@@ -12,6 +12,7 @@ import { logsApi } from '../Api/SimulationLogs'
 import { maskingApi } from '../Api/Masking'
 import { sendToDemsApi } from '../Api/SendToDems'
 import { ruleSimulationApi } from '../Api/RuleSimulation'
+import { fetchFromDlhApi } from '../Api/FetchDromDlh'
 
 export default configureStore({
     reducer: {
@@ -26,6 +27,7 @@ export default configureStore({
         [maskingApi.reducerPath]: maskingApi.reducer,
         [sendToDemsApi.reducerPath]: sendToDemsApi.reducer,
         [ruleSimulationApi.reducerPath]: ruleSimulationApi.reducer,
+        [fetchFromDlhApi.reducerPath]: fetchFromDlhApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
@@ -42,6 +44,7 @@ export default configureStore({
             .concat(maskingApi.middleware)
             .concat(sendToDemsApi.middleware)
             .concat(ruleSimulationApi.middleware)
+            .concat(fetchFromDlhApi.middleware)
             .concat(errorLogger)
             .concat(successLogger)
 })
