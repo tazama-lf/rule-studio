@@ -14,7 +14,7 @@ export class MaskingService {
   constructor(private readonly adminServiceClient: AdminServiceClient) {}
 
   async getAllMask(offset: number, limit: number, filters: MaskingFiltersDto, user: AuthenticatedUser): Promise<MaskingListResponseDto> {
-    const updatedFilters = filters;
+    const updatedFilters = { ...filters };
     const normalizedRole = this.rbacService.getNormalizedRole(user);
     const endpointKey: EndpointKey = 'POST /masking/api/all';
     const tier2 = this.rbacService.getTier2({ role: normalizedRole, endpointKey });
