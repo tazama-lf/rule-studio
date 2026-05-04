@@ -55,7 +55,7 @@ import { RuleRequest } from '../services/parse-extract/dto/message.dto';
 import { SimulationLogsDto } from './simulation-logs/dto';
 import { ISimulationLog } from './simulation-logs/interface/simulation-logs.interface';
 import { CreateMaskDto } from './masking/dto/mask.dto';
-import { DlhCountDataDto, DlhCountDto, DlhCountResponse } from './fetch-from-dlh/dto/fetch-from-dlh.dto';
+import { DlhCountDataDto, DlhCountResponse } from './fetch-from-dlh/dto/fetch-from-dlh.dto';
 
 export interface SimulationMessage {
   messageId: string;
