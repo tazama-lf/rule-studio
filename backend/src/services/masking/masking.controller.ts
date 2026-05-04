@@ -18,7 +18,7 @@ import { Throttle } from '@nestjs/throttler';
 @Controller('masking')
 @UseGuards(TazamaAuthGuard)
 export class MaskingController {
-  constructor(private readonly maskingService: MaskingService) { }
+  constructor(private readonly maskingService: MaskingService) {}
 
   @Post('/api/all')
   @RequireAnyClaims(TazamaClaims.DATA_ENGINEER_EDITOR, TazamaClaims.DATA_ENGINEER_APPROVER)
@@ -47,10 +47,7 @@ export class MaskingController {
       CommonResponses.BAD_REQUEST_400('Invalid input data or masking already exists'),
     ),
   })
-  async createMask(
-    @Body() body: CreateMaskDto,
-    @User() user: AuthenticatedUser,
-  ): Promise<Partial<ISuccess>> {
+  async createMask(@Body() body: CreateMaskDto, @User() user: AuthenticatedUser): Promise<Partial<ISuccess>> {
     return await this.maskingService.create(body, user);
   }
 
@@ -65,10 +62,7 @@ export class MaskingController {
       CommonResponses.NOT_FOUND_404('Masking configuration not found'),
     ),
   })
-  async getMaskById(
-    @Param('id', ParseIntPipe) id: number,
-    @User() user: AuthenticatedUser,
-  ): Promise<Record<string, unknown>> {
+  async getMaskById(@Param('id', ParseIntPipe) id: number, @User() user: AuthenticatedUser): Promise<Record<string, unknown>> {
     return await this.maskingService.getMaskById(id, user);
   }
 

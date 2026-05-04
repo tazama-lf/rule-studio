@@ -48,6 +48,7 @@ import { RuleRequest } from '../services/parse-extract/dto/message.dto';
 import { SimulationLogsDto } from './simulation-logs/dto';
 import { ISimulationLog } from './simulation-logs/interface/simulation-logs.interface';
 import { CreateMaskDto } from './masking/dto/mask.dto';
+import { TransactionTypeDto } from './config/dto/config.dto';
 
 export interface SimulationMessage {
   messageId: string;
@@ -185,9 +186,9 @@ export class AdminServiceClient {
     return response.configuration;
   }
 
-  async getTransactionTypes(token: string): Promise<string[]> {
+  async getTransactionTypes(token: string): Promise<TransactionTypeDto[]> {
     const response = await this.executeHttpRequest<{
-      transactionTypes: string[];
+      transactionTypes: TransactionTypeDto[];
     }>('GET', CONFIG_TRANSACTION_TYPES, token);
     return response.transactionTypes;
   }
@@ -337,7 +338,7 @@ export class AdminServiceClient {
   }
 
   async getSimulationLogs(token: string, ruleId: string, query: { category: string }): Promise<SimulationLogsDto> {
-    const queryString = Object.keys(query).length ? `?${new URLSearchParams(query as Record<string, string>).toString()}` : '';
+    const queryString = Object.keys(query).length ? `?${new URLSearchParams(query).toString()}` : '';
     return await this.executeHttpRequest<SimulationLogsDto>(
       'GET',
       `${GET_SIMULATION_LOGS.replace(':ruleId', ruleId)}${queryString}`,
@@ -367,13 +368,16 @@ export class AdminServiceClient {
     return response.mask;
   }
 
-  async reviewMask(id: number, action: 'approve' | 'reject', comments: string | undefined, token: string): Promise<Record<string, unknown>> {
-    const response = await this.executeHttpRequest<{ mask: Record<string, unknown> }>(
-      'PATCH',
-      `${MASKING_REVIEW}/${id}/review`,
-      token,
-      { action, ...(comments?.trim() ? { comments: comments.trim() } : {}) },
-    );
+  async reviewMask(
+    id: number,
+    action: 'approve' | 'reject',
+    comments: string | undefined,
+    token: string,
+  ): Promise<Record<string, unknown>> {
+    const response = await this.executeHttpRequest<{ mask: Record<string, unknown> }>('PATCH', `${MASKING_REVIEW}/${id}/review`, token, {
+      action,
+      ...(comments?.trim() ? { comments: comments.trim() } : {}),
+    });
     return response.mask;
   }
   async getSimulationMessages(token: string, tableName: string): Promise<SimulationMessage[]> {

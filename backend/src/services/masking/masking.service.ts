@@ -11,12 +11,13 @@ export class MaskingService {
   private readonly logger = new Logger(MaskingService.name);
   private readonly rbacService = new RbacService();
 
-  constructor(private readonly adminServiceClient: AdminServiceClient) { }
+  constructor(private readonly adminServiceClient: AdminServiceClient) {}
 
   async getAllMask(offset: number, limit: number, filters: MaskingFiltersDto, user: AuthenticatedUser): Promise<MaskingListResponseDto> {
     const updatedFilters = { ...filters };
     const normalizedRole = this.rbacService.getNormalizedRole(user);
-    const tier2 = this.rbacService.getTier2({ role: normalizedRole, endpointKey: 'POST /masking/api/all' as EndpointKey });
+    const endpointKey: EndpointKey = 'POST /masking/api/all';
+    const tier2 = this.rbacService.getTier2({ role: normalizedRole, endpointKey });
     if (!tier2.allowed) {
       throw new ForbiddenException(tier2.reason ?? 'Not authorized to access masking configurations');
     }
@@ -40,13 +41,11 @@ export class MaskingService {
       };
       return await this.adminServiceClient.createMask(payload, user.token.tokenString);
     } catch (error) {
-      this.logger.error(
-        `Error While Creating Masking : ${error instanceof Error ? error.message : String(error)}`,
-      );
+      this.logger.error(`Error While Creating Masking : ${error instanceof Error ? error.message : String(error)}`);
       const errorMessage = error instanceof Error ? error.message : String(error);
       if (errorMessage.includes('duplicate key value violates unique constraint')) {
         throw new BadRequestException(
-          'A masking configuration with this type and version already exists. Please use a different type or version combination.'
+          'A masking configuration with this type and version already exists. Please use a different type or version combination.',
         );
       } else {
         throw new BadRequestException(errorMessage);
@@ -58,11 +57,12 @@ export class MaskingService {
     try {
       const normalizedRole = this.rbacService.getNormalizedRole(user);
       const mask = await this.adminServiceClient.getMaskById(id, user.token.tokenString);
-      const currentStatus = (mask.status as string) ?? '';
+      const currentStatus = mask.status;
+      const endpointKey: EndpointKey = 'PUT /masking/api/:id';
 
       const tier2 = this.rbacService.checkTier2({
         role: normalizedRole,
-        endpointKey: 'PUT /masking/api/:id' as EndpointKey,
+        endpointKey,
         currentStatus,
       });
       if (!tier2.allowed) throw new ForbiddenException(tier2.reason ?? 'Not authorized to update this masking configuration');
@@ -70,14 +70,14 @@ export class MaskingService {
       if (updateData.status && updateData.status !== currentStatus) {
         const tier3 = this.rbacService.checkTier3({
           role: normalizedRole,
-          endpointKey: 'PUT /masking/api/:id' as EndpointKey,
+          endpointKey,
           currentStatus,
           targetStatus: updateData.status,
         });
         if (!tier3.allowed) throw new ForbiddenException(tier3.reason ?? 'Status transition not permitted');
       }
 
-      return await this.adminServiceClient.updateMask(id, updateData as Record<string, unknown>, user.token.tokenString);
+      return await this.adminServiceClient.updateMask(id, updateData, user.token.tokenString);
     } catch (error) {
       this.logger.error(`Error While Updating Masking : ${error instanceof Error ? error.message : String(error)}`);
       throw error;
@@ -88,11 +88,12 @@ export class MaskingService {
     try {
       const normalizedRole = this.rbacService.getNormalizedRole(user);
       const mask = await this.adminServiceClient.getMaskById(id, user.token.tokenString);
-      const currentStatus = (mask.status as string) ?? '';
+      const currentStatus = mask.status;
+      const endpointKey: EndpointKey = 'GET /masking/api/:id';
 
       const tier2 = this.rbacService.checkTier2({
         role: normalizedRole,
-        endpointKey: 'GET /masking/api/:id' as EndpointKey,
+        endpointKey,
         currentStatus,
       });
       if (!tier2.allowed) throw new ForbiddenException(tier2.reason ?? 'Not authorized to access this masking configuration');
@@ -108,11 +109,12 @@ export class MaskingService {
     try {
       const normalizedRole = this.rbacService.getNormalizedRole(user);
       const mask = await this.adminServiceClient.getMaskById(id, user.token.tokenString);
-      const currentStatus = (mask.status as string) ?? '';
+      const currentStatus = mask.status;
+      const endpointKey: EndpointKey = 'PATCH /masking/api/:id/review';
 
       const tier2 = this.rbacService.checkTier2({
         role: normalizedRole,
-        endpointKey: 'PATCH /masking/api/:id/review' as EndpointKey,
+        endpointKey,
         currentStatus,
       });
       if (!tier2.allowed) throw new ForbiddenException(tier2.reason ?? 'Not authorized to review this masking configuration');
@@ -128,4 +130,3 @@ export class MaskingService {
     }
   }
 }
-
