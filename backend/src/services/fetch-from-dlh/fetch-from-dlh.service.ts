@@ -54,6 +54,9 @@ export class FetchFromDlhService {
 
       this.logger.log(`Mapped ${messages.length} message(s) from DLH response — enqueueing simulation`);
 
+      // at this point, truncation happens
+      await this.adminServiceClient.truncateEvaluationData(token);
+
       const { jobId } = await this.sendToDemsService.enqueueDlhSimulation(messages, token);
 
       this.logger.log(`Simulation job ${jobId} enqueued`);

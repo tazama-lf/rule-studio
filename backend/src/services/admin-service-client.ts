@@ -418,4 +418,8 @@ export class AdminServiceClient {
   async getAllEvaluations(token: string): Promise<{ message: string; data: EvaluationRow[] }> {
     return await this.executeHttpRequest<{ message: string; data: EvaluationRow[] }>('GET', GET_ALL_EVALUATIONS, token);
   }
+
+  async truncateEvaluationData(token: string): Promise<{ message: string }> {
+    return await this.executeHttpRequest<{ message: string }>('GET', `/v1/dlh/truncate-evaluations`, token);
+  }
 }
