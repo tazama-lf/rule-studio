@@ -7,6 +7,7 @@ import { SIMULATION_QUEUE } from './simulation-queue.constants';
 import type { SimulationJobPayload, DirectSimulationMessage } from './simulation-queue.constants';
 import { SimulationProgressGateway } from '../gateways/simulation-progress.gateway';
 import { AdminServiceClient } from '../services/admin-service-client';
+import { FetchEvaluationService } from '../services/fetch-evaluation/fetch-evaluation.service';
 import type { SimulationMessage } from '../services/admin-service-client';
 import type { ProgressUpdateDto, SimulationLogDto } from '../services/send-to-dems/dto/send-to-dems.dto';
 
@@ -24,6 +25,7 @@ export class SimulationProcessor extends WorkerHost {
     private readonly adminServiceClient: AdminServiceClient,
     private readonly httpService: HttpService,
     private readonly gateway: SimulationProgressGateway,
+    private readonly fetchEvaluationService: FetchEvaluationService,
   ) {
     super();
   }
@@ -46,8 +48,7 @@ export class SimulationProcessor extends WorkerHost {
   }
 
   async process(job: Job<SimulationJobPayload>): Promise<void> {
-    console.log('Processing job with data:', job.data); // Debug log to inspect incoming job data
-    const { jobId, token, tableNames, messages: directMessages } = job.data;
+    const { jobId, token, tableNames, messages: directMessages, tableName } = job.data;
     const source = directMessages ? `${directMessages.length} direct DLH messages` : `tables: ${(tableNames ?? []).join(', ')}`;
     this.logger.log(`Starting simulation job ${jobId} from ${source}`);
 
@@ -166,6 +167,11 @@ export class SimulationProcessor extends WorkerHost {
         log: this.makeLog('success', 'Simulation completed successfully.'),
       });
       this.logger.log(`Simulation job ${jobId} completed (${total} messages processed)`);
+
+      if (tableName) {
+        this.logger.log(`Simulation job ${jobId}: triggering evaluation fetch for table ${tableName}`);
+        await this.fetchEvaluationService.fetchEvaluation(token, tableName);
+      }
     } catch (error: unknown) {
       // Outer failure: e.g. could not fetch messages from admin service
       const errMessage = error instanceof Error ? error.message : 'Unknown error';

@@ -419,6 +419,10 @@ export class AdminServiceClient {
     return await this.executeHttpRequest<{ message: string; data: EvaluationRow[] }>('GET', GET_ALL_EVALUATIONS, token);
   }
 
+  async saveEvaluationsInResultsTable(token: string, evaluations: EvaluationRow[], tableName?: string): Promise<{ message: string }> {
+    return await this.executeHttpRequest<{ message: string }>('POST', '/v1/admin/trs/evaluations/save', token, { evaluations, tableName });
+  }
+
   async truncateEvaluationData(token: string): Promise<{ message: string }> {
     return await this.executeHttpRequest<{ message: string }>('GET', `/v1/dlh/truncate-evaluations`, token);
   }
