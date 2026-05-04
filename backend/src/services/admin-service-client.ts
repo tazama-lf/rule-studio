@@ -44,6 +44,7 @@ import {
   SIMULATION_MESSAGES,
   EXCLUDED_TYPES,
   FETCH_FROM_DLH,
+  GET_ALL_EVALUATIONS
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto } from './masking/dto/masking.dto';
 import { ResponseQueryNodeDto } from './nodes/dto/responseNode.dto';
@@ -52,6 +53,7 @@ import { SimulationLogsDto } from './simulation-logs/dto';
 import { ISimulationLog } from './simulation-logs/interface/simulation-logs.interface';
 import { CreateMaskDto } from './masking/dto/mask.dto';
 import { ExcludedTypeProps } from './rule-simulation/dto/rule-simulation.dto';
+import { EvaluationRow } from './fetch-evaluation/dto/fetch-evaluation.dto';
 
 export interface SimulationMessage {
   messageId: string;
@@ -411,5 +413,9 @@ export class AdminServiceClient {
       tuples,
     );
     return response.masks ?? [];
+  }
+
+  async getAllEvaluations(token: string): Promise<{ message: string; data: EvaluationRow[] }> {
+    return await this.executeHttpRequest<{ message: string; data: EvaluationRow[] }>('GET', GET_ALL_EVALUATIONS, token);
   }
 }

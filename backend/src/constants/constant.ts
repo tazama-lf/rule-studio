@@ -50,3 +50,6 @@ export const BASE_RULE_ID = '21';
 
 // Fetch from DLH
 export const FETCH_FROM_DLH = '/v1/dlh/fetch';
+
+// Evaluations
+export const GET_ALL_EVALUATIONS = '/v1/admin/reports/evaluations';
