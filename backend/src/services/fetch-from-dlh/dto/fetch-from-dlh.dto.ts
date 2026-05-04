@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsArray, IsDateString } from 'class-validator';
+import { IsString, IsArray, IsDateString, IsNumber } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class FetchFromDlhQueryDto {
@@ -33,6 +33,26 @@ export class DlhResultFiltersDto {
 
   @ApiProperty()
   tenantId!: string;
+}
+
+export class DlhCountResponse {
+  @IsNumber()
+  rowCount!: number
+}
+
+export class DlhCountDto {
+  @ApiProperty({ example: '2026-01-28T00:00:00', description: 'Start date-time filter (ISO 8601)' })
+  @IsDateString()
+  startDtTm!: string;
+
+  @ApiProperty({ example: '2026-01-28T23:59:59', description: 'End date-time filter (ISO 8601)' })
+  @IsDateString()
+  endDtTm!: string;
+}
+
+export class DlhCountDataDto {
+  @IsArray()
+  data!: { txtp: string, startDtTm: string, endDtTm: string, tenantId: string }[];
 }
 
 export class DlhDataItemDto {

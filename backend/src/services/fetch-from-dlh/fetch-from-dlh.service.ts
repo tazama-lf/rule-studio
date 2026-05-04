@@ -1,17 +1,22 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
+import { EndpointKey, RbacService } from 'src/utils/rbac/rbacHelper';
 import { DEMS_BASE_URL } from '../../constants/constant';
 import { AdminServiceClient } from '../admin-service-client';
+import { AuthenticatedUser } from '../auth/auth.types';
 import { SendToDemsService } from '../send-to-dems/send-to-dems.service';
-import type { FetchFromDlhQueryDto, FetchFromDlhResponseDto } from './dto/fetch-from-dlh.dto';
+import type { DlhCountDto, DlhCountResponse, FetchFromDlhQueryDto, FetchFromDlhResponseDto } from './dto/fetch-from-dlh.dto';
+import { SimulationService } from '../simulation/simulation.service';
 
 @Injectable()
 export class FetchFromDlhService {
   private readonly logger = new Logger(FetchFromDlhService.name);
+  private readonly rbacService = new RbacService();
 
   constructor(
     private readonly adminServiceClient: AdminServiceClient,
     private readonly sendToDemsService: SendToDemsService,
-  ) {}
+    private readonly simulationService: SimulationService
+  ) { }
 
   private readonly LIMIT = 3; //hardcoded for now since no paginations
   private readonly DEMS_ENDPOINT = DEMS_BASE_URL;
@@ -26,7 +31,7 @@ export class FetchFromDlhService {
 
       this.logger.log(`Successfully fetched data from DLH for tenantId: ${tenantId}`);
 
-      
+
 
       const messages = response.results.flatMap((r, i) => {
         const query = queries[i];
@@ -53,5 +58,35 @@ export class FetchFromDlhService {
       throw error;
     }
   }
+
+
+  async getCount(data: DlhCountDto, user: AuthenticatedUser): Promise<DlhCountResponse> {
+    const normalizedRole = this.rbacService.getNormalizedRole(user);
+    const tier2 = this.rbacService.getTier2({ role: normalizedRole, endpointKey: 'POST /fetch-from-dlh/api/count' as EndpointKey });
+    if (!tier2.allowed) {
+      throw new ForbiddenException(tier2.reason ?? 'Not authorized to access count');
+    }
+
+    const types = await this.simulationService.excludedTypes(user.token.tokenString);
+
+    const existing = types.excludedTypes.filter((item) => item.record_status === 'Exists');
+
+    const uniqueTxtps = Array.from(
+      new Map(existing.map((item) => [item.txtp, item])).values()
+    );
+
+    return await this.adminServiceClient.fetchCountFromDlh(
+      {
+        data: uniqueTxtps.map((eType) => ({
+          txtp: eType.txtp!,
+          startDtTm: data.startDtTm,
+          endDtTm: data.endDtTm,
+          tenantId: user.tenantId
+        }))
+      },
+      user.token.tokenString
+    );
+  }
 }
+
 

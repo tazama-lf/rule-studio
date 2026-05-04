@@ -46,15 +46,16 @@ import {
   SIMULATION_CREATE,
   EXCLUDED_TYPES,
   FETCH_FROM_DLH,
+  FETCH_COUNT_DLH,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto } from './masking/dto/masking.dto';
-import type { SimulationListResponseDto, CreateSimulationDto, CreateSimulationResponseDto } from './simulation/dto/simulation.dto';
+import type { SimulationListResponseDto, CreateSimulationDto, CreateSimulationResponseDto, ExcludedTypeProps } from './simulation/dto/simulation.dto';
 import { ResponseQueryNodeDto } from './nodes/dto/responseNode.dto';
 import { RuleRequest } from '../services/parse-extract/dto/message.dto';
 import { SimulationLogsDto } from './simulation-logs/dto';
 import { ISimulationLog } from './simulation-logs/interface/simulation-logs.interface';
 import { CreateMaskDto } from './masking/dto/mask.dto';
-import { ExcludedTypeProps } from './rule-simulation/dto/rule-simulation.dto';
+import { DlhCountDataDto, DlhCountDto, DlhCountResponse } from './fetch-from-dlh/dto/fetch-from-dlh.dto';
 
 export interface SimulationMessage {
   messageId: string;
@@ -398,12 +399,15 @@ export class AdminServiceClient {
     return await this.executeHttpRequest<CreateSimulationResponseDto>('POST', SIMULATION_CREATE, token, body);
   }
 
-  async getExcludedTypes(token: string): Promise<ExcludedTypeProps[]> {
-    return await this.executeHttpRequest<ExcludedTypeProps[]>('GET', `${EXCLUDED_TYPES}`, token);
+  async getExcludedTypes(token: string): Promise<ExcludedTypeProps> {
+    return await this.executeHttpRequest<ExcludedTypeProps>('GET', `${EXCLUDED_TYPES}`, token);
   }
 
   async fetchFromDlh(queries: Array<Record<string, unknown>>, token: string): Promise<Record<string, unknown>> {
     return await this.executeHttpRequest('POST', FETCH_FROM_DLH, token, queries);
+  }
+  async fetchCountFromDlh(data: DlhCountDataDto, token: string): Promise<DlhCountResponse> {
+    return await this.executeHttpRequest('POST', FETCH_COUNT_DLH, token, data.data);
   }
 
   async fetchMaskingConfig(token: string): Promise<Record<string, unknown>> {

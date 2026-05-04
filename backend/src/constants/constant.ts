@@ -54,3 +54,4 @@ export const BASE_RULE_ID = '21';
 
 // Fetch from DLH
 export const FETCH_FROM_DLH = '/v1/dlh/fetch';
+export const FETCH_COUNT_DLH = '/v1/admin/dlh/fetch/count';
