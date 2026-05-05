@@ -56,8 +56,15 @@ export class FetchFromDlhService {
 
       // at this point, truncation happens
       await this.adminServiceClient.truncateEvaluationData(token);
+      await this.adminServiceClient.saveRecordInTrsSimulation({
+        simulationId: tableName,
+        totalRecord: messages.length,
+        recordProcessed: 0,
+        simStatus: 'RUNNING',
+        tenantId,
+      }, token);
 
-      const { jobId } = await this.sendToDemsService.enqueueDlhSimulation(messages, token, tableName);
+      const { jobId } = await this.sendToDemsService.enqueueDlhSimulation(messages, token, tableName, tenantId, messages.length);
 
       this.logger.log(`Simulation job ${jobId} enqueued`);
 

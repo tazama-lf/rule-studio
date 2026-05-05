@@ -426,4 +426,9 @@ export class AdminServiceClient {
   async truncateEvaluationData(token: string): Promise<{ message: string }> {
     return await this.executeHttpRequest<{ message: string }>('GET', `/v1/dlh/truncate-evaluations`, token);
   }
+
+  async saveRecordInTrsSimulation(simulationData: { simulationId: string | undefined; totalRecord: number; recordProcessed: number; simStatus: string; tenantId: string }, token: string): Promise<{ message: string }> {
+    return await this.executeHttpRequest<{ message: string }>('POST', '/v1/admin/trs-simulation/save', token, simulationData);
+  }
+
 }

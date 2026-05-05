@@ -16,4 +16,6 @@ export interface SimulationJobPayload {
   /** DLH direct-data simulation — messages already mapped and ready to send */
   messages?: DirectSimulationMessage[];
   tableName?: string; // for evaluation fetch after simulation
+  tenantId?: string;
+  totalMessages?: number;
 }

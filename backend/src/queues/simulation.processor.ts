@@ -48,7 +48,7 @@ export class SimulationProcessor extends WorkerHost {
   }
 
   async process(job: Job<SimulationJobPayload>): Promise<void> {
-    const { jobId, token, tableNames, messages: directMessages, tableName } = job.data;
+    const { jobId, token, tableNames, messages: directMessages, tableName, tenantId, totalMessages } = job.data;
     const source = directMessages ? `${directMessages.length} direct DLH messages` : `tables: ${(tableNames ?? []).join(', ')}`;
     this.logger.log(`Starting simulation job ${jobId} from ${source}`);
 
@@ -170,7 +170,7 @@ export class SimulationProcessor extends WorkerHost {
 
       if (tableName) {
         this.logger.log(`Simulation job ${jobId}: triggering evaluation fetch for table ${tableName}`);
-        await this.fetchEvaluationService.fetchEvaluation(token, tableName);
+        await this.fetchEvaluationService.fetchEvaluation(token, tableName, tenantId, totalMessages ?? total);
       }
     } catch (error: unknown) {
       // Outer failure: e.g. could not fetch messages from admin service
