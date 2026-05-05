@@ -57,7 +57,7 @@ export class MaskingService {
     try {
       const normalizedRole = this.rbacService.getNormalizedRole(user);
       const mask = await this.adminServiceClient.getMaskById(id, user.token.tokenString);
-      const currentStatus = mask.status;
+      const currentStatus = mask.status as string;
       const endpointKey: EndpointKey = 'PUT /masking/api/:id';
 
       const tier2 = this.rbacService.checkTier2({
@@ -77,7 +77,7 @@ export class MaskingService {
         if (!tier3.allowed) throw new ForbiddenException(tier3.reason ?? 'Status transition not permitted');
       }
 
-      return await this.adminServiceClient.updateMask(id, updateData, user.token.tokenString);
+      return await this.adminServiceClient.updateMask(id, updateData as Record<string, unknown>, user.token.tokenString);
     } catch (error) {
       this.logger.error(`Error While Updating Masking : ${error instanceof Error ? error.message : String(error)}`);
       throw error;
@@ -88,7 +88,7 @@ export class MaskingService {
     try {
       const normalizedRole = this.rbacService.getNormalizedRole(user);
       const mask = await this.adminServiceClient.getMaskById(id, user.token.tokenString);
-      const currentStatus = mask.status;
+      const currentStatus = mask.status as string;
       const endpointKey: EndpointKey = 'GET /masking/api/:id';
 
       const tier2 = this.rbacService.checkTier2({
@@ -109,7 +109,7 @@ export class MaskingService {
     try {
       const normalizedRole = this.rbacService.getNormalizedRole(user);
       const mask = await this.adminServiceClient.getMaskById(id, user.token.tokenString);
-      const currentStatus = mask.status;
+      const currentStatus = mask.status as string;
       const endpointKey: EndpointKey = 'PATCH /masking/api/:id/review';
 
       const tier2 = this.rbacService.checkTier2({
