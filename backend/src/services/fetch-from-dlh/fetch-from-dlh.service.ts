@@ -81,13 +81,24 @@ export class FetchFromDlhService {
 
       this.logger.log(`Successfully fetched ${rawItems.length} item(s) from DLH for tenantId: ${tenantId}`);
 
-      const { tableName } = await this.adminServiceClient.stageSimulationItems(rawItems as unknown as Array<Record<string, unknown>>, token);
-
       // Normalize txtp for matching (e.g. "pacs002" vs "pacs.002.001.12")
       const normalizeTxtp = (s: string) => s.replace(/\./g, '').toLowerCase();
       const endpointByTxtp = new Map(
         queries.map((q) => [normalizeTxtp(q.txtp), q.endpoint_path ? `${this.DEMS_ENDPOINT}${q.endpoint_path}` : this.DEMS_ENDPOINT]),
       );
+      const rawEndpointPathByTxtp = new Map(
+        queries.map((q) => [normalizeTxtp(q.txtp), q.endpoint_path ?? null]),
+      );
+
+      // Attach endpointPath, credttm, tenantId, and msgid to each item so they get persisted alongside the payload
+      const itemsWithEndpoint = rawItems.map((item) => {
+        const normalizedDocTxtp = normalizeTxtp((item.document?.TxTp as string | undefined) ?? '');
+        const entry = [...rawEndpointPathByTxtp.entries()].find(([key]) => normalizedDocTxtp.startsWith(key));
+        const endpointPath = entry?.[1] ?? null;
+        return { ...item, endpointPath, _credttm: item.credttm_ts, _tenantId: tenantId, _msgid: item.message_id } as unknown as Record<string, unknown>;
+      });
+
+      const { tableName } = await this.adminServiceClient.stageSimulationItems(itemsWithEndpoint, token);
 
       const messages = rawItems.map((item) => {
         const normalizedDocTxtp = normalizeTxtp((item.document?.TxTp as string | undefined) ?? '');
