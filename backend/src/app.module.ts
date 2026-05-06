@@ -14,6 +14,7 @@ import { MaskingModule } from './services/masking/masking.module';
 import { GatewaysModule } from './gateways/gateways.module';
 import { RuleSimulationModule } from './services/rule-simulation/rule-simulation.module';
 import { SimulationModule } from './simulation/simulation.module';
+import { RerunSimulationModule } from './services/rerun-simulation/rerun-simulation.module';
 import { FetchFromDlhModule } from './services/fetch-from-dlh/fetch-from-dlh.module';
 import { FetchCountModule } from './services/fetch-count/fetch-count.module';
 import { FetchEvaluationModule } from './services/fetch-evaluation/fetch-evaluation.module';
@@ -32,6 +33,7 @@ import { FetchEvaluationModule } from './services/fetch-evaluation/fetch-evaluat
     MaskingModule,
     GatewaysModule,
     SimulationModule,
+    RerunSimulationModule,
     FetchFromDlhModule,
     FetchCountModule,
     RuleSimulationModule,

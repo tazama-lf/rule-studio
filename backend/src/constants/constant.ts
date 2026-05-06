@@ -44,6 +44,7 @@ export const CREATE_MASK = `${RULES_BASE_URL}/masking/create`;
 
 // Simulation
 export const SIMULATION_MESSAGES = '/v1/admin/simulation/messages';
+export const SIMULATION_ITEMS = '/v1/admin/simulation/items';
 export const EXCLUDED_TYPES = `${RULES_BASE_URL}/excluded/types`;
 
 // Base rule for cloning flow

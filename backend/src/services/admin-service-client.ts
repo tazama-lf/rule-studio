@@ -42,6 +42,7 @@ import {
   MASKING_ACTIVE_CONFIGS,
   CREATE_MASK,
   SIMULATION_MESSAGES,
+  SIMULATION_ITEMS,
   EXCLUDED_TYPES,
   STAGE_SIMULATION_ITEMS,
   GET_ALL_EVALUATIONS
@@ -429,6 +430,17 @@ export class AdminServiceClient {
 
   async saveRecordInTrsSimulation(simulationData: { simulationId: string | undefined; totalRecord: number; recordProcessed: number; simStatus: string; tenantId: string }, token: string): Promise<{ message: string }> {
     return await this.executeHttpRequest<{ message: string }>('POST', '/v1/admin/trs-simulation/save', token, simulationData);
+  }
+
+  async getSimulationItems(token: string, tableName: string): Promise<Array<{ payload: Record<string, unknown>; endpointPath: string | null; credttm: string | null; tenantId: string | null; msgid: string | null }>> {
+    const response = await this.executeHttpRequest<{ items: Array<{ payload: Record<string, unknown>; endpointPath: string | null; credttm: string | null; tenantId: string | null; msgid: string | null }> }>(
+      'GET',
+      SIMULATION_ITEMS,
+      token,
+      undefined,
+      { tableName },
+    );
+    return response.items;
   }
 
 }
