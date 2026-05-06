@@ -43,7 +43,7 @@ import {
   CREATE_MASK,
   SIMULATION_MESSAGES,
   EXCLUDED_TYPES,
-  FETCH_FROM_DLH,
+  STAGE_SIMULATION_ITEMS,
   GET_ALL_EVALUATIONS
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto } from './masking/dto/masking.dto';
@@ -394,8 +394,8 @@ export class AdminServiceClient {
     return await this.executeHttpRequest<ExcludedTypeProps[]>('GET', `${EXCLUDED_TYPES}`, token);
   }
 
-  async fetchFromDlh(queries: Array<Record<string, unknown>>, token: string): Promise<Record<string, unknown>> {
-    return await this.executeHttpRequest('POST', FETCH_FROM_DLH, token, queries);
+  async stageSimulationItems(items: Array<Record<string, unknown>>, token: string): Promise<{ tableName: string | null }> {
+    return await this.executeHttpRequest('POST', STAGE_SIMULATION_ITEMS, token, items);
   }
 
   async fetchMaskingConfig(token: string): Promise<Record<string, unknown>> {
