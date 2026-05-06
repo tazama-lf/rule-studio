@@ -73,60 +73,85 @@ export class FetchFromDlhService {
     return allItems;
   }
 
+  private normalizeTxtp(s: string): string {
+    return s.replace(/\./g, '').toLowerCase();
+  }
+
+  private buildEndpointMaps(queries: FetchFromDlhQueryDto[]): {
+    endpointByTxtp: Map<string, string>;
+    rawEndpointPathByTxtp: Map<string, string | null>;
+  } {
+    return {
+      endpointByTxtp: new Map(
+        queries.map((q) => [this.normalizeTxtp(q.txtp), q.endpoint_path ? `${this.DEMS_ENDPOINT}${q.endpoint_path}` : this.DEMS_ENDPOINT]),
+      ),
+      rawEndpointPathByTxtp: new Map(
+        queries.map((q) => [this.normalizeTxtp(q.txtp), q.endpoint_path ?? null]),
+      ),
+    };
+  }
+
+  private stageItems(rawItems: DlhItem[], rawEndpointPathByTxtp: Map<string, string | null>, tenantId: string, token: string): Promise<{ tableName: string | null }> {
+    const itemsWithEndpoint = rawItems.map((item) => {
+      const normalizedDocTxtp = this.normalizeTxtp((item.document?.TxTp as string | undefined) ?? '');
+      const entry = [...rawEndpointPathByTxtp.entries()].find(([key]) => normalizedDocTxtp.startsWith(key));
+      const endpointPath = entry?.[1] ?? null;
+      return { ...item, endpointPath, _credttm: item.credttm_ts, _tenantId: tenantId, _msgid: item.message_id } as unknown as Record<string, unknown>;
+    });
+
+    return this.adminServiceClient.stageSimulationItems(itemsWithEndpoint, token);
+  }
+
+  private buildMessages(rawItems: DlhItem[], endpointByTxtp: Map<string, string>): Array<{ messageId: string; timestamp: string; endpoint: string; data: Record<string, unknown> }> {
+    return rawItems.map((item) => {
+      const normalizedDocTxtp = this.normalizeTxtp((item.document?.TxTp as string | undefined) ?? '');
+      const entry = [...endpointByTxtp.entries()].find(([key]) => normalizedDocTxtp.startsWith(key));
+      const endpoint = entry?.[1] ?? this.DEMS_ENDPOINT;
+      return {
+        messageId: item.message_id,
+        timestamp: item.credttm_ts,
+        endpoint,
+        data: item.document,
+      };
+    });
+  }
+
+  private async enqueueSimulation(
+    messages: Array<{ messageId: string; timestamp: string; endpoint: string; data: Record<string, unknown> }>,
+    tableName: string | null,
+    tenantId: string,
+    token: string,
+  ): Promise<{ jobId: string }> {
+    await this.adminServiceClient.truncateEvaluationData(token);
+    await this.adminServiceClient.saveRecordInTrsSimulation({
+      simulationId: tableName ?? undefined,
+      totalRecord: messages.length,
+      recordProcessed: 0,
+      simStatus: 'RUNNING',
+      tenantId,
+    }, token);
+
+    const { jobId } = await this.sendToDemsService.enqueueDlhSimulation(messages, token, tableName ?? undefined, tenantId, messages.length);
+    this.logger.log(`Simulation job ${jobId} enqueued`);
+
+    return { jobId };
+  }
+
   async fetchFromDlh(queries: FetchFromDlhQueryDto[], tenantId: string, token: string): Promise<FetchFromDlhResponseDto> {
     try {
       this.logger.log(`Fetching data from DLH for ${queries.length} query/queries (tenantId: ${tenantId})`);
 
       const rawItems = await this.fetchAllFromDlh(queries, tenantId, token);
-
       this.logger.log(`Successfully fetched ${rawItems.length} item(s) from DLH for tenantId: ${tenantId}`);
 
-      // Normalize txtp for matching (e.g. "pacs002" vs "pacs.002.001.12")
-      const normalizeTxtp = (s: string) => s.replace(/\./g, '').toLowerCase();
-      const endpointByTxtp = new Map(
-        queries.map((q) => [normalizeTxtp(q.txtp), q.endpoint_path ? `${this.DEMS_ENDPOINT}${q.endpoint_path}` : this.DEMS_ENDPOINT]),
-      );
-      const rawEndpointPathByTxtp = new Map(
-        queries.map((q) => [normalizeTxtp(q.txtp), q.endpoint_path ?? null]),
-      );
+      const { endpointByTxtp, rawEndpointPathByTxtp } = this.buildEndpointMaps(queries);
 
-      // Attach endpointPath, credttm, tenantId, and msgid to each item so they get persisted alongside the payload
-      const itemsWithEndpoint = rawItems.map((item) => {
-        const normalizedDocTxtp = normalizeTxtp((item.document?.TxTp as string | undefined) ?? '');
-        const entry = [...rawEndpointPathByTxtp.entries()].find(([key]) => normalizedDocTxtp.startsWith(key));
-        const endpointPath = entry?.[1] ?? null;
-        return { ...item, endpointPath, _credttm: item.credttm_ts, _tenantId: tenantId, _msgid: item.message_id } as unknown as Record<string, unknown>;
-      });
+      const { tableName } = await this.stageItems(rawItems, rawEndpointPathByTxtp, tenantId, token);
 
-      const { tableName } = await this.adminServiceClient.stageSimulationItems(itemsWithEndpoint, token);
-
-      const messages = rawItems.map((item) => {
-        const normalizedDocTxtp = normalizeTxtp((item.document?.TxTp as string | undefined) ?? '');
-        const entry = [...endpointByTxtp.entries()].find(([key]) => normalizedDocTxtp.startsWith(key));
-        const endpoint = entry?.[1] ?? this.DEMS_ENDPOINT;
-        return {
-          messageId: item.message_id,
-          timestamp: item.credttm_ts,
-          endpoint,
-          data: item.document,
-        };
-      });
-
+      const messages = this.buildMessages(rawItems, endpointByTxtp);
       this.logger.log(`Mapped ${messages.length} message(s) from DLH response — enqueueing simulation`);
 
-      // at this point, truncation happens
-      await this.adminServiceClient.truncateEvaluationData(token);
-      await this.adminServiceClient.saveRecordInTrsSimulation({
-        simulationId: tableName ?? undefined,
-        totalRecord: messages.length,
-        recordProcessed: 0,
-        simStatus: 'RUNNING',
-        tenantId,
-      }, token);
-
-      const { jobId } = await this.sendToDemsService.enqueueDlhSimulation(messages, token, tableName ?? undefined, tenantId, messages.length);
-
-      this.logger.log(`Simulation job ${jobId} enqueued`);
+      const { jobId } = await this.enqueueSimulation(messages, tableName, tenantId, token);
 
       return { tableName, jobId } as FetchFromDlhResponseDto;
     } catch (error) {

@@ -13,8 +13,6 @@ export class FetchEvaluationService {
     const result = await this.adminServiceClient.getAllEvaluations(token);
 
     await this.adminServiceClient.saveEvaluationsInResultsTable(token, result.data, tableName);
-    console.log("table name iss", tableName);
-    console.log("result data iss", result.data);
 
     await this.adminServiceClient.saveRecordInTrsSimulation({
       simulationId: tableName,
