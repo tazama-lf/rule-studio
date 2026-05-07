@@ -99,9 +99,9 @@ export class UpdateMaskDto {
   @IsString()
   comments?: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: 'Tokenize Fields',
-    example: { field1: true, field2: false }
+    example: { field1: true, field2: false },
   })
   @IsOptional()
   @IsObject()
