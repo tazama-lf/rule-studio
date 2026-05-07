@@ -161,17 +161,18 @@ export class SimulationProcessor extends WorkerHost {
         lastEmittedPercent = this.emitIfThreshold(jobId, processed, total, lastEmittedPercent);
       }
 
+      
+      if (tableName) {
+        this.logger.log(`Simulation job ${jobId}: triggering evaluation cycle for table ${tableName}`);
+        await this.fetchEvaluationService.fetchEvaluation(token, tableName, tenantId, totalMessages ?? total);
+      }
+
       // Always emit a final 100% completed event, regardless of where the last threshold fell
       this.gateway.emitProgress(jobId, {
         jobId, progress: 100, processed: total, total, status: 'completed',
         log: this.makeLog('success', 'Simulation completed successfully.'),
       });
       this.logger.log(`Simulation job ${jobId} completed (${total} messages processed)`);
-
-      if (tableName) {
-        this.logger.log(`Simulation job ${jobId}: triggering evaluation fetch for table ${tableName}`);
-        await this.fetchEvaluationService.fetchEvaluation(token, tableName, tenantId, totalMessages ?? total);
-      }
     } catch (error: unknown) {
       // Outer failure: e.g. could not fetch messages from admin service
       const errMessage = error instanceof Error ? error.message : 'Unknown error';
