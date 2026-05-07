@@ -54,8 +54,8 @@ describe('MaskingService', () => {
 
       expect(adminServiceClient.createMask).toHaveBeenCalledWith(
         {
-          txtp: maskingDto.txtp,
-          txtp_version: maskingDto.txtpVersion,
+          txtp: 'pain.001.001.11',
+          txtp_version: '11',
         },
         user.token.tokenString,
       );
@@ -77,8 +77,8 @@ describe('MaskingService', () => {
 
       expect(adminServiceClient.createMask).toHaveBeenCalledWith(
         {
-          txtp: maskingDto.txtp,
-          txtp_version: maskingDto.txtpVersion,
+          txtp: 'pain.001.001.11',
+          txtp_version: '11',
         },
         'custom-token',
       );
@@ -212,8 +212,8 @@ describe('MaskingService', () => {
 
       expect(adminServiceClient.createMask).toHaveBeenCalledWith(
         {
-          txtp: differentMasking.txtp,
-          txtp_version: differentMasking.txtpVersion,
+          txtp: 'pacs.008.001.10',
+          txtp_version: '10',
         },
         user.token.tokenString,
       );

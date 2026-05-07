@@ -6,6 +6,7 @@ import { RequireAnyClaims, TazamaClaims } from '../../decorators/auth.decorator'
 import { User } from '../../decorators/user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { EndpointKey } from 'src/utils/rbac/rbacHelper';
+import { TransactionTypeDto } from './dto/config.dto';
 
 @ApiTags('Configuration')
 @ApiBearerAuth('JWT-auth')
@@ -43,7 +44,7 @@ export class ConfigController {
     status: 403,
     description: 'Forbidden - Insufficient permissions',
   })
-  async getTransactionTypes(@User() user: AuthenticatedUser): Promise<string[]> {
+  async getTransactionTypes(@User() user: AuthenticatedUser): Promise<TransactionTypeDto[]> {
     const endpointKey = 'GET /config/api/transaction-types' as EndpointKey;
 
     return await this.configService.getTransactionTypes(user, endpointKey);

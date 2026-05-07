@@ -69,7 +69,8 @@ export class RulesService {
   async getAllRules(offset: number, limit: number, filters: RuleFiltersDto, user: AuthenticatedUser): Promise<Rules[]> {
     const updatedFilters = filters;
     const normalizedRole = this.rbacService.getNormalizedRole(user);
-    const tier2 = this.rbacService.getTier2({ role: normalizedRole, endpointKey: 'POST /rules/api/all' });
+    const endpointKey: EndpointKey = 'POST /rules/api/all';
+    const tier2 = this.rbacService.getTier2({ role: normalizedRole, endpointKey });
     if (!tier2.allowed) {
       throw new ForbiddenException(tier2.reason ?? 'Not authorized to access rules');
     }

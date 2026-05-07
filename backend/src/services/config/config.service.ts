@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { EndpointKey, RbacService } from '../../utils/rbac/rbacHelper';
 import { AdminServiceClient } from '../admin-service-client';
 import { AuthenticatedUser } from '../auth/auth.types';
+import { TransactionTypeDto } from './dto/config.dto';
 
 @Injectable()
 export class ConfigService {
@@ -10,7 +11,7 @@ export class ConfigService {
 
   constructor(private readonly adminServiceClient: AdminServiceClient) {}
 
-  async getTransactionTypes(user: AuthenticatedUser, endpointKey: EndpointKey): Promise<string[]> {
+  async getTransactionTypes(user: AuthenticatedUser, endpointKey: EndpointKey): Promise<TransactionTypeDto[]> {
     try {
       const normalizedRole = this.rbacService.getNormalizedRole(user);
 
