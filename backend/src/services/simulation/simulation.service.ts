@@ -34,7 +34,7 @@ export class SimulationService {
     }
   }
 
-  async excludedTypes(token: string): Promise<ExcludedTypeProps[]> {
+  async excludedTypes(token: string): Promise<ExcludedTypeProps> {
     try {
       const response = await this.adminServiceClient.getExcludedTypes(token);
       return response

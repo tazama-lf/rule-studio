@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateSimulationDto {
   @ApiProperty({ description: 'Unique simulation identifier', example: 'sim-abc-001' })
@@ -80,21 +80,11 @@ export class SimulationListResponseDto {
 }
 
 export class ExcludedTypeProps {
-  @IsOptional()
   @IsString()
-  masking_id?: null | string;
+  success!: string;
 
-  @IsString()
-  @IsNotEmpty()
-  txtp?: string;
-
-  @IsString()
-  @IsNotEmpty()
-  txtp_version?: string;
-
-  @IsString()
-  @IsNotEmpty()
-  record_status?: string;
+  @IsArray()
+  excludedTypes!: { masking_id: null | string; txtp?: string; txtp_version?: string; record_status?: string; }[]
 }
 
 export class SimulationStatsDto {

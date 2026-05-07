@@ -46,7 +46,7 @@ export class SimulationController {
     description: 'Retreives active and inactive types with existence status',
     responses: CommonResponses.SUCCESS_200([ExcludedTypeProps], 'Excluded Types retrieved successfully'),
   })
-  async getExcludedTypes(@User() user: AuthenticatedUser): Promise<ExcludedTypeProps[]> {
+  async getExcludedTypes(@User() user: AuthenticatedUser): Promise<ExcludedTypeProps> {
     return await this.simulationService.excludedTypes(user.token.tokenString);
   }
 

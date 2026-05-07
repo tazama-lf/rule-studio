@@ -39,6 +39,7 @@ import {
   MASKING_ALL,
   MASKING_UPDATE,
   MASKING_REVIEW,
+  MASKING_ACTIVE_CONFIGS,
   CREATE_MASK,
   SIMULATION_MESSAGES,
   SIMULATION_ALL,
@@ -46,15 +47,17 @@ import {
   SIMULATION_STATS,
   SIMULATION_RESULTS,
   EXCLUDED_TYPES,
+  FETCH_FROM_DLH,
+  FETCH_COUNT_DLH,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto } from './masking/dto/masking.dto';
-import type { SimulationListResponseDto, CreateSimulationDto, CreateSimulationResponseDto, SimulationStatsDto, SimulationResultsResponseDto } from './simulation/dto/simulation.dto';
+import type { SimulationListResponseDto, CreateSimulationDto, CreateSimulationResponseDto, SimulationStatsDto, SimulationResultsResponseDto, ExcludedTypeProps } from './simulation/dto/simulation.dto';
 import { ResponseQueryNodeDto } from './nodes/dto/responseNode.dto';
 import { RuleRequest } from '../services/parse-extract/dto/message.dto';
 import { SimulationLogsDto } from './simulation-logs/dto';
 import { ISimulationLog } from './simulation-logs/interface/simulation-logs.interface';
 import { CreateMaskDto } from './masking/dto/mask.dto';
-import { ExcludedTypeProps } from './simulation/dto/simulation.dto';
+import { DlhCountDataDto, DlhCountResponse } from './fetch-from-dlh/dto/fetch-from-dlh.dto';
 
 export interface SimulationMessage {
   messageId: string;
@@ -398,8 +401,8 @@ export class AdminServiceClient {
     return await this.executeHttpRequest<CreateSimulationResponseDto>('POST', SIMULATION_CREATE, token, body);
   }
 
-  async getExcludedTypes(token: string): Promise<ExcludedTypeProps[]> {
-    return await this.executeHttpRequest<ExcludedTypeProps[]>('GET', `${EXCLUDED_TYPES}`, token);
+  async getExcludedTypes(token: string): Promise<ExcludedTypeProps> {
+    return await this.executeHttpRequest<ExcludedTypeProps>('GET', `${EXCLUDED_TYPES}`, token);
   }
 
   async getSimulationStats(sim: string, iterationNo: string, token: string): Promise<SimulationStatsDto> {
@@ -424,5 +427,29 @@ export class AdminServiceClient {
       undefined,
       params,
     );
+  }
+
+  async fetchFromDlh(queries: Array<Record<string, unknown>>, token: string): Promise<Record<string, unknown>> {
+    return await this.executeHttpRequest('POST', FETCH_FROM_DLH, token, queries);
+  }
+  async fetchCountFromDlh(data: DlhCountDataDto, token: string): Promise<DlhCountResponse> {
+    return await this.executeHttpRequest('POST', FETCH_COUNT_DLH, token, data.data);
+  }
+
+  async fetchMaskingConfig(token: string): Promise<Record<string, unknown>> {
+    return await this.executeHttpRequest('GET', '/v1/admin/trs/masking/all-fetch', token);
+  }
+
+  async fetchActiveMaskingConfigs(
+    tuples: Array<{ tenant_id: string; txtp: string; txtp_version: string }>,
+    token: string,
+  ): Promise<Array<{ tenant_id: string; txtp: string; txtp_version: string, endpoint_path: string }>> {
+    const response = await this.executeHttpRequest<{ masks: Array<{ tenant_id: string; txtp: string; txtp_version: string, endpoint_path: string }> }>(
+      'POST',
+      MASKING_ACTIVE_CONFIGS,
+      token,
+      tuples,
+    );
+    return response.masks ?? [];
   }
 }
