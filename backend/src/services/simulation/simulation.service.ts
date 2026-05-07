@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AdminServiceClient } from '../admin-service-client';
 import type { AuthenticatedUser } from '../auth/auth.types';
-import type { SimulationListResponseDto, CreateSimulationDto, CreateSimulationResponseDto, ExcludedTypeProps } from './dto/simulation.dto';
+import type { SimulationListResponseDto, CreateSimulationDto, CreateSimulationResponseDto, ExcludedTypeProps, SimulationStatsDto, SimulationResultsResponseDto } from './dto/simulation.dto';
 
 @Injectable()
 export class SimulationService {
@@ -41,6 +41,35 @@ export class SimulationService {
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Error fetching excluded types: ${err.message}`);
+      throw error;
+    }
+  }
+
+  async getSimulationStats(
+    sim: string,
+    iterationNo: string,
+    user: AuthenticatedUser,
+  ): Promise<SimulationStatsDto> {
+    try {
+      return await this.adminServiceClient.getSimulationStats(sim, iterationNo, user.token.tokenString);
+    } catch (error) {
+      this.logger.error(`Error fetching simulation stats: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+  }
+
+  async getSimulationResults(
+    sim: string,
+    iterationNo: string,
+    limit: number,
+    offset: number,
+    filters: { msg_id?: string; msg_type?: string; outcome?: string },
+    user: AuthenticatedUser,
+  ): Promise<SimulationResultsResponseDto> {
+    try {
+      return await this.adminServiceClient.getSimulationResults(sim, iterationNo, limit, offset, user.token.tokenString, filters);
+    } catch (error) {
+      this.logger.error(`Error fetching simulation results: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
   }

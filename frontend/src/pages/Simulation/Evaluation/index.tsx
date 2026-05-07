@@ -6,7 +6,9 @@ import { useMemo } from "react";
 import Debugger, { type DebugLog } from "../../../components/Debugger";
 import Loader from "../../../components/Loader";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import type { SvgIconComponent } from "@mui/icons-material";
+import StatusCard from "../../../components/Cards/StatusCard";
 import Table from "../../../components/Table";
 
 interface OverviewProps {
@@ -17,33 +19,43 @@ interface OverviewProps {
     iconColor?: string;
 }
 
-const Overview = ({ title, Icon, count, bgColor = '#f3f4f6', iconColor = '#6b7280' }: OverviewProps) => {
-    return (
-        <Grid size={{ xs: 6, md: 3 }}>
-            <Box
-                p={2}
-                bgcolor={bgColor}
-                borderRadius={1}
-                border="1px solid"
-                borderColor="divider"
-                height="80px"
-                display="flex"
-                flexDirection="column"
-                justifyContent="space-between"
-            >
-                <Box display="flex" alignItems="center" gap={1}>
-                    <Icon sx={{ fontSize: 20, color: iconColor }} />
-                    <Text color="text.ternary" weight="500" size="sub">
-                        {title}
-                    </Text>
+const Overview = ({ title, Icon, count, bgColor = '#f3f4f6', iconColor = '#6b7280' }: OverviewProps) => (
+    <Grid size={{ xs: 6, md: 3 }}>
+        <Box
+            p={2}
+            bgcolor={bgColor}
+            borderRadius={1}
+            border="1px solid"
+            borderColor="divider"
+            height="80px"
+            display="flex"
+            flexDirection="column"
+            justifyContent="space-between"
+        >
+            <Box display="flex" alignItems="center" gap={1}>
+                <Box
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                    borderRadius="8px"
+                    width={32}
+                    height={32}
+                    bgcolor={bgColor}
+                    border="1px solid"
+                    borderColor="divider"
+                >
+                    <Icon sx={{ fontSize: 18, color: iconColor }} />
                 </Box>
-                <Text color="black" size="header" weight="bold">
-                    {count.toLocaleString()}
+                <Text color="text.ternary" weight="500" size="sub">
+                    {title}
                 </Text>
             </Box>
-        </Grid>
-    );
-};
+            <Text color={iconColor} size="header" weight="bold">
+                {count.toLocaleString()}
+            </Text>
+        </Box>
+    </Grid>
+);
 
 const Evaluation = () => {
     const { values, functions } = useEvaluationController();
@@ -72,26 +84,18 @@ const Evaluation = () => {
 
     const runDateTime = useMemo(() => {
         const now = new Date();
-        return {
-            date: now.toLocaleDateString("en-US", {
-                month: "numeric",
-                day: "numeric",
-                year: "numeric",
-            }),
-            time: now.toLocaleTimeString("en-US", {
-                hour: "numeric",
-                minute: "2-digit",
-                second: "2-digit",
-                hour12: true,
-            }),
-        };
+        return now.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+        }) + " " + now.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+        });
     }, []);
 
-    const replayDuration = useMemo(() => {
-        const start = new Date();
-        const end = new Date(start.getTime() + 10 * 60000);
-        return `10 min (${start.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })} - ${end.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })})`;
-    }, []);
+    const replayDuration = "32s";
 
     const overviewItems = useMemo(() => {
         return Object.entries(values.overviewScore).map(([key, count]) => {
@@ -186,59 +190,60 @@ const Evaluation = () => {
 
             {!isPlaying &&
                 <>
-                    <Grid
-                        container
-                        size={12}
-                        spacing={4}
-                        display="flex"
-                        justifyContent="space-between"
-                    >
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <Box
-                                p={2}
-                                bgcolor="static.lightGrey"
-                                borderRadius={1}
-                                border="1px solid"
-                                borderColor="divider"
-                                height="70px"
-                            >
-                                <Text color="text.ternary" weight="500" size="sub">
-                                    RUN DATE / TIME
+                    {/* Title + Simulation ID + Status */}
+                    <Grid size={12} mt={3} mb={2}>
+                        <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+                            <Box>
+                                <Text weight="bold" color="black" size="bigHeader">
+                                    Simulation Results
                                 </Text>
-                                <Text color="black" size="body">
-                                    {runDateTime.date}
-                                </Text>
-                                <Text color="text.ternary" size="body">
-                                    {runDateTime.time}
+                                <Text color="text.ternary" size="sub" mt={0.5}>
+                                    {values.simulationId}
                                 </Text>
                             </Box>
-                        </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <Box
-                                p={2}
-                                bgcolor="static.lightGrey"
-                                borderRadius={1}
-                                border="1px solid"
-                                borderColor="divider"
-                                height="70px"
-                            >
-                                <Text color="text.ternary" weight="500" size="sub">
-                                    REPLAY DURATION
-                                </Text>
-                                <Text color="black" size="body">
-                                    {replayDuration}
-                                </Text>
-                            </Box>
-                        </Grid>
+                            <StatusCard
+                                status="COMPLETED"
+                                bullet={false}
+                            />
+                        </Box>
                     </Grid>
-                    <Grid
-                        container
-                        my={3}
-                        size={12}
-                        spacing={4}
-                        display="flex"
-                        justifyContent="space-between"
-                    >
+
+                    {/* Run date & Replay duration — single card */}
+                    <Grid size={12} mt={2}>
+                        <Box
+                            display="flex"
+                            borderRadius={1}
+                            border="1px solid"
+                            borderColor="divider"
+                            overflow="hidden"
+                        >
+                            <Box sx={{ width: 4, bgcolor: "#4789f6", flexShrink: 0 }} />
+                            <Box display="flex" flex={1} p={2.5} gap={8}>
+                                <Box>
+                                    <Text color="text.ternary" weight="600" size="sub" sx={{ letterSpacing: 1, textTransform: "uppercase" }}>
+                                        Run Date & Time
+                                    </Text>
+                                    <Text color="black" size="body" weight="500" mt={0.5}>
+                                        {runDateTime}
+                                    </Text>
+                                </Box>
+                                <Box>
+                                    <Text color="text.ternary" weight="600" size="sub" sx={{ letterSpacing: 1, textTransform: "uppercase" }}>
+                                        Replay Duration
+                                    </Text>
+                                    <Box display="flex" alignItems="center" gap={0.5} mt={0.5}>
+                                        <AccessTimeIcon sx={{ fontSize: 16, color: "text.ternary" }} />
+                                        <Text color="black" size="body" weight="500">
+                                            {replayDuration}
+                                        </Text>
+                                    </Box>
+                                </Box>
+                            </Box>
+                        </Box>
+                    </Grid>
+
+                    {/* Overview stat cards */}
+                    <Grid container spacing={3} my={3} size={12}>
                         {overviewItems.map((item) => (
                             <Overview
                                 key={item.key}
@@ -250,13 +255,25 @@ const Evaluation = () => {
                             />
                         ))}
                     </Grid>
-                    <Grid size={12} >
-                        <Table
-                            columns={values.columns}
-                            data={values.data}
-                            loading={values.isLoading}
-                            pagination={values.pagination}
-                        />
+
+                    {/* Results table */}
+                    <Grid size={12}>
+                        <Box
+                            border="1px solid"
+                            borderColor="divider"
+                            borderRadius={1}
+                            p={2}
+                        >
+                            <Text weight="bold" color="black" size="main" mb={1}>
+                                Simulation Results
+                            </Text>
+                            <Table
+                                columns={values.columns}
+                                data={values.data}
+                                loading={values.isLoading}
+                                pagination={values.pagination}
+                            />
+                        </Box>
                     </Grid>
                 </>
             }

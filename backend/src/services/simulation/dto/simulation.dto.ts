@@ -21,24 +21,26 @@ export class CreateSimulationDto {
   @IsOptional()
   @IsString()
   sim_status?: string;
+
+  @ApiPropertyOptional({ description: 'Total number of iterations', example: 1 })
+  @IsOptional()
+  @IsNumber()
+  total_iterations?: number;
 }
 
 export class CreateSimulationResponseDto {
   @ApiProperty({ example: true })
   success!: boolean;
 
-  @ApiProperty({ example: 'Simulation with id 1 created successfully' })
+  @ApiProperty({ example: 'Simulation sim-abc-001 created successfully' })
   message!: string;
 
-  @ApiProperty({ description: 'ID of the created record', example: 1 })
-  id!: number;
+  @ApiProperty({ description: 'simulation_id of the created record', example: 'sim-abc-001' })
+  simulation_id!: string;
 }
 
 export class SimulationDto {
-  @ApiProperty({ description: 'Record ID', example: 1 })
-  id!: number;
-
-  @ApiProperty({ description: 'Simulation identifier', example: 'sim-abc-001' })
+  @ApiProperty({ description: 'Simulation identifier (primary key)', example: 'sim-abc-001' })
   simulation_id!: string;
 
   @ApiProperty({ description: 'Total records to process', example: 100 })
@@ -49,6 +51,9 @@ export class SimulationDto {
 
   @ApiProperty({ description: 'Simulation status', example: 'RUNNING' })
   sim_status!: string;
+
+  @ApiProperty({ description: 'Total number of iterations', example: 1 })
+  total_iterations!: number;
 
   @ApiProperty({ description: 'Created at timestamp' })
   created_at!: string;
@@ -90,4 +95,64 @@ export class ExcludedTypeProps {
   @IsString()
   @IsNotEmpty()
   record_status?: string;
+}
+
+export class SimulationStatsDto {
+  @ApiProperty({ example: true })
+  success!: boolean;
+
+  @ApiProperty({ description: 'Total rows in the sim table', example: 1247 })
+  total_no_of_records!: number;
+
+  @ApiProperty({ description: 'Rows in the results table for the given iteration and tenant', example: 1200 })
+  records_evaluated!: number;
+
+  @ApiProperty({ description: 'Count of rows where report.status != NALT', example: 45 })
+  alerts_generated!: number;
+
+  @ApiProperty({ description: 'Count of rows where report.status = NALT', example: 1155 })
+  alerts_not_generated!: number;
+
+  @ApiProperty({ description: 'Run date & time from first record credttm (YYYY-MM-DD HH:mm)', example: '2025-03-10 14:30', nullable: true })
+  run_date_time!: string | null;
+
+  @ApiProperty({ description: 'Duration between first and last credttm in the sim table', example: '2m 15s', nullable: true })
+  replay_duration!: string | null;
+}
+
+export class SimulationResultRowDto {
+  @ApiProperty({ description: 'Message ID', example: 'msg001' })
+  msg_id!: string;
+
+  @ApiProperty({ description: 'Message type (TxTp)', example: 'pacs.008' })
+  msg_type!: string;
+
+  @ApiProperty({ description: 'Hit or No-Hit', example: 'Hit' })
+  outcome!: string;
+
+  @ApiProperty({ description: 'Timestamp from sim table credttm column', example: '2026-01-28T18:47:16.868+03:00', nullable: true })
+  time!: string | null;
+
+  @ApiProperty({ description: 'Triggered rules extracted from typology ruleResults' })
+  triggered_rules!: unknown[];
+
+  @ApiProperty({ description: 'Triggered typologies from evaluation tadpResult.typologyResult' })
+  triggered_typologies!: unknown[];
+}
+
+export class SimulationResultsResponseDto {
+  @ApiProperty({ example: true })
+  success!: boolean;
+
+  @ApiProperty({ type: [SimulationResultRowDto] })
+  data!: SimulationResultRowDto[];
+
+  @ApiProperty({ description: 'Total count of records', example: 100 })
+  total!: number;
+
+  @ApiProperty({ description: 'Page limit', example: 10 })
+  limit!: number;
+
+  @ApiProperty({ description: 'Page offset', example: 0 })
+  offset!: number;
 }

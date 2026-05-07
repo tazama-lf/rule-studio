@@ -42,6 +42,8 @@ export const SIMULATION_MESSAGES = '/v1/admin/simulation/messages';
 export const SIMULATION_BASE_URL = `${RULES_BASE_URL}/simulation`;
 export const SIMULATION_ALL = `${SIMULATION_BASE_URL}/all`;
 export const SIMULATION_CREATE = `${SIMULATION_BASE_URL}/create`;
+export const SIMULATION_STATS = `${SIMULATION_BASE_URL}/get_simulation_stats`;
+export const SIMULATION_RESULTS = `${SIMULATION_BASE_URL}/get_simulation_results`;
 export const CREATE_MASK = `${RULES_BASE_URL}/masking/create`;
 
 // Simulation

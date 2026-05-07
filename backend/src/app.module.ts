@@ -13,7 +13,6 @@ import { AuditModule } from './audit/audit.module';
 import { MaskingModule } from './services/masking/masking.module';
 import { GatewaysModule } from './gateways/gateways.module';
 import { SimulationModule } from './services/simulation/simulation.module';
-import { RuleSimulationModule } from './services/rule-simulation/rule-simulation.module';
 
 @Module({
   imports: [
@@ -29,7 +28,6 @@ import { RuleSimulationModule } from './services/rule-simulation/rule-simulation
     MaskingModule,
     GatewaysModule,
     SimulationModule,
-    RuleSimulationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

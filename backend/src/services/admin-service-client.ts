@@ -43,16 +43,18 @@ import {
   SIMULATION_MESSAGES,
   SIMULATION_ALL,
   SIMULATION_CREATE,
+  SIMULATION_STATS,
+  SIMULATION_RESULTS,
   EXCLUDED_TYPES,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto } from './masking/dto/masking.dto';
-import type { SimulationListResponseDto, CreateSimulationDto, CreateSimulationResponseDto } from './simulation/dto/simulation.dto';
+import type { SimulationListResponseDto, CreateSimulationDto, CreateSimulationResponseDto, SimulationStatsDto, SimulationResultsResponseDto } from './simulation/dto/simulation.dto';
 import { ResponseQueryNodeDto } from './nodes/dto/responseNode.dto';
 import { RuleRequest } from '../services/parse-extract/dto/message.dto';
 import { SimulationLogsDto } from './simulation-logs/dto';
 import { ISimulationLog } from './simulation-logs/interface/simulation-logs.interface';
 import { CreateMaskDto } from './masking/dto/mask.dto';
-import { ExcludedTypeProps } from './rule-simulation/dto/rule-simulation.dto';
+import { ExcludedTypeProps } from './simulation/dto/simulation.dto';
 
 export interface SimulationMessage {
   messageId: string;
@@ -398,5 +400,29 @@ export class AdminServiceClient {
 
   async getExcludedTypes(token: string): Promise<ExcludedTypeProps[]> {
     return await this.executeHttpRequest<ExcludedTypeProps[]>('GET', `${EXCLUDED_TYPES}`, token);
+  }
+
+  async getSimulationStats(sim: string, iterationNo: string, token: string): Promise<SimulationStatsDto> {
+    return await this.executeHttpRequest<SimulationStatsDto>(
+      'GET',
+      SIMULATION_STATS,
+      token,
+      undefined,
+      { sim, iteration_no: iterationNo },
+    );
+  }
+
+  async getSimulationResults(sim: string, iterationNo: string, limit: number, offset: number, token: string, filters: { msg_id?: string; msg_type?: string; outcome?: string } = {}): Promise<SimulationResultsResponseDto> {
+    const params: Record<string, string> = { sim, iteration_no: iterationNo, limit: String(limit), offset: String(offset) };
+    if (filters.msg_id) params['msg_id'] = filters.msg_id;
+    if (filters.msg_type) params['msg_type'] = filters.msg_type;
+    if (filters.outcome) params['outcome'] = filters.outcome;
+    return await this.executeHttpRequest<SimulationResultsResponseDto>(
+      'GET',
+      SIMULATION_RESULTS,
+      token,
+      undefined,
+      params,
+    );
   }
 }

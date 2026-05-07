@@ -22,9 +22,58 @@ export const ruleSimulationApi = createApi({
                 method: "GET",
             }),
         }),
+        getAllSimulations: builder.query({
+            query: ({ offset = 0, limit = 10 }) => ({
+                url: `/all`,
+                method: "GET",
+                params: { offset, limit },
+            }),
+        }),
+        getSimulationStats: builder.query({
+            query: ({ sim, iteration_no }: { sim: string; iteration_no: string }) => ({
+                url: `/get_simulation_stats`,
+                method: "GET",
+                params: { sim, iteration_no },
+            }),
+        }),
+        getSimulationResults: builder.query({
+            query: ({
+                sim,
+                iteration_no,
+                limit = 10,
+                offset = 0,
+                msg_id,
+                msg_type,
+                outcome,
+            }: {
+                sim: string;
+                iteration_no: string;
+                limit?: number;
+                offset?: number;
+                msg_id?: string;
+                msg_type?: string;
+                outcome?: string;
+            }) => ({
+                url: `/get_simulation_results`,
+                method: "GET",
+                params: {
+                    sim,
+                    iteration_no,
+                    limit,
+                    offset,
+                    ...(msg_id ? { msg_id } : {}),
+                    ...(msg_type ? { msg_type } : {}),
+                    ...(outcome ? { outcome } : {}),
+                },
+            }),
+        }),
     }),
 })
 
 export const {
-    useLazyGetExcludedTypesQuery
+    useLazyGetExcludedTypesQuery,
+    useGetAllSimulationsQuery,
+    useLazyGetAllSimulationsQuery,
+    useLazyGetSimulationStatsQuery,
+    useLazyGetSimulationResultsQuery,
 } = ruleSimulationApi
