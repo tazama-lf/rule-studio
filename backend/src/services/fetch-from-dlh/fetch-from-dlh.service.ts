@@ -23,6 +23,10 @@ export class FetchFromDlhService {
 
   async fetchFromDlh(queries: FetchFromDlhQueryDto[], tenantId: string, token: string): Promise<FetchFromDlhResponseDto> {
     try {
+      if (!Array.isArray(queries)) {
+        throw new Error('Invalid queries parameter: expected an array');
+      }
+
       this.logger.log(`Fetching data from DLH for ${queries.length} query/queries (tenantId: ${tenantId})`);
 
       const payload = queries.map((q) => ({ txtp: q.txtp, mask_fields: q.mask_fields, startDtTm: q.startDtTm, endDtTm: q.endDtTm, tenantId, limit: this.LIMIT }));
