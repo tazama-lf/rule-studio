@@ -100,10 +100,10 @@ describe('ProtectedRoute (routes/ProtectedRoute)', () => {
     });
 
     describe('extractData call behaviour', () => {
-        it('should call extractData exactly once per render', () => {
+        it('should call extractData twice per render when authenticated (token + user)', () => {
             mockedExtractData.mockReturnValue('tok');
             renderComponent();
-            expect(mockedExtractData).toHaveBeenCalledTimes(1);
+            expect(mockedExtractData).toHaveBeenCalledTimes(2);
         });
     });
 });

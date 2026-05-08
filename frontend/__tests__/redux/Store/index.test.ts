@@ -39,6 +39,22 @@ jest.mock('../../../src/redux/Api/SimulationLogs', () => ({
     logsApi: makeApiMock('logsApi'),
 }));
 
+jest.mock('../../../src/redux/Api/Masking', () => ({
+    maskingApi: makeApiMock('maskingApi'),
+}));
+
+jest.mock('../../../src/redux/Api/SendToDems', () => ({
+    sendToDemsApi: makeApiMock('sendToDemsApi'),
+}));
+
+jest.mock('../../../src/redux/Api/RuleSimulation', () => ({
+    ruleSimulationApi: makeApiMock('ruleSimulationApi'),
+}));
+
+jest.mock('../../../src/redux/Api/FetchDromDlh', () => ({
+    fetchFromDlhApi: makeApiMock('fetchFromDlhApi'),
+}));
+
 jest.mock('../../../src/middlerwares/apierror.middleware', () =>
     () => (next: (a: unknown) => unknown) => (action: unknown) => next(action)
 );
@@ -110,8 +126,8 @@ describe('Redux Store (redux/Store)', () => {
             expect(state['logsApi']).toBeDefined();
         });
 
-        it('should contain exactly 8 top-level slices', () => {
-            expect(Object.keys(state)).toHaveLength(8);
+        it('should contain exactly 12 top-level slices', () => {
+            expect(Object.keys(state)).toHaveLength(12);
         });
     });
 
