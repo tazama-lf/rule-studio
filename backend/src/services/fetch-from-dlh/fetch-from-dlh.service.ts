@@ -35,7 +35,7 @@ export class FetchFromDlhService {
 
       const messages = response.results.flatMap((r, i) => {
         const query = queries[i];
-        const endpoint = query?.endpoint_path
+        const endpoint = query.endpoint_path
           ? `${this.DEMS_ENDPOINT}${query.endpoint_path}`
           : this.DEMS_ENDPOINT;
         return r.data.map((item) => ({
@@ -52,7 +52,12 @@ export class FetchFromDlhService {
 
       this.logger.log(`Simulation job ${jobId} enqueued`);
 
-      return { ...response, jobId };
+      return {
+        status: response.status,
+        results: response.results,
+        tableName: response.tableName,
+        jobId,
+      };
     } catch (error) {
       this.logger.error('Error fetching data from DLH', error instanceof Error ? error.stack : String(error));
       throw error;

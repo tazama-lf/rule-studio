@@ -427,9 +427,9 @@ export class AdminServiceClient {
 
   async getSimulationResults(sim: string, iterationNo: string, limit: number, offset: number, token: string, filters: { msg_id?: string; msg_type?: string; outcome?: string } = {}): Promise<SimulationResultsResponseDto> {
     const params: Record<string, string> = { sim, iteration_no: iterationNo, limit: String(limit), offset: String(offset) };
-    if (filters.msg_id) params['msg_id'] = filters.msg_id;
-    if (filters.msg_type) params['msg_type'] = filters.msg_type;
-    if (filters.outcome) params['outcome'] = filters.outcome;
+    if (filters.msg_id) params.msg_id = filters.msg_id;
+    if (filters.msg_type) params.msg_type = filters.msg_type;
+    if (filters.outcome) params.outcome = filters.outcome;
     return await this.executeHttpRequest<SimulationResultsResponseDto>(
       'GET',
       SIMULATION_RESULTS,
@@ -460,6 +460,6 @@ export class AdminServiceClient {
       token,
       tuples,
     );
-    return response.masks ?? [];
+    return response.masks;
   }
 }
