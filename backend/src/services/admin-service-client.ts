@@ -28,7 +28,7 @@ import {
   CONFIG_TRANSACTION_TYPES,
   CONFIG_PAYLOAD,
   CONFIG,
-  ACTIVE_NETWORK_MAP,
+  NETWORK_MAP_LIST,
   CREATE_NODES,
   QUERY_NODES,
   RULE,
@@ -232,9 +232,15 @@ export class AdminServiceClient {
 
   async getActiveNetworkMap(token: string): Promise<Record<string, unknown>> {
     const response = await this.executeHttpRequest<{
-      networkMap: Record<string, unknown>;
-    }>('GET', ACTIVE_NETWORK_MAP, token);
-    return response.networkMap;
+      data: Record<string, unknown>[];
+      meta: { total: number; limit: number; offset: number };
+    }>('GET', NETWORK_MAP_LIST, token, undefined, { 'filters[active]': 'true', limit: '1' });
+
+    if (!response.data || response.data.length === 0) {
+      throw new HttpException('No active network map found', HttpStatus.NOT_FOUND);
+    }
+
+    return response.data[0];
   }
 
   async getConfigPayloadByTxTp(transactionType: string, transactionVersion: string, token: string): Promise<Record<string, unknown>> {

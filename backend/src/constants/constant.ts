@@ -19,7 +19,7 @@ export const CONFIG_TRANSACTION_TYPES = `${CONFIG}/transaction-types`;
 export const CONFIG_PAYLOAD = `${CONFIG}/payload`;
 
 // Network Map
-export const ACTIVE_NETWORK_MAP = '/v1/admin/network-map/active';
+export const NETWORK_MAP_LIST = '/v1/admin/configuration/network_map';
 
 // Nodes
 export const NODES = '/v1/admin/nodes';
