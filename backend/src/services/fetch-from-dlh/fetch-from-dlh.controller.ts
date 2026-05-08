@@ -7,7 +7,6 @@ import { User } from 'src/decorators/user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { FetchFromDlhService } from './fetch-from-dlh.service';
 import { DlhCountDto, DlhCountResponse, FetchFromDlhQueryDto, FetchFromDlhResponseDto } from './dto/fetch-from-dlh.dto';
-import { getTenantId } from 'src/utils/helpers';
 
 @ApiTags('fetch-from-dlh')
 @ApiBearerAuth('JWT-auth')

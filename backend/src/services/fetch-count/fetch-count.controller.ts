@@ -5,7 +5,6 @@ import { TazamaClaims, RequireAnyClaims } from '../../decorators/auth.decorator'
 import { User } from '../../decorators/user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { FetchCountService } from './fetch-count.service';
-import { FetchCountRequestDto } from './dto/fetch-count.dto';
 import type { FetchFromDlhResponseDto } from '../fetch-from-dlh/dto/fetch-from-dlh.dto';
 
 @ApiTags('Fetch Count')
@@ -30,7 +29,6 @@ export class FetchCountController {
     @User() user: AuthenticatedUser,
     @Body() body: { startDtTm: string; endDtTm: string },
   ): Promise<FetchFromDlhResponseDto> {
-    console.log(`Received fetch count request from user ${user.userId} with body:`, body);
     return await this.fetchCountService.fetchCount(body.startDtTm, body.endDtTm, user.token.tokenString);
   }
 }   

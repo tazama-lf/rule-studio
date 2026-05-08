@@ -232,11 +232,11 @@ export class AdminServiceClient {
 
   async getActiveNetworkMap(token: string): Promise<Record<string, unknown>> {
     const response = await this.executeHttpRequest<{
-      data: Record<string, unknown>[];
+      data: Array<Record<string, unknown>>;
       meta: { total: number; limit: number; offset: number };
     }>('GET', NETWORK_MAP_LIST, token, undefined, { 'filters[active]': 'true', limit: '1' });
 
-    if (!response.data || response.data.length === 0) {
+    if (response.data.length === 0) {
       throw new HttpException('No active network map found', HttpStatus.NOT_FOUND);
     }
 
@@ -412,7 +412,7 @@ export class AdminServiceClient {
   }
 
   async getExcludedTypes(token: string): Promise<ExcludedTypeProps> {
-    return await this.executeHttpRequest<ExcludedTypeProps>('GET', `${EXCLUDED_TYPES}`, token);
+    return await this.executeHttpRequest<ExcludedTypeProps>('GET', EXCLUDED_TYPES, token);
   }
 
   async getSimulationStats(sim: string, iterationNo: string, token: string): Promise<SimulationStatsDto> {

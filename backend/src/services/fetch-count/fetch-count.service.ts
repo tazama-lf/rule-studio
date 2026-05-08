@@ -1,21 +1,21 @@
-import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { AdminServiceClient } from '../admin-service-client';
 import { FetchFromDlhService } from '../fetch-from-dlh/fetch-from-dlh.service';
 import type { FetchFromDlhResponseDto } from '../fetch-from-dlh/dto/fetch-from-dlh.dto';
 
-interface RawMask {
-  id: number;
-  tenant_id: string;
-  txtp: string;
-  txtp_version: string;
-  tokenize: Record<string, unknown> | null;
-  status: string;
-  fields_masked: number;
-  total_fields: number;
-  comments: string | null;
-  created_at: string;
-  updated_at: string;
-}
+// interface RawMask {
+//   id: number;
+//   tenant_id: string;
+//   txtp: string;
+//   txtp_version: string;
+//   tokenize: Record<string, unknown> | null;
+//   status: string;
+//   fields_masked: number;
+//   total_fields: number;
+//   comments: string | null;
+//   created_at: string;
+//   updated_at: string;
+// }
 
 @Injectable()
 export class FetchCountService {
@@ -90,7 +90,6 @@ export class FetchCountService {
   }
 ]
 
-    console.log('Constructed DLH queries:', queries);
 
     // this.logger.log(`Fetching DLH data for ${queries.length} txtp(s): ${queries.map((q) => q.txtp).join(', ')}`);
 
