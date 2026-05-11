@@ -77,6 +77,7 @@ const useNewSimulationController = () => {
     };
 
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const onSubmit = async (values: SimulationFormValues) => {
         // const payload = {
         //     date: values.date,

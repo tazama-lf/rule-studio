@@ -30,6 +30,7 @@ const useSimulationListController = () => {
     }, [getAllSimulations, offset, limit]);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         void fetchSimulations();
     }, [fetchSimulations]);
 
@@ -78,6 +79,7 @@ const useSimulationListController = () => {
         });
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const handleRerun = (_row: Record<string, unknown>) => {
         // TODO: implement rerun logic
     };

@@ -296,5 +296,40 @@ describe('SimulationService', () => {
       await expect(service.getSimulationResults('sim001', '1', 10, 0, {}, user)).rejects.toThrow('Results query failed');
       expect(loggerSpy).toHaveBeenCalledWith('Error fetching simulation results: Results query failed');
     });
+
+    it('should log non-Error rejection as string', async () => {
+      const user = makeUser();
+      adminServiceClient.getSimulationResults.mockRejectedValue('plain string error');
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+      await expect(service.getSimulationResults('sim001', '1', 10, 0, {}, user)).rejects.toBe('plain string error');
+      expect(loggerSpy).toHaveBeenCalledWith('Error fetching simulation results: plain string error');
+    });
+  });
+
+  describe('branch coverage - non-Error objects', () => {
+    it('getAllSimulations logs non-Error rejection as string', async () => {
+      const user = makeUser();
+      adminServiceClient.getAllSimulations.mockRejectedValue('string error');
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+      await expect(service.getAllSimulations(0, 10, user)).rejects.toBe('string error');
+      expect(loggerSpy).toHaveBeenCalledWith('Error fetching simulations: string error');
+    });
+
+    it('createSimulation logs non-Error rejection as string', async () => {
+      const user = makeUser();
+      adminServiceClient.createSimulation.mockRejectedValue('string error');
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+      await expect(service.createSimulation({ simulation_id: 's', total_record: 0, sim_status: 'OK' }, user)).rejects.toBe('string error');
+      expect(loggerSpy).toHaveBeenCalledWith('Error creating simulation: string error');
+    });
+
+    it('getSimulationStats logs non-Error rejection as string', async () => {
+      const user = makeUser();
+      adminServiceClient.getSimulationStats.mockRejectedValue('string error');
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+      await expect(service.getSimulationStats('sim001', '1', user)).rejects.toBe('string error');
+      expect(loggerSpy).toHaveBeenCalledWith('Error fetching simulation stats: string error');
+    });
   });
 });

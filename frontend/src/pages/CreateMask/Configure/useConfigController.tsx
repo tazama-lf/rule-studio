@@ -120,6 +120,7 @@ const useConfigController = () => {
             ?.tokenize as Record<string, boolean> | undefined
         if (!existingTokenize || Object.keys(existingTokenize).length === 0) return
 
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setPiiStates(prev => {
             const updated = { ...prev }
             payloadKeys.forEach(key => {

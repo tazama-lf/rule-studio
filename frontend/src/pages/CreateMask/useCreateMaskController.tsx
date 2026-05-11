@@ -27,7 +27,7 @@ const useCreateMaskController = () => {
             default:
                 return null;
         }
-    }, [selectedTab, data, mode])
+    }, [selectedTab, data, mode, id])
 
     return {
         values: {

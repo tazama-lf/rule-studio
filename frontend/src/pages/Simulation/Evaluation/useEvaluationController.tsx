@@ -206,6 +206,7 @@ const useEvaluationController = () => {
     useEffect(() => {
         if (!hasStartedRef.current) {
             hasStartedRef.current = true;
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             startSimulation(["sim001"]);
         }
 
@@ -220,6 +221,7 @@ const useEvaluationController = () => {
     }, [startSimulation, handleProgressUpdate]);
 
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [getSimulationStats, { data: statsData }] = useLazyGetSimulationStatsQuery();
 
     const overviewScore = useMemo<OverviewScore>(

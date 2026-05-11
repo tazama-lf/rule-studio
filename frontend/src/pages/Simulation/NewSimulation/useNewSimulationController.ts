@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
-import { useSimulationTab } from "../../../contexts/SimulationTabContext";
 import { useGetDlhCountMutation } from "../../../redux/Api/FetchDromDlh";
 import { useLazyGetExcludedTypesQuery } from "../../../redux/Api/RuleSimulation";
 
