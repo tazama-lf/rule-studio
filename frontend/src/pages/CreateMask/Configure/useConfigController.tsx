@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTheme } from "@mui/material/styles";
 import { useMaskingTab } from "../../../contexts/MaskingTabContext/useMaskingTab";
 import { useLazyGetSamplePayloadQuery } from "../../../redux/Api/Config";
 import { LocalStorage } from "../../../utils/Common/enums";
@@ -212,6 +213,8 @@ const useConfigController = () => {
         [payloadKeys, piiStates, tokenizedValues]
     );
 
+    const theme = useTheme();
+
     const summary = useMemo(() => {
         const totalFields = payloadKeys.length;
         const tokenizedFields = Object.values(piiStates).filter(Boolean).length;
@@ -224,10 +227,10 @@ const useConfigController = () => {
 
         const allFieldsOff = totalFields > 0 && tokenizedFields === 0;
 
-        const status = (hasUncheckedPIIFields || allFieldsOff) ? { message: 'Warning: Check Sensitive Fields', bgColor: 'theme.creamy', textColor: '#92400e' } : { message: 'All fields tokenized', bgColor: '#bbf7d0', textColor: '#166534' };
+        const status = (hasUncheckedPIIFields || allFieldsOff) ? { message: 'Warning: Check Sensitive Fields', bgColor: ((theme.palette as unknown) as Record<string, Record<string, string>>).static?.creamy ?? '#fef3c7', textColor: '#92400e' } : { message: 'All fields tokenized', bgColor: '#bbf7d0', textColor: '#166534' };
 
         return { totalFields, tokenizedFields, status };
-    }, [payloadKeys, piiStates]);
+    }, [payloadKeys, piiStates, theme]);
 
     return {
         values: {

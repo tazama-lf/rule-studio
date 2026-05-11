@@ -16,7 +16,17 @@ jest.mock('react-router-dom', () => ({
 
 jest.mock('../../../../../src/hooks/RuleBuilder', () => ({
   useVariableData: jest.fn(() => ({ variables: [] })),
-  useQueryExecution: jest.fn(),
+  useQueryExecution: jest.fn(() => ({
+    executeQuery: jest.fn(),
+    closeResults: jest.fn(),
+    clearError: jest.fn(),
+    isExecuting: false,
+    queryResults: [] as unknown[],
+    totalCount: 0,
+    displayCount: 0,
+    executionError: null as string | null,
+    resultsModalOpen: false,
+  })),
 }));
 
 // Get mock reference after jest.mock hoisting completes
@@ -100,9 +110,13 @@ function makeProps(overrides: Partial<Props> = {}): Props {
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe('FetchDBSection', () => {
+  let mockUseQueryExecutionFn: jest.Mock;
+
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseQueryExecution.mockReturnValue({
+    const { useQueryExecution } = require('../../../../../src/hooks/RuleBuilder');
+    mockUseQueryExecutionFn = useQueryExecution as jest.Mock;
+    mockUseQueryExecutionFn.mockReturnValue({
       executeQuery: mockExecuteQuery,
       closeResults: mockCloseResults,
       clearError: mockClearError,
@@ -223,7 +237,7 @@ describe('FetchDBSection', () => {
   });
 
   it('shows "Executing Query..." and disables button when isExecuting=true', () => {
-    mockUseQueryExecution.mockReturnValue({
+    mockUseQueryExecutionFn.mockReturnValue({
       executeQuery: mockExecuteQuery,
       closeResults: mockCloseResults,
       clearError: mockClearError,
@@ -409,7 +423,7 @@ describe('FetchDBSection', () => {
   // ── Results modal ─────────────────────────────────────────────────────────
 
   it('renders the results modal when resultsModalOpen=true', () => {
-    mockUseQueryExecution.mockReturnValue({
+    mockUseQueryExecutionFn.mockReturnValue({
       executeQuery: mockExecuteQuery,
       closeResults: mockCloseResults,
       clearError: mockClearError,
@@ -425,7 +439,7 @@ describe('FetchDBSection', () => {
   });
 
   it('calls closeResults when the results modal close button is clicked', () => {
-    mockUseQueryExecution.mockReturnValue({
+    mockUseQueryExecutionFn.mockReturnValue({
       executeQuery: mockExecuteQuery,
       closeResults: mockCloseResults,
       clearError: mockClearError,

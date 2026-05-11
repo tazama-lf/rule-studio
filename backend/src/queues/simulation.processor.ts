@@ -46,7 +46,6 @@ export class SimulationProcessor extends WorkerHost {
   }
 
   async process(job: Job<SimulationJobPayload>): Promise<void> {
-    console.log('Processing job with data:', job.data); // Debug log to inspect incoming job data
     const { jobId, token, tableNames, messages: directMessages } = job.data;
     const source = directMessages ? `${directMessages.length} direct DLH messages` : `tables: ${(tableNames ?? []).join(', ')}`;
     this.logger.log(`Starting simulation job ${jobId} from ${source}`);
@@ -60,19 +59,17 @@ export class SimulationProcessor extends WorkerHost {
         log: this.makeLog('info', 'Initializing simulation environment...'),
       });
     } catch (gatewayErr) {
-      console.error(`[SimulationProcessor] Initial gateway emit failed for job ${jobId}:`, gatewayErr);
+      this.logger.error(`Initial gateway emit failed for job ${jobId}:`, gatewayErr);
     }
 
     try {
-      let messages: (SimulationMessage | DirectSimulationMessage)[];
+      let messages: Array<SimulationMessage | DirectSimulationMessage>;
 
-      if (directMessages !== undefined) {
+      if (directMessages) {
         // DLH direct-data flow — messages were already mapped and stored in the job payload
-        console.log(`[SimulationProcessor] Job ${jobId}: using ${directMessages.length} direct DLH messages`);
         messages = directMessages;
       } else {
         // DB-table flow — fetch messages from admin-service simulation tables
-        console.log(`[SimulationProcessor] Job ${jobId}: loading from tables: ${(tableNames ?? []).join(', ')}`);
         const messageArrays = await Promise.all(
           (tableNames ?? []).map(async (tableName) => await this.adminServiceClient.getSimulationMessages(token, tableName)),
         );
@@ -122,7 +119,6 @@ export class SimulationProcessor extends WorkerHost {
         }
 
         try {
-          console.log(`[SimulationProcessor] Job ${jobId}: POSTing message ${i + 1}/${total} to ${message.endpoint}`);
           this.logger.debug(`Job ${jobId}: sending message ${message.messageId} → ${message.endpoint}`);
           // eslint-disable-next-line no-await-in-loop -- Sequential delivery required to preserve message order
           await firstValueFrom(
@@ -136,12 +132,10 @@ export class SimulationProcessor extends WorkerHost {
               timeout: 10000,
             }),
           );
-          console.log(`[SimulationProcessor] Job ${jobId}: message ${i + 1}/${total} delivered`);
           this.logger.debug(`Job ${jobId}: message ${message.messageId} delivered`);
         } catch (error: unknown) {
           // Per-message failures are non-fatal; emit immediately (outside threshold gate) and continue
           const errMsg = error instanceof Error ? error.message : 'Unknown error';
-          console.error(`[SimulationProcessor] Job ${jobId}: FAILED to deliver message ${i + 1}/${total}:`, errMsg);
           this.logger.error(`Job ${jobId}: failed to deliver ${message.messageId}: ${errMsg}`);
           this.gateway.emitProgress(jobId, {
             jobId,

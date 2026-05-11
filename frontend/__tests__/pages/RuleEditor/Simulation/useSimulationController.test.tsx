@@ -122,6 +122,7 @@ describe('useSimulationController', () => {
         mockExtractData.mockImplementation((key: string) => {
             if (key === 'trs_rule') return mockData;
             if (key === 'user') return mockUser;
+            if (key === 'trs_endpoint_path') return '/pacs/002';
             return null;
         });
         mockUpdateMetadata.mockReturnValue({
@@ -615,7 +616,7 @@ describe('useSimulationController', () => {
                         metadata: { ...mockData.metadata, deploy: true },
                     };
                 if (key === 'user') return mockUser;
-                if (key === 'trs_endpoint_path') return '/api/pacs.002/v1';
+                if (key === 'trs_endpoint_path') return '/pacs/002';
                 return null;
             });
 

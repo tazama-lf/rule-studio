@@ -52,7 +52,7 @@ export class DlhCountDto {
 
 export class DlhCountDataDto {
   @IsArray()
-  data!: { txtp: string, startDtTm: string, endDtTm: string, tenantId: string }[];
+  data!: Array<{ txtp: string, startDtTm: string, endDtTm: string, tenantId: string }>;
 }
 
 export class DlhDataItemDto {

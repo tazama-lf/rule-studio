@@ -23,6 +23,10 @@ export class FetchFromDlhService {
 
   async fetchFromDlh(queries: FetchFromDlhQueryDto[], tenantId: string, token: string): Promise<FetchFromDlhResponseDto> {
     try {
+      if (!Array.isArray(queries)) {
+        throw new Error('Invalid queries parameter: expected an array');
+      }
+
       this.logger.log(`Fetching data from DLH for ${queries.length} query/queries (tenantId: ${tenantId})`);
 
       const payload = queries.map((q) => ({ txtp: q.txtp, mask_fields: q.mask_fields, startDtTm: q.startDtTm, endDtTm: q.endDtTm, tenantId, limit: this.LIMIT }));
@@ -35,7 +39,7 @@ export class FetchFromDlhService {
 
       const messages = response.results.flatMap((r, i) => {
         const query = queries[i];
-        const endpoint = query?.endpoint_path
+        const endpoint = query.endpoint_path
           ? `${this.DEMS_ENDPOINT}${query.endpoint_path}`
           : this.DEMS_ENDPOINT;
         return r.data.map((item) => ({
@@ -52,7 +56,12 @@ export class FetchFromDlhService {
 
       this.logger.log(`Simulation job ${jobId} enqueued`);
 
-      return { ...response, jobId };
+      return {
+        status: response.status,
+        results: response.results,
+        tableName: response.tableName,
+        jobId,
+      };
     } catch (error) {
       this.logger.error('Error fetching data from DLH', error instanceof Error ? error.stack : String(error));
       throw error;

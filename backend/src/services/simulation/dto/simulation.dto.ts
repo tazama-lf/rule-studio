@@ -84,7 +84,7 @@ export class ExcludedTypeProps {
   success!: string;
 
   @IsArray()
-  excludedTypes!: { masking_id: null | string; txtp?: string; txtp_version?: string; record_status?: string; }[]
+  excludedTypes!: Array<{ masking_id: null | string; txtp?: string; txtp_version?: string; record_status?: string; }>
 }
 
 export class SimulationStatsDto {

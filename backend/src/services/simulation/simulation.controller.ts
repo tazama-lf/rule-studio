@@ -59,8 +59,8 @@ export class SimulationController {
     @Query('iteration_no') iterationNo: string,
     @User() user: AuthenticatedUser,
   ): Promise<SimulationStatsDto> {
-    if (!sim?.trim()) throw new BadRequestException('`sim` query parameter is required.');
-    if (!iterationNo?.trim()) throw new BadRequestException('`iteration_no` query parameter is required.');
+    if (!sim.trim()) throw new BadRequestException('`sim` query parameter is required.');
+    if (!iterationNo.trim()) throw new BadRequestException('`iteration_no` query parameter is required.');
     if (!/^\d+$/.test(iterationNo)) throw new BadRequestException('`iteration_no` must be a numeric string.');
     return await this.simulationService.getSimulationStats(sim.trim().toLowerCase(), iterationNo.trim(), user);
   }
@@ -84,8 +84,8 @@ export class SimulationController {
     @Query('outcome') outcome: string | undefined,
     @User() user: AuthenticatedUser,
   ): Promise<SimulationResultsResponseDto> {
-    if (!sim?.trim()) throw new BadRequestException('`sim` query parameter is required.');
-    if (!iterationNo?.trim()) throw new BadRequestException('`iteration_no` query parameter is required.');
+    if (!sim.trim()) throw new BadRequestException('`sim` query parameter is required.');
+    if (!iterationNo.trim()) throw new BadRequestException('`iteration_no` query parameter is required.');
     if (!/^\d+$/.test(iterationNo)) throw new BadRequestException('`iteration_no` must be a numeric string.');
     if (outcome && outcome !== 'Hit' && outcome !== 'No-Hit') throw new BadRequestException('`outcome` must be "Hit" or "No-Hit".');
     return await this.simulationService.getSimulationResults(

@@ -13,8 +13,8 @@ const mockGetTxtpVersionsTrigger = jest.fn();
 jest.mock('../../../../src/redux/Api/Config', () => ({
     useGetTypesQuery: jest.fn(() => ({
         data: [
-            { transaction_type: 'pacs.002.001.10', endpoint_path: '' },
-            { transaction_type: 'pain.001.001.09', endpoint_path: '' },
+            { transaction_type: 'pacs.002.001.10', endpoint_path: '/path/pacs' },
+            { transaction_type: 'pain.001.001.09', endpoint_path: '/path/pain' },
         ],
         isLoading: false,
         error: undefined,
@@ -145,8 +145,8 @@ describe('useOverviewController', () => {
         const { useGetTypesQuery } = require('../../../../src/redux/Api/Config');
         useGetTypesQuery.mockReturnValue({
             data: [
-                { transaction_type: 'pacs.002.001.10', endpoint_path: '' },
-                { transaction_type: 'pain.001.001.09', endpoint_path: '' },
+                { transaction_type: 'pacs.002.001.10', endpoint_path: '/path/pacs' },
+                { transaction_type: 'pain.001.001.09', endpoint_path: '/path/pain' },
             ],
             isLoading: false,
             error: undefined,

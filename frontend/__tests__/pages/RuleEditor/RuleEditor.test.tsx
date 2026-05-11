@@ -60,12 +60,10 @@ jest.mock('../../../src/contexts/TabContext/TabProvider', () => ({
 }));
 
 jest.mock('../../../src/contexts/TabContext/useTab', () => ({
-  useTab: () => ({
+  useTab: jest.fn(() => ({
     tabs: [],
     selectedTab: 0,
-    enableNextTab: jest.fn(),
-    enablePreviousTab: jest.fn(),
-  }),
+  })),
 }));
 
 jest.mock('../../../src/components/Wrappers/BoxWrapper', () => ({

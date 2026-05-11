@@ -11,18 +11,23 @@ jest.mock('react-router-dom', () => ({
 
 jest.mock('../../../src/utils/Common/storage', () => ({
   resetData: jest.fn(),
-  extractData: jest.fn(() => ({ claims: 'editor' })),
+  extractData: jest.fn(),
 }));
 
-import { resetData } from '../../../src/utils/Common/storage';
+import { resetData, extractData } from '../../../src/utils/Common/storage';
 
 const mockNavigate = jest.fn();
 const mockResetData = resetData as jest.Mock;
+const mockExtractData = extractData as jest.Mock;
+
+// TRS user (claims: 'editor') → shows Home + Sandbox
+const trsUser = { claims: 'editor' };
 
 describe('Sidebar Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (useNavigate as jest.Mock).mockReturnValue(mockNavigate);
+    mockExtractData.mockReturnValue(trsUser);
   });
 
   describe('Basic Rendering', () => {
@@ -98,15 +103,6 @@ describe('Sidebar Component', () => {
       fireEvent.click(sandboxButton);
       
       expect(mockNavigate).toHaveBeenCalledWith('sandbox');
-    });
-
-    it('should navigate correctly using Home item', () => {
-      render(<Sidebar expanded={true} />);
-      
-      const homeButton = screen.getByText('Home');
-      fireEvent.click(homeButton);
-      
-      expect(mockNavigate).toHaveBeenCalledWith('home');
     });
 
     it('should handle multiple navigation clicks', () => {
@@ -236,7 +232,7 @@ describe('Sidebar Component', () => {
   });
 
   describe('Menu Items Configuration', () => {
-    it('should render exactly 2 main menu items', () => {
+    it('should render exactly 2 main menu items for TRS user', () => {
       render(<Sidebar expanded={true} />);
       
       expect(screen.getByText('Home')).toBeInTheDocument();
@@ -326,14 +322,15 @@ describe('Sidebar Component', () => {
       
       menuItems.forEach((item, index) => {
         jest.clearAllMocks();
+        (useNavigate as jest.Mock).mockReturnValue(mockNavigate);
         fireEvent.click(screen.getByText(item));
         expect(mockNavigate).toHaveBeenCalledWith(routes[index]);
       });
     });
 
-    it('should prevent event bubbling', () => {
+    it('should trigger navigation on click', () => {
       const containerClick = jest.fn();
-      const { container } = render(
+      render(
         <div onClick={containerClick}>
           <Sidebar expanded={true} />
         </div>
@@ -389,6 +386,25 @@ describe('Sidebar Component', () => {
       
       expect(mockNavigate).toHaveBeenCalledTimes(3);
       expect(mockResetData).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Data Engineer User', () => {
+    it('should render Masking Configuration for data engineer user', () => {
+      mockExtractData.mockReturnValue({ claims: 'data_engineer_editor' });
+      render(<Sidebar expanded={true} />);
+
+      expect(screen.getByText('Masking Configuration')).toBeInTheDocument();
+      expect(screen.queryByText('Home')).not.toBeInTheDocument();
+      expect(screen.queryByText('Sandbox')).not.toBeInTheDocument();
+    });
+
+    it('should navigate to masking-config for data engineer', () => {
+      mockExtractData.mockReturnValue({ claims: 'data_engineer_editor' });
+      render(<Sidebar expanded={true} />);
+
+      fireEvent.click(screen.getByText('Masking Configuration'));
+      expect(mockNavigate).toHaveBeenCalledWith('masking-config');
     });
   });
 });

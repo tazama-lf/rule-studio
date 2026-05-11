@@ -14,9 +14,9 @@ interface DebuggerProps {
     onClear?: () => void;
 }
 
-const Debugger: React.FC<DebuggerProps> = ({
+const Debugger = ({
     logs,
-}) => {
+}: DebuggerProps) => {
     const scrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
