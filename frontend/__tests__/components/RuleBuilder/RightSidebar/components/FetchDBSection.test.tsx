@@ -8,17 +8,6 @@ import FetchDBSection from '../../../../../src/components/RuleBuilder/RightSideb
 const mockExecuteQuery = jest.fn();
 const mockCloseResults = jest.fn();
 const mockClearError = jest.fn();
-const mockUseQueryExecution = jest.fn(() => ({
-  executeQuery: mockExecuteQuery,
-  closeResults: mockCloseResults,
-  clearError: mockClearError,
-  isExecuting: false,
-  queryResults: [] as unknown[],
-  totalCount: 0,
-  displayCount: 0,
-  executionError: null as string | null,
-  resultsModalOpen: false,
-}));
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -27,8 +16,12 @@ jest.mock('react-router-dom', () => ({
 
 jest.mock('../../../../../src/hooks/RuleBuilder', () => ({
   useVariableData: jest.fn(() => ({ variables: [] })),
-  useQueryExecution: mockUseQueryExecution,
+  useQueryExecution: jest.fn(),
 }));
+
+// Get mock reference after jest.mock hoisting completes
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const mockUseQueryExecution = require('../../../../../src/hooks/RuleBuilder').useQueryExecution as jest.Mock;
 
 jest.mock('../../../../../src/utils/cursorPreservation', () => ({
   withCursorPreservation: (fn: (e: React.ChangeEvent<HTMLInputElement>) => void) => fn,

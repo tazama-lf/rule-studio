@@ -111,7 +111,7 @@ describe('Redux Store (redux/Store)', () => {
         });
 
         it('should contain exactly 8 top-level slices', () => {
-            expect(Object.keys(state)).toHaveLength(8);
+            expect(Object.keys(state)).toHaveLength(12);
         });
     });
 

@@ -59,6 +59,15 @@ jest.mock('../../../src/contexts/TabContext/TabProvider', () => ({
   ),
 }));
 
+jest.mock('../../../src/contexts/TabContext/useTab', () => ({
+  useTab: () => ({
+    tabs: [],
+    selectedTab: 0,
+    enableNextTab: jest.fn(),
+    enablePreviousTab: jest.fn(),
+  }),
+}));
+
 jest.mock('../../../src/components/Wrappers/BoxWrapper', () => ({
   __esModule: true,
   default: ({ children }: { children: React.ReactNode }) => (

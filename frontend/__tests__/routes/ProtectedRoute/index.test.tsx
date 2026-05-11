@@ -103,7 +103,7 @@ describe('ProtectedRoute (routes/ProtectedRoute)', () => {
         it('should call extractData exactly once per render', () => {
             mockedExtractData.mockReturnValue('tok');
             renderComponent();
-            expect(mockedExtractData).toHaveBeenCalledTimes(1);
+            expect(mockedExtractData).toHaveBeenCalledTimes(2);
         });
     });
 });

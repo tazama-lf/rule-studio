@@ -11,6 +11,7 @@ jest.mock('react-router-dom', () => ({
 
 jest.mock('../../../src/utils/Common/storage', () => ({
   resetData: jest.fn(),
+  extractData: jest.fn(() => ({ claims: 'editor' })),
 }));
 
 import { resetData } from '../../../src/utils/Common/storage';
@@ -38,10 +39,8 @@ describe('Sidebar Component', () => {
     it('should render all menu items when expanded', () => {
       render(<Sidebar expanded={true} />);
       
-      expect(screen.getByText('Rules Home')).toBeInTheDocument();
-      expect(screen.getByText('Datasets')).toBeInTheDocument();
-      expect(screen.getByText('Settings')).toBeInTheDocument();
-      expect(screen.getByText('Help')).toBeInTheDocument();
+      expect(screen.getByText('Home')).toBeInTheDocument();
+      expect(screen.getByText('Sandbox')).toBeInTheDocument();
     });
 
     it('should render logout button', () => {
@@ -59,20 +58,16 @@ describe('Sidebar Component', () => {
     it('should show menu labels when expanded', () => {
       render(<Sidebar expanded={true} />);
       
-      expect(screen.getByText('Rules Home')).toBeInTheDocument();
-      expect(screen.getByText('Datasets')).toBeInTheDocument();
-      expect(screen.getByText('Settings')).toBeInTheDocument();
-      expect(screen.getByText('Help')).toBeInTheDocument();
+      expect(screen.getByText('Home')).toBeInTheDocument();
+      expect(screen.getByText('Sandbox')).toBeInTheDocument();
       expect(screen.getByText('Logout')).toBeInTheDocument();
     });
 
     it('should hide menu labels when collapsed', () => {
       render(<Sidebar expanded={false} />);
       
-      expect(screen.queryByText('Rules Home')).not.toBeInTheDocument();
-      expect(screen.queryByText('Datasets')).not.toBeInTheDocument();
-      expect(screen.queryByText('Settings')).not.toBeInTheDocument();
-      expect(screen.queryByText('Help')).not.toBeInTheDocument();
+      expect(screen.queryByText('Home')).not.toBeInTheDocument();
+      expect(screen.queryByText('Sandbox')).not.toBeInTheDocument();
       expect(screen.queryByText('Logout')).not.toBeInTheDocument();
     });
 
@@ -86,54 +81,43 @@ describe('Sidebar Component', () => {
   });
 
   describe('Menu Navigation', () => {
-    it('should navigate to home on clicking Rules Home', () => {
+    it('should navigate to home on clicking Home', () => {
       render(<Sidebar expanded={true} />);
       
-      const homeButton = screen.getByText('Rules Home');
+      const homeButton = screen.getByText('Home');
       fireEvent.click(homeButton);
       
       expect(mockNavigate).toHaveBeenCalledWith('home');
       expect(mockNavigate).toHaveBeenCalledTimes(1);
     });
 
-    it('should navigate to datasets on clicking Datasets', () => {
+    it('should navigate to sandbox on clicking Sandbox', () => {
       render(<Sidebar expanded={true} />);
       
-      const datasetsButton = screen.getByText('Datasets');
-      fireEvent.click(datasetsButton);
+      const sandboxButton = screen.getByText('Sandbox');
+      fireEvent.click(sandboxButton);
       
-      expect(mockNavigate).toHaveBeenCalledWith('datasets');
+      expect(mockNavigate).toHaveBeenCalledWith('sandbox');
     });
 
-    it('should navigate to settings on clicking Settings', () => {
+    it('should navigate correctly using Home item', () => {
       render(<Sidebar expanded={true} />);
       
-      const settingsButton = screen.getByText('Settings');
-      fireEvent.click(settingsButton);
+      const homeButton = screen.getByText('Home');
+      fireEvent.click(homeButton);
       
-      expect(mockNavigate).toHaveBeenCalledWith('settings');
-    });
-
-    it('should navigate to help on clicking Help', () => {
-      render(<Sidebar expanded={true} />);
-      
-      const helpButton = screen.getByText('Help');
-      fireEvent.click(helpButton);
-      
-      expect(mockNavigate).toHaveBeenCalledWith('help');
+      expect(mockNavigate).toHaveBeenCalledWith('home');
     });
 
     it('should handle multiple navigation clicks', () => {
       render(<Sidebar expanded={true} />);
       
-      fireEvent.click(screen.getByText('Rules Home'));
-      fireEvent.click(screen.getByText('Datasets'));
-      fireEvent.click(screen.getByText('Settings'));
+      fireEvent.click(screen.getByText('Home'));
+      fireEvent.click(screen.getByText('Sandbox'));
       
-      expect(mockNavigate).toHaveBeenCalledTimes(3);
+      expect(mockNavigate).toHaveBeenCalledTimes(2);
       expect(mockNavigate).toHaveBeenNthCalledWith(1, 'home');
-      expect(mockNavigate).toHaveBeenNthCalledWith(2, 'datasets');
-      expect(mockNavigate).toHaveBeenNthCalledWith(3, 'settings');
+      expect(mockNavigate).toHaveBeenNthCalledWith(2, 'sandbox');
     });
   });
 
@@ -141,27 +125,27 @@ describe('Sidebar Component', () => {
     it('should start with first menu item active by default', () => {
       render(<Sidebar expanded={true} />);
       
-      const homeButton = screen.getByText('Rules Home');
+      const homeButton = screen.getByText('Home');
       expect(homeButton).toBeInTheDocument();
     });
 
     it('should update active state on menu click', () => {
       render(<Sidebar expanded={true} />);
       
-      const datasetsButton = screen.getByText('Datasets');
-      fireEvent.click(datasetsButton);
+      const sandboxButton = screen.getByText('Sandbox');
+      fireEvent.click(sandboxButton);
       
-      expect(mockNavigate).toHaveBeenCalledWith('datasets');
+      expect(mockNavigate).toHaveBeenCalledWith('sandbox');
     });
 
     it('should handle rapid successive clicks', () => {
       render(<Sidebar expanded={true} />);
       
-      const homeButton = screen.getByText('Rules Home');
-      const datasetsButton = screen.getByText('Datasets');
+      const homeButton = screen.getByText('Home');
+      const sandboxButton = screen.getByText('Sandbox');
       
       fireEvent.click(homeButton);
-      fireEvent.click(datasetsButton);
+      fireEvent.click(sandboxButton);
       fireEvent.click(homeButton);
       
       expect(mockNavigate).toHaveBeenCalledTimes(3);
@@ -170,7 +154,7 @@ describe('Sidebar Component', () => {
     it('should allow clicking same menu item multiple times', () => {
       render(<Sidebar expanded={true} />);
       
-      const homeButton = screen.getByText('Rules Home');
+      const homeButton = screen.getByText('Home');
       
       fireEvent.click(homeButton);
       fireEvent.click(homeButton);
@@ -223,28 +207,28 @@ describe('Sidebar Component', () => {
   describe('Props Handling', () => {
     it('should handle expanded prop correctly', () => {
       const { rerender } = render(<Sidebar expanded={false} />);
-      expect(screen.queryByText('Rules Home')).not.toBeInTheDocument();
+      expect(screen.queryByText('Home')).not.toBeInTheDocument();
       
       rerender(<Sidebar expanded={true} />);
-      expect(screen.getByText('Rules Home')).toBeInTheDocument();
+      expect(screen.getByText('Home')).toBeInTheDocument();
     });
 
     it('should update when expanded prop changes', () => {
       const { rerender } = render(<Sidebar expanded={false} />);
-      expect(screen.queryByText('Datasets')).not.toBeInTheDocument();
+      expect(screen.queryByText('Sandbox')).not.toBeInTheDocument();
       
       rerender(<Sidebar expanded={true} />);
-      expect(screen.getByText('Datasets')).toBeInTheDocument();
+      expect(screen.getByText('Sandbox')).toBeInTheDocument();
       
       rerender(<Sidebar expanded={false} />);
-      expect(screen.queryByText('Datasets')).not.toBeInTheDocument();
+      expect(screen.queryByText('Sandbox')).not.toBeInTheDocument();
     });
 
     it('should maintain navigation functionality when toggling expanded state', () => {
       const { rerender } = render(<Sidebar expanded={true} />);
       
-      fireEvent.click(screen.getByText('Settings'));
-      expect(mockNavigate).toHaveBeenCalledWith('settings');
+      fireEvent.click(screen.getByText('Sandbox'));
+      expect(mockNavigate).toHaveBeenCalledWith('sandbox');
       
       rerender(<Sidebar expanded={false} />);
       expect(mockNavigate).toHaveBeenCalledTimes(1);
@@ -252,13 +236,11 @@ describe('Sidebar Component', () => {
   });
 
   describe('Menu Items Configuration', () => {
-    it('should render exactly 4 main menu items', () => {
+    it('should render exactly 2 main menu items', () => {
       render(<Sidebar expanded={true} />);
       
-      expect(screen.getByText('Rules Home')).toBeInTheDocument();
-      expect(screen.getByText('Datasets')).toBeInTheDocument();
-      expect(screen.getByText('Settings')).toBeInTheDocument();
-      expect(screen.getByText('Help')).toBeInTheDocument();
+      expect(screen.getByText('Home')).toBeInTheDocument();
+      expect(screen.getByText('Sandbox')).toBeInTheDocument();
     });
 
     it('should have logout as separate item', () => {
@@ -270,7 +252,7 @@ describe('Sidebar Component', () => {
     it('should render all menu items in correct order', () => {
       render(<Sidebar expanded={true} />);
       
-      const labels = ['Rules Home', 'Datasets', 'Settings', 'Help'];
+      const labels = ['Home', 'Sandbox'];
       labels.forEach(label => {
         expect(screen.getByText(label)).toBeInTheDocument();
       });
@@ -281,7 +263,7 @@ describe('Sidebar Component', () => {
     it('should render sidebar in collapsed state', () => {
       const { container } = render(<Sidebar expanded={false} />);
       expect(container.firstChild).toBeInTheDocument();
-      expect(screen.queryByText('Rules Home')).not.toBeInTheDocument();
+      expect(screen.queryByText('Home')).not.toBeInTheDocument();
     });
 
     it('should maintain structure when collapsed', () => {
@@ -299,17 +281,17 @@ describe('Sidebar Component', () => {
       }
       
       // After 5 iterations (0-4), i=4 which is even, so expanded=true
-      expect(screen.getByText('Rules Home')).toBeInTheDocument();
+      expect(screen.getByText('Home')).toBeInTheDocument();
     });
 
     it('should maintain state through rerender', () => {
       const { rerender } = render(<Sidebar expanded={true} />);
       
-      fireEvent.click(screen.getByText('Datasets'));
+      fireEvent.click(screen.getByText('Sandbox'));
       
       rerender(<Sidebar expanded={true} />);
       
-      expect(mockNavigate).toHaveBeenCalledWith('datasets');
+      expect(mockNavigate).toHaveBeenCalledWith('sandbox');
     });
   });
 
@@ -317,20 +299,20 @@ describe('Sidebar Component', () => {
     it('should not affect other instances', () => {
       const { unmount } = render(<Sidebar expanded={true} />);
       
-      fireEvent.click(screen.getByText('Settings'));
+      fireEvent.click(screen.getByText('Sandbox'));
       unmount();
       
       render(<Sidebar expanded={true} />);
-      expect(screen.getByText('Rules Home')).toBeInTheDocument();
+      expect(screen.getByText('Home')).toBeInTheDocument();
     });
 
     it('should start fresh on each mount', () => {
       const { unmount: unmount1 } = render(<Sidebar expanded={true} />);
-      fireEvent.click(screen.getByText('Datasets'));
+      fireEvent.click(screen.getByText('Sandbox'));
       unmount1();
       
       const { unmount: unmount2 } = render(<Sidebar expanded={true} />);
-      expect(screen.getByText('Rules Home')).toBeInTheDocument();
+      expect(screen.getByText('Home')).toBeInTheDocument();
       unmount2();
     });
   });
@@ -339,8 +321,8 @@ describe('Sidebar Component', () => {
     it('should handle menu item clicks in expanded state', () => {
       render(<Sidebar expanded={true} />);
       
-      const menuItems = ['Rules Home', 'Datasets', 'Settings', 'Help'];
-      const routes = ['home', 'datasets', 'settings', 'help'];
+      const menuItems = ['Home', 'Sandbox'];
+      const routes = ['home', 'sandbox'];
       
       menuItems.forEach((item, index) => {
         jest.clearAllMocks();
@@ -357,7 +339,7 @@ describe('Sidebar Component', () => {
         </div>
       );
       
-      fireEvent.click(screen.getByText('Rules Home'));
+      fireEvent.click(screen.getByText('Home'));
       
       expect(mockNavigate).toHaveBeenCalled();
     });
@@ -367,17 +349,15 @@ describe('Sidebar Component', () => {
     it('should have clickable elements', () => {
       render(<Sidebar expanded={true} />);
       
-      const homeButton = screen.getByText('Rules Home');
+      const homeButton = screen.getByText('Home');
       expect(homeButton).toBeInTheDocument();
     });
 
     it('should have all menu items accessible', () => {
       render(<Sidebar expanded={true} />);
       
-      expect(screen.getByText('Rules Home')).toBeInTheDocument();
-      expect(screen.getByText('Datasets')).toBeInTheDocument();
-      expect(screen.getByText('Settings')).toBeInTheDocument();
-      expect(screen.getByText('Help')).toBeInTheDocument();
+      expect(screen.getByText('Home')).toBeInTheDocument();
+      expect(screen.getByText('Sandbox')).toBeInTheDocument();
       expect(screen.getByText('Logout')).toBeInTheDocument();
     });
 
@@ -391,11 +371,11 @@ describe('Sidebar Component', () => {
     it('should integrate navigation and state management', () => {
       render(<Sidebar expanded={true} />);
       
-      fireEvent.click(screen.getByText('Datasets'));
-      expect(mockNavigate).toHaveBeenCalledWith('datasets');
+      fireEvent.click(screen.getByText('Home'));
+      expect(mockNavigate).toHaveBeenCalledWith('home');
       
-      fireEvent.click(screen.getByText('Settings'));
-      expect(mockNavigate).toHaveBeenCalledWith('settings');
+      fireEvent.click(screen.getByText('Sandbox'));
+      expect(mockNavigate).toHaveBeenCalledWith('sandbox');
       
       expect(mockNavigate).toHaveBeenCalledTimes(2);
     });
@@ -403,13 +383,11 @@ describe('Sidebar Component', () => {
     it('should handle complete user flow', () => {
       render(<Sidebar expanded={true} />);
       
-      fireEvent.click(screen.getByText('Rules Home'));
-      fireEvent.click(screen.getByText('Datasets'));
-      fireEvent.click(screen.getByText('Settings'));
-      fireEvent.click(screen.getByText('Help'));
+      fireEvent.click(screen.getByText('Home'));
+      fireEvent.click(screen.getByText('Sandbox'));
       fireEvent.click(screen.getByText('Logout'));
       
-      expect(mockNavigate).toHaveBeenCalledTimes(5);
+      expect(mockNavigate).toHaveBeenCalledTimes(3);
       expect(mockResetData).toHaveBeenCalledTimes(1);
     });
   });

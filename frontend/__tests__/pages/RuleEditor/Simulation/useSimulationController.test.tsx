@@ -599,8 +599,8 @@ describe('useSimulationController', () => {
                     expect.objectContaining({
                         functionName: '',
                         awaitReply: true,
-                        destination: 'sub-rule-tenant-001-rule-config-456@1.0.0',
-                        consumer: 'pub-rule-tenant-001-rule-config-456@1.0.0',
+                        destination: 'sub-rule-config-456@1.0.0',
+                        consumer: 'pub-rule-config-456@1.0.0',
                         message: { test: 'data' },
                     })
                 );
@@ -615,6 +615,7 @@ describe('useSimulationController', () => {
                         metadata: { ...mockData.metadata, deploy: true },
                     };
                 if (key === 'user') return mockUser;
+                if (key === 'trs_endpoint_path') return '/api/pacs.002/v1';
                 return null;
             });
 

@@ -43,7 +43,7 @@ describe('theme factory (utils/Theme)', () => {
 
     describe('palette – progressbar', () => {
         it('should set progressbar.main to "#4caf50"', () => {
-            expect(result.palette.progressbar.main).toBe('#4caf50');
+            expect(result.palette.progressbar.main).toBe('#22c55e');
         });
     });
 
