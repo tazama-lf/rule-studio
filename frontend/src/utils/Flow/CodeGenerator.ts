@@ -681,11 +681,17 @@ const generateExclusiveDetermineOutcomeCode = (params: Record<string, string>, i
 
   const arg1Raw = params.argument1 || params.arg1 || params.value || params.firstArgument || 'countOfMatchingAmounts';
   const arg2Raw = params.argument2 || params.arg2 || params.caseObj || params.cases || params.secondArgument || 'ruleConfig.config.cases';
+  const storeResult = params.storeResult !== 'false';
+  const resultVariable = params.resultVariable || params.resultVariableName || 'outcome';
 
   const arg1 = stripVariableIndicators(arg1Raw, mode);
   const arg2 = stripVariableIndicators(arg2Raw, mode);
-  
-  return `${indent}return exclusiveDetermineOutcome(${arg1}, ${arg2});`;
+
+  if (storeResult) {
+    return `${indent}const ${resultVariable} = exclusiveDetermineOutcome(${arg1}, ${arg2});`;
+  }
+
+  return `${indent}exclusiveDetermineOutcome(${arg1}, ${arg2});`;
 };
 
 const generateFetchDBCode = (params: Record<string, string>, indent: string, mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
