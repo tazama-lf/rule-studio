@@ -544,6 +544,48 @@ describe('generateTestCaseCode — specific node type code generators', () => {
     });
   });
 
+  describe('ExclusiveDetermineOutcome node', () => {
+    it('should store exclusiveDetermineOutcome() result by default', () => {
+      const result = single('ExclusiveDetermineOutcome', {});
+      expect(result).toContain('const outcome = exclusiveDetermineOutcome(');
+    });
+
+    it('should use argument1/argument2 when provided', () => {
+      const result = single('ExclusiveDetermineOutcome', {
+        argument1: 'unwrappedResult',
+        argument2: 'ruleConfig.config.cases',
+      });
+      expect(result).toContain('const outcome = exclusiveDetermineOutcome(unwrappedResult, ruleConfig.config.cases)');
+    });
+
+    it('should support legacy/alternate key names', () => {
+      const result = single('ExclusiveDetermineOutcome', {
+        value: 'result',
+        caseObj: 'cases',
+      });
+      expect(result).toContain('const outcome = exclusiveDetermineOutcome(result, cases)');
+    });
+
+    it('should support custom result variable name', () => {
+      const result = single('ExclusiveDetermineOutcome', {
+        argument1: 'country',
+        argument2: 'ruleConfig.config.cases',
+        resultVariable: 'myOutcome',
+      });
+      expect(result).toContain('const myOutcome = exclusiveDetermineOutcome(country, ruleConfig.config.cases)');
+    });
+
+    it('should produce bare call when storeResult is false', () => {
+      const result = single('ExclusiveDetermineOutcome', {
+        argument1: 'country',
+        argument2: 'ruleConfig.config.cases',
+        storeResult: 'false',
+      });
+      expect(result).toContain('exclusiveDetermineOutcome(country, ruleConfig.config.cases)');
+      expect(result).not.toContain('const outcome =');
+    });
+  });
+
   // ─── FetchDB ──────────────────────────────────────────────────────────────
 
   describe('FetchDB node', () => {

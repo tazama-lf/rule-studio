@@ -42,7 +42,7 @@ import {
   CREATE_MASK,
   SIMULATION_MESSAGES,
 } from '../constants/constant';
-import type { MaskingFiltersDto, MaskingListResponseDto } from './masking/dto/masking.dto';
+import type { MaskingFiltersDto, MaskingListResponseDto, UpdateMaskDto } from './masking/dto/masking.dto';
 import { ResponseQueryNodeDto } from './nodes/dto/responseNode.dto';
 import { RuleRequest } from '../services/parse-extract/dto/message.dto';
 import { SimulationLogsDto } from './simulation-logs/dto';
@@ -300,19 +300,23 @@ export class AdminServiceClient {
   }
 
   async getRuleFlow(ruleId: string, token: string, filters?: RuleFlowFilterDto): Promise<ResponseRuleFlow> {
-    return await this.executeHttpRequest<ResponseRuleFlow>(
-      'GET',
-      `${RULE_FLOW}/${ruleId}${filters && Object.keys(filters).length ? '?' + new URLSearchParams(filters as Record<string, string>).toString() : ''}`,
-      token,
-    );
+    const queryParams: Record<string, string> = {};
+    if (filters?.category) {
+      queryParams.category = filters.category.toString();
+    }
+    const queryString = Object.keys(queryParams).length ? `?${new URLSearchParams(queryParams).toString()}` : '';
+
+    return await this.executeHttpRequest<ResponseRuleFlow>('GET', `${RULE_FLOW}/${ruleId}${queryString}`, token);
   }
 
   async getRuleFlowStatus(ruleId: string, token: string, filters?: RuleFlowFilterDto): Promise<ResponseRuleFlowStatusDto> {
-    return await this.executeHttpRequest<ResponseRuleFlowStatusDto>(
-      'GET',
-      `${RULE_FLOW}/status/${ruleId}${filters && Object.keys(filters).length ? '?' + new URLSearchParams(filters as Record<string, string>).toString() : ''}`,
-      token,
-    );
+    const queryParams: Record<string, string> = {};
+    if (filters?.category) {
+      queryParams.category = filters.category.toString();
+    }
+    const queryString = Object.keys(queryParams).length ? `?${new URLSearchParams(queryParams).toString()}` : '';
+
+    return await this.executeHttpRequest<ResponseRuleFlowStatusDto>('GET', `${RULE_FLOW}/status/${ruleId}${queryString}`, token);
   }
 
   async updateRuleFlow(ruleId: string, payload: RequestSaveFlow, token: string): Promise<ResponseUpdatedRuleFlowDto> {
@@ -359,7 +363,7 @@ export class AdminServiceClient {
     return response;
   }
 
-  async updateMask(id: number, updateData: Record<string, unknown>, token: string): Promise<Record<string, unknown>> {
+  async updateMask(id: number, updateData: UpdateMaskDto | Record<string, unknown>, token: string): Promise<Record<string, unknown>> {
     return await this.executeHttpRequest<Record<string, unknown>>('PUT', `${MASKING_UPDATE}/${id}`, token, updateData);
   }
 

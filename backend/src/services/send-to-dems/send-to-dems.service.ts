@@ -9,9 +9,7 @@ import type { StartSimulationResponseDto } from './dto/send-to-dems.dto';
 export class SendToDemsService {
   private readonly logger = new Logger(SendToDemsService.name);
 
-  constructor(
-    @InjectQueue(SIMULATION_QUEUE) private readonly simulationQueue: Queue,
-  ) {}
+  constructor(@InjectQueue(SIMULATION_QUEUE) private readonly simulationQueue: Queue) {}
 
   /**
    * Enqueues a simulation job and returns a jobId immediately.

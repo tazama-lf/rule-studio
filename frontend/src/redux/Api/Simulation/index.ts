@@ -37,15 +37,15 @@ export const simulationApi = createApi({
             }),
         }),
         getReport: builder.query({
-            query: ({ branchName, ruleId }) => ({
-                url: `/api/v1/report?&ruleId=${ruleId}&branchName=${branchName}`,
+            query: ({ ruleId }) => ({
+                url: `/api/v1/report?&ruleId=${ruleId}`,
                 method: "GET",
                 responseHandler: (response) => response.text(),
             }),
         }),
         getReportStatus: builder.query({
-            query: ({ branchName, ruleId }) => ({
-                url: `/api/v1/unit-tests/status?&ruleId=${ruleId}&branchName=${branchName}`,
+            query: ({ ruleId }) => ({
+                url: `/api/v1/unit-tests/status?&ruleId=${ruleId}`,
                 method: "GET",
             }),
         }),

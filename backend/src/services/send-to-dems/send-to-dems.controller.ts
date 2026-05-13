@@ -31,11 +31,7 @@ export class SendToDemsController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Insufficient claims' })
-  async startSimulation(
-    @User() user: AuthenticatedUser,
-    @Body() body: StartSimulationDto,
-  ): Promise<StartSimulationResponseDto> {
+  async startSimulation(@User() user: AuthenticatedUser, @Body() body: StartSimulationDto): Promise<StartSimulationResponseDto> {
     return await this.sendToDemsService.enqueueSimulation(user.token.tokenString, body.tableNames);
   }
 }
-

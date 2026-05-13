@@ -62,7 +62,7 @@ export class SimulationProcessor extends WorkerHost {
             this.httpService.post(message.endpoint, message.data, {
               headers: {
                 'Content-Type': 'application/json',
-                Authorization: authHeader,
+                'Authorization': authHeader,
                 'X-Message-Id': message.messageId,
                 'X-Timestamp': message.timestamp,
               },

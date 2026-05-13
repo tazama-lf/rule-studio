@@ -98,7 +98,7 @@ export class RulesService {
 
   async createRule(ruleData: Partial<Rules>, user: AuthenticatedUser): Promise<Rules> {
     try {
-      const endpointKey = 'POST /rules/api/create' as EndpointKey;
+      const endpointKey: EndpointKey = 'POST /rules/api/create';
       const normalizedRole = this.rbacService.getNormalizedRole(user);
       if (!this.rbacService.isRole(normalizedRole)) throw new ForbiddenException('Role is not authorized to create rules');
       const tier2 = this.rbacService.getTier2({ role: normalizedRole, endpointKey });
@@ -143,7 +143,7 @@ export class RulesService {
 
   async cloneRule(ruleId: string, user: AuthenticatedUser, payload: CloneRulePayload): Promise<Rules> {
     try {
-      const endpointKey = 'POST /rules/api/clone/:ruleId' as EndpointKey;
+      const endpointKey: EndpointKey = 'POST /rules/api/clone/:ruleId';
       const normalizedRole = this.rbacService.getNormalizedRole(user);
       if (!this.rbacService.isRole(normalizedRole)) throw new ForbiddenException(`Role is not authorized to clone rule with ID ${ruleId}`);
       const numericId = Number(ruleId);
