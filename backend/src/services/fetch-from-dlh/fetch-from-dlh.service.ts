@@ -43,15 +43,15 @@ export class FetchFromDlhService {
 
       const messages = response.results.flatMap((r, i) => {
         const query = queries[i];
-        const endpoint = query?.endpoint_path
+        const endpoint = query.endpoint_path
           ? `${this.DEMS_ENDPOINT}${query.endpoint_path}`
           : this.DEMS_ENDPOINT;
-        return (r.data ?? []).map((item) => ({
+        return (r.data.map((item) => ({
           messageId: item.message_id,
           timestamp: item.credttm_ts,
           endpoint,
           data: item.document,
-        }));
+        })));
       });
 
       this.logger.log(`Mapped ${messages.length} message(s) from DLH response — enqueueing simulation`);
@@ -82,7 +82,7 @@ export class FetchFromDlhService {
 
     const types = await this.simulationService.excludedTypes(user.token.tokenString);
 
-    const existing = (types.excludedTypes ?? []).filter((item) => item.record_status === 'Exists');
+    const existing = types.excludedTypes.filter((item) => item.record_status === 'Exists');
 
     const uniqueTxtps = Array.from(
       new Map(

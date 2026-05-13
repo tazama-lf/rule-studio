@@ -1,0 +1,16 @@
+{
+  "scripts": {
+    "prepare": "husky install",
+    "lint:eslint": "npm run backend:lint:eslint && npm run frontend:lint:eslint",
+    "backend:lint:eslint": "cd backend && npm run lint",
+    "frontend:lint:eslint": "cd frontend && npm run lint",
+    "test": "npm run backend:test && npm run frontend:test",
+    "backend:test": "cd backend && npm run test",
+    "frontend:test": "cd frontend && npm run test",
+    "build": "npm run backend:build",
+    "backend:build": "cd backend && npm run build"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
+  }
+}
