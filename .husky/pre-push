@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+cd backend
+npm test

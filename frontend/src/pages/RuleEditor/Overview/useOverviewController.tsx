@@ -126,9 +126,8 @@ const useOverviewController = (props: IOverviewProps) => {
             const currentRuleConfigId = values.rule_config_id?.value;
 
             const repoBody = {
-                ruleId: currentRuleConfigId?.toString().split('@')[0],
-                ruleVersion: currentRuleConfigId?.toString().split('@')[1],
-                organization: 'psl-copilot',
+                ruleId: currentRuleConfigId?.toString().split('@')[0].toLowerCase(),
+                ruleVersion: currentRuleConfigId?.toString().split('@')[1]
             }
 
             await createRepo(repoBody).unwrap()
