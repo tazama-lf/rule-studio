@@ -1,4 +1,4 @@
-﻿import { Box, CircularProgress, Divider, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from "@mui/material";
+import { Box, CircularProgress, Divider, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
@@ -140,8 +140,6 @@ const MaskView = ({ id, onSuccess }: MaskViewProps) => {
                 </Text>
 
                 <Divider sx={{ my: 2.5 }} />
-
-                {/* Field grid */}
                 <Grid container rowSpacing={3} columnSpacing={4}>
                     <Grid size={6}>
                         <Field label="Message Type" value={mask.txtp} />

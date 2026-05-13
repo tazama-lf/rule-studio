@@ -1,4 +1,4 @@
-﻿import { Test, TestingModule } from '@nestjs/testing';
+import { Test, TestingModule } from '@nestjs/testing';
 import { AuditInterceptor } from '../../src/interceptors/audit.interceptor';
 import { ExecutionContext, CallHandler } from '@nestjs/common';
 import { firstValueFrom, of, throwError } from 'rxjs';
@@ -22,7 +22,6 @@ describe('AuditInterceptor - extended branch coverage', () => {
   });
 
   afterEach(() => jest.clearAllMocks());
-
   const buildContext = (opts: {
     method?: string;
     url?: string;
