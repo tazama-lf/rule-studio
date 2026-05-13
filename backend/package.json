@@ -43,7 +43,7 @@
     "@tazama-lf/auth-lib": "3.0.0",
     "@tazama-lf/frms-coe-lib": "0.0.1-psl.6",
     "@tazama-lf/frms-coe-startup-lib": "0.0.1-psl.5",
-    "@tazama-lf/tcs-lib": "^1.0.155",
+    "@tazama-lf/tcs-lib": "1.0.156-rc.3",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "bullmq": "^5.74.1",
