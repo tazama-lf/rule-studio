@@ -98,6 +98,9 @@
   "directories": {
     "test": "test"
   },
+  "overrides": {
+    "fast-xml-parser": "5.7.3"
+  },
   "keywords": [],
   "type": "commonjs"
 }
