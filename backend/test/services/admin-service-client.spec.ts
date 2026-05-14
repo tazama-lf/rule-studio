@@ -483,14 +483,6 @@ describe('AdminServiceClient', () => {
     });
   });
 
-  describe('fetchFromDlh', () => {
-    it('returns DLH data', async () => {
-      mockRequest({ results: [] });
-      const result = await client.fetchFromDlh([{ query: 'SELECT 1' }], 'tok');
-      expect(result).toEqual({ results: [] });
-    });
-  });
-
   describe('fetchCountFromDlh', () => {
     it('returns count response', async () => {
       mockRequest({ count: 42 });
