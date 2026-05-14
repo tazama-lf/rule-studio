@@ -8,6 +8,12 @@ jest.mock('../../src/pages/Auth/Login', () => ({ default: () => null }));
 jest.mock('../../src/pages/Home', () => ({ default: () => null }));
 jest.mock('../../src/pages/RuleEditor', () => ({ default: () => null }));
 jest.mock('../../src/pages/ComingSoon', () => ({ default: () => null }));
+jest.mock('../../src/pages/MaskingConfig', () => ({ default: () => null }));
+jest.mock('../../src/pages/CreateMask', () => ({ default: () => null }));
+jest.mock('../../src/pages/Simulation', () => ({ default: () => null }));
+jest.mock('../../src/pages/SimulationList', () => ({ default: () => null }));
+jest.mock('../../src/pages/SimulationView', () => ({ default: () => null }));
+jest.mock('../../src/pages/SimulationError', () => ({ default: () => null }));
 
 // Mock React.lazy to immediately invoke the factory — covers the lazy callback functions.
 jest.mock('react', () => {
@@ -37,8 +43,8 @@ describe('ROUTES (routes/index)', () => {
             expect(Array.isArray(ROUTES)).toBe(true);
         });
 
-        it('should export exactly 13 routes', () => {
-            expect(ROUTES).toHaveLength(13);
+        it('should export exactly 20 routes', () => {
+            expect(ROUTES).toHaveLength(20);
         });
 
         it('every route should have a "path" string', () => {
@@ -168,14 +174,14 @@ describe('ROUTES (routes/index)', () => {
             expect(publicRoutes).toHaveLength(2);
         });
 
-        it('should have exactly 11 private routes (private: true)', () => {
+        it('should have exactly 18 private routes (private: true)', () => {
             const privateRoutes = ROUTES.filter((r) => r.private);
-            expect(privateRoutes).toHaveLength(11);
+            expect(privateRoutes).toHaveLength(18);
         });
 
-        it('should have exactly 6 routes with layout: true', () => {
+        it('should have exactly 13 routes with layout: true', () => {
             const layoutRoutes = ROUTES.filter((r) => r.layout);
-            expect(layoutRoutes).toHaveLength(6);
+            expect(layoutRoutes).toHaveLength(13);
         });
 
         it('should have exactly 7 routes with layout: false', () => {

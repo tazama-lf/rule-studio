@@ -10,6 +10,7 @@ import { SIMULATION_QUEUE } from './simulation-queue.constants';
         port: parseInt(process.env.REDIS_PORT ?? '6379', 10),
         password: process.env.REDIS_PASSWORD,
       },
+      prefix: process.env.BULL_PREFIX ?? 'bull',
     }),
     BullModule.registerQueue({
       name: SIMULATION_QUEUE,

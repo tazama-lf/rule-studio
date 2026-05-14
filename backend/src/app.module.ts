@@ -12,6 +12,11 @@ import { SendToDemsModule } from './services/send-to-dems/send-to-dems.module';
 import { AuditModule } from './audit/audit.module';
 import { MaskingModule } from './services/masking/masking.module';
 import { GatewaysModule } from './gateways/gateways.module';
+import { RerunSimulationModule } from './services/rerun-simulation/rerun-simulation.module';
+import { FetchFromDlhModule } from './services/fetch-from-dlh/fetch-from-dlh.module';
+import { FetchCountModule } from './services/fetch-count/fetch-count.module';
+import { SimulationModule } from './services/simulation/simulation.module';
+import { FetchEvaluationModule } from './services/fetch-evaluation/fetch-evaluation.module';
 
 @Module({
   imports: [
@@ -26,8 +31,15 @@ import { GatewaysModule } from './gateways/gateways.module';
     SendToDemsModule,
     MaskingModule,
     GatewaysModule,
+    SimulationModule,
+    RerunSimulationModule,
+    FetchFromDlhModule,
+    FetchCountModule,
+    FetchFromDlhModule,
+    FetchCountModule,
+    FetchEvaluationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

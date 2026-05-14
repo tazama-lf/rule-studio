@@ -69,6 +69,7 @@ const useCreateController = ({ mode, maskData }: CreateControllerProps = {}) => 
             if (txtpVersion) {
                 setValue('txtpVersion', { label: txtpVersion, value: txtpVersion });
             }
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             getTxtpVersions(txtp);
 
             const updateLocalStorageMask = {

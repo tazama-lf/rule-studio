@@ -21,6 +21,11 @@ const config: Config.InitialOptions = {
     '^.+\\.ts$': 'ts-jest',
   },
 
+  // Resolve bare `src/...` imports (enabled by baseUrl: "./" in tsconfig)
+  moduleNameMapper: {
+    '^src/(.*)$': '<rootDir>/src/$1',
+  },
+
   // Load .env before all tests
   setupFiles: ['dotenv/config'],
 
@@ -45,7 +50,6 @@ const config: Config.InitialOptions = {
     '.*dto.*',
     '.*interfaces.*',
     '.*enum.*',
-    '/services/',
     '/database/',
   ],
 

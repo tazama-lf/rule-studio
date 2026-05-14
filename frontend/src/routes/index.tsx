@@ -10,6 +10,10 @@ const RuleEditor = lazy(() => import("../pages/RuleEditor"));
 const ComingSoon = lazy(() => import("../pages/ComingSoon"));
 const MaskingConfig = lazy(() => import("../pages/MaskingConfig"));
 const CreateMasking = lazy(() => import("../pages/CreateMask"));
+const Simulation = lazy(() => import("../pages/Simulation"));
+const SimulationList = lazy(() => import("../pages/SimulationList"));
+const SimulationView = lazy(() => import("../pages/SimulationView"));
+const SimulationError = lazy(() => import("../pages/SimulationError"));
 
 export const ROUTES = [
     {
@@ -123,5 +127,33 @@ export const ROUTES = [
         private: true,
         layout: true,
         roleGroup: 'data-engineer' as const,
-    }
+    },
+    {
+        path: "/simulation",
+        element: <SimulationList />,
+        private: true,
+        layout: true,
+        roleGroup: 'trs' as const,
+    },
+    {
+        path: "/simulation/view/:id",
+        element: <SimulationView />,
+        private: true,
+        layout: true,
+        roleGroup: 'trs' as const,
+    },
+    {
+        path: "/simulation/error",
+        element: <SimulationError />,
+        private: true,
+        layout: true,
+        roleGroup: 'trs' as const,
+    },
+    {
+        path: "/simulation/create",
+        element: <Simulation />,
+        private: true,
+        layout: true,
+        roleGroup: 'trs' as const,
+    },
 ];

@@ -1,7 +1,6 @@
 import ElectricBoltIcon from '@mui/icons-material/ElectricBolt';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 
-
 export const simulations = [
     {
         id: 1,
@@ -20,6 +19,329 @@ export const simulations = [
         cost: "High"
     },
 ]
+
+
+export const simulationTableData = [
+    {
+        message_id: "MSG-2026-04-27-001",
+        txtp: "pacs.008",
+        time: "10:23:15",
+        outcome: "Hit",
+        score: 87,
+        reason: "High-risk transaction pattern detected",
+        triggered_rules: [
+            { ruleId: "028@1.0.0", description: "Age classification – debtor", status: "Triggered" },
+            { ruleId: "030@1.0.0", description: "Income inconsistency check", status: "Triggered" },
+            { ruleId: "045@1.0.0", description: "Round amount detection", status: "Triggered" },
+        ],
+        triggered_typologies: [
+            {
+                name: "typology-processor@1.0.0",
+                score: 800.0,
+                rules: [
+                    { ruleId: "028@1.0.0", weight: 100.0, subRef: ".02" },
+                    { ruleId: "030@1.0.0", weight: 200.0, subRef: ".01" },
+                    { ruleId: "045@1.0.0", weight: 200.0, subRef: ".02" },
+                ],
+            },
+            { name: "typology-028@1.0.0", score: 500.0, rules: [] },
+        ],
+    },
+    {
+        message_id: "MSG-2026-04-27-002",
+        txtp: "pacs.002",
+        time: "10:24:32",
+        outcome: "No-Hit",
+        score: 12,
+        reason: "Normal transaction behavior",
+        triggered_rules: [],
+        triggered_typologies: [],
+    },
+    {
+        message_id: "MSG-2026-04-27-003",
+        txtp: "pacs.008",
+        time: "10:25:47",
+        outcome: "Hit",
+        score: 92,
+        reason: "Unusual transfer amount",
+        triggered_rules: [
+            { ruleId: "044@1.0.0", description: "Beneficiary risk scoring", status: "Triggered" },
+            { ruleId: "078@1.0.0", description: "Unusual account balance spike", status: "Triggered" },
+        ],
+        triggered_typologies: [
+            {
+                name: "typology-047@1.0.0",
+                score: 450.0,
+                rules: [
+                    { ruleId: "044@1.0.0", weight: 200.0, subRef: ".02" },
+                    { ruleId: "078@1.0.0", weight: 250.0, subRef: ".01" },
+                ],
+            },
+        ],
+    },
+    {
+        message_id: "MSG-2026-04-27-004",
+        txtp: "pain.001",
+        time: "10:26:18",
+        outcome: "No-Hit",
+        score: 8,
+        reason: "Standard payment initiation",
+        triggered_rules: [],
+        triggered_typologies: [],
+    },
+    {
+        message_id: "MSG-2026-04-27-005",
+        txtp: "pacs.008",
+        time: "10:27:55",
+        outcome: "Hit",
+        score: 95,
+        reason: "Multiple rule violations detected",
+        triggered_rules: [
+            { ruleId: "028@1.0.0", description: "Age classification – debtor", status: "Triggered" },
+            { ruleId: "030@1.0.0", description: "Income inconsistency check", status: "Triggered" },
+            { ruleId: "044@1.0.0", description: "Beneficiary risk scoring", status: "Triggered" },
+            { ruleId: "045@1.0.0", description: "Round amount detection", status: "Triggered" },
+            { ruleId: "078@1.0.0", description: "Unusual account balance spike", status: "Triggered" },
+        ],
+        triggered_typologies: [
+            {
+                name: "typology-processor@1.0.0",
+                score: 800.0,
+                rules: [
+                    { ruleId: "044@1.0.0", weight: 200.0, subRef: ".02" },
+                    { ruleId: "030@1.0.0", weight: 200.0, subRef: ".01" },
+                    { ruleId: "045@1.0.0", weight: 200.0, subRef: ".02" },
+                    { ruleId: "028@1.0.0", weight: 100.0, subRef: ".02" },
+                ],
+            },
+            { name: "typology-028@1.0.0", score: 500.0, rules: [] },
+            { name: "typology-047@1.0.0", score: 450.0, rules: [] },
+        ],
+    },
+    {
+        message_id: "MSG-2026-04-27-006",
+        txtp: "pacs.004",
+        time: "10:28:12",
+        outcome: "No-Hit",
+        score: 15,
+        reason: "Valid return transaction",
+        triggered_rules: [],
+        triggered_typologies: [],
+    },
+    {
+        message_id: "MSG-2026-04-27-007",
+        txtp: "pacs.008",
+        time: "10:29:33",
+        outcome: "Hit",
+        score: 78,
+        reason: "Velocity check triggered",
+        triggered_rules: [
+            { ruleId: "030@1.0.0", description: "Income inconsistency check", status: "Triggered" },
+            { ruleId: "045@1.0.0", description: "Round amount detection", status: "Triggered" },
+        ],
+        triggered_typologies: [
+            {
+                name: "typology-028@1.0.0",
+                score: 500.0,
+                rules: [
+                    { ruleId: "030@1.0.0", weight: 200.0, subRef: ".01" },
+                    { ruleId: "045@1.0.0", weight: 200.0, subRef: ".02" },
+                ],
+            },
+        ],
+    },
+    {
+        message_id: "MSG-2026-04-27-008",
+        txtp: "pain.001",
+        time: "10:30:45",
+        outcome: "No-Hit",
+        score: 5,
+        reason: "Low-risk customer profile",
+        triggered_rules: [],
+        triggered_typologies: [],
+    },
+    {
+        message_id: "MSG-2026-04-27-009",
+        txtp: "pacs.008",
+        time: "10:31:22",
+        outcome: "Hit",
+        score: 98,
+        reason: "Sanctioned entity match found",
+        triggered_rules: [
+            { ruleId: "028@1.0.0", description: "Age classification – debtor", status: "Triggered" },
+            { ruleId: "044@1.0.0", description: "Beneficiary risk scoring", status: "Triggered" },
+            { ruleId: "078@1.0.0", description: "Unusual account balance spike", status: "Triggered" },
+        ],
+        triggered_typologies: [
+            {
+                name: "typology-processor@1.0.0",
+                score: 750.0,
+                rules: [
+                    { ruleId: "028@1.0.0", weight: 100.0, subRef: ".02" },
+                    { ruleId: "044@1.0.0", weight: 200.0, subRef: ".02" },
+                    { ruleId: "078@1.0.0", weight: 250.0, subRef: ".01" },
+                ],
+            },
+            { name: "typology-047@1.0.0", score: 450.0, rules: [] },
+        ],
+    },
+    {
+        message_id: "MSG-2026-04-27-010",
+        txtp: "pacs.002",
+        time: "10:32:08",
+        outcome: "No-Hit",
+        score: 10,
+        reason: "Payment status report - normal",
+        triggered_rules: [],
+        triggered_typologies: [],
+    },
+    {
+        message_id: "MSG-2026-04-27-011",
+        txtp: "pacs.008",
+        time: "10:33:41",
+        outcome: "Hit",
+        score: 82,
+        reason: "Geographic risk indicator",
+        triggered_rules: [
+            { ruleId: "030@1.0.0", description: "Income inconsistency check", status: "Triggered" },
+            { ruleId: "078@1.0.0", description: "Unusual account balance spike", status: "Triggered" },
+        ],
+        triggered_typologies: [
+            {
+                name: "typology-028@1.0.0",
+                score: 400.0,
+                rules: [
+                    { ruleId: "030@1.0.0", weight: 200.0, subRef: ".01" },
+                    { ruleId: "078@1.0.0", weight: 250.0, subRef: ".01" },
+                ],
+            },
+        ],
+    },
+    {
+        message_id: "MSG-2026-04-27-012",
+        txtp: "pain.001",
+        time: "10:34:56",
+        outcome: "No-Hit",
+        score: 18,
+        reason: "Authorized merchant transaction",
+        triggered_rules: [],
+        triggered_typologies: [],
+    },
+    {
+        message_id: "MSG-2026-04-27-013",
+        txtp: "pacs.008",
+        time: "10:35:19",
+        outcome: "Hit",
+        score: 89,
+        reason: "Structuring pattern identified",
+        triggered_rules: [
+            { ruleId: "028@1.0.0", description: "Age classification – debtor", status: "Triggered" },
+            { ruleId: "044@1.0.0", description: "Beneficiary risk scoring", status: "Triggered" },
+            { ruleId: "045@1.0.0", description: "Round amount detection", status: "Triggered" },
+        ],
+        triggered_typologies: [
+            {
+                name: "typology-processor@1.0.0",
+                score: 600.0,
+                rules: [
+                    { ruleId: "028@1.0.0", weight: 100.0, subRef: ".02" },
+                    { ruleId: "044@1.0.0", weight: 200.0, subRef: ".02" },
+                    { ruleId: "045@1.0.0", weight: 200.0, subRef: ".02" },
+                ],
+            },
+        ],
+    },
+    {
+        message_id: "MSG-2026-04-27-014",
+        txtp: "pacs.004",
+        time: "10:36:27",
+        outcome: "No-Hit",
+        score: 7,
+        reason: "Legitimate refund request",
+        triggered_rules: [],
+        triggered_typologies: [],
+    },
+    {
+        message_id: "MSG-2026-04-27-015",
+        txtp: "pacs.008",
+        time: "10:37:53",
+        outcome: "No-Hit",
+        score: 22,
+        reason: "Within normal thresholds",
+        triggered_rules: [],
+        triggered_typologies: [],
+    },
+    {
+        message_id: "MSG-2026-04-27-016",
+        txtp: "pain.001",
+        time: "10:38:14",
+        outcome: "Hit",
+        score: 75,
+        reason: "New payee - increased scrutiny",
+        triggered_rules: [
+            { ruleId: "030@1.0.0", description: "Income inconsistency check", status: "Triggered" },
+        ],
+        triggered_typologies: [
+            { name: "typology-028@1.0.0", score: 300.0, rules: [{ ruleId: "030@1.0.0", weight: 200.0, subRef: ".01" }] },
+        ],
+    },
+    {
+        message_id: "MSG-2026-04-27-017",
+        txtp: "pacs.008",
+        time: "10:39:02",
+        outcome: "No-Hit",
+        score: 14,
+        reason: "Recurring payment - verified",
+        triggered_rules: [],
+        triggered_typologies: [],
+    },
+    {
+        message_id: "MSG-2026-04-27-018",
+        txtp: "pacs.002",
+        time: "10:40:28",
+        outcome: "No-Hit",
+        score: 9,
+        reason: "Status confirmation - no issues",
+        triggered_rules: [],
+        triggered_typologies: [],
+    },
+    {
+        message_id: "MSG-2026-04-27-019",
+        txtp: "pacs.008",
+        time: "10:41:37",
+        outcome: "Hit",
+        score: 93,
+        reason: "PEP (Politically Exposed Person) match",
+        triggered_rules: [
+            { ruleId: "028@1.0.0", description: "Age classification – debtor", status: "Triggered" },
+            { ruleId: "044@1.0.0", description: "Beneficiary risk scoring", status: "Triggered" },
+            { ruleId: "078@1.0.0", description: "Unusual account balance spike", status: "Triggered" },
+        ],
+        triggered_typologies: [
+            {
+                name: "typology-processor@1.0.0",
+                score: 700.0,
+                rules: [
+                    { ruleId: "028@1.0.0", weight: 100.0, subRef: ".02" },
+                    { ruleId: "044@1.0.0", weight: 200.0, subRef: ".02" },
+                    { ruleId: "078@1.0.0", weight: 250.0, subRef: ".01" },
+                ],
+            },
+            { name: "typology-047@1.0.0", score: 450.0, rules: [] },
+        ],
+    },
+    {
+        message_id: "MSG-2026-04-27-020",
+        txtp: "pain.001",
+        time: "10:42:55",
+        outcome: "No-Hit",
+        score: 11,
+        reason: "Established customer relationship",
+        triggered_rules: [],
+        triggered_typologies: [],
+    },
+];
+
 
 export const sampleRuleRequest = {
     "transaction": {
@@ -258,7 +580,12 @@ export const SimulationTabs = [
         label: 'New Simulation',
         value: 'new_simulation',
         enabled: false
-    }
+    },
+    {
+        label: 'Execution',
+        value: 'evaluation',
+        enabled: false
+    },
 ]
 
 

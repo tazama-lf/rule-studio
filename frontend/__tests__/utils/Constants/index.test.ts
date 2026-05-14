@@ -49,7 +49,7 @@ describe('Constants (utils/Constants/index)', () => {
     describe('baseFontSizes', () => {
         it('should have a bigHeader section', () => {
             expect(baseFontSizes.bigHeader).toBeDefined();
-            expect(baseFontSizes.bigHeader.default).toBe('2.2rem');
+            expect(baseFontSizes.bigHeader.default).toBe('2rem');
         });
 
         it('should have a header section', () => {

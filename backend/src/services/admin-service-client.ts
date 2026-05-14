@@ -28,7 +28,7 @@ import {
   CONFIG_TRANSACTION_TYPES,
   CONFIG_PAYLOAD,
   CONFIG,
-  ACTIVE_NETWORK_MAP,
+  NETWORK_MAP_LIST,
   CREATE_NODES,
   QUERY_NODES,
   RULE,
@@ -39,16 +39,29 @@ import {
   MASKING_ALL,
   MASKING_UPDATE,
   MASKING_REVIEW,
+  MASKING_ACTIVE_CONFIGS,
   CREATE_MASK,
   SIMULATION_MESSAGES,
+  SIMULATION_ALL,
+  SIMULATION_CREATE,
+  SIMULATION_STATS,
+  SIMULATION_RESULTS,
+  SIMULATION_ITEMS,
+  EXCLUDED_TYPES,
+  STAGE_SIMULATION_ITEMS,
+  GET_ALL_EVALUATIONS,
+  FETCH_COUNT_DLH,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto, UpdateMaskDto } from './masking/dto/masking.dto';
+import type { SimulationListResponseDto, CreateSimulationDto, CreateSimulationResponseDto, SimulationStatsDto, SimulationResultsResponseDto, ExcludedTypeProps } from './simulation/dto/simulation.dto';
 import { ResponseQueryNodeDto } from './nodes/dto/responseNode.dto';
 import { RuleRequest } from '../services/parse-extract/dto/message.dto';
 import { SimulationLogsDto } from './simulation-logs/dto';
 import { ISimulationLog } from './simulation-logs/interface/simulation-logs.interface';
 import { CreateMaskDto } from './masking/dto/mask.dto';
+import { EvaluationRow } from './fetch-evaluation/dto/fetch-evaluation.dto';
 import { TransactionTypeDto } from './config/dto/config.dto';
+import { DlhCountDataDto, DlhCountResponse } from './fetch-from-dlh/dto/fetch-from-dlh.dto';
 
 export interface SimulationMessage {
   messageId: string;
@@ -222,9 +235,15 @@ export class AdminServiceClient {
 
   async getActiveNetworkMap(token: string): Promise<Record<string, unknown>> {
     const response = await this.executeHttpRequest<{
-      networkMap: Record<string, unknown>;
-    }>('GET', ACTIVE_NETWORK_MAP, token);
-    return response.networkMap;
+      data: Array<Record<string, unknown>>;
+      meta: { total: number; limit: number; offset: number };
+    }>('GET', NETWORK_MAP_LIST, token, undefined, { 'filters[active]': 'true', limit: '1' });
+
+    if (response.data.length === 0) {
+      throw new HttpException('No active network map found', HttpStatus.NOT_FOUND);
+    }
+
+    return response.data[0];
   }
 
   async getConfigPayloadByTxTp(transactionType: string, transactionVersion: string, token: string): Promise<Record<string, unknown>> {
@@ -390,4 +409,91 @@ export class AdminServiceClient {
     }>('GET', SIMULATION_MESSAGES, token, undefined, { tableName });
     return response.messages;
   }
+
+  async getAllSimulations(offset: number, limit: number, token: string): Promise<SimulationListResponseDto> {
+    return await this.executeHttpRequest<SimulationListResponseDto>('GET', `${SIMULATION_ALL}/${offset}/${limit}`, token);
+  }
+
+  async createSimulation(body: CreateSimulationDto, token: string): Promise<CreateSimulationResponseDto> {
+    return await this.executeHttpRequest<CreateSimulationResponseDto>('POST', SIMULATION_CREATE, token, body);
+  }
+
+  async getExcludedTypes(token: string): Promise<ExcludedTypeProps> {
+    return await this.executeHttpRequest<ExcludedTypeProps>('GET', EXCLUDED_TYPES, token);
+  }
+
+  async getSimulationStats(sim: string, iterationNo: string, token: string): Promise<SimulationStatsDto> {
+    return await this.executeHttpRequest<SimulationStatsDto>(
+      'GET',
+      SIMULATION_STATS,
+      token,
+      undefined,
+      { sim, iteration_no: iterationNo },
+    );
+  }
+
+  async getSimulationResults(sim: string, iterationNo: string, limit: number, offset: number, token: string, filters: { msg_id?: string; msg_type?: string; outcome?: string } = {}): Promise<SimulationResultsResponseDto> {
+    const params: Record<string, string> = { sim, iteration_no: iterationNo, limit: String(limit), offset: String(offset) };
+    if (filters.msg_id) params.msg_id = filters.msg_id;
+    if (filters.msg_type) params.msg_type = filters.msg_type;
+    if (filters.outcome) params.outcome = filters.outcome;
+    return await this.executeHttpRequest<SimulationResultsResponseDto>(
+      'GET',
+      SIMULATION_RESULTS,
+      token,
+      undefined,
+      params,
+    );
+  }
+
+  async stageSimulationItems(items: Array<Record<string, unknown>>, token: string): Promise<{ tableName: string | null }> {
+    return await this.executeHttpRequest('POST', STAGE_SIMULATION_ITEMS, token, items);
+  }
+  async fetchCountFromDlh(data: DlhCountDataDto, token: string): Promise<DlhCountResponse> {
+    return await this.executeHttpRequest('POST', FETCH_COUNT_DLH, token, data.data);
+  }
+
+  async fetchMaskingConfig(token: string): Promise<Record<string, unknown>> {
+    return await this.executeHttpRequest('GET', '/v1/admin/trs/masking/all-fetch', token);
+  }
+
+  async fetchActiveMaskingConfigs(
+    tuples: Array<{ tenant_id: string; txtp: string; txtp_version: string }>,
+    token: string,
+  ): Promise<Array<{ tenant_id: string; txtp: string; txtp_version: string, endpoint_path: string }>> {
+    const response = await this.executeHttpRequest<{ masks: Array<{ tenant_id: string; txtp: string; txtp_version: string, endpoint_path: string }> }>(
+      'POST',
+      MASKING_ACTIVE_CONFIGS,
+      token,
+      tuples,
+    );
+    return response.masks;
+  }
+  async getAllEvaluations(token: string): Promise<{ message: string; data: EvaluationRow[] }> {
+    return await this.executeHttpRequest<{ message: string; data: EvaluationRow[] }>('GET', GET_ALL_EVALUATIONS, token);
+  }
+
+  async saveEvaluationsInResultsTable(token: string, evaluations: EvaluationRow[], tableName?: string): Promise<{ message: string }> {
+    return await this.executeHttpRequest<{ message: string }>('POST', '/v1/admin/trs/evaluations/save', token, { evaluations, tableName });
+  }
+
+  async truncateEvaluationData(token: string): Promise<{ message: string }> {
+    return await this.executeHttpRequest<{ message: string }>('DELETE', '/v1/dlh/truncate-evaluations', token);
+  }
+
+  async saveRecordInTrsSimulation(simulationData: { simulationId: string | undefined; totalRecord: number; recordProcessed: number; simStatus: string; tenantId: string }, token: string): Promise<{ message: string }> {
+    return await this.executeHttpRequest<{ message: string }>('POST', '/v1/admin/trs-simulation/save', token, simulationData);
+  }
+
+  async getSimulationItems(token: string, tableName: string): Promise<Array<{ payload: Record<string, unknown>; endpointPath: string | null; credttm: string | null; tenantId: string | null; msgid: string | null }>> {
+    const response = await this.executeHttpRequest<{ items: Array<{ payload: Record<string, unknown>; endpointPath: string | null; credttm: string | null; tenantId: string | null; msgid: string | null }> }>(
+      'GET',
+      SIMULATION_ITEMS,
+      token,
+      undefined,
+      { tableName },
+    );
+    return response.items;
+  }
+
 }

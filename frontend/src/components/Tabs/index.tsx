@@ -2,6 +2,7 @@ import { memo } from "react";
 import { useTab } from "../../contexts/TabContext/useTab";
 import { useMaskingTab } from "../../contexts/MaskingTabContext/useMaskingTab";
 import * as S from './Tabs.styles';
+import { useSimulationTab } from "../../contexts/SimulationTabContext";
 
 export type TabItem = {
     label: string;
@@ -10,7 +11,7 @@ export type TabItem = {
 };
 
 interface TabsProps {
-    variant?: 'default' | 'masking';
+    variant?: 'default' | 'masking' | 'simulation';
 }
 
 const TabList = ({ tabs, selected }: { tabs: TabItem[]; selected: string }) => (
@@ -39,8 +40,17 @@ const MaskingTabs = () => {
     return <TabList tabs={tabs} selected={selectedTab} />;
 };
 
+const SimulationTabs = () => {
+    const { tabs, selectedTab } = useSimulationTab();
+    return <TabList tabs={tabs} selected={selectedTab} />;
+};
+
 const Tabs = ({ variant = 'default' }: TabsProps) => {
-    if (variant === 'masking') return <MaskingTabs />;
+    if (variant === 'masking') {
+        return <MaskingTabs />
+    } else if (variant === 'simulation') {
+        return <SimulationTabs />
+    };
     return <DefaultTabs />;
 };
 

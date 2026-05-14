@@ -4,7 +4,7 @@
     "backend:lint:eslint": "cd backend && npm ci && npm run lint",
     "frontend:lint:eslint": "cd frontend && npm ci && npm run lint",
     "test": "npm run backend:test && npm run frontend:test",
-    "backend:test": "cd backend && npm ci && npx prisma generate && npm run test",
+    "backend:test": "cd backend && npm ci && npm run test",
     "frontend:test": "cd frontend && npm ci && npm run test",
     "build": "npm run backend:build",
     "backend:build": "cd backend && npm ci && npm run build"
