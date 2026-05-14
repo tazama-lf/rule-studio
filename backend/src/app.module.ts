@@ -12,7 +12,6 @@ import { SendToDemsModule } from './services/send-to-dems/send-to-dems.module';
 import { AuditModule } from './audit/audit.module';
 import { MaskingModule } from './services/masking/masking.module';
 import { GatewaysModule } from './gateways/gateways.module';
-import { RuleSimulationModule } from './services/rule-simulation/rule-simulation.module';
 import { RerunSimulationModule } from './services/rerun-simulation/rerun-simulation.module';
 import { FetchFromDlhModule } from './services/fetch-from-dlh/fetch-from-dlh.module';
 import { FetchCountModule } from './services/fetch-count/fetch-count.module';

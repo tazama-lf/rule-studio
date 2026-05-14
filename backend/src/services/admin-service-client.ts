@@ -463,7 +463,7 @@ export class AdminServiceClient {
       token,
       tuples,
     );
-    return response.masks ?? [];
+    return response.masks;
   }
   async getAllEvaluations(token: string): Promise<{ message: string; data: EvaluationRow[] }> {
     return await this.executeHttpRequest<{ message: string; data: EvaluationRow[] }>('GET', GET_ALL_EVALUATIONS, token);
@@ -474,7 +474,7 @@ export class AdminServiceClient {
   }
 
   async truncateEvaluationData(token: string): Promise<{ message: string }> {
-    return await this.executeHttpRequest<{ message: string }>('GET', `/v1/dlh/truncate-evaluations`, token);
+    return await this.executeHttpRequest<{ message: string }>('GET', '/v1/dlh/truncate-evaluations', token);
   }
 
   async saveRecordInTrsSimulation(simulationData: { simulationId: string | undefined; totalRecord: number; recordProcessed: number; simStatus: string; tenantId: string }, token: string): Promise<{ message: string }> {

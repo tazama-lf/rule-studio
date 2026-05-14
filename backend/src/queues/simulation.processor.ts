@@ -123,7 +123,7 @@ export class SimulationProcessor extends WorkerHost {
         try {
           this.logger.debug(`Job ${jobId}: sending message ${message.messageId} → ${message.endpoint}`);
           // removing DataCache from the payload before sendin
-          const { DataCache: _dc, ...payload } = message.data as Record<string, unknown>;
+          const { DataCache: _dc, ...payload } = message.data;
 
           // eslint-disable-next-line no-await-in-loop -- Sequential delivery required to preserve message order
           await firstValueFrom(

@@ -12,6 +12,6 @@ export class RerunSimulationController {
     @Body() body: RerunSimulationRequestDto,
     @Headers('authorization') authorization: string,
   ): Promise<RerunSimulationResponseDto> {
-    return this.rerunSimulationService.rerunSimulation(body.tableName, authorization);
+    return await this.rerunSimulationService.rerunSimulation(body.tableName, authorization);
   }
 }

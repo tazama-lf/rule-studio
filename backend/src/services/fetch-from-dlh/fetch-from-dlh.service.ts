@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
-import { EndpointKey, RbacService } from 'src/utils/rbac/rbacHelper';
+import { RbacService } from 'src/utils/rbac/rbacHelper';
 import { DEMS_BASE_URL, DLH_BASE_URL } from '../../constants/constant';
 import { AdminServiceClient } from '../admin-service-client';
 import { AuthenticatedUser } from '../auth/auth.types';
@@ -7,7 +7,7 @@ import { SendToDemsService } from '../send-to-dems/send-to-dems.service';
 import type { DlhCountDto, DlhCountResponse, FetchFromDlhQueryDto, FetchFromDlhResponseDto } from './dto/fetch-from-dlh.dto';
 import { SimulationService } from '../simulation/simulation.service';
 
-type DlhItem = { message_id: string; credttm_ts: string; document: Record<string, unknown> };
+interface DlhItem { message_id: string; credttm_ts: string; document: Record<string, unknown> };
 
 interface DlhPageResponse {
   items: DlhItem[];
@@ -34,48 +34,57 @@ export class FetchFromDlhService {
   private readonly DLH_ENDPOINT = `${DLH_BASE_URL}/extract/page`;
 
   private async fetchAllFromDlh(queries: FetchFromDlhQueryDto[], tenantId: string, token: string): Promise<DlhItem[]> {
-    const allItems: DlhItem[] = [];
+    // Fetch all queries concurrently; within each query, fetch page 1 first to learn
+    // the total page count, then fetch all remaining pages concurrently as well.
+    const results = await Promise.all(
+      queries.map(async (query) => {
+        const body = { txtp: query.txtp, mask_fields: query.mask_fields, startDtTm: query.startDtTm, endDtTm: query.endDtTm, tenantId, limit: this.limit };
 
-    for (const query of queries) {
-      const body = { txtp: query.txtp, mask_fields: query.mask_fields, startDtTm: query.startDtTm, endDtTm: query.endDtTm, tenantId, limit: this.limit };
-
-      // First call to page 1 to determine total number of pages
-      const firstResponse = await fetch(`${this.DLH_ENDPOINT}?page=1&size=${this.PAGE_SIZE}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(body),
-      });
-
-      if (!firstResponse.ok) {
-        throw new Error(`Failed to fetch data from DLH: ${firstResponse.statusText}`);
-      }
-
-      const firstResult = (await firstResponse.json()) as DlhPageResponse;
-      const totalPages = firstResult.pages ?? 1;
-      allItems.push(...(firstResult.items ?? []));
-
-      this.logger.log(`DLH query [${query.txtp}]: page 1/${totalPages} — ${firstResult.items?.length ?? 0} items`);
-
-      // Fetch remaining pages
-      for (let page = 2; page <= totalPages; page++) {
-        const pageResponse = await fetch(`${this.DLH_ENDPOINT}?page=${page}&size=${this.PAGE_SIZE}`, {
+        // First call to page 1 to determine total number of pages
+        const firstResponse = await fetch(`${this.DLH_ENDPOINT}?page=1&size=${this.PAGE_SIZE}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify(body),
         });
 
-        if (!pageResponse.ok) {
-          throw new Error(`Failed to fetch page ${page} from DLH: ${pageResponse.statusText}`);
+        if (!firstResponse.ok) {
+          throw new Error(`Failed to fetch data from DLH: ${firstResponse.statusText}`);
         }
 
-        const pageResult = (await pageResponse.json()) as DlhPageResponse;
-        allItems.push(...(pageResult.items ?? []));
+        const firstResult = (await firstResponse.json()) as DlhPageResponse;
+        const totalPages = firstResult.pages;
+        const queryItems: DlhItem[] = [...firstResult.items];
 
-        this.logger.log(`DLH query [${query.txtp}]: page ${page}/${totalPages} — ${pageResult.items?.length ?? 0} items`);
-      }
-    }
+        this.logger.log(`DLH query [${query.txtp}]: page 1/${totalPages} — ${firstResult.items.length} items`);
 
-    return allItems;
+        // Fetch all remaining pages concurrently
+        if (totalPages > 1) {
+          const remainingPageNumbers = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
+          const remainingItems = await Promise.all(
+            remainingPageNumbers.map(async (page) => {
+              const pageResponse = await fetch(`${this.DLH_ENDPOINT}?page=${page}&size=${this.PAGE_SIZE}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify(body),
+              });
+
+              if (!pageResponse.ok) {
+                throw new Error(`Failed to fetch page ${page} from DLH: ${pageResponse.statusText}`);
+              }
+
+              const pageResult = (await pageResponse.json()) as DlhPageResponse;
+              this.logger.log(`DLH query [${query.txtp}]: page ${page}/${totalPages} — ${pageResult.items.length} items`);
+              return pageResult.items;
+            }),
+          );
+          queryItems.push(...remainingItems.flat());
+        }
+
+        return queryItems;
+      }),
+    );
+
+    return results.flat();
   }
 
   private normalizeTxtp(s: string): string {
@@ -96,20 +105,20 @@ export class FetchFromDlhService {
     };
   }
 
-  private stageItems(rawItems: DlhItem[], rawEndpointPathByTxtp: Map<string, string | null>, tenantId: string, token: string): Promise<{ tableName: string | null }> {
+  private async stageItems(rawItems: DlhItem[], rawEndpointPathByTxtp: Map<string, string | null>, tenantId: string, token: string): Promise<{ tableName: string | null }> {
     const itemsWithEndpoint = rawItems.map((item) => {
-      const normalizedDocTxtp = this.normalizeTxtp((item.document?.TxTp as string | undefined) ?? '');
+      const normalizedDocTxtp = this.normalizeTxtp((item.document.TxTp as string | undefined) ?? '');
       const entry = [...rawEndpointPathByTxtp.entries()].find(([key]) => normalizedDocTxtp.startsWith(key));
       const endpointPath = entry?.[1] ?? null;
-      return { ...item, endpointPath, _credttm: item.credttm_ts, _tenantId: tenantId, _msgid: item.message_id } as unknown as Record<string, unknown>;
+      return { ...item, endpointPath, _credttm: item.credttm_ts, _tenantId: tenantId, _msgid: item.message_id };
     });
 
-    return this.adminServiceClient.stageSimulationItems(itemsWithEndpoint, token);
+    return await this.adminServiceClient.stageSimulationItems(itemsWithEndpoint, token);
   }
 
   private buildMessages(rawItems: DlhItem[], endpointByTxtp: Map<string, string>): Array<{ messageId: string; timestamp: string; endpoint: string; data: Record<string, unknown> }> {
     return rawItems.map((item) => {
-      const normalizedDocTxtp = this.normalizeTxtp((item.document?.TxTp as string | undefined) ?? '');
+      const normalizedDocTxtp = this.normalizeTxtp((item.document.TxTp as string | undefined) ?? '');
       const entry = [...endpointByTxtp.entries()].find(([key]) => normalizedDocTxtp.startsWith(key));
       const endpoint = entry?.[1] ?? this.DEMS_ENDPOINT;
       return {
@@ -162,7 +171,8 @@ export class FetchFromDlhService {
 
       const { jobId } = await this.enqueueSimulation(messages, tableName, tenantId, token);
 
-      return { tableName, jobId } as FetchFromDlhResponseDto;
+      const result = { tableName, jobId };
+      return result as FetchFromDlhResponseDto;
     } catch (error) {
       this.logger.error('Error fetching data from DLH', error instanceof Error ? error.stack : String(error));
       throw error;
@@ -172,7 +182,7 @@ export class FetchFromDlhService {
 
   async getCount(data: DlhCountDto, user: AuthenticatedUser): Promise<DlhCountResponse> {
     const normalizedRole = this.rbacService.getNormalizedRole(user);
-    const tier2 = this.rbacService.getTier2({ role: normalizedRole, endpointKey: 'POST /fetch-from-dlh/api/count' as EndpointKey });
+    const tier2 = this.rbacService.getTier2({ role: normalizedRole, endpointKey: 'POST /fetch-from-dlh/api/count' });
     if (!tier2.allowed) {
       throw new ForbiddenException(tier2.reason ?? 'Not authorized to access count');
     }
