@@ -7,6 +7,7 @@ import { SIMULATION_QUEUE } from './simulation-queue.constants';
 import type { SimulationJobPayload, DirectSimulationMessage } from './simulation-queue.constants';
 import { SimulationProgressGateway } from '../gateways/simulation-progress.gateway';
 import { AdminServiceClient } from '../services/admin-service-client';
+import { FetchEvaluationService } from '../services/fetch-evaluation/fetch-evaluation.service';
 import type { SimulationMessage } from '../services/admin-service-client';
 import type { ProgressUpdateDto, SimulationLogDto } from '../services/send-to-dems/dto/send-to-dems.dto';
 
@@ -24,6 +25,7 @@ export class SimulationProcessor extends WorkerHost {
     private readonly adminServiceClient: AdminServiceClient,
     private readonly httpService: HttpService,
     private readonly gateway: SimulationProgressGateway,
+    private readonly fetchEvaluationService: FetchEvaluationService,
   ) {
     super();
   }
@@ -46,7 +48,7 @@ export class SimulationProcessor extends WorkerHost {
   }
 
   async process(job: Job<SimulationJobPayload>): Promise<void> {
-    const { jobId, token, tableNames, messages: directMessages } = job.data;
+    const { jobId, token, tableNames, messages: directMessages, tableName, tenantId, totalMessages } = job.data;
     const source = directMessages ? `${directMessages.length} direct DLH messages` : `tables: ${(tableNames ?? []).join(', ')}`;
     this.logger.log(`Starting simulation job ${jobId} from ${source}`);
 
@@ -120,9 +122,12 @@ export class SimulationProcessor extends WorkerHost {
 
         try {
           this.logger.debug(`Job ${jobId}: sending message ${message.messageId} → ${message.endpoint}`);
+          // removing DataCache from the payload before sendin
+          const { DataCache: _dc, ...payload } = message.data as Record<string, unknown>;
+
           // eslint-disable-next-line no-await-in-loop -- Sequential delivery required to preserve message order
           await firstValueFrom(
-            this.httpService.post(message.endpoint, message.data, {
+            this.httpService.post(message.endpoint, payload, {
               headers: {
                 'Content-Type': 'application/json',
                 Authorization: authHeader,
@@ -149,6 +154,12 @@ export class SimulationProcessor extends WorkerHost {
 
         processed += 1;
         lastEmittedPercent = this.emitIfThreshold(jobId, processed, total, lastEmittedPercent);
+      }
+
+      
+      if (tableName) {
+        this.logger.log(`Simulation job ${jobId}: triggering evaluation cycle for table ${tableName}`);
+        await this.fetchEvaluationService.fetchEvaluation(token, tableName, tenantId, totalMessages ?? total);
       }
 
       // Always emit a final 100% completed event, regardless of where the last threshold fell

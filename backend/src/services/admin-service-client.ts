@@ -46,8 +46,10 @@ import {
   SIMULATION_CREATE,
   SIMULATION_STATS,
   SIMULATION_RESULTS,
+  SIMULATION_ITEMS,
   EXCLUDED_TYPES,
-  FETCH_FROM_DLH,
+  STAGE_SIMULATION_ITEMS,
+  GET_ALL_EVALUATIONS,
   FETCH_COUNT_DLH,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto } from './masking/dto/masking.dto';
@@ -57,8 +59,9 @@ import { RuleRequest } from '../services/parse-extract/dto/message.dto';
 import { SimulationLogsDto } from './simulation-logs/dto';
 import { ISimulationLog } from './simulation-logs/interface/simulation-logs.interface';
 import { CreateMaskDto } from './masking/dto/mask.dto';
-import { DlhCountDataDto, DlhCountResponse } from './fetch-from-dlh/dto/fetch-from-dlh.dto';
+import { EvaluationRow } from './fetch-evaluation/dto/fetch-evaluation.dto';
 import { TransactionTypeDto } from './config/dto/config.dto';
+import { DlhCountDataDto, DlhCountResponse } from './fetch-from-dlh/dto/fetch-from-dlh.dto';
 
 export interface SimulationMessage {
   messageId: string;
@@ -439,8 +442,8 @@ export class AdminServiceClient {
     );
   }
 
-  async fetchFromDlh(queries: Array<Record<string, unknown>>, token: string): Promise<Record<string, unknown>> {
-    return await this.executeHttpRequest('POST', FETCH_FROM_DLH, token, queries);
+  async stageSimulationItems(items: Array<Record<string, unknown>>, token: string): Promise<{ tableName: string | null }> {
+    return await this.executeHttpRequest('POST', STAGE_SIMULATION_ITEMS, token, items);
   }
   async fetchCountFromDlh(data: DlhCountDataDto, token: string): Promise<DlhCountResponse> {
     return await this.executeHttpRequest('POST', FETCH_COUNT_DLH, token, data.data);
@@ -460,6 +463,33 @@ export class AdminServiceClient {
       token,
       tuples,
     );
-    return response.masks;
+    return response.masks ?? [];
   }
+  async getAllEvaluations(token: string): Promise<{ message: string; data: EvaluationRow[] }> {
+    return await this.executeHttpRequest<{ message: string; data: EvaluationRow[] }>('GET', GET_ALL_EVALUATIONS, token);
+  }
+
+  async saveEvaluationsInResultsTable(token: string, evaluations: EvaluationRow[], tableName?: string): Promise<{ message: string }> {
+    return await this.executeHttpRequest<{ message: string }>('POST', '/v1/admin/trs/evaluations/save', token, { evaluations, tableName });
+  }
+
+  async truncateEvaluationData(token: string): Promise<{ message: string }> {
+    return await this.executeHttpRequest<{ message: string }>('GET', `/v1/dlh/truncate-evaluations`, token);
+  }
+
+  async saveRecordInTrsSimulation(simulationData: { simulationId: string | undefined; totalRecord: number; recordProcessed: number; simStatus: string; tenantId: string }, token: string): Promise<{ message: string }> {
+    return await this.executeHttpRequest<{ message: string }>('POST', '/v1/admin/trs-simulation/save', token, simulationData);
+  }
+
+  async getSimulationItems(token: string, tableName: string): Promise<Array<{ payload: Record<string, unknown>; endpointPath: string | null; credttm: string | null; tenantId: string | null; msgid: string | null }>> {
+    const response = await this.executeHttpRequest<{ items: Array<{ payload: Record<string, unknown>; endpointPath: string | null; credttm: string | null; tenantId: string | null; msgid: string | null }> }>(
+      'GET',
+      SIMULATION_ITEMS,
+      token,
+      undefined,
+      { tableName },
+    );
+    return response.items;
+  }
+
 }
