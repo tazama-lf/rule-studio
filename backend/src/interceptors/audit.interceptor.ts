@@ -112,38 +112,36 @@ export class AuditInterceptor implements NestInterceptor {
    * Extracts only safe, non-sensitive changed fields for update operations
    * @private
    */
+  private pickDefinedFields(body: Record<string, unknown>, keys: string[]): Record<string, unknown> {
+    const picked: Record<string, unknown> = {};
+    keys.forEach((key) => {
+      if (body[key] !== undefined) {
+        picked[key] = body[key];
+      }
+    });
+    return picked;
+  }
+
   private extractUpdateChanges(handler: string, body: unknown): Record<string, unknown> | null {
     if (!body || typeof body !== 'object') return null;
     const b = body as Record<string, unknown>;
+    const handlerFields: Partial<Record<string, string[]>> = {
+      updateRule: ['description', 'version', 'status', 'publishing_status', 'rule_type', 'txtp', 'metadata'],
+      updateRuleMetadata: ['description', 'version', 'status', 'publishing_status', 'rule_type', 'txtp', 'metadata'],
+      updateRuleFlow: ['category', 'status'],
+    };
 
-    switch (handler) {
-      case 'updateRule':
-      case 'updateRuleMetadata':
-        return {
-          ...(b.description !== undefined && { description: b.description }),
-          ...(b.version !== undefined && { version: b.version }),
-          ...(b.status !== undefined && { status: b.status }),
-          ...(b.publishing_status !== undefined && { publishing_status: b.publishing_status }),
-          ...(b.rule_type !== undefined && { rule_type: b.rule_type }),
-          ...(b.txtp !== undefined && { txtp: b.txtp }),
-          ...(b.metadata !== undefined && { metadata: b.metadata }),
-        };
-
-      case 'updateRuleStatus':
-        return {
-          status: b.status,
-          ...(b.comment !== undefined && { comment: b.comment }),
-        };
-
-      case 'updateRuleFlow':
-        return {
-          ...(b.category !== undefined && { category: b.category }),
-          ...(b.status !== undefined && { status: b.status }),
-        };
-
-      default:
-        return null;
+    if (handler === 'updateRuleStatus') {
+      return {
+        status: b.status,
+        ...this.pickDefinedFields(b, ['comment']),
+      };
     }
+
+    const keys = handlerFields[handler];
+    if (!keys) return null;
+
+    return this.pickDefinedFields(b, keys);
   }
 
   /**

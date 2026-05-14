@@ -120,7 +120,6 @@ const useSimulationController = (props: ISimulation) => {
         const rule_config_id = data?.rule_config_id
         const body = {
             ruleId: rule_config_id?.toString().split('@')[0],
-            branchName: 'staging'
         }
         getReportStatus({ ...body })
             .unwrap()

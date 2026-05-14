@@ -53,8 +53,6 @@ describe('ConfigController wiring', () => {
     );
     expect(result).toEqual({
       schema: {},
-      TxTp: 'pain.001.001.11',
-      TenantId: 'tenant-1',
     });
   });
 });

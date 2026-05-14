@@ -163,7 +163,10 @@ describe('MaskingService', () => {
       const result = await service.create(maskingWithoutVersion, user);
 
       expect(adminServiceClient.createMask).toHaveBeenCalledWith(
-        maskingWithoutVersion,
+        {
+          txtp: maskingWithoutVersion.txtp,
+          txtp_version: maskingWithoutVersion.txtpVersion,
+        },
         user.token.tokenString,
       );
       expect(result).toEqual(expectedResponse);

@@ -1,4 +1,12 @@
-import { WebSocketGateway, WebSocketServer, SubscribeMessage, MessageBody, ConnectedSocket, OnGatewayConnection, OnGatewayDisconnect } from '@nestjs/websockets';
+import {
+  WebSocketGateway,
+  WebSocketServer,
+  SubscribeMessage,
+  MessageBody,
+  ConnectedSocket,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+} from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { ProgressUpdateDto } from '../services/send-to-dems/dto/send-to-dems.dto';
@@ -6,7 +14,13 @@ import { ProgressUpdateDto } from '../services/send-to-dems/dto/send-to-dems.dto
 @WebSocketGateway({
   namespace: '/simulation',
   cors: {
-    origin: process.env.NODE_ENV === 'production' ? (process.env.ALLOWED_ORIGINS ?? '').split(',').map((o) => o.trim()).filter(Boolean) : true,
+    origin:
+      process.env.NODE_ENV === 'production'
+        ? (process.env.ALLOWED_ORIGINS ?? '')
+            .split(',')
+            .map((o) => o.trim())
+            .filter(Boolean)
+        : true,
     credentials: true,
   },
 })

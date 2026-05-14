@@ -2,7 +2,10 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsString, IsNotEmpty, ArrayMinSize } from 'class-validator';
 
 export class StartSimulationResponseDto {
-  @ApiProperty({ description: 'Unique job identifier for tracking progress via WebSocket', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
+  @ApiProperty({
+    description: 'Unique job identifier for tracking progress via WebSocket',
+    example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+  })
   jobId: string;
 }
 
