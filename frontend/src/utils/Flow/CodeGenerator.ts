@@ -1343,7 +1343,7 @@ export const generateTypeScriptCode = (
   const txnType = isPacs002 ? 'Pacs002' : 'BaseMessage';
   
   const baseImports = `import type { DatabaseManagerInstance, LoggerService, ManagerConfig } from '@tazama-lf/frms-coe-lib';
-  import type { Case, RuleConfig, RuleRequest, RuleResult } from '@tazama-lf/frms-coe-lib/lib/interfaces';${txTypeImport}`;
+  import type { Case, OutcomeResult, RuleConfig, RuleRequest, RuleResult } from '@tazama-lf/frms-coe-lib/lib/interfaces';${txTypeImport}`;
   // Pacs002 or BaseMessage import for the transaction cast
   const txCastImport = isPacs002
     ? `\nimport type { Pacs002 } from '@tazama-lf/frms-coe-lib/lib/interfaces/Pacs.002.001.12';`
