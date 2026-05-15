@@ -101,7 +101,7 @@ const FetchDBSection: React.FC<FetchDBSectionProps> = ({
 
   const isDisabled = isReadOnly || viewOnly;
 
-  const databases = ['_event_history', 'configuration', '_rawHistory', 'enrichment']; // This should ideally come from an API or config
+  const databases = ['_event_history', 'configuration', '_rawHistory', '_enrichment']; // This should ideally come from an API or config
 
   return (
     <>
