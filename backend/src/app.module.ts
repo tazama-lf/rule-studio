@@ -17,6 +17,7 @@ import { FetchFromDlhModule } from './services/fetch-from-dlh/fetch-from-dlh.mod
 import { FetchCountModule } from './services/fetch-count/fetch-count.module';
 import { SimulationModule } from './services/simulation/simulation.module';
 import { FetchEvaluationModule } from './services/fetch-evaluation/fetch-evaluation.module';
+import { DockerHubModule } from './services/dockerhub/dockerhub.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { FetchEvaluationModule } from './services/fetch-evaluation/fetch-evaluat
     FetchFromDlhModule,
     FetchCountModule,
     FetchEvaluationModule,
+    DockerHubModule,
   ],
   controllers: [AppController],
   providers: [AppService],
