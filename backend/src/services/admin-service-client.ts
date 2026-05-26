@@ -46,6 +46,7 @@ import {
   SIMULATION_CREATE,
   SIMULATION_STATS,
   SIMULATION_RESULTS,
+  SIMULATION_SUITES,
   SIMULATION_ITEMS,
   EXCLUDED_TYPES,
   STAGE_SIMULATION_ITEMS,
@@ -53,7 +54,14 @@ import {
   FETCH_COUNT_DLH,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto, UpdateMaskDto } from './masking/dto/masking.dto';
-import type { SimulationListResponseDto, CreateSimulationDto, CreateSimulationResponseDto, SimulationStatsDto, SimulationResultsResponseDto, ExcludedTypeProps } from './simulation/dto/simulation.dto';
+import type {
+  SimulationListResponseDto,
+  CreateSimulationDto,
+  CreateSimulationResponseDto,
+  SimulationStatsDto,
+  SimulationResultsResponseDto,
+  ExcludedTypeProps,
+} from './simulation/dto/simulation.dto';
 import { ResponseQueryNodeDto } from './nodes/dto/responseNode.dto';
 import { RuleRequest } from '../services/parse-extract/dto/message.dto';
 import { SimulationLogsDto } from './simulation-logs/dto';
@@ -62,6 +70,8 @@ import { CreateMaskDto } from './masking/dto/mask.dto';
 import { EvaluationRow } from './fetch-evaluation/dto/fetch-evaluation.dto';
 import { TransactionTypeDto } from './config/dto/config.dto';
 import { DlhCountDataDto, DlhCountResponse } from './fetch-from-dlh/dto/fetch-from-dlh.dto';
+import { PatchSimulationSuitesDto, SimulationSuitesDto, SimulationSuitesListDto, SimulationSuitesQueryDto } from './simulation-studio/dto';
+import type { ISimulationSuiteCreatePayload } from './simulation-studio/interface/simulation-studio.interface';
 
 export interface SimulationMessage {
   messageId: string;
@@ -237,7 +247,7 @@ export class AdminServiceClient {
     const response = await this.executeHttpRequest<{
       data: Array<Record<string, unknown>>;
       meta: { total: number; limit: number; offset: number };
-    }>('GET', NETWORK_MAP_LIST, token, undefined, { 'filters[active]': 'true', limit: '1' });
+    }>('GET', NETWORK_MAP_LIST, token, undefined, { 'filters[active]': 'true', 'limit': '1' });
 
     if (response.data.length === 0) {
       throw new HttpException('No active network map found', HttpStatus.NOT_FOUND);
@@ -423,27 +433,22 @@ export class AdminServiceClient {
   }
 
   async getSimulationStats(sim: string, iterationNo: string, token: string): Promise<SimulationStatsDto> {
-    return await this.executeHttpRequest<SimulationStatsDto>(
-      'GET',
-      SIMULATION_STATS,
-      token,
-      undefined,
-      { sim, iteration_no: iterationNo },
-    );
+    return await this.executeHttpRequest<SimulationStatsDto>('GET', SIMULATION_STATS, token, undefined, { sim, iteration_no: iterationNo });
   }
 
-  async getSimulationResults(sim: string, iterationNo: string, limit: number, offset: number, token: string, filters: { msg_id?: string; msg_type?: string; outcome?: string } = {}): Promise<SimulationResultsResponseDto> {
+  async getSimulationResults(
+    sim: string,
+    iterationNo: string,
+    limit: number,
+    offset: number,
+    token: string,
+    filters: { msg_id?: string; msg_type?: string; outcome?: string } = {},
+  ): Promise<SimulationResultsResponseDto> {
     const params: Record<string, string> = { sim, iteration_no: iterationNo, limit: String(limit), offset: String(offset) };
     if (filters.msg_id) params.msg_id = filters.msg_id;
     if (filters.msg_type) params.msg_type = filters.msg_type;
     if (filters.outcome) params.outcome = filters.outcome;
-    return await this.executeHttpRequest<SimulationResultsResponseDto>(
-      'GET',
-      SIMULATION_RESULTS,
-      token,
-      undefined,
-      params,
-    );
+    return await this.executeHttpRequest<SimulationResultsResponseDto>('GET', SIMULATION_RESULTS, token, undefined, params);
   }
 
   async stageSimulationItems(items: Array<Record<string, unknown>>, token: string): Promise<{ tableName: string | null }> {
@@ -460,13 +465,10 @@ export class AdminServiceClient {
   async fetchActiveMaskingConfigs(
     tuples: Array<{ tenant_id: string; txtp: string; txtp_version: string }>,
     token: string,
-  ): Promise<Array<{ tenant_id: string; txtp: string; txtp_version: string, endpoint_path: string }>> {
-    const response = await this.executeHttpRequest<{ masks: Array<{ tenant_id: string; txtp: string; txtp_version: string, endpoint_path: string }> }>(
-      'POST',
-      MASKING_ACTIVE_CONFIGS,
-      token,
-      tuples,
-    );
+  ): Promise<Array<{ tenant_id: string; txtp: string; txtp_version: string; endpoint_path: string }>> {
+    const response = await this.executeHttpRequest<{
+      masks: Array<{ tenant_id: string; txtp: string; txtp_version: string; endpoint_path: string }>;
+    }>('POST', MASKING_ACTIVE_CONFIGS, token, tuples);
     return response.masks;
   }
   async getAllEvaluations(token: string): Promise<{ message: string; data: EvaluationRow[] }> {
@@ -481,19 +483,62 @@ export class AdminServiceClient {
     return await this.executeHttpRequest<{ message: string }>('DELETE', '/v1/dlh/truncate-evaluations', token);
   }
 
-  async saveRecordInTrsSimulation(simulationData: { simulationId: string | undefined; totalRecord: number; recordProcessed: number; simStatus: string; tenantId: string }, token: string): Promise<{ message: string }> {
+  async saveRecordInTrsSimulation(
+    simulationData: { simulationId: string | undefined; totalRecord: number; recordProcessed: number; simStatus: string; tenantId: string },
+    token: string,
+  ): Promise<{ message: string }> {
     return await this.executeHttpRequest<{ message: string }>('POST', '/v1/admin/trs-simulation/save', token, simulationData);
   }
 
-  async getSimulationItems(token: string, tableName: string): Promise<Array<{ payload: Record<string, unknown>; endpointPath: string | null; credttm: string | null; tenantId: string | null; msgid: string | null }>> {
-    const response = await this.executeHttpRequest<{ items: Array<{ payload: Record<string, unknown>; endpointPath: string | null; credttm: string | null; tenantId: string | null; msgid: string | null }> }>(
-      'GET',
-      SIMULATION_ITEMS,
-      token,
-      undefined,
-      { tableName },
-    );
+  async getSimulationItems(
+    token: string,
+    tableName: string,
+  ): Promise<
+    Array<{
+      payload: Record<string, unknown>;
+      endpointPath: string | null;
+      credttm: string | null;
+      tenantId: string | null;
+      msgid: string | null;
+    }>
+  > {
+    const response = await this.executeHttpRequest<{
+      items: Array<{
+        payload: Record<string, unknown>;
+        endpointPath: string | null;
+        credttm: string | null;
+        tenantId: string | null;
+        msgid: string | null;
+      }>;
+    }>('GET', SIMULATION_ITEMS, token, undefined, { tableName });
     return response.items;
   }
 
+  // Endpoints for Simulation Studio
+
+  async getSimulationSuites(token: string, query: SimulationSuitesQueryDto = {}): Promise<SimulationSuitesListDto> {
+    const params: Record<string, string> = {};
+    if (query.search) params.search = query.search;
+    if (query.status) params.status = query.status;
+    if (query.rule_name) params.rule_name = query.rule_name;
+    if (query.txtp) params.txtp = query.txtp;
+    if (query.updated_from) params.updated_from = query.updated_from;
+    if (query.updated_to) params.updated_to = query.updated_to;
+    if (query.offset !== undefined) params.offset = String(query.offset);
+    if (query.limit !== undefined) params.limit = String(query.limit);
+
+    return await this.executeHttpRequest<SimulationSuitesListDto>('GET', SIMULATION_SUITES, token, undefined, params);
+  }
+
+  async getSimulationSuiteById(token: string, id: number): Promise<SimulationSuitesDto> {
+    return await this.executeHttpRequest<SimulationSuitesDto>('GET', `${SIMULATION_SUITES}/${id}`, token);
+  }
+
+  async createSimulationSuite(token: string, suite: ISimulationSuiteCreatePayload): Promise<SimulationSuitesDto> {
+    return await this.executeHttpRequest<SimulationSuitesDto>('POST', SIMULATION_SUITES, token, suite);
+  }
+
+  async patchSimulationSuite(token: string, id: number, payload: PatchSimulationSuitesDto): Promise<SimulationSuitesDto> {
+    return await this.executeHttpRequest<SimulationSuitesDto>('PATCH', `${SIMULATION_SUITES}/${id}`, token, payload);
+  }
 }
