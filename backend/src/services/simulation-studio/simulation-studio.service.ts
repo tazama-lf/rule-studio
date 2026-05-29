@@ -3,6 +3,7 @@ import { AdminServiceClient } from '../admin-service-client';
 import {
   PatchSimulationSuitesDto,
   RequestSimulationSuitesDto,
+  SimulationSuiteResponseDto,
   SimulationSuitesDto,
   SimulationSuitesListDto,
   SimulationSuitesQueryDto,
@@ -34,7 +35,7 @@ export class SimulationStudioService {
     }
   }
 
-  async getSimulationSuiteById(token: string, id: number): Promise<SimulationSuitesDto> {
+  async getSimulationSuiteById(token: string, id: number): Promise<SimulationSuiteResponseDto> {
     try {
       return await this.adminServiceClient.getSimulationSuiteById(token, id);
     } catch (err) {
@@ -68,7 +69,7 @@ export class SimulationStudioService {
     }
   }
 
-  async patchSimulationSuite(token: string, id: number, payload: PatchSimulationSuitesDto): Promise<SimulationSuitesDto> {
+  async patchSimulationSuite(token: string, id: number, payload: PatchSimulationSuitesDto): Promise<SimulationSuiteResponseDto> {
     try {
       const normalizedPayload: PatchSimulationSuitesDto = {
         name: payload.name,

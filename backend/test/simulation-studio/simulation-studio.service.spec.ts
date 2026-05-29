@@ -5,6 +5,7 @@ import { AdminServiceClient } from '../../src/services/admin-service-client';
 import type {
   PatchSimulationSuitesDto,
   RequestSimulationSuitesDto,
+  SimulationSuiteResponseDto,
   SimulationSuitesDto,
   SimulationSuitesListDto,
   SimulationSuitesQueryDto,
@@ -33,10 +34,16 @@ describe('SimulationStudioService', () => {
   };
 
   const mockList: SimulationSuitesListDto = {
+    success: true,
+    message: 'Simulation suites retrieved successfully',
     suites: [mockSuite],
     total: 1,
-    limit: 10,
-    offset: 0,
+  };
+
+  const mockSuiteResponse: SimulationSuiteResponseDto = {
+    success: true,
+    message: 'Simulation suite updated successfully',
+    suite: mockSuite,
   };
 
   beforeEach(async () => {
@@ -78,11 +85,11 @@ describe('SimulationStudioService', () => {
   });
 
   it('getSimulationSuiteById forwards token and id', async () => {
-    adminServiceClient.getSimulationSuiteById.mockResolvedValue(mockSuite);
+    adminServiceClient.getSimulationSuiteById.mockResolvedValue(mockSuiteResponse);
 
     const result = await service.getSimulationSuiteById('test-token', 101);
 
-    expect(result).toEqual(mockSuite);
+    expect(result).toEqual(mockSuiteResponse);
     expect(adminServiceClient.getSimulationSuiteById).toHaveBeenCalledWith('test-token', 101);
   });
 
@@ -118,7 +125,7 @@ describe('SimulationStudioService', () => {
       metadata: { step: 2 },
     } as PatchSimulationSuitesDto;
 
-    adminServiceClient.patchSimulationSuite.mockResolvedValue(mockSuite);
+    adminServiceClient.patchSimulationSuite.mockResolvedValue(mockSuiteResponse);
 
     await service.patchSimulationSuite('test-token', 101, patchDto);
 

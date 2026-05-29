@@ -10,6 +10,7 @@ import { Audit } from 'src/decorators/audit.decorator';
 import {
   PatchSimulationSuitesDto,
   RequestSimulationSuitesDto,
+  SimulationSuiteResponseDto,
   SimulationSuitesDto,
   SimulationSuitesListDto,
   SimulationSuitesQueryDto,
@@ -23,7 +24,7 @@ export class SimulationStudioController {
   constructor(private readonly simulationStudioService: SimulationStudioService) {}
 
   @Get('suites')
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
   @ApiQuery({ name: 'search', required: false, type: String, description: 'Search by suite name (contains, case-insensitive)' })
   @ApiQuery({ name: 'status', required: false, type: String, description: 'Filter by suite status' })
   @ApiQuery({ name: 'rule_name', required: false, type: String, description: 'Filter by associated rule name' })
@@ -45,17 +46,20 @@ export class SimulationStudioController {
   }
 
   @Get('suites/:id')
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
   @ApiParam({ name: 'id', description: 'Simulation suite id', example: 1 })
   @ApiSwagger({
     summary: 'Get simulation suite by id',
     description: 'Retrieves a simulation suite by its numeric identifier',
     responses: mergeResponses(
-      CommonResponses.SUCCESS_200(SimulationSuitesDto, 'Simulation suite retrieved successfully'),
+      CommonResponses.SUCCESS_200(SimulationSuiteResponseDto, 'Simulation suite retrieved successfully'),
       CommonResponses.NOT_FOUND_404('Simulation suite not found'),
     ),
   })
-  async getSimulationSuiteById(@Param('id', ParseIntPipe) id: number, @User() user: AuthenticatedUser): Promise<SimulationSuitesDto> {
+  async getSimulationSuiteById(
+    @Param('id', ParseIntPipe) id: number,
+    @User() user: AuthenticatedUser,
+  ): Promise<SimulationSuiteResponseDto> {
     return await this.simulationStudioService.getSimulationSuiteById(user.token.tokenString, id);
   }
 
@@ -87,7 +91,7 @@ export class SimulationStudioController {
     summary: 'Patch simulation suite',
     description: 'Updates selected fields of an existing simulation suite',
     responses: mergeResponses(
-      CommonResponses.SUCCESS_200(SimulationSuitesDto, 'Simulation suite updated successfully'),
+      CommonResponses.SUCCESS_200(SimulationSuiteResponseDto, 'Simulation suite updated successfully'),
       CommonResponses.NOT_FOUND_404('Simulation suite not found'),
     ),
   })
@@ -95,7 +99,7 @@ export class SimulationStudioController {
     @Param('id', ParseIntPipe) id: number,
     @Body() payload: PatchSimulationSuitesDto,
     @User() user: AuthenticatedUser,
-  ): Promise<SimulationSuitesDto> {
+  ): Promise<SimulationSuiteResponseDto> {
     return await this.simulationStudioService.patchSimulationSuite(user.token.tokenString, id, payload);
   }
 }

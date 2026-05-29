@@ -97,6 +97,12 @@ export class SimulationSuitesDto {
 }
 
 export class SimulationSuitesListDto {
+  @ApiProperty({ description: 'Request status flag', example: true })
+  success: boolean;
+
+  @ApiProperty({ description: 'Response message', example: 'Simulation suites retrieved successfully' })
+  message: string;
+
   @ApiProperty({ type: [SimulationSuitesDto] })
   suites: SimulationSuitesDto[];
 
@@ -104,21 +110,18 @@ export class SimulationSuitesListDto {
   @Type(() => Number)
   @IsInt()
   @Min(0)
-  total: number;
+  total?: number;
+}
 
-  @ApiProperty({ description: 'Limit used for current query', required: false, example: 10 })
-  @Type(() => Number)
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  limit?: number;
+export class SimulationSuiteResponseDto {
+  @ApiProperty({ description: 'Request status flag', example: true })
+  success: boolean;
 
-  @ApiProperty({ description: 'Offset used for current query', required: false, example: 0 })
-  @Type(() => Number)
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  offset?: number;
+  @ApiProperty({ description: 'Response message', example: 'Simulation suite updated successfully' })
+  message: string;
+
+  @ApiProperty({ type: SimulationSuitesDto })
+  suite: SimulationSuitesDto;
 }
 
 export class RequestSimulationSuitesDto {
