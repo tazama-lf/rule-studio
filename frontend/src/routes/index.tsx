@@ -14,6 +14,8 @@ const Simulation = lazy(() => import("../pages/Simulation"));
 const SimulationList = lazy(() => import("../pages/SimulationList"));
 const SimulationView = lazy(() => import("../pages/SimulationView"));
 const SimulationError = lazy(() => import("../pages/SimulationError"));
+const SimStudio = lazy(() => import("../pages/SimStudio"));
+const CreateSimSuite = lazy(() => import("../pages/SimStudio/CreateSimSuite"));
 
 export const ROUTES = [
     {
@@ -154,6 +156,20 @@ export const ROUTES = [
         element: <Simulation />,
         private: true,
         layout: true,
+        roleGroup: 'trs' as const,
+    },
+    {
+        path: "/sim-studio",
+        element: <SimStudio />,
+        private: true,
+        layout: true,
+        roleGroup: 'trs' as const,
+    },
+    {
+        path: "/sim-studio/create",
+        element: <CreateSimSuite />,
+        private: true,
+        layout: false,
         roleGroup: 'trs' as const,
     },
 ];
