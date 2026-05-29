@@ -18,6 +18,7 @@ import { FetchCountModule } from './services/fetch-count/fetch-count.module';
 import { SimulationModule } from './services/simulation/simulation.module';
 import { FetchEvaluationModule } from './services/fetch-evaluation/fetch-evaluation.module';
 import { DockerHubModule } from './services/dockerhub/dockerhub.module';
+import { SimulationStudioModule } from './services/simulation-studio/simulation-studio.module';
 
 @Module({
   imports: [
@@ -40,8 +41,9 @@ import { DockerHubModule } from './services/dockerhub/dockerhub.module';
     FetchCountModule,
     FetchEvaluationModule,
     DockerHubModule,
+    SimulationStudioModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

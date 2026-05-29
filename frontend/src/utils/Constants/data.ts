@@ -588,6 +588,15 @@ export const SimulationTabs = [
     },
 ]
 
+export const SimStudioTabs = [
+    { label: 'Rule & Details',      value: 'rule_details',        enabled: false },
+    { label: 'TXTP Selection',      value: 'txtp_selection',      enabled: false },
+    { label: 'Trigger Data',        value: 'trigger_data',        enabled: false },
+    { label: 'Enrichment Data',     value: 'enrichment_data',     enabled: false },
+    { label: 'Preview & Save',      value: 'preview_save',        enabled: false },
+    { label: 'Simulation Results',  value: 'simulation_results',  enabled: false },
+    { label: 'Summary',             value: 'summary',             enabled: false },
+]
 
 export const claims = {
     editor: 'editor',
