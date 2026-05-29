@@ -70,7 +70,13 @@ import { CreateMaskDto } from './masking/dto/mask.dto';
 import { EvaluationRow } from './fetch-evaluation/dto/fetch-evaluation.dto';
 import { TransactionTypeDto } from './config/dto/config.dto';
 import { DlhCountDataDto, DlhCountResponse } from './fetch-from-dlh/dto/fetch-from-dlh.dto';
-import { PatchSimulationSuitesDto, SimulationSuitesDto, SimulationSuitesListDto, SimulationSuitesQueryDto } from './simulation-studio/dto';
+import {
+  PatchSimulationSuitesDto,
+  SimulationSuiteResponseDto,
+  SimulationSuitesDto,
+  SimulationSuitesListDto,
+  SimulationSuitesQueryDto,
+} from './simulation-studio/dto';
 import type { ISimulationSuiteCreatePayload } from './simulation-studio/interface/simulation-studio.interface';
 
 export interface SimulationMessage {
@@ -530,15 +536,15 @@ export class AdminServiceClient {
     return await this.executeHttpRequest<SimulationSuitesListDto>('GET', SIMULATION_SUITES, token, undefined, params);
   }
 
-  async getSimulationSuiteById(token: string, id: number): Promise<SimulationSuitesDto> {
-    return await this.executeHttpRequest<SimulationSuitesDto>('GET', `${SIMULATION_SUITES}/${id}`, token);
+  async getSimulationSuiteById(token: string, id: number): Promise<SimulationSuiteResponseDto> {
+    return await this.executeHttpRequest<SimulationSuiteResponseDto>('GET', `${SIMULATION_SUITES}/${id}`, token);
   }
 
   async createSimulationSuite(token: string, suite: ISimulationSuiteCreatePayload): Promise<SimulationSuitesDto> {
     return await this.executeHttpRequest<SimulationSuitesDto>('POST', SIMULATION_SUITES, token, suite);
   }
 
-  async patchSimulationSuite(token: string, id: number, payload: PatchSimulationSuitesDto): Promise<SimulationSuitesDto> {
-    return await this.executeHttpRequest<SimulationSuitesDto>('PATCH', `${SIMULATION_SUITES}/${id}`, token, payload);
+  async patchSimulationSuite(token: string, id: number, payload: PatchSimulationSuitesDto): Promise<SimulationSuiteResponseDto> {
+    return await this.executeHttpRequest<SimulationSuiteResponseDto>('PATCH', `${SIMULATION_SUITES}/${id}`, token, payload);
   }
 }

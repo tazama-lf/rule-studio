@@ -6,6 +6,7 @@ import { makeAuthenticatedUser } from '../helpers/rbac/user.factory';
 import type {
   PatchSimulationSuitesDto,
   RequestSimulationSuitesDto,
+  SimulationSuiteResponseDto,
   SimulationSuitesDto,
   SimulationSuitesListDto,
   SimulationSuitesQueryDto,
@@ -36,10 +37,16 @@ describe('SimulationStudioController', () => {
   };
 
   const mockList: SimulationSuitesListDto = {
+    success: true,
+    message: 'Simulation suites retrieved successfully',
     suites: [mockSuite],
     total: 1,
-    limit: 10,
-    offset: 0,
+  };
+
+  const mockSuiteResponse: SimulationSuiteResponseDto = {
+    success: true,
+    message: 'Simulation suite updated successfully',
+    suite: mockSuite,
   };
 
   beforeEach(async () => {
@@ -89,11 +96,11 @@ describe('SimulationStudioController', () => {
 
   it('getSimulationSuiteById delegates with token and id', async () => {
     const user = makeUser();
-    service.getSimulationSuiteById.mockResolvedValue(mockSuite);
+    service.getSimulationSuiteById.mockResolvedValue(mockSuiteResponse);
 
     const result = await controller.getSimulationSuiteById(101, user);
 
-    expect(result).toEqual(mockSuite);
+    expect(result).toEqual(mockSuiteResponse);
     expect(service.getSimulationSuiteById).toHaveBeenCalledWith(user.token.tokenString, 101);
   });
 
@@ -116,11 +123,11 @@ describe('SimulationStudioController', () => {
   it('patchSimulationSuite delegates with token, id and payload', async () => {
     const user = makeUser();
     const patch: PatchSimulationSuitesDto = { status: 'RUNNING' as any } as PatchSimulationSuitesDto;
-    service.patchSimulationSuite.mockResolvedValue(mockSuite);
+    service.patchSimulationSuite.mockResolvedValue(mockSuiteResponse);
 
     const result = await controller.patchSimulationSuite(101, patch, user);
 
-    expect(result).toEqual(mockSuite);
+    expect(result).toEqual(mockSuiteResponse);
     expect(service.patchSimulationSuite).toHaveBeenCalledWith(user.token.tokenString, 101, patch);
   });
 });
