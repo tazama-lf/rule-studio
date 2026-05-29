@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import StatusCard from "../../components/Cards/StatusCard";
 import type { TableColumn } from "../../components/Table";
@@ -141,6 +141,10 @@ const useSimStudioController = () => {
         setLastUpdatedTo("");
     };
 
+    const handleView = useCallback((row: Record<string, unknown>) => {
+        navigate(`/sim-studio/view/${row.id}`);
+    }, [navigate]);
+
     const columns: TableColumn[] = useMemo(() => [
         {
             label: "Suite Name",
@@ -174,11 +178,7 @@ const useSimStudioController = () => {
                 <SimStudioActions onView={() => handleView(row)} />
             ),
         },
-    ], []);
-
-    const handleView = (row: Record<string, unknown>) => {
-        navigate(`/sim-studio/view/${row.id}`);
-    };
+    ], [handleView]);
 
     const handleCreate = () => {
         navigate("/sim-studio/create");

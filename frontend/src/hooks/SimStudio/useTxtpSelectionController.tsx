@@ -123,9 +123,13 @@ const useTxtpSelectionController = () => {
         return (addVersionsData as string[]).map((v) => ({ label: v, value: v }));
     }, [addVersionsData]);
 
+    const handleTxtpChange = useCallback((value: DropdownOption | null) => {
+        setAddTxtp(value);
+        setAddVersion(null);
+    }, []);
+
     useEffect(() => {
         if (addTxtp?.value) {
-            setAddVersion(null);
             void fetchVersionsForAdd({ type: String(addTxtp.value) });
         }
     }, [addTxtp, fetchVersionsForAdd]);
@@ -246,7 +250,7 @@ const useTxtpSelectionController = () => {
             adding,
         },
         functions: {
-            setAddTxtp,
+            handleTxtpChange,
             setAddVersion,
             setNumMessages,
             handleAdd,

@@ -302,7 +302,7 @@ const TxtpSelection = () => {
     } = values;
 
     const {
-        setAddTxtp,
+        handleTxtpChange,
         setAddVersion,
         setNumMessages,
         handleAdd,
@@ -327,7 +327,7 @@ const TxtpSelection = () => {
                     <S.FieldLabel>TXTP Type</S.FieldLabel>
                     <DropDown
                         value={addTxtp}
-                        onChange={(value) => setAddTxtp(value as typeof addTxtp)}
+                        onChange={(value) => handleTxtpChange(value as typeof addTxtp)}
                         options={txTypeOptions}
                         placeholder="Select type"
                         searchable
