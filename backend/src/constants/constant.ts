@@ -62,3 +62,7 @@ export const STAGE_SIMULATION_ITEMS = '/v1/dlh/stage';
 // Evaluations
 export const GET_ALL_EVALUATIONS = '/v1/admin/reports/evaluations';
 export const FETCH_COUNT_DLH = '/v1/admin/dlh/fetch/count';
+
+// Simulation Studio
+export const SIMULATION_STUDIO_BASE_URL = '/v1/admin/trs/simulation-studio';
+export const SIMULATION_SUITES = `${SIMULATION_STUDIO_BASE_URL}/suites`;
