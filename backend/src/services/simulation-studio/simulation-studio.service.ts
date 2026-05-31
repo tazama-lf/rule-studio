@@ -3,6 +3,7 @@ import { AdminServiceClient } from '../admin-service-client';
 import {
   PatchSimulationSuitesDto,
   RequestSimulationSuitesDto,
+  UpdateDraftSuiteDto,
   SimulationSuiteResponseDto,
   SimulationSuitesDto,
   SimulationSuitesListDto,
@@ -15,6 +16,29 @@ export class SimulationStudioService {
   private readonly logger = new Logger(SimulationStudioService.name);
 
   constructor(private readonly adminServiceClient: AdminServiceClient) {}
+
+  private toRecord(value: unknown): Record<string, unknown> {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return value as Record<string, unknown>;
+    }
+    return {};
+  }
+
+  private extractCreatedSuite(response: unknown): SimulationSuitesDto {
+    const normalizedResponse = this.toRecord(response);
+    if ('data' in normalizedResponse) {
+      return normalizedResponse.data as unknown as SimulationSuitesDto;
+    }
+    return normalizedResponse as unknown as SimulationSuitesDto;
+  }
+
+  private extractSuiteFromResponse(response: unknown): SimulationSuitesDto {
+    const normalizedResponse = this.toRecord(response);
+    if ('suite' in normalizedResponse) {
+      return normalizedResponse.suite as unknown as SimulationSuitesDto;
+    }
+    return normalizedResponse as unknown as SimulationSuitesDto;
+  }
 
   /**
    * Fetches simulation suites with optional filters for suite name, status, and associated rule name.
@@ -61,7 +85,8 @@ export class SimulationStudioService {
         primary_txtp_version: suites.primary_txtp_version ?? suites.txtp_version ?? suites.version,
         wizard_progress: suites.wizard_progress ?? { step: 1, completed: false },
       };
-      return await this.adminServiceClient.createSimulationSuite(token, payload);
+      const createResponse = await this.adminServiceClient.createSimulationSuite(token, payload);
+      return this.extractCreatedSuite(createResponse);
     } catch (err) {
       const error = err as Error;
       this.logger.error('Error creating simulation suite', error.stack);
@@ -92,6 +117,49 @@ export class SimulationStudioService {
     } catch (err) {
       const error = err as Error;
       this.logger.error(`Error patching simulation suite with id: ${id}`, error.stack);
+      throw error;
+    }
+  }
+
+  async putSimulationSuiteDraft(token: string, id: number, payload: UpdateDraftSuiteDto): Promise<SimulationSuiteResponseDto> {
+    try {
+      const currentSuiteResponse = await this.adminServiceClient.getSimulationSuiteById(token, id);
+      const currentSuite = this.extractSuiteFromResponse(currentSuiteResponse);
+
+      const currentWizardProgress = this.toRecord(currentSuite.wizard_progress);
+      const currentMetadata = this.toRecord(currentSuite.metadata);
+      const currentWizardDraft = this.toRecord(currentMetadata.wizardDraft);
+      const screenKey = `screen${payload.screen}`;
+
+      const completedStepsRaw = currentWizardProgress.completedSteps;
+      const completedSteps = Array.isArray(completedStepsRaw)
+        ? completedStepsRaw.filter((step): step is number => typeof step === 'number' && Number.isInteger(step))
+        : [];
+      const updatedCompletedSteps = Array.from(new Set([...completedSteps, payload.screen])).sort((a, b) => a - b);
+
+      const currentStepRaw = currentWizardProgress.currentStep;
+      const currentStep = typeof currentStepRaw === 'number' && Number.isFinite(currentStepRaw) ? currentStepRaw : 1;
+
+      const normalizedPayload: PatchSimulationSuitesDto = {
+        wizard_progress: {
+          ...currentWizardProgress,
+          currentStep: Math.max(currentStep, payload.screen),
+          completedSteps: updatedCompletedSteps,
+          [screenKey]: true,
+        },
+        metadata: {
+          ...currentMetadata,
+          wizardDraft: {
+            ...currentWizardDraft,
+            [screenKey]: payload.data,
+          },
+        },
+      };
+
+      return await this.patchSimulationSuite(token, id, normalizedPayload);
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(`Error saving draft for simulation suite with id: ${id}`, error.stack);
       throw error;
     }
   }

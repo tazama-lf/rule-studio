@@ -1,7 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsDateString, IsObject, IsEnum, IsOptional, IsInt, Min } from 'class-validator';
+import { IsString, IsNotEmpty, IsDateString, IsObject, IsEnum, IsOptional, IsInt, Max, MaxLength, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SimulationSuiteType, SimulationSuiteStatus } from 'src/utils/enums/simulation.enum';
+
+const SUITE_NAME_MAX_LENGTH = 120;
+const SUITE_DESCRIPTION_MAX_LENGTH = 500;
 
 export class SimulationSuitesDto {
   @ApiProperty({ description: 'Primary key', example: '101' })
@@ -128,11 +131,13 @@ export class RequestSimulationSuitesDto {
   @ApiProperty({ description: 'Suite name', example: 'Velocity Edge Cases' })
   @IsString()
   @IsNotEmpty()
+  @MaxLength(SUITE_NAME_MAX_LENGTH)
   name: string;
 
   @ApiProperty({ description: 'Suite description', required: false, example: 'Edge scenario set for velocity checks' })
   @IsOptional()
   @IsString()
+  @MaxLength(SUITE_DESCRIPTION_MAX_LENGTH)
   description?: string;
 
   @ApiProperty({ description: 'Simulation type', enum: SimulationSuiteType, required: false, default: SimulationSuiteType.SINGLE_RULE })
@@ -211,11 +216,13 @@ export class PatchSimulationSuitesDto {
   @ApiProperty({ description: 'Suite name', required: false, example: 'High Value Txns - Q4' })
   @IsOptional()
   @IsString()
+  @MaxLength(SUITE_NAME_MAX_LENGTH)
   name?: string;
 
   @ApiProperty({ description: 'Suite description', required: false, example: 'Updated suite description' })
   @IsOptional()
   @IsString()
+  @MaxLength(SUITE_DESCRIPTION_MAX_LENGTH)
   description?: string;
 
   @ApiProperty({ description: 'Simulation type', enum: SimulationSuiteType, required: false })
@@ -309,6 +316,19 @@ export class PatchSimulationSuitesDto {
   metadata?: Record<string, unknown>;
 }
 
+export class UpdateDraftSuiteDto {
+  @ApiProperty({ description: 'Wizard screen number to persist', example: 2, minimum: 1, maximum: 5 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  screen: number;
+
+  @ApiProperty({ description: 'Wizard screen draft payload', example: { txtpConfigs: [] } })
+  @IsObject()
+  data: Record<string, unknown>;
+}
+
 export class SimulationSuitesQueryDto {
   @ApiProperty({ description: 'Search by suite name (case-insensitive contains)', required: false, example: 'velocity' })
   @IsOptional()
@@ -324,6 +344,11 @@ export class SimulationSuitesQueryDto {
   @IsOptional()
   @IsString()
   rule_name?: string;
+
+  @ApiProperty({ description: 'Rule alias for rule_name', required: false, example: 'Rule 002' })
+  @IsOptional()
+  @IsString()
+  rule?: string;
 
   @ApiProperty({ description: 'Filter by transaction type (TXTP)', required: false, example: 'pacs.008' })
   @IsOptional()
@@ -353,4 +378,11 @@ export class SimulationSuitesQueryDto {
   @IsInt()
   @Min(1)
   limit?: number;
+
+  @ApiProperty({ description: 'Page number (1-based). Converted to offset when offset is not supplied', required: false, example: 1 })
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  page?: number;
 }

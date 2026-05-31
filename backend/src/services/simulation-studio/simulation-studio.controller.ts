@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { RequireAnyClaims, TazamaClaims } from 'src/decorators/auth.decorator';
 import { ApiSwagger, mergeResponses, CommonResponses } from 'src/decorators/swagger.decorator';
@@ -14,11 +14,12 @@ import {
   SimulationSuitesDto,
   SimulationSuitesListDto,
   SimulationSuitesQueryDto,
+  UpdateDraftSuiteDto,
 } from './dto';
 
 @ApiTags('simulation-studio')
 @ApiBearerAuth('JWT-auth')
-@Controller('simulation-studio')
+@Controller(['simulation-studio', 'api/v1/simulation-studio'])
 @UseGuards(TazamaAuthGuard)
 export class SimulationStudioController {
   constructor(private readonly simulationStudioService: SimulationStudioService) {}
@@ -28,11 +29,13 @@ export class SimulationStudioController {
   @ApiQuery({ name: 'search', required: false, type: String, description: 'Search by suite name (contains, case-insensitive)' })
   @ApiQuery({ name: 'status', required: false, type: String, description: 'Filter by suite status' })
   @ApiQuery({ name: 'rule_name', required: false, type: String, description: 'Filter by associated rule name' })
+  @ApiQuery({ name: 'rule', required: false, type: String, description: 'Alias for rule_name' })
   @ApiQuery({ name: 'txtp', required: false, type: String, description: 'Filter by transaction type (TXTP)' })
   @ApiQuery({ name: 'updated_from', required: false, type: String, description: 'Filter by updated date from (inclusive)' })
   @ApiQuery({ name: 'updated_to', required: false, type: String, description: 'Filter by updated date to (inclusive)' })
   @ApiQuery({ name: 'offset', required: false, type: Number, description: 'Page offset (0-based)' })
   @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Page size' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (1-based). Used when offset is omitted.' })
   @ApiSwagger({
     summary: 'Get simulation suites',
     description: 'Retrieves simulation suites with optional filters for suite name, status, and rule',
@@ -101,5 +104,29 @@ export class SimulationStudioController {
     @User() user: AuthenticatedUser,
   ): Promise<SimulationSuiteResponseDto> {
     return await this.simulationStudioService.patchSimulationSuite(user.token.tokenString, id, payload);
+  }
+
+  @Put('suites/:id/draft')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @Audit()
+  @ApiParam({ name: 'id', description: 'Simulation suite id', example: 1 })
+  @ApiBody({
+    type: UpdateDraftSuiteDto,
+    description: 'Wizard draft payload containing the current screen and data snapshot',
+  })
+  @ApiSwagger({
+    summary: 'Save draft screen data',
+    description: 'Compatibility endpoint for draft persistence. Internally maps to existing PATCH suite persistence flow.',
+    responses: mergeResponses(
+      CommonResponses.SUCCESS_200(SimulationSuiteResponseDto, 'Simulation suite draft saved successfully'),
+      CommonResponses.NOT_FOUND_404('Simulation suite not found'),
+    ),
+  })
+  async putSimulationSuiteDraft(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: UpdateDraftSuiteDto,
+    @User() user: AuthenticatedUser,
+  ): Promise<SimulationSuiteResponseDto> {
+    return await this.simulationStudioService.putSimulationSuiteDraft(user.token.tokenString, id, payload);
   }
 }

@@ -524,13 +524,23 @@ export class AdminServiceClient {
 
   async getSimulationSuites(token: string, query: SimulationSuitesQueryDto = {}): Promise<SimulationSuitesListDto> {
     const params: Record<string, string> = {};
+    const normalizedRuleName = query.rule_name ?? query.rule;
+    const normalizedLimit = query.limit ?? 20;
+
     if (query.search) params.search = query.search;
     if (query.status) params.status = query.status;
-    if (query.rule_name) params.rule_name = query.rule_name;
+    if (normalizedRuleName) params.rule_name = normalizedRuleName;
     if (query.txtp) params.txtp = query.txtp;
     if (query.updated_from) params.updated_from = query.updated_from;
     if (query.updated_to) params.updated_to = query.updated_to;
-    if (query.offset !== undefined) params.offset = String(query.offset);
+
+    if (query.offset !== undefined) {
+      params.offset = String(query.offset);
+    } else if (query.page !== undefined) {
+      const safePage = Math.max(1, query.page);
+      params.offset = String((safePage - 1) * normalizedLimit);
+    }
+
     if (query.limit !== undefined) params.limit = String(query.limit);
 
     return await this.executeHttpRequest<SimulationSuitesListDto>('GET', SIMULATION_SUITES, token, undefined, params);
