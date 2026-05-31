@@ -1,8 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AdminServiceClient } from '../admin-service-client';
 import {
+  GenerateContextQueryDto,
+  GenerateContextResponseDto,
   PatchSimulationSuitesDto,
+  RegistryReposResponseDto,
+  RegistryTagsResponseDto,
   RequestSimulationSuitesDto,
+  RunSuiteResponseDto,
+  RunSuiteStatusResponseDto,
+  TxtpSampleResponseDto,
+  TxtpSchemaResponseDto,
+  TxtpTypeDto,
   UpdateDraftSuiteDto,
   SimulationSuiteResponseDto,
   SimulationSuitesDto,
@@ -10,12 +19,16 @@ import {
   SimulationSuitesQueryDto,
 } from './dto';
 import type { ISimulationSuiteCreatePayload } from './interface/simulation-studio.interface';
+import { DockerHubService } from '../dockerhub/dockerhub.service';
 
 @Injectable()
 export class SimulationStudioService {
   private readonly logger = new Logger(SimulationStudioService.name);
 
-  constructor(private readonly adminServiceClient: AdminServiceClient) {}
+  constructor(
+    private readonly adminServiceClient: AdminServiceClient,
+    private readonly dockerHubService: DockerHubService,
+  ) {}
 
   private toRecord(value: unknown): Record<string, unknown> {
     if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -28,14 +41,6 @@ export class SimulationStudioService {
     const normalizedResponse = this.toRecord(response);
     if ('data' in normalizedResponse) {
       return normalizedResponse.data as unknown as SimulationSuitesDto;
-    }
-    return normalizedResponse as unknown as SimulationSuitesDto;
-  }
-
-  private extractSuiteFromResponse(response: unknown): SimulationSuitesDto {
-    const normalizedResponse = this.toRecord(response);
-    if ('suite' in normalizedResponse) {
-      return normalizedResponse.suite as unknown as SimulationSuitesDto;
     }
     return normalizedResponse as unknown as SimulationSuitesDto;
   }
@@ -123,44 +128,55 @@ export class SimulationStudioService {
 
   async putSimulationSuiteDraft(token: string, id: number, payload: UpdateDraftSuiteDto): Promise<SimulationSuiteResponseDto> {
     try {
-      const currentSuiteResponse = await this.adminServiceClient.getSimulationSuiteById(token, id);
-      const currentSuite = this.extractSuiteFromResponse(currentSuiteResponse);
-
-      const currentWizardProgress = this.toRecord(currentSuite.wizard_progress);
-      const currentMetadata = this.toRecord(currentSuite.metadata);
-      const currentWizardDraft = this.toRecord(currentMetadata.wizardDraft);
-      const screenKey = `screen${payload.screen}`;
-
-      const completedStepsRaw = currentWizardProgress.completedSteps;
-      const completedSteps = Array.isArray(completedStepsRaw)
-        ? completedStepsRaw.filter((step): step is number => typeof step === 'number' && Number.isInteger(step))
-        : [];
-      const updatedCompletedSteps = Array.from(new Set([...completedSteps, payload.screen])).sort((a, b) => a - b);
-
-      const currentStepRaw = currentWizardProgress.currentStep;
-      const currentStep = typeof currentStepRaw === 'number' && Number.isFinite(currentStepRaw) ? currentStepRaw : 1;
-
-      const normalizedPayload: PatchSimulationSuitesDto = {
-        wizard_progress: {
-          ...currentWizardProgress,
-          currentStep: Math.max(currentStep, payload.screen),
-          completedSteps: updatedCompletedSteps,
-          [screenKey]: true,
-        },
-        metadata: {
-          ...currentMetadata,
-          wizardDraft: {
-            ...currentWizardDraft,
-            [screenKey]: payload.data,
-          },
-        },
-      };
-
-      return await this.patchSimulationSuite(token, id, normalizedPayload);
+      return await this.adminServiceClient.putSimulationSuiteDraft(token, id, payload);
     } catch (err) {
       const error = err as Error;
       this.logger.error(`Error saving draft for simulation suite with id: ${id}`, error.stack);
       throw error;
     }
+  }
+
+  async getRegistryRepos(tenantId: string): Promise<RegistryReposResponseDto> {
+    return await this.dockerHubService.getPublishedRules(tenantId);
+  }
+
+  async getRegistryRepoTags(tenantId: string, repo: string): Promise<RegistryTagsResponseDto> {
+    return await this.dockerHubService.getTagsForRule(tenantId, repo);
+  }
+
+  async getTxtpTypes(token: string): Promise<TxtpTypeDto[]> {
+    const transactionTypes = await this.adminServiceClient.getTransactionTypes(token);
+    const grouped = new Map<string, string[]>();
+
+    for (const row of transactionTypes) {
+      const txtp = row.transaction_type;
+      if (!grouped.has(txtp)) {
+        grouped.set(txtp, []);
+      }
+    }
+
+    return Array.from(grouped.entries()).map(([txtp, versions]) => ({ txtp, versions }));
+  }
+
+  async getTxtpSchema(token: string, txtp: string, version: string): Promise<TxtpSchemaResponseDto> {
+    const configRow = await this.adminServiceClient.getConfigRowByTxTp(txtp, version, token);
+    return { schema: configRow.config.schema };
+  }
+
+  async getTxtpSample(token: string, txtp: string, version: string): Promise<TxtpSampleResponseDto> {
+    const payload = await this.adminServiceClient.getPayloadByTransactionType(txtp, version, token);
+    return { payload };
+  }
+
+  async generateSimulationContext(token: string, id: number, query: GenerateContextQueryDto): Promise<GenerateContextResponseDto> {
+    return await this.adminServiceClient.generateSimulationContext(token, id, query);
+  }
+
+  async runSimulationSuite(token: string, id: number): Promise<RunSuiteResponseDto> {
+    return await this.adminServiceClient.runSimulationSuite(token, id);
+  }
+
+  async getSimulationRunStatus(token: string, id: number, runId: string): Promise<RunSuiteStatusResponseDto> {
+    return await this.adminServiceClient.getSimulationRunStatus(token, id, runId);
   }
 }

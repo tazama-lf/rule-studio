@@ -71,11 +71,16 @@ import { EvaluationRow } from './fetch-evaluation/dto/fetch-evaluation.dto';
 import { TransactionTypeDto } from './config/dto/config.dto';
 import { DlhCountDataDto, DlhCountResponse } from './fetch-from-dlh/dto/fetch-from-dlh.dto';
 import {
+  GenerateContextResponseDto,
+  GenerateContextQueryDto,
   PatchSimulationSuitesDto,
+  RunSuiteResponseDto,
+  RunSuiteStatusResponseDto,
   SimulationSuiteResponseDto,
   SimulationSuitesDto,
   SimulationSuitesListDto,
   SimulationSuitesQueryDto,
+  UpdateDraftSuiteDto,
 } from './simulation-studio/dto';
 import type { ISimulationSuiteCreatePayload } from './simulation-studio/interface/simulation-studio.interface';
 
@@ -556,5 +561,36 @@ export class AdminServiceClient {
 
   async patchSimulationSuite(token: string, id: number, payload: PatchSimulationSuitesDto): Promise<SimulationSuiteResponseDto> {
     return await this.executeHttpRequest<SimulationSuiteResponseDto>('PATCH', `${SIMULATION_SUITES}/${id}`, token, payload);
+  }
+
+  async putSimulationSuiteDraft(token: string, id: number, payload: UpdateDraftSuiteDto): Promise<SimulationSuiteResponseDto> {
+    return await this.executeHttpRequest<SimulationSuiteResponseDto>('PUT', `${SIMULATION_SUITES}/${id}/draft`, token, payload);
+  }
+
+  async generateSimulationContext(
+    token: string,
+    id: number,
+    query: GenerateContextQueryDto = {},
+  ): Promise<GenerateContextResponseDto> {
+    const params: Record<string, string> = {};
+    if (query.count !== undefined) {
+      params.count = String(query.count);
+    }
+
+    return await this.executeHttpRequest<GenerateContextResponseDto>(
+      'POST',
+      `${SIMULATION_SUITES}/${id}/generate/context`,
+      token,
+      undefined,
+      params,
+    );
+  }
+
+  async runSimulationSuite(token: string, id: number): Promise<RunSuiteResponseDto> {
+    return await this.executeHttpRequest<RunSuiteResponseDto>('POST', `${SIMULATION_SUITES}/${id}/run`, token);
+  }
+
+  async getSimulationRunStatus(token: string, id: number, runId: string): Promise<RunSuiteStatusResponseDto> {
+    return await this.executeHttpRequest<RunSuiteStatusResponseDto>('GET', `${SIMULATION_SUITES}/${id}/runs/${runId}/status`, token);
   }
 }

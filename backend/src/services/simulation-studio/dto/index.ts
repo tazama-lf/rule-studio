@@ -386,3 +386,166 @@ export class SimulationSuitesQueryDto {
   @Min(1)
   page?: number;
 }
+
+export class RegistryRepoDto {
+  @ApiProperty({ description: 'Repository name', example: 'rule-high-value' })
+  @IsString()
+  name: string;
+
+  @ApiProperty({ description: 'Docker namespace', example: 'tazama' })
+  @IsString()
+  namespace: string;
+
+  @ApiProperty({ description: 'Repository last updated timestamp', example: '2026-05-31T10:00:00.000Z' })
+  @IsString()
+  last_updated: string;
+}
+
+export class RegistryReposResponseDto {
+  @ApiProperty({ type: [RegistryRepoDto] })
+  rules: RegistryRepoDto[];
+
+  @ApiProperty({ description: 'Total number of repositories', example: 12 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  count: number;
+}
+
+export class RegistryTagDto {
+  @ApiProperty({ description: 'Image tag', example: 'v1.2.3' })
+  @IsString()
+  name: string;
+
+  @ApiProperty({ description: 'Tag digest', example: 'sha256:abc123' })
+  @IsString()
+  digest: string;
+
+  @ApiProperty({ description: 'Tag last updated timestamp', example: '2026-05-31T10:00:00.000Z' })
+  @IsString()
+  last_updated: string;
+}
+
+export class RegistryTagsResponseDto {
+  @ApiProperty({ description: 'Repository name', example: 'rule-high-value' })
+  @IsString()
+  rule: string;
+
+  @ApiProperty({ type: [RegistryTagDto] })
+  tags: RegistryTagDto[];
+
+  @ApiProperty({ description: 'Total number of tags', example: 7 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  count: number;
+}
+
+export class TxtpTypeDto {
+  @ApiProperty({ description: 'Transaction type', example: 'pacs.008' })
+  @IsString()
+  txtp: string;
+
+  @ApiProperty({ description: 'Supported versions', type: [String], example: ['001.08', '001.09'] })
+  versions: string[];
+}
+
+export class TxtpSchemaResponseDto {
+  @ApiProperty({ description: 'Transaction schema object', type: Object })
+  schema: Record<string, unknown>;
+}
+
+export class TxtpSampleResponseDto {
+  @ApiProperty({ description: 'Sample payload object', type: Object })
+  payload: Record<string, unknown>;
+}
+
+export class GenerateContextQueryDto {
+  @ApiProperty({ description: 'Number of rows to generate', required: false, example: 5 })
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  count?: number;
+}
+
+export class GeneratedContextRowDto {
+  @ApiProperty({ description: 'Generated row index', example: 1 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  row_index: number;
+
+  @ApiProperty({ description: 'Transaction type', example: 'pacs.008' })
+  @IsString()
+  txtp: string;
+
+  @ApiProperty({ description: 'Generated payload', type: Object })
+  payload: Record<string, unknown>;
+}
+
+export class GenerateContextResponseDto {
+  @ApiProperty({ description: 'Request status flag', example: true })
+  success: boolean;
+
+  @ApiProperty({ description: 'Response message', example: 'Simulation context generated successfully' })
+  message: string;
+
+  @ApiProperty({ type: [GeneratedContextRowDto] })
+  rows: GeneratedContextRowDto[];
+
+  @ApiProperty({ description: 'Generated row count', example: 5 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  count: number;
+}
+
+export class RunSuiteResponseDto {
+  @ApiProperty({ description: 'Request status flag', example: true })
+  success: boolean;
+
+  @ApiProperty({ description: 'Response message', example: 'Simulation run started successfully' })
+  message: string;
+
+  @ApiProperty({ description: 'Run identifier', example: 'run-101-1717198021000' })
+  @IsString()
+  runId: string;
+
+  @ApiProperty({ description: 'Run status', example: 'ENV_PROVISIONING' })
+  @IsString()
+  status: string;
+
+  @ApiProperty({ description: 'Run phase', example: 'ENV_PROVISIONING' })
+  @IsString()
+  phase: string;
+}
+
+export class RunSuiteStatusResponseDto {
+  @ApiProperty({ description: 'Request status flag', example: true })
+  success: boolean;
+
+  @ApiProperty({ description: 'Response message', example: 'Simulation run status retrieved successfully' })
+  message: string;
+
+  @ApiProperty({ description: 'Run identifier', example: 'run-101-1717198021000' })
+  @IsString()
+  runId: string;
+
+  @ApiProperty({ description: 'Run status', example: 'RUNNING' })
+  @IsString()
+  status: string;
+
+  @ApiProperty({ description: 'Run phase', example: 'TRANSACTION_LOOP' })
+  @IsString()
+  phase: string;
+
+  @ApiProperty({ description: 'Optional error details', required: false, example: 'Container failed health check' })
+  @IsOptional()
+  @IsString()
+  error_message?: string;
+
+  @ApiProperty({ description: 'Optional partial results payload', required: false, type: [Object] })
+  @IsOptional()
+  partialResults?: Array<Record<string, unknown>>;
+}
