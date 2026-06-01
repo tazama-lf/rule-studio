@@ -2,6 +2,7 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import { useEffect, type MutableRefObject } from "react";
 import {
     Box,
     Collapse,
@@ -287,7 +288,11 @@ const EntryRow = ({
     </>
 );
 
-const TxtpSelection = () => {
+interface TxtpSelectionProps {
+    onSaveRef?: MutableRefObject<(() => Promise<boolean>) | null>;
+}
+
+const TxtpSelection = ({ onSaveRef }: TxtpSelectionProps) => {
     const { values, functions } = useTxtpSelectionController();
 
     const {
@@ -309,7 +314,14 @@ const TxtpSelection = () => {
         handleRemove,
         handleToggleExpand,
         handleFieldConfigChange,
+        saveStep2ToDb,
     } = functions;
+
+    // Register save fn with parent wizard so Next Step can call it
+    useEffect(() => {
+        if (onSaveRef) onSaveRef.current = saveStep2ToDb;
+        return () => { if (onSaveRef) onSaveRef.current = null; };
+    }, [onSaveRef, saveStep2ToDb]);
 
     return (
         <Box>
