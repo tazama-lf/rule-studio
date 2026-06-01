@@ -19,6 +19,8 @@ import { SimulationModule } from './services/simulation/simulation.module';
 import { FetchEvaluationModule } from './services/fetch-evaluation/fetch-evaluation.module';
 import { DockerHubModule } from './services/dockerhub/dockerhub.module';
 import { SimulationStudioModule } from './services/simulation-studio/simulation-studio.module';
+import { GenerationsModule } from './services/simulation-studio/generations/generations.module';
+import { ContextTxtpConfigModule } from './services/simulation-studio/context-txtp-config/context-txtp-config.module';
 
 @Module({
   imports: [
@@ -42,6 +44,8 @@ import { SimulationStudioModule } from './services/simulation-studio/simulation-
     FetchEvaluationModule,
     DockerHubModule,
     SimulationStudioModule,
+    GenerationsModule,
+    ContextTxtpConfigModule,
   ],
   controllers: [AppController],
   providers: [AppService],
