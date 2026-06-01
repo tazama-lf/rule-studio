@@ -134,9 +134,10 @@ const SimStudio = () => {
                     sx={S.selectSx}
                 >
                     <MenuItem value="">All Statuses</MenuItem>
-                    <MenuItem value="Ready for Simulation">Ready for Simulation</MenuItem>
-                    <MenuItem value="Draft">Draft</MenuItem>
-                    <MenuItem value="Generated">Generated</MenuItem>
+                    <MenuItem value="DRAFT">Draft</MenuItem>
+                    <MenuItem value="RUNNING">Running</MenuItem>
+                    <MenuItem value="COMPLETED">Completed</MenuItem>
+                    <MenuItem value="FAILED">Failed</MenuItem>
                 </Select>
                 <Select
                     size="small"

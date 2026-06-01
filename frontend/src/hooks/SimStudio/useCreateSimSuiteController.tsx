@@ -1,12 +1,14 @@
 import { yupResolver } from "@hookform/resolvers/yup";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import * as yup from "yup";
 import type { DropdownOption } from "../../components/DropDown";
 import { useSimStudioTab } from "../../contexts/SimStudioTabContext";
 import { useGetTypesQuery, useLazyGetTxtpVersionsQuery } from "../../redux/Api/Config";
 import { useGetRulesQuery, useLazyGetRuleTagsQuery } from "../../redux/Api/DockerHub";
+import { useCreateSuiteMutation } from "../../redux/Api/SimStudio";
 import { LocalStorage } from "../../utils/Common/enums";
 import { extractData, insertData } from "../../utils/Common/storage";
 import { SimStudioTabs } from "../../utils/Constants/data";
@@ -23,17 +25,9 @@ export interface Step1Values {
     version: DropdownOption | null;
 }
 
-export interface Step1Stored {
-    name: string;
-    description: string;
-    associated_rule: string | null;
-    rule_version: string | null;
-    txtp: string;
-    txtp_version: string;
-}
-
 export interface SimData {
-    step1?: Step1Stored;
+    step1?: Step1Values;
+    suiteId?: number;
 }
 
 const step1Schema = yup.object({
@@ -82,6 +76,8 @@ const writeSimData = (patch: Partial<SimData>) => {
 const useCreateSimSuiteController = () => {
     const navigate = useNavigate();
     const { selectedTab, tabs, enableNextTab, enablePreviousTab } = useSimStudioTab();
+    const [createSuite, { isLoading: isCreatingSuite }] = useCreateSuiteMutation();
+    const step2SaveRef = useRef<(() => Promise<boolean>) | null>(null);
 
     useEffect(() => {
         localStorage.removeItem(SIM_DATA_KEY);
@@ -174,18 +170,28 @@ const useCreateSimSuiteController = () => {
 
     const handleNextStep = () => {
         if (selectedTab === SimStudioTabs[0].value) {
-            void handleSubmit((data) => {
-                const stored: Step1Stored = {
-                    name: data.name,
-                    description: data.description,
-                    associated_rule: (data.associated_rule?.value as string) ?? null,
-                    rule_version: (data.rule_version?.value as string) ?? null,
-                    txtp: (data.txtp?.value as string) ?? '',
-                    txtp_version: (data.version?.value as string) ?? '',
-                };
-                writeSimData({ step1: stored });
-                console.log('[SimStudio] Step 1 saved:', stored);
-                enableNextTab();
+            void handleSubmit(async (data) => {
+                writeSimData({ step1: data });
+                try {
+                    const result = await createSuite({
+                        name: data.name,
+                        description: data.description || undefined,
+                        rule_name: data.associated_rule?.value ? String(data.associated_rule.value) : undefined,
+                        rule_version: data.rule_version?.value ? String(data.rule_version.value) : undefined,
+                        primary_txtp: String(data.txtp!.value),
+                        primary_txtp_version: String(data.version!.value),
+                    }).unwrap();
+                    writeSimData({ suiteId: result.data.id });
+                    enableNextTab();
+                } catch {
+                    toast.error("Failed to create simulation suite. Please try again.");
+                }
+            })();
+        } else if (selectedTab === SimStudioTabs[1].value) {
+            void (async () => {
+                const save = step2SaveRef.current;
+                const ok = save ? await save() : true;
+                if (ok) enableNextTab();
             })();
         } else {
             const simData = extractData(SIM_DATA_KEY, LocalStorage, false);
@@ -211,7 +217,7 @@ const useCreateSimSuiteController = () => {
                         ruleVersionLoading={ruleVersionLoading}
                     />
                 );
-            case 'txtp_selection':      return <TxtpSelection />;
+            case 'txtp_selection':      return <TxtpSelection onSaveRef={step2SaveRef} />;
             case 'trigger_data':        return <PlaceholderStep title="Trigger Data" />;
             case 'enrichment_data':     return <PlaceholderStep title="Enrichment Data" />;
             case 'preview_save':        return <PlaceholderStep title="Preview & Save" />;
@@ -224,7 +230,7 @@ const useCreateSimSuiteController = () => {
     const currentStepIndex = tabs.findIndex(t => t.value === selectedTab);
 
     return {
-        values: { currentStepIndex, totalSteps: tabs.length },
+        values: { currentStepIndex, totalSteps: tabs.length, isCreatingSuite },
         functions: { handleBack, handleNextStep, renderStep },
     };
 };
