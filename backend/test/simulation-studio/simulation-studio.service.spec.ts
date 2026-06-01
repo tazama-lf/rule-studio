@@ -93,7 +93,7 @@ describe('SimulationStudioService', () => {
     expect(adminServiceClient.getSimulationSuiteById).toHaveBeenCalledWith('test-token', 101);
   });
 
-  it('createSimulationSuites maps alias fields and adds default wizard progress', async () => {
+  it('createSimulationSuites maps alias fields without wizard_progress override', async () => {
     const createDto: RequestSimulationSuitesDto = {
       name: 'Q3 Edge Cases',
       associated_rule: 'Rule 002',
@@ -112,9 +112,11 @@ describe('SimulationStudioService', () => {
         rule_name: 'Rule 002',
         primary_txtp: 'pacs.008',
         primary_txtp_version: 'v1.0',
-        wizard_progress: { step: 1, completed: false },
       }),
     );
+    // wizard_progress must NOT be sent — admin-service owns the default { currentStep: 1, completedSteps: [1] }
+    const callArg = (adminServiceClient.createSimulationSuite as jest.Mock).mock.calls[0][1] as Record<string, unknown>;
+    expect(callArg).not.toHaveProperty('wizard_progress');
   });
 
   it('patchSimulationSuite maps alias fields', async () => {

@@ -13,5 +13,4 @@ export enum SimulationSuiteStatus {
   RUNNING = 'RUNNING',
   COMPLETED = 'COMPLETED',
   FAILED = 'FAILED',
-  ARCHIVED = 'ARCHIVED',
 }
