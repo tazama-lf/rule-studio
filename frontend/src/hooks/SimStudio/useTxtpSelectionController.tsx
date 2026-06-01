@@ -47,7 +47,7 @@ export interface SimTxtpPayload {
 }
 
 export interface SimCreationPayload {
-    suite_name: string;
+    name: string;
     description: string;
     associated_rule: string | null;
     rule_version: string | null;
@@ -177,10 +177,10 @@ const useTxtpSelectionController = () => {
         initialized.current = true;
 
         const simData = readSimData() as {
-            step1?: { txtp?: { value: string }; version?: { value: string } };
+            step1?: { txtp?: string; txtp_version?: string };
         };
-        const txtp = simData.step1?.txtp?.value;
-        const version = simData.step1?.version?.value;
+        const txtp = simData.step1?.txtp;
+        const version = simData.step1?.txtp_version;
         if (!txtp || !version) return;
 
         void buildEntry(txtp, version, 100).then((entry) => {
@@ -266,16 +266,16 @@ export default useTxtpSelectionController;
 export const buildSimPayload = (
     entries: TxtpEntry[],
     step1: {
-        suite_name: string;
+        name: string;
         description: string;
-        associated_rule?: { label: string; value: string } | null;
-        rule_version?: { label: string; value: string } | null;
+        associated_rule?: string | null;
+        rule_version?: string | null;
     }
 ): SimCreationPayload => ({
-    suite_name: step1.suite_name,
+    name: step1.name,
     description: step1.description,
-    associated_rule: step1.associated_rule?.value ?? null,
-    rule_version: step1.rule_version?.value ?? null,
+    associated_rule: step1.associated_rule ?? null,
+    rule_version: step1.rule_version ?? null,
     txtp_list: entries.map((entry, idx) => ({
         txtp: entry.txtp,
         version: entry.version,

@@ -17,6 +17,8 @@ interface Step1Props {
     ruleVersionOptions: DropdownOption[];
     txLoading: boolean;
     versionLoading: boolean;
+    rulesLoading?: boolean;
+    ruleVersionLoading?: boolean;
 }
 
 const Step1RuleDetails = ({
@@ -28,6 +30,8 @@ const Step1RuleDetails = ({
     ruleVersionOptions,
     txLoading,
     versionLoading,
+    rulesLoading = false,
+    ruleVersionLoading = false,
 }: Step1Props) => {
     if (txLoading) return <Loader center />;
 
@@ -44,7 +48,7 @@ const Step1RuleDetails = ({
                     <Grid size={12}>
                         <Controller
                             control={control}
-                            name="suite_name"
+                            name="name"
                             render={({ field }) => (
                                 <Input
                                     maxWidth="100%"
@@ -52,7 +56,7 @@ const Step1RuleDetails = ({
                                     label="Simulation Suite Name"
                                     placeholder="e.g., Q3 Edge Cases"
                                     {...field}
-                                    error={errors.suite_name?.message}
+                                    error={errors.name?.message}
                                 />
                             )}
                         />
@@ -85,6 +89,7 @@ const Step1RuleDetails = ({
                                     value={field.value ?? null}
                                     onChange={(val) => field.onChange(val)}
                                     error={errors.associated_rule?.message as string | undefined}
+                                    disabled={rulesLoading}
                                 />
                             )}
                         />
@@ -100,7 +105,7 @@ const Step1RuleDetails = ({
                                     options={ruleVersionOptions}
                                     value={field.value ?? null}
                                     onChange={(val) => field.onChange(val)}
-                                    disabled={ruleVersionOptions.length === 0}
+                                    disabled={ruleVersionLoading || ruleVersionOptions.length === 0}
                                     error={error?.message}
                                 />
                             )}

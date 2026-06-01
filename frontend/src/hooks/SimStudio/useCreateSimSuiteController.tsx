@@ -6,6 +6,7 @@ import * as yup from "yup";
 import type { DropdownOption } from "../../components/DropDown";
 import { useSimStudioTab } from "../../contexts/SimStudioTabContext";
 import { useGetTypesQuery, useLazyGetTxtpVersionsQuery } from "../../redux/Api/Config";
+import { useGetRulesQuery, useLazyGetRuleTagsQuery } from "../../redux/Api/DockerHub";
 import { LocalStorage } from "../../utils/Common/enums";
 import { extractData, insertData } from "../../utils/Common/storage";
 import { SimStudioTabs } from "../../utils/Constants/data";
@@ -14,7 +15,7 @@ import Step1RuleDetails from "../../components/SimStudio/RuleDetails";
 import TxtpSelection from "../../components/SimStudio/TxtpSelection";
 
 export interface Step1Values {
-    suite_name: string;
+    name: string;
     description: string;
     associated_rule: DropdownOption | null;
     rule_version: DropdownOption | null;
@@ -22,12 +23,21 @@ export interface Step1Values {
     version: DropdownOption | null;
 }
 
+export interface Step1Stored {
+    name: string;
+    description: string;
+    associated_rule: string | null;
+    rule_version: string | null;
+    txtp: string;
+    txtp_version: string;
+}
+
 export interface SimData {
-    step1?: Step1Values;
+    step1?: Step1Stored;
 }
 
 const step1Schema = yup.object({
-    suite_name: yup
+    name: yup
         .string()
         .required("Suite name is required")
         .min(3, "Minimum 3 characters"),
@@ -53,22 +63,6 @@ const step1Schema = yup.object({
         .nullable()
         .test("not-null", "Version is required", (val) => val !== null && val !== undefined),
 });
-
-const MOCK_RULES: DropdownOption[] = [
-    { label: "Rule 001", value: "Rule 001" },
-    { label: "Rule 002", value: "Rule 002" },
-    { label: "Rule 003", value: "Rule 003" },
-    { label: "Rule 004", value: "Rule 004" },
-    { label: "Rule 005", value: "Rule 005" },
-];
-
-const MOCK_RULE_VERSIONS: Record<string, DropdownOption[]> = {
-    "Rule 001": [{ label: "v1.0", value: "v1.0" }, { label: "v1.1", value: "v1.1" }, { label: "v2.0", value: "v2.0" }],
-    "Rule 002": [{ label: "v1.0", value: "v1.0" }],
-    "Rule 003": [{ label: "v1.0", value: "v1.0" }, { label: "v2.0", value: "v2.0" }],
-    "Rule 004": [{ label: "v1.0", value: "v1.0" }, { label: "v1.1", value: "v1.1" }],
-    "Rule 005": [{ label: "v1.0", value: "v1.0" }, { label: "v1.1", value: "v1.1" }, { label: "v2.0", value: "v2.0" }],
-};
 
 const SIM_DATA_KEY = 'sim_data';
 
@@ -102,7 +96,7 @@ const useCreateSimSuiteController = () => {
     } = useForm<Step1Values>({
         resolver: yupResolver(step1Schema) as never,
         defaultValues: {
-            suite_name: "",
+            name: "",
             description: "",
             associated_rule: null,
             rule_version: null,
@@ -115,6 +109,9 @@ const useCreateSimSuiteController = () => {
     const selectedRule = watch("associated_rule");
 
     const { data: txTypesData, isLoading: txLoading } = useGetTypesQuery({});
+    const { data: rulesData, isLoading: rulesLoading } = useGetRulesQuery();
+    const [fetchRuleTags, { data: ruleTagsData, isFetching: ruleVersionLoading }] =
+        useLazyGetRuleTagsQuery();
 
     const txTypeOptions = useMemo<DropdownOption[]>(() => {
         if (!txTypesData || !Array.isArray(txTypesData)) return [];
@@ -127,6 +124,11 @@ const useCreateSimSuiteController = () => {
             return acc;
         }, []);
     }, [txTypesData]);
+
+    const ruleOptions = useMemo<DropdownOption[]>(() => {
+        if (!rulesData?.rules) return [];
+        return rulesData.rules.map((r) => ({ label: r.name, value: r.name }));
+    }, [rulesData]);
 
     const [getVersions, { data: versionsData, isFetching: versionLoading }] =
         useLazyGetTxtpVersionsQuery();
@@ -152,12 +154,15 @@ const useCreateSimSuiteController = () => {
 
     useEffect(() => {
         setValue("rule_version", null);
-    }, [selectedRule, setValue]);
+        if (selectedRule?.value) {
+            void fetchRuleTags({ rule: String(selectedRule.value) });
+        }
+    }, [selectedRule, setValue, fetchRuleTags]);
 
     const ruleVersionOptions = useMemo<DropdownOption[]>(() => {
-        const key = String(selectedRule?.value ?? "");
-        return MOCK_RULE_VERSIONS[key] ?? [];
-    }, [selectedRule]);
+        if (!ruleTagsData?.tags) return [];
+        return ruleTagsData.tags.map((t) => ({ label: t.name, value: t.name }));
+    }, [ruleTagsData]);
 
     const handleBack = () => {
         if (selectedTab === SimStudioTabs[0].value) {
@@ -170,10 +175,21 @@ const useCreateSimSuiteController = () => {
     const handleNextStep = () => {
         if (selectedTab === SimStudioTabs[0].value) {
             void handleSubmit((data) => {
-                writeSimData({ step1: data });
+                const stored: Step1Stored = {
+                    name: data.name,
+                    description: data.description,
+                    associated_rule: (data.associated_rule?.value as string) ?? null,
+                    rule_version: (data.rule_version?.value as string) ?? null,
+                    txtp: (data.txtp?.value as string) ?? '',
+                    txtp_version: (data.version?.value as string) ?? '',
+                };
+                writeSimData({ step1: stored });
+                console.log('[SimStudio] Step 1 saved:', stored);
                 enableNextTab();
             })();
         } else {
+            const simData = extractData(SIM_DATA_KEY, LocalStorage, false);
+            console.log('[SimStudio] Next Step — sim_data at hand-off:', simData);
             enableNextTab();
         }
     };
@@ -187,10 +203,12 @@ const useCreateSimSuiteController = () => {
                         errors={errors}
                         txTypeOptions={txTypeOptions}
                         versionOptions={versionOptions}
-                        ruleOptions={MOCK_RULES}
+                        ruleOptions={ruleOptions}
                         ruleVersionOptions={ruleVersionOptions}
                         txLoading={txLoading}
                         versionLoading={versionLoading}
+                        rulesLoading={rulesLoading}
+                        ruleVersionLoading={ruleVersionLoading}
                     />
                 );
             case 'txtp_selection':      return <TxtpSelection />;
