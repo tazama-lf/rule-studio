@@ -59,7 +59,6 @@ export class SimulationStudioService {
         rule_name: suites.rule_name ?? suites.associated_rule,
         primary_txtp: suites.primary_txtp ?? suites.txtp,
         primary_txtp_version: suites.primary_txtp_version ?? suites.txtp_version ?? suites.version,
-        wizard_progress: suites.wizard_progress ?? { step: 1, completed: false },
       };
       return await this.adminServiceClient.createSimulationSuite(token, payload);
     } catch (err) {
