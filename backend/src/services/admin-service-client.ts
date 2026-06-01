@@ -47,6 +47,11 @@ import {
   SIMULATION_STATS,
   SIMULATION_RESULTS,
   SIMULATION_SUITES,
+  SUITE_GENERATIONS,
+  SUITE_LATEST_GENERATION,
+  GENERATION_CONTEXT_CONFIGS,
+  CONTEXT_CONFIG,
+  CONTEXT_CONFIG_FIELD_STRATEGIES,
   SIMULATION_ITEMS,
   EXCLUDED_TYPES,
   STAGE_SIMULATION_ITEMS,
@@ -546,5 +551,33 @@ export class AdminServiceClient {
 
   async patchSimulationSuite(token: string, id: number, payload: PatchSimulationSuitesDto): Promise<SimulationSuiteResponseDto> {
     return await this.executeHttpRequest<SimulationSuiteResponseDto>('PATCH', `${SIMULATION_SUITES}/${id}`, token, payload);
+  }
+
+  // ── Generations ──────────────────────────────────────────────────────────────
+
+  async getSuiteGenerations<T>(token: string, suiteId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('GET', SUITE_GENERATIONS(suiteId), token);
+  }
+
+  async getLatestSuiteGeneration<T>(token: string, suiteId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('GET', SUITE_LATEST_GENERATION(suiteId), token);
+  }
+
+  async getGenerationContextConfigs<T>(token: string, generationId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('GET', GENERATION_CONTEXT_CONFIGS(generationId), token);
+  }
+
+  // ── Context TXTP Config ───────────────────────────────────────────────────────
+
+  async updateContextTxtpConfig<T>(token: string, suiteId: number, configId: number, body: unknown): Promise<T> {
+    return await this.executeHttpRequest<T>('PATCH', CONTEXT_CONFIG(suiteId, configId), token, body);
+  }
+
+  async upsertFieldStrategies<T>(token: string, suiteId: number, configId: number, body: unknown): Promise<T> {
+    return await this.executeHttpRequest<T>('PUT', CONTEXT_CONFIG_FIELD_STRATEGIES(suiteId, configId), token, body);
+  }
+
+  async getFieldStrategies<T>(token: string, suiteId: number, configId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('GET', CONTEXT_CONFIG_FIELD_STRATEGIES(suiteId, configId), token);
   }
 }

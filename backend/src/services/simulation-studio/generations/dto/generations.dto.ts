@@ -1,0 +1,238 @@
+import { ApiProperty } from '@nestjs/swagger';
+import { IsString, IsInt, IsOptional, IsEnum, Min, IsNumber, IsObject } from 'class-validator';
+import { Type } from 'class-transformer';
+import type { ContextFieldStrategy } from '../../interface/common.types';
+
+export type SuiteGenerationStatus = 'DRAFT' | 'READY' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+
+export class SuiteGenerationDto {
+  @ApiProperty({ example: 1 })
+  id: number;
+
+  @ApiProperty({ example: 42 })
+  suite_id: number;
+
+  @ApiProperty({ example: 1 })
+  generation_number: number;
+
+  @ApiProperty({ example: 'DRAFT' })
+  status: SuiteGenerationStatus;
+
+  @ApiProperty({ example: 'SINGLE_RULE' })
+  simulation_type: string;
+
+  @ApiProperty({ required: false })
+  rule_repo?: string;
+
+  @ApiProperty({ required: false })
+  rule_version?: string;
+
+  @ApiProperty({ example: {} })
+  wizard_snapshot: Record<string, unknown>;
+
+  @ApiProperty({ example: {} })
+  generation_metadata: Record<string, unknown>;
+
+  @ApiProperty()
+  created_by: string;
+
+  @ApiProperty({ required: false })
+  created_by_email?: string;
+
+  @ApiProperty()
+  created_at: string;
+
+  @ApiProperty()
+  updated_at: string;
+}
+
+export class SuiteGenerationsListDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty({ type: [SuiteGenerationDto] })
+  data: SuiteGenerationDto[];
+}
+
+export class SuiteGenerationResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty({ type: SuiteGenerationDto })
+  data: SuiteGenerationDto;
+}
+
+// ── Context TXTP Config DTOs ─────────────────────────────────────────────────
+
+export class SuiteContextTxtpConfigDto {
+  @ApiProperty({ example: 1 })
+  id: number;
+
+  @ApiProperty({ example: 1 })
+  generation_id: number;
+
+  @ApiProperty({ example: 'pacs.008' })
+  txtp: string;
+
+  @ApiProperty({ example: '001.08' })
+  txtp_version: string;
+
+  @ApiProperty({ example: 1 })
+  display_order: number;
+
+  @ApiProperty({ example: 1 })
+  message_count: number;
+
+  @ApiProperty({ required: false })
+  faker_seed?: number;
+
+  @ApiProperty({ example: {} })
+  schema_snapshot: Record<string, unknown>;
+
+  @ApiProperty({ required: false, example: {} })
+  sample_payload_snapshot?: Record<string, unknown>;
+
+  @ApiProperty({ required: false, example: {} })
+  generator_profile?: Record<string, unknown>;
+
+  @ApiProperty()
+  created_at: string;
+
+  @ApiProperty()
+  updated_at: string;
+}
+
+export class ContextConfigsListDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty({ type: [SuiteContextTxtpConfigDto] })
+  data: SuiteContextTxtpConfigDto[];
+}
+
+export class UpdateContextTxtpConfigDto {
+  @ApiProperty({ required: false, example: 5 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  message_count?: number;
+
+  @ApiProperty({ required: false, example: 42 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  faker_seed?: number;
+
+  @ApiProperty({ required: false, example: {} })
+  @IsOptional()
+  @IsObject()
+  generator_profile?: Record<string, unknown>;
+}
+
+export class ContextTxtpConfigResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty({ type: SuiteContextTxtpConfigDto })
+  data: SuiteContextTxtpConfigDto;
+}
+
+// ── Field Strategy DTOs ───────────────────────────────────────────────────────
+
+export class ContextFieldStrategyDto {
+  @ApiProperty({ example: 1 })
+  id: number;
+
+  @ApiProperty({ example: 1 })
+  context_txtp_config_id: number;
+
+  @ApiProperty({ example: 'CdtTrfTxInf.IntrBkSttlmAmt.value' })
+  field_path: string;
+
+  @ApiProperty({ example: 'static' })
+  strategy_code: ContextFieldStrategy;
+
+  @ApiProperty({ required: false })
+  static_value?: unknown;
+
+  @ApiProperty({ required: false, example: 100 })
+  range_min?: number;
+
+  @ApiProperty({ required: false, example: 9999 })
+  range_max?: number;
+
+  @ApiProperty({ required: false, example: 'iso20022.amount' })
+  generator_type?: string;
+
+  @ApiProperty({ required: false, example: {} })
+  generator_options?: Record<string, unknown>;
+
+  @ApiProperty({ required: false, example: true })
+  is_required_override?: boolean;
+
+  @ApiProperty()
+  created_at: string;
+
+  @ApiProperty()
+  updated_at: string;
+}
+
+export class UpsertFieldStrategyDto {
+  @ApiProperty({ example: 'CdtTrfTxInf.IntrBkSttlmAmt.value' })
+  @IsString()
+  field_path: string;
+
+  @ApiProperty({ example: 'static', enum: ['keep_sample', 'static', 'range', 'generated', 'null', 'skip'] })
+  @IsEnum(['keep_sample', 'static', 'range', 'generated', 'null', 'skip'])
+  strategy_code: ContextFieldStrategy;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  static_value?: unknown;
+
+  @ApiProperty({ required: false, example: 100 })
+  @IsOptional()
+  @IsNumber()
+  range_min?: number;
+
+  @ApiProperty({ required: false, example: 9999 })
+  @IsOptional()
+  @IsNumber()
+  range_max?: number;
+
+  @ApiProperty({ required: false, example: 'iso20022.bic' })
+  @IsOptional()
+  @IsString()
+  generator_type?: string;
+
+  @ApiProperty({ required: false, example: {} })
+  @IsOptional()
+  @IsObject()
+  generator_options?: Record<string, unknown>;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  is_required_override?: boolean;
+}
+
+export class UpsertFieldStrategiesDto {
+  @ApiProperty({ type: [UpsertFieldStrategyDto] })
+  strategies: UpsertFieldStrategyDto[];
+}
+
+export class FieldStrategiesListDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty({ type: [ContextFieldStrategyDto] })
+  data: ContextFieldStrategyDto[];
+}
+
+export class FieldStrategyResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty({ type: [ContextFieldStrategyDto] })
+  data: ContextFieldStrategyDto[];
+}
