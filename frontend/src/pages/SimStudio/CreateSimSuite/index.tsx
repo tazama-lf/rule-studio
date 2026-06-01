@@ -55,6 +55,7 @@ const CreateSimSuiteContent = () => {
                     variant="contained"
                     endIcon={<ChevronRightIcon />}
                     onClick={functions.handleNextStep}
+                    disabled={values.isCreatingSuite}
                     sx={{
                         textTransform: "none",
                         height: "38px",
@@ -66,7 +67,7 @@ const CreateSimSuiteContent = () => {
                         color: "#fff",
                     }}
                 >
-                    Next Step
+                    {values.isCreatingSuite ? "Creating..." : "Next Step"}
                 </Button>
             </S.BottomBar>
         </S.PageContainer>
