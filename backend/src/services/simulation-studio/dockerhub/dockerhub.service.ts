@@ -1,7 +1,7 @@
 import { Injectable, Logger, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { TenantConfigService } from './tenant-config.service';
 import type { DockerHubRepositoriesResponseDto, DockerHubTagsResponseDto } from './dto/dockerhub.dto';
-import type { DhLoginResponse, DhRepository, DhRepositoriesPage, DhTagResult, DhTagsPage } from '../../interfaces/dockerhub.interfaces';
+import type { DhLoginResponse, DhRepository, DhRepositoriesPage, DhTagResult, DhTagsPage } from '../../../interfaces/dockerhub.interfaces';
 
 const DOCKERHUB_API = 'https://hub.docker.com/v2';
 
@@ -10,6 +10,18 @@ export class DockerHubService {
   private readonly logger = new Logger(DockerHubService.name);
 
   constructor(private readonly tenantConfigService: TenantConfigService) { }
+
+  private getTenantRulePrefix(tenantId: string): string {
+    return `${tenantId.toLowerCase()}-`;
+  }
+
+  private toTenantRuleName(tenantId: string, ruleName: string): string {
+    const trimmedRuleName = ruleName.trim();
+    const prefix = this.getTenantRulePrefix(tenantId);
+    const normalized = trimmedRuleName.toLowerCase();
+
+    return normalized.startsWith(prefix) ? trimmedRuleName : `${prefix}${trimmedRuleName}`;
+  }
 
   /**
    * Exchange the tenant's PAT for a short-lived Docker Hub JWT.
@@ -82,31 +94,38 @@ export class DockerHubService {
     const { authToken, namespace } = await this.getAuthToken(tenantId);
     const firstUrl = `${DOCKERHUB_API}/namespaces/${namespace}/repositories?page_size=100`;
     const repos = await this.fetchRepoPage(firstUrl, authToken, tenantId);
+    const tenantRulePrefix = this.getTenantRulePrefix(tenantId);
+    const tenantRepos = repos.filter((r) => r.name.toLowerCase().startsWith(tenantRulePrefix));
 
-    this.logger.log(`Fetched ${repos.length} rules for tenant "${tenantId}" from namespace "${namespace}"`);
+    this.logger.log(
+      `Fetched ${tenantRepos.length}/${repos.length} rules for tenant "${tenantId}" with prefix "${tenantRulePrefix}" from namespace "${namespace}"`,
+    );
 
     return {
-      rules: repos.map((r) => ({
+      rules: tenantRepos.map((r) => ({
         name: r.name,
         namespace: r.namespace,
         repository_type: r.repository_type,
         pull_count: r.pull_count,
         last_updated: r.last_updated,
       })),
-      count: repos.length,
+      count: tenantRepos.length,
     };
   }
 
   /** Fetch all tags for a given rule in the tenant's namespace. */
   async getTagsForRule(tenantId: string, ruleName: string): Promise<DockerHubTagsResponseDto> {
     const { authToken, namespace } = await this.getAuthToken(tenantId);
-    const firstUrl = `${DOCKERHUB_API}/namespaces/${namespace}/repositories/${encodeURIComponent(ruleName)}/tags?page_size=100`;
-    const tags = await this.fetchTagPage(firstUrl, authToken, tenantId, ruleName, namespace);
+    const tenantRuleName = this.toTenantRuleName(tenantId, ruleName);
+    const firstUrl = `${DOCKERHUB_API}/namespaces/${namespace}/repositories/${encodeURIComponent(tenantRuleName)}/tags?page_size=100`;
+    const tags = await this.fetchTagPage(firstUrl, authToken, tenantId, tenantRuleName, namespace);
 
-    this.logger.log(`Fetched ${tags.length} tags for rule "${ruleName}" (tenant "${tenantId}", namespace "${namespace}")`);
+    this.logger.log(
+      `Fetched ${tags.length} tags for rule "${tenantRuleName}" (tenant "${tenantId}", namespace "${namespace}")`,
+    );
 
     return {
-      rule: ruleName,
+      rule: tenantRuleName,
       tags: tags.map((t) => ({
         name: t.name,
         last_updated: t.last_updated,

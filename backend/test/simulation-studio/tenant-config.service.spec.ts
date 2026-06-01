@@ -1,6 +1,6 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { TenantConfigService } from '../../../src/services/dockerhub/tenant-config.service';
+import { TenantConfigService } from '../../src/services/simulation-studio/dockerhub/tenant-config.service';
 
 const ORIGINAL_ENV = process.env;
 
