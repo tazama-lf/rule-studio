@@ -1,15 +1,36 @@
-import { Injectable, Logger, InternalServerErrorException, NotFoundException } from '@nestjs/common';
-import { TenantConfigService } from './tenant-config.service';
+import { Injectable, Logger, OnModuleInit, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type { DockerHubRepositoriesResponseDto, DockerHubTagsResponseDto } from './dto/dockerhub.dto';
 import type { DhLoginResponse, DhRepository, DhRepositoriesPage, DhTagResult, DhTagsPage } from '../../../interfaces/dockerhub.interfaces';
 
 const DOCKERHUB_API = 'https://hub.docker.com/v2';
 
 @Injectable()
-export class DockerHubService {
+export class DockerHubService implements OnModuleInit {
   private readonly logger = new Logger(DockerHubService.name);
+  private username: string;
+  private token: string;
+  private namespace: string;
 
-  constructor(private readonly tenantConfigService: TenantConfigService) { }
+  constructor(private readonly configService: ConfigService) { }
+
+  onModuleInit(): void {
+    const token = this.configService.get<string>('DOCKERHUB_TOKEN');
+    const username = this.configService.get<string>('DOCKERHUB_USERNAME');
+    const namespace = this.configService.get<string>('DOCKERHUB_NAMESPACE');
+
+    if (!token || !username || !namespace) {
+      throw new Error(
+        'Missing required Docker Hub environment variables: DOCKERHUB_TOKEN, DOCKERHUB_USERNAME, DOCKERHUB_NAMESPACE',
+      );
+    }
+
+    this.token = token;
+    this.username = username;
+    this.namespace = namespace;
+
+    this.logger.log(`Docker Hub configured for namespace "${this.namespace}"`);
+  }
 
   private getTenantRulePrefix(tenantId: string): string {
     return `${tenantId.toLowerCase()}-`;
@@ -23,82 +44,62 @@ export class DockerHubService {
     return normalized.startsWith(prefix) ? trimmedRuleName : `${prefix}${trimmedRuleName}`;
   }
 
-  /**
-   * Exchange the tenant's PAT for a short-lived Docker Hub JWT.
-   * The PAT is read from env via TenantConfigService — never from the request.
-   */
-  private async getAuthToken(tenantId: string): Promise<{ authToken: string; namespace: string }> {
-    const creds = this.tenantConfigService.getCredentials(tenantId);
-
+  private async getAuthToken(): Promise<string> {
     const response = await fetch(`${DOCKERHUB_API}/users/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: creds.username, password: creds.token }),
+      body: JSON.stringify({ username: this.username, password: this.token }),
     });
 
     if (!response.ok) {
-      this.logger.error(`Docker Hub login failed for tenant "${tenantId}": ${response.status} ${response.statusText}`);
+      this.logger.error(`Docker Hub login failed: ${response.status} ${response.statusText}`);
       throw new InternalServerErrorException('Failed to authenticate with Docker Hub');
     }
 
     const data = (await response.json()) as DhLoginResponse;
-    return { authToken: data.token, namespace: creds.namespace };
+    return data.token;
   }
 
-  /**
-   * Recursively fetches all pages of repositories for a namespace.
-   * Avoids await-in-loop by using recursion instead of a while loop.
-   */
-  private async fetchRepoPage(url: string, authToken: string, tenantId: string): Promise<DhRepository[]> {
+  private async fetchRepoPage(url: string, authToken: string): Promise<DhRepository[]> {
     const response = await fetch(url, { headers: { Authorization: `Bearer ${authToken}` } });
 
     if (!response.ok) {
-      this.logger.error(`Docker Hub repositories fetch failed for tenant "${tenantId}": ${response.status} ${response.statusText}`);
+      this.logger.error(`Docker Hub repositories fetch failed: ${response.status} ${response.statusText}`);
       throw new InternalServerErrorException('Failed to fetch rules from Docker Hub');
     }
 
     const page = (await response.json()) as DhRepositoriesPage;
-    const remaining = page.next ? await this.fetchRepoPage(page.next, authToken, tenantId) : [];
+    const remaining = page.next ? await this.fetchRepoPage(page.next, authToken) : [];
     return [...page.results, ...remaining];
   }
 
-  /**
-   * Recursively fetches all pages of tags for a repository.
-   * Avoids await-in-loop by using recursion instead of a while loop.
-   */
-  private async fetchTagPage(
-    url: string,
-    authToken: string,
-    tenantId: string,
-    ruleName: string,
-    namespace: string,
-  ): Promise<DhTagResult[]> {
+  private async fetchTagPage(url: string, authToken: string, ruleName: string): Promise<DhTagResult[]> {
     const response = await fetch(url, { headers: { Authorization: `Bearer ${authToken}` } });
 
     if (response.status === 404) {
-      throw new NotFoundException(`Rule "${ruleName}" not found in Docker Hub namespace "${namespace}" for tenant "${tenantId}"`);
+      throw new NotFoundException(`Rule "${ruleName}" not found in Docker Hub namespace "${this.namespace}"`);
     }
 
     if (!response.ok) {
-      this.logger.error(`Docker Hub tags fetch failed for tenant "${tenantId}": ${response.status} ${response.statusText}`);
+      this.logger.error(`Docker Hub tags fetch failed: ${response.status} ${response.statusText}`);
       throw new InternalServerErrorException(`Failed to fetch tags for rule "${ruleName}" from Docker Hub`);
     }
 
     const page = (await response.json()) as DhTagsPage;
-    const remaining = page.next ? await this.fetchTagPage(page.next, authToken, tenantId, ruleName, namespace) : [];
+    const remaining = page.next ? await this.fetchTagPage(page.next, authToken, ruleName) : [];
     return [...page.results, ...remaining];
   }
 
-  /** Fetch all repositories for the tenant's namespace. */
+  /** Fetch all repositories in the configured namespace, filtered by tenant prefix. */
   async getPublishedRules(tenantId: string): Promise<DockerHubRepositoriesResponseDto> {
-    const { authToken, namespace } = await this.getAuthToken(tenantId);
-    const firstUrl = `${DOCKERHUB_API}/namespaces/${namespace}/repositories?page_size=100`;
-    const repos = await this.fetchRepoPage(firstUrl, authToken, tenantId);
+    const authToken = await this.getAuthToken();
+    const firstUrl = `${DOCKERHUB_API}/namespaces/${this.namespace}/repositories?page_size=100`;
+    const repos = await this.fetchRepoPage(firstUrl, authToken);
     const tenantRulePrefix = this.getTenantRulePrefix(tenantId);
     const tenantRepos = repos.filter((r) => r.name.toLowerCase().startsWith(tenantRulePrefix));
 
     this.logger.log(
-      `Fetched ${tenantRepos.length}/${repos.length} rules for tenant "${tenantId}" with prefix "${tenantRulePrefix}" from namespace "${namespace}"`,
+      `Fetched ${tenantRepos.length} rules for tenant "${tenantId}" `,
     );
 
     return {
@@ -113,15 +114,15 @@ export class DockerHubService {
     };
   }
 
-  /** Fetch all tags for a given rule in the tenant's namespace. */
+  /** Fetch all tags for a given rule in the configured namespace. */
   async getTagsForRule(tenantId: string, ruleName: string): Promise<DockerHubTagsResponseDto> {
-    const { authToken, namespace } = await this.getAuthToken(tenantId);
+    const authToken = await this.getAuthToken();
     const tenantRuleName = this.toTenantRuleName(tenantId, ruleName);
-    const firstUrl = `${DOCKERHUB_API}/namespaces/${namespace}/repositories/${encodeURIComponent(tenantRuleName)}/tags?page_size=100`;
-    const tags = await this.fetchTagPage(firstUrl, authToken, tenantId, tenantRuleName, namespace);
+    const firstUrl = `${DOCKERHUB_API}/namespaces/${this.namespace}/repositories/${encodeURIComponent(tenantRuleName)}/tags?page_size=100`;
+    const tags = await this.fetchTagPage(firstUrl, authToken, tenantRuleName);
 
     this.logger.log(
-      `Fetched ${tags.length} tags for rule "${tenantRuleName}" (tenant "${tenantId}", namespace "${namespace}")`,
+      `Fetched ${tags.length} tags for rule "${tenantRuleName}" (tenant "${tenantId}", namespace "${this.namespace}")`,
     );
 
     return {

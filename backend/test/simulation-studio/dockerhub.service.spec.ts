@@ -1,24 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { DockerHubService } from '../../src/services/simulation-studio/dockerhub/dockerhub.service';
-import { TenantConfigService } from '../../src/services/simulation-studio/dockerhub/tenant-config.service';
-import type { TenantDockerHubCredentials } from '../../src/services/simulation-studio/dockerhub/tenant-config.service';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 const TENANT_ID = 'cbe';
-const CREDS: TenantDockerHubCredentials = {
-  tenantId: TENANT_ID,
-  token: 'dckr_pat_test',
-  username: 'testuser',
-  namespace: 'testns',
-};
+const NAMESPACE = 'testns';
 
 const mockLoginResponse = { token: 'dh-jwt-token' };
 
 const makeRepo = (name: string) => ({
   name,
-  namespace: CREDS.namespace,
+  namespace: NAMESPACE,
   repository_type: 'image',
   pull_count: 0,
   last_updated: '2026-01-01T00:00:00Z',
@@ -46,30 +40,35 @@ const makeFetchFail = (status: number, statusText = 'Error') =>
     json: jest.fn().mockResolvedValue({}),
   } as unknown as Response);
 
+const mockConfigService = {
+  get: (key: string) =>
+  ({
+    DOCKERHUB_TOKEN: 'dckr_pat_test',
+    DOCKERHUB_USERNAME: 'testuser',
+    DOCKERHUB_NAMESPACE: NAMESPACE,
+  }[key]),
+};
+
 // ─── suite ───────────────────────────────────────────────────────────────────
 
 describe('DockerHubService', () => {
   let service: DockerHubService;
-  let tenantConfig: jest.Mocked<TenantConfigService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DockerHubService,
-        {
-          provide: TenantConfigService,
-          useValue: {
-            getCredentials: jest.fn().mockReturnValue(CREDS),
-          },
-        },
+        { provide: ConfigService, useValue: mockConfigService },
       ],
     }).compile();
 
     service = module.get(DockerHubService);
-    tenantConfig = module.get(TenantConfigService);
+    service.onModuleInit();
   });
 
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   // ─── getPublishedRules ──────────────────────────────────────────────────────
 
@@ -95,7 +94,6 @@ describe('DockerHubService', () => {
       expect(result.rules).toHaveLength(2);
       expect(result.rules[0].name).toBe('cbe-case105');
       expect(result.rules[1].name).toBe('cbe-case106');
-      expect(tenantConfig.getCredentials).toHaveBeenCalledWith(TENANT_ID);
     });
 
     it('filters out rules that do not match tenant prefix', async () => {
@@ -162,14 +160,6 @@ describe('DockerHubService', () => {
         .mockResolvedValueOnce(makeFetchFail(500, 'Internal Server Error')());
 
       await expect(service.getPublishedRules(TENANT_ID)).rejects.toThrow(InternalServerErrorException);
-    });
-
-    it('throws UnauthorizedException when tenant is not configured', async () => {
-      tenantConfig.getCredentials.mockImplementation(() => {
-        throw new UnauthorizedException('No config for tenant');
-      });
-
-      await expect(service.getPublishedRules(TENANT_ID)).rejects.toThrow(UnauthorizedException);
     });
 
     it('returns count equal to rules array length', async () => {
@@ -258,7 +248,7 @@ describe('DockerHubService', () => {
       await expect(service.getTagsForRule(TENANT_ID, RULE)).rejects.toThrow(NotFoundException);
     });
 
-    it('NotFoundException message contains rule name, namespace and tenantId', async () => {
+    it('NotFoundException message contains rule name and namespace', async () => {
       global.fetch = jest
         .fn()
         .mockResolvedValueOnce({
@@ -271,7 +261,7 @@ describe('DockerHubService', () => {
         } as unknown as Response);
 
       await expect(service.getTagsForRule(TENANT_ID, RULE)).rejects.toThrow(
-        new RegExp(`${PREFIXED_RULE}.*${CREDS.namespace}.*${TENANT_ID}`, 's'),
+        new RegExp(`${PREFIXED_RULE}.*${NAMESPACE}`, 's'),
       );
     });
 
@@ -294,14 +284,6 @@ describe('DockerHubService', () => {
         } as unknown as Response);
 
       await expect(service.getTagsForRule(TENANT_ID, RULE)).rejects.toThrow(InternalServerErrorException);
-    });
-
-    it('throws UnauthorizedException when tenant is not configured', async () => {
-      tenantConfig.getCredentials.mockImplementation(() => {
-        throw new UnauthorizedException('No config');
-      });
-
-      await expect(service.getTagsForRule(TENANT_ID, RULE)).rejects.toThrow(UnauthorizedException);
     });
 
     it('encodes special characters in rule name in the URL', async () => {
@@ -367,3 +349,6 @@ describe('DockerHubService', () => {
     expect(resp.ok).toBe(true);
   });
 });
+
+
+// ─── helpers ─────────────────────────────────────────────────────────────────
