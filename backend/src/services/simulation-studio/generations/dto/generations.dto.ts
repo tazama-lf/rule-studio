@@ -110,6 +110,31 @@ export class ContextConfigsListDto {
   data: SuiteContextTxtpConfigDto[];
 }
 
+export class AddContextTxtpConfigDto {
+  @ApiProperty({ example: 'pacs.008', description: 'Transaction type' })
+  @IsString()
+  txtp: string;
+
+  @ApiProperty({ example: '001.08', description: 'Transaction type version' })
+  @IsString()
+  txtp_version: string;
+
+  @ApiProperty({ required: false, example: 100 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  message_count?: number;
+}
+
+export class AddContextTxtpConfigResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty({ type: SuiteContextTxtpConfigDto })
+  data: SuiteContextTxtpConfigDto;
+}
+
 export class UpdateContextTxtpConfigDto {
   @ApiProperty({ required: false, example: 5 })
   @IsOptional()
@@ -178,6 +203,48 @@ export class ContextFieldStrategyDto {
   updated_at: string;
 }
 
+export class ContextTxtpConfigWithStrategiesDto {
+  @ApiProperty({ example: 1, description: 'Context TXTP config id' })
+  context_txtp_config_id: number;
+
+  @ApiProperty({ example: 'pacs.008' })
+  txtp: string;
+
+  @ApiProperty({ example: '001.08' })
+  txtp_version: string;
+
+  @ApiProperty({ example: 100 })
+  message_count: number;
+
+  @ApiProperty({ example: 1 })
+  display_order: number;
+
+  @ApiProperty({ example: {} })
+  schema_snapshot: Record<string, unknown>;
+
+  @ApiProperty({ required: false, example: {} })
+  sample_payload_snapshot?: Record<string, unknown>;
+
+  @ApiProperty({ type: [ContextFieldStrategyDto] })
+  field_strategies: ContextFieldStrategyDto[];
+}
+
+export class ContextConfigsWithStrategiesListDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty({ type: [ContextTxtpConfigWithStrategiesDto] })
+  data: ContextTxtpConfigWithStrategiesDto[];
+}
+
+export class ContextConfigWithStrategiesResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty({ type: ContextTxtpConfigWithStrategiesDto })
+  data: ContextTxtpConfigWithStrategiesDto;
+}
+
 export class UpsertFieldStrategyDto {
   @ApiProperty({ example: 'CdtTrfTxInf.IntrBkSttlmAmt.value' })
   @IsString()
@@ -235,4 +302,43 @@ export class FieldStrategyResponseDto {
 
   @ApiProperty({ type: [ContextFieldStrategyDto] })
   data: ContextFieldStrategyDto[];
+}
+
+export class BulkConfigItemDto {
+  @ApiProperty({ example: 1 })
+  @IsInt()
+  context_txtp_config_id: number;
+
+  @ApiProperty({ required: false, example: 5 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  message_count?: number;
+
+  @ApiProperty({ required: false, example: 42 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  faker_seed?: number;
+
+  @ApiProperty({ required: false, example: {} })
+  @IsOptional()
+  @IsObject()
+  generator_profile?: Record<string, unknown>;
+
+  @ApiProperty({ required: false, type: [UpsertFieldStrategyDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => UpsertFieldStrategyDto)
+  field_strategies?: UpsertFieldStrategyDto[];
+}
+
+export class BulkUpdateContextConfigsResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty({ type: [ContextTxtpConfigWithStrategiesDto] })
+  data: ContextTxtpConfigWithStrategiesDto[];
 }
