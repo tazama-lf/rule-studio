@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsInt, IsOptional, IsEnum, Min, IsNumber, IsObject } from 'class-validator';
+import { IsString, IsInt, IsOptional, IsEnum, Min, IsNumber, IsObject, IsArray, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import type { ContextFieldStrategy } from '../../interface/common.types';
 
