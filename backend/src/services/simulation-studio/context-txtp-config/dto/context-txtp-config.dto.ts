@@ -1,10 +1,12 @@
 export {
-  UpdateContextTxtpConfigDto,
-  ContextTxtpConfigResponseDto,
-  UpsertFieldStrategiesDto,
+  AddContextTxtpConfigDto,
+  AddContextTxtpConfigResponseDto,
+  BulkConfigItemDto,
+  BulkUpdateContextConfigsResponseDto,
+  ContextTxtpConfigWithStrategiesDto,
+  ContextConfigsWithStrategiesListDto,
+  ContextConfigWithStrategiesResponseDto,
   UpsertFieldStrategyDto,
-  FieldStrategiesListDto,
-  FieldStrategyResponseDto,
   ContextFieldStrategyDto,
   SuiteContextTxtpConfigDto,
 } from '../../generations/dto/generations.dto';

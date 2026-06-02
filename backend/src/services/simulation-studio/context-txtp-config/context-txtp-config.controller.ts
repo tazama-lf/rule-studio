@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiParam, ApiBody } from '@nestjs/swagger';
 import { RequireAnyClaims, TazamaClaims } from 'src/decorators/auth.decorator';
 import { ApiSwagger, mergeResponses, CommonResponses } from 'src/decorators/swagger.decorator';
@@ -7,8 +7,13 @@ import { User } from 'src/decorators/user.decorator';
 import { Audit } from 'src/decorators/audit.decorator';
 import type { AuthenticatedUser } from '../../auth/auth.types';
 import { ContextTxtpConfigService } from './context-txtp-config.service';
-import { UpdateContextTxtpConfigDto, UpsertFieldStrategiesDto } from './dto/context-txtp-config.dto';
-import type { ContextTxtpConfigResponseDto, FieldStrategyResponseDto, FieldStrategiesListDto } from './dto/context-txtp-config.dto';
+import {
+  AddContextTxtpConfigDto,
+  BulkConfigItemDto,
+  ContextConfigWithStrategiesResponseDto,
+  ContextConfigsWithStrategiesListDto,
+  BulkUpdateContextConfigsResponseDto,
+} from './dto/context-txtp-config.dto';
 
 @ApiTags('simulation-studio')
 @ApiBearerAuth('JWT-auth')
@@ -17,70 +22,65 @@ import type { ContextTxtpConfigResponseDto, FieldStrategyResponseDto, FieldStrat
 export class ContextTxtpConfigController {
   constructor(private readonly contextTxtpConfigService: ContextTxtpConfigService) {}
 
-  @Patch('suites/:suiteId/context-configs/:configId')
+  @Get('generations/:generationId/context-configs')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @ApiParam({ name: 'generationId', description: 'Suite generation id', example: 1 })
+  @ApiSwagger({
+    summary: 'Get all context TXTP configs with field strategies (Step 2)',
+    description: 'Returns all context txtp configs and their field strategies for the given generation.',
+    responses: mergeResponses(
+      CommonResponses.SUCCESS_200(ContextConfigsWithStrategiesListDto, 'Context configs retrieved successfully'),
+      CommonResponses.NOT_FOUND_404('Generation not found'),
+    ),
+  })
+  async getContextConfigs(
+    @Param('generationId', ParseIntPipe) generationId: number,
+    @User() user: AuthenticatedUser,
+  ): Promise<ContextConfigsWithStrategiesListDto> {
+    return await this.contextTxtpConfigService.getContextConfigs(user.token.tokenString, generationId);
+  }
+
+  @Post('generations/:generationId/context-configs')
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
   @Audit()
-  @ApiParam({ name: 'suiteId', description: 'Simulation suite id', example: 1 })
-  @ApiParam({ name: 'configId', description: 'Context TXTP config id', example: 1 })
-  @ApiBody({ type: UpdateContextTxtpConfigDto })
+  @ApiParam({ name: 'generationId', description: 'Suite generation id', example: 1 })
+  @ApiBody({ type: AddContextTxtpConfigDto })
   @ApiSwagger({
-    summary: 'Update context TXTP config (Step 2)',
+    summary: 'Add context TXTP config (Step 2 - Add TXTP button)',
     description:
-      'Updates message_count, faker_seed, or generator_profile on an existing context TXTP config row. Requires step 1 complete.',
+      'Creates a new context TXTP config for the generation. Fetches schema and payload from tcs_config and seeds all field paths with keep_sample strategy.',
     responses: mergeResponses(
-      CommonResponses.SUCCESS_200(Object, 'Context config updated successfully'),
-      CommonResponses.NOT_FOUND_404('Context config not found'),
+      CommonResponses.CREATED_201(ContextConfigWithStrategiesResponseDto, 'Context config created successfully'),
+      CommonResponses.NOT_FOUND_404('tcs_config entry not found for given txtp+version'),
     ),
   })
-  async updateContextConfig(
-    @Param('suiteId', ParseIntPipe) suiteId: number,
-    @Param('configId', ParseIntPipe) configId: number,
-    @Body() dto: UpdateContextTxtpConfigDto,
+  async addContextConfig(
+    @Param('generationId', ParseIntPipe) generationId: number,
+    @Body() dto: AddContextTxtpConfigDto,
     @User() user: AuthenticatedUser,
-  ): Promise<ContextTxtpConfigResponseDto> {
-    return await this.contextTxtpConfigService.updateContextConfig(user.token.tokenString, suiteId, configId, dto);
+  ): Promise<ContextConfigWithStrategiesResponseDto> {
+    return await this.contextTxtpConfigService.addContextConfig(user.token.tokenString, generationId, dto);
   }
 
-  @Put('suites/:suiteId/context-configs/:configId/field-strategies')
+  @Patch('generations/:generationId/context-configs')
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
   @Audit()
-  @ApiParam({ name: 'suiteId', description: 'Simulation suite id', example: 1 })
-  @ApiParam({ name: 'configId', description: 'Context TXTP config id', example: 1 })
-  @ApiBody({ type: UpsertFieldStrategiesDto })
+  @ApiParam({ name: 'generationId', description: 'Suite generation id', example: 1 })
+  @ApiBody({ type: [BulkConfigItemDto] })
   @ApiSwagger({
-    summary: 'Upsert field strategies (Step 2)',
-    description: 'Upserts one or many field strategies for a context TXTP config row using ON CONFLICT. Requires step 1 complete.',
+    summary: 'Bulk update context TXTP configs (Step 2 - Next button)',
+    description:
+      'Updates message_count and upserts field strategies for all provided context configs. Returns the full updated state of all configs+strategies for the generation.',
     responses: mergeResponses(
-      CommonResponses.SUCCESS_200(Object, 'Field strategies upserted successfully'),
-      CommonResponses.NOT_FOUND_404('Context config not found'),
+      CommonResponses.SUCCESS_200(BulkUpdateContextConfigsResponseDto, 'Context configs updated successfully'),
+      CommonResponses.NOT_FOUND_404('Generation not found'),
     ),
   })
-  async upsertFieldStrategies(
-    @Param('suiteId', ParseIntPipe) suiteId: number,
-    @Param('configId', ParseIntPipe) configId: number,
-    @Body() dto: UpsertFieldStrategiesDto,
+  async bulkUpdateContextConfigs(
+    @Param('generationId', ParseIntPipe) generationId: number,
+    @Body() items: BulkConfigItemDto[],
     @User() user: AuthenticatedUser,
-  ): Promise<FieldStrategyResponseDto> {
-    return await this.contextTxtpConfigService.upsertFieldStrategies(user.token.tokenString, suiteId, configId, dto);
-  }
-
-  @Get('suites/:suiteId/context-configs/:configId/field-strategies')
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
-  @ApiParam({ name: 'suiteId', description: 'Simulation suite id', example: 1 })
-  @ApiParam({ name: 'configId', description: 'Context TXTP config id', example: 1 })
-  @ApiSwagger({
-    summary: 'Get field strategies (Step 2)',
-    description: 'Returns all saved field strategies for a context TXTP config row. Requires step 1 complete.',
-    responses: mergeResponses(
-      CommonResponses.SUCCESS_200(Object, 'Field strategies retrieved successfully'),
-      CommonResponses.NOT_FOUND_404('Context config not found'),
-    ),
-  })
-  async getFieldStrategies(
-    @Param('suiteId', ParseIntPipe) suiteId: number,
-    @Param('configId', ParseIntPipe) configId: number,
-    @User() user: AuthenticatedUser,
-  ): Promise<FieldStrategiesListDto> {
-    return await this.contextTxtpConfigService.getFieldStrategies(user.token.tokenString, suiteId, configId);
+  ): Promise<BulkUpdateContextConfigsResponseDto> {
+    return await this.contextTxtpConfigService.bulkUpdateContextConfigs(user.token.tokenString, generationId, items);
   }
 }
