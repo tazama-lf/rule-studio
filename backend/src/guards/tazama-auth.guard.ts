@@ -10,7 +10,7 @@ import { CLAIMS_KEY, IS_PUBLIC_KEY, ANY_CLAIMS_KEY } from '../decorators/auth.de
 export class TazamaAuthGuard implements CanActivate {
   private readonly logger = new Logger(TazamaAuthGuard.name);
 
-  constructor(private readonly reflector: Reflector) {}
+  constructor(private readonly reflector: Reflector) { }
 
   canActivate(context: ExecutionContext): boolean {
     const logContext = 'TazamaAuthGuard.canActivate()';
@@ -21,7 +21,6 @@ export class TazamaAuthGuard implements CanActivate {
     const token = this.extractBearerToken(request.headers.authorization, logContext);
 
     const { requiredClaims, anyClaims } = this.getClaimsFromDecorators(context);
-
     let validated: ClaimValidationResult;
     try {
       validated = validateTokenAndClaims(token, [...requiredClaims, ...anyClaims]);
@@ -57,7 +56,7 @@ export class TazamaAuthGuard implements CanActivate {
     const realmAccess = innerDecoded.realm_access as { roles?: string[] } | undefined;
     const realmRoles = realmAccess?.roles;
 
-    const supportedRoles = new Set(['editor', 'approver', 'publisher', 'trs_data_engineer_editor', 'trs_data_engineer_approver']);
+    const supportedRoles = new Set(['trs_editor', 'trs_approver', 'trs_publisher', 'trs_data_engineer_editor', 'trs_data_engineer_approver']);
     const actorRole = realmRoles?.find((role: string) => supportedRoles.has(role.toLowerCase()));
     if (!actorRole) {
       throw new UnauthorizedException('No supported RBAC role found in token');
@@ -68,9 +67,9 @@ export class TazamaAuthGuard implements CanActivate {
 
     const allowedStatuses = innerDecoded.status
       ? (innerDecoded.status as string)
-          .split(',')
-          .map((s) => s.trim())
-          .filter((s) => s.length > 0)
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0)
       : undefined;
 
     if (allowedStatuses) {

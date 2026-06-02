@@ -9,7 +9,7 @@ export class AuthService {
   constructor(
     private readonly httpService: HttpService,
     private readonly loggerService: LoggerService,
-  ) {}
+  ) { }
 
   private extractToken(data): string {
     const token = typeof data === 'string' ? data : (data?.token ?? data?.access_token ?? data?.jwt ?? data?.user?.token);
@@ -22,7 +22,7 @@ export class AuthService {
   }
 
   private validateUserToken(token: string, username: string): void {
-    const claimsToCheck = ['editor', 'approver', 'publisher', 'trs_data_engineer_editor', 'trs_data_engineer_approver'];
+    const claimsToCheck = ['trs_editor', 'trs_approver', 'trs_publisher', 'trs_data_engineer_editor', 'trs_data_engineer_approver'];
     let claimResult;
     try {
       claimResult = validateTokenAndClaims(token, claimsToCheck);
@@ -55,6 +55,7 @@ export class AuthService {
         throw new ServiceUnavailableException('Authentication service unavailable');
       }
       this.loggerService.log('Auth service responded', AuthService.name);
+      this.loggerService.log('TOKEN CHECK', response.data);
 
       const token = this.extractToken(response.data);
       this.validateUserToken(token, username);
