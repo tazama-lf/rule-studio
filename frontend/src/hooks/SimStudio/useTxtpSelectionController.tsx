@@ -179,7 +179,6 @@ const useTxtpSelectionController = () => {
 
                 const newEntries = configs.map((cfg) => buildEntryFromContextConfig(cfg));
                 setEntries(newEntries);
-                writeStep2(newEntries);
             } catch {
                 // non-blocking — UI still works without DB sync
             }

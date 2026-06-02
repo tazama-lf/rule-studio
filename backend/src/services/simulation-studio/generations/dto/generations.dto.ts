@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsInt, IsOptional, IsEnum, Min, IsNumber, IsObject, IsArray, ValidateNested } from 'class-validator';
+import { IsString, IsInt, IsOptional, IsEnum, Min, IsNumber, IsObject, IsArray, ValidateNested, ArrayMinSize } from 'class-validator';
 import { Type } from 'class-transformer';
 import type { ContextFieldStrategy } from '../../interface/common.types';
 
@@ -285,6 +285,10 @@ export class UpsertFieldStrategyDto {
 
 export class UpsertFieldStrategiesDto {
   @ApiProperty({ type: [UpsertFieldStrategyDto] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => UpsertFieldStrategyDto)
   strategies: UpsertFieldStrategyDto[];
 }
 
