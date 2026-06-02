@@ -21,6 +21,7 @@ import { DockerHubModule } from './services/dockerhub/dockerhub.module';
 import { SimulationStudioModule } from './services/simulation-studio/simulation-studio.module';
 import { GenerationsModule } from './services/simulation-studio/generations/generations.module';
 import { ContextTxtpConfigModule } from './services/simulation-studio/context-txtp-config/context-txtp-config.module';
+import { TriggerTxtpConfigModule } from './services/simulation-studio/trigger-txtp-config/trigger-txtp-config.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { ContextTxtpConfigModule } from './services/simulation-studio/context-tx
     SimulationStudioModule,
     GenerationsModule,
     ContextTxtpConfigModule,
+    TriggerTxtpConfigModule,
   ],
   controllers: [AppController],
   providers: [AppService],
