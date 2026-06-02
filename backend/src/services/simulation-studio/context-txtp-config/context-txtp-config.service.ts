@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AdminServiceClient } from '../../admin-service-client';
 import type {
-  UpdateContextTxtpConfigDto,
-  ContextTxtpConfigResponseDto,
-  UpsertFieldStrategiesDto,
-  FieldStrategyResponseDto,
-  FieldStrategiesListDto,
+  AddContextTxtpConfigDto,
+  ContextConfigWithStrategiesResponseDto,
+  ContextConfigsWithStrategiesListDto,
+  BulkConfigItemDto,
+  BulkUpdateContextConfigsResponseDto,
 } from './dto/context-txtp-config.dto';
 
 @Injectable()
@@ -14,42 +14,40 @@ export class ContextTxtpConfigService {
 
   constructor(private readonly adminServiceClient: AdminServiceClient) {}
 
-  async updateContextConfig(
-    token: string,
-    suiteId: number,
-    configId: number,
-    dto: UpdateContextTxtpConfigDto,
-  ): Promise<ContextTxtpConfigResponseDto> {
+  async getContextConfigs(token: string, generationId: number): Promise<ContextConfigsWithStrategiesListDto> {
     try {
-      return await this.adminServiceClient.updateContextTxtpConfig(token, suiteId, configId, dto);
+      return await this.adminServiceClient.getContextConfigs(token, generationId);
     } catch (err) {
       const error = err as Error;
-      this.logger.error(`Error updating context config ${configId} for suite ${suiteId}`, error.stack);
+      this.logger.error(`Error fetching context configs for generation ${generationId}`, error.stack);
       throw err;
     }
   }
 
-  async upsertFieldStrategies(
+  async addContextConfig(
     token: string,
-    suiteId: number,
-    configId: number,
-    dto: UpsertFieldStrategiesDto,
-  ): Promise<FieldStrategyResponseDto> {
+    generationId: number,
+    dto: AddContextTxtpConfigDto,
+  ): Promise<ContextConfigWithStrategiesResponseDto> {
     try {
-      return await this.adminServiceClient.upsertFieldStrategies(token, suiteId, configId, dto);
+      return await this.adminServiceClient.addContextTxtpConfig(token, generationId, dto);
     } catch (err) {
       const error = err as Error;
-      this.logger.error(`Error upserting field strategies for config ${configId}`, error.stack);
+      this.logger.error(`Error adding context config for generation ${generationId}`, error.stack);
       throw err;
     }
   }
 
-  async getFieldStrategies(token: string, suiteId: number, configId: number): Promise<FieldStrategiesListDto> {
+  async bulkUpdateContextConfigs(
+    token: string,
+    generationId: number,
+    items: BulkConfigItemDto[],
+  ): Promise<BulkUpdateContextConfigsResponseDto> {
     try {
-      return await this.adminServiceClient.getFieldStrategies(token, suiteId, configId);
+      return await this.adminServiceClient.bulkUpdateContextConfigs(token, generationId, items);
     } catch (err) {
       const error = err as Error;
-      this.logger.error(`Error fetching field strategies for config ${configId}`, error.stack);
+      this.logger.error(`Error bulk updating context configs for generation ${generationId}`, error.stack);
       throw err;
     }
   }

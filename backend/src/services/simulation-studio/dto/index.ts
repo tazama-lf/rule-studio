@@ -94,6 +94,12 @@ export class SimulationSuitesDto {
   @IsOptional()
   @IsString()
   created_by_email?: string;
+
+  @ApiProperty({ description: 'Latest generation id — store in localStorage for Step 2+ API calls', required: false, example: 7 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  generation_id?: number;
 }
 
 export class SimulationSuitesListDto {
