@@ -4,6 +4,8 @@ import StatusCard from "../../components/Cards/StatusCard";
 import type { TableColumn } from "../../components/Table";
 import useDebouncedSearch from "../../hooks/useDebouncedSearch";
 import { useGetSuitesQuery, type SuiteListItem } from "../../redux/Api/SimStudio";
+import { useGetRulesQuery } from "../../redux/Api/DockerHub";
+import { useGetTypesQuery } from "../../redux/Api/Config";
 import * as S from "./SimStudio.styles";
 import SimStudioActions from "./SimStudioActions";
 
@@ -41,17 +43,27 @@ const useSimStudioController = () => {
     }), [debouncedSearch, statusFilter, ruleFilter, txtpFilter, lastUpdatedFrom, lastUpdatedTo]);
 
     const { data, isLoading, isFetching } = useGetSuitesQuery(queryParams);
+    const { data: rulesData } = useGetRulesQuery();
+    const { data: txTypesData } = useGetTypesQuery({});
 
     const suites: SuiteListItem[] = data?.suites ?? [];
 
     const availableRules = useMemo(
-        () => [...new Set(suites.map((s) => s.rule_name).filter(Boolean) as string[])],
-        [suites]
+        () => rulesData?.rules.map((r) => r.name) ?? [],
+        [rulesData]
     );
-    const availableTxtps = useMemo(
-        () => [...new Set(suites.map((s) => s.primary_txtp).filter(Boolean) as string[])],
-        [suites]
-    );
+    const availableTxtps = useMemo(() => {
+        if (!txTypesData || !Array.isArray(txTypesData)) return [];
+        const seen = new Set<string>();
+        const result: string[] = [];
+        for (const item of txTypesData as { transaction_type: string }[]) {
+            if (!seen.has(item.transaction_type)) {
+                seen.add(item.transaction_type);
+                result.push(item.transaction_type);
+            }
+        }
+        return result;
+    }, [txTypesData]);
 
     const stats = useMemo(() => ({
         total: data?.total ?? suites.length,

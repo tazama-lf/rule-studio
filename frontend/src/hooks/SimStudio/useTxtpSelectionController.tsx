@@ -3,18 +3,17 @@ import toast from "react-hot-toast";
 import type { DropdownOption } from "../../components/DropDown";
 import {
     useGetTypesQuery,
-    useLazyGetSamplePayloadQuery,
     useLazyGetTxtpVersionsQuery,
 } from "../../redux/Api/Config";
 import {
-    useLazyGetLatestGenerationQuery,
     useLazyGetContextConfigsQuery,
-    useUpdateContextConfigMutation,
-    useUpsertFieldStrategiesMutation,
-    type UpsertFieldStrategyItem,
+    useCreateContextConfigMutation,
+    useBulkUpdateContextConfigsMutation,
+    type BulkConfigItem,
+    type FieldStrategy,
 } from "../../redux/Api/SimStudio";
 import { LocalStorage } from "../../utils/Common/enums";
-import { extractData, insertData } from "../../utils/Common/storage";
+import { extractData } from "../../utils/Common/storage";
 
 export type FieldAction = "sample" | "static" | "range" | "skip";
 
@@ -36,6 +35,7 @@ export interface TxtpEntry {
     fieldConfigs: Record<string, FieldConfig>;
     schemaLoaded: boolean;
     sampleAvailable: boolean;
+    contextConfigId?: number;
 }
 
 export interface SimFieldConfig {
@@ -74,31 +74,46 @@ const flattenPaths = (obj: unknown, prefix = ""): string[] => {
     });
 };
 
-const SIM_DATA_KEY = "sim_data";
+const strategyToFieldAction = (code: string): FieldAction => {
+    if (code === "static") return "static";
+    if (code === "range") return "range";
+    if (code === "skip") return "skip";
+    return "sample";
+};
 
-const readSimData = () => {
-    try {
-        return (extractData(SIM_DATA_KEY, LocalStorage, false) as Record<string, unknown>) ?? {};
-    } catch {
-        return {} as Record<string, unknown>;
+const buildEntryFromContextConfig = (cfg: {
+    context_txtp_config_id?: string | number;
+    id?: number;
+    txtp: string;
+    txtp_version: string;
+    message_count: number;
+    sample_payload_snapshot?: Record<string, unknown> | null;
+    field_strategies?: FieldStrategy[];
+}): TxtpEntry => {
+    const payload = cfg.sample_payload_snapshot ?? null;
+    const fieldPaths = payload ? flattenPaths(payload) : [];
+    const fieldConfigs: Record<string, FieldConfig> = {};
+    for (const s of cfg.field_strategies ?? []) {
+        fieldConfigs[s.field_path] = {
+            action: strategyToFieldAction(s.strategy_code),
+            staticValue: s.static_value != null ? String(s.static_value) : "",
+            rangeStart: s.range_min != null ? String(s.range_min) : "",
+            rangeEnd: s.range_max != null ? String(s.range_max) : "",
+        };
     }
-};
-
-const readSuiteId = (): number | null => {
-    const data = readSimData() as { suiteId?: number };
-    return data.suiteId ?? null;
-};
-
-const writeStep2 = (entries: TxtpEntry[]) => {
-    const existing = readSimData();
-    const step2 = entries.map((e) => ({
-        id: e.id,
-        txtp: e.txtp,
-        version: e.version,
-        numMessages: e.numMessages,
-        fieldConfigs: e.fieldConfigs,
-    }));
-    insertData({ ...existing, step2 }, SIM_DATA_KEY, LocalStorage, false);
+    return {
+        id: `${cfg.txtp}_${cfg.txtp_version}_${Date.now()}`,
+        txtp: cfg.txtp,
+        version: cfg.txtp_version,
+        numMessages: cfg.message_count ?? 100,
+        expanded: false,
+        payload,
+        fieldPaths,
+        fieldConfigs,
+        schemaLoaded: true,
+        sampleAvailable: fieldPaths.length > 0,
+        contextConfigId: Number(cfg.context_txtp_config_id ?? cfg.id ?? 0) || undefined,
+    };
 };
 
 const useTxtpSelectionController = () => {
@@ -109,17 +124,14 @@ const useTxtpSelectionController = () => {
     const [addTxtp, setAddTxtp] = useState<DropdownOption | null>(null);
     const [addVersion, setAddVersion] = useState<DropdownOption | null>(null);
     const [numMessages, setNumMessages] = useState<number>(100);
-    const [configId, setConfigId] = useState<number | null>(null);
     const [isSaving, setIsSaving] = useState(false);
 
     const { data: txTypesData } = useGetTypesQuery({});
     const [fetchVersionsForAdd, { data: addVersionsData, isFetching: addVersionsLoading }] =
         useLazyGetTxtpVersionsQuery();
-    const [getPayload] = useLazyGetSamplePayloadQuery();
-    const [fetchLatestGeneration] = useLazyGetLatestGenerationQuery();
     const [fetchContextConfigs] = useLazyGetContextConfigsQuery();
-    const [updateContextConfig] = useUpdateContextConfigMutation();
-    const [upsertFieldStrategies] = useUpsertFieldStrategiesMutation();
+    const [createContextConfig] = useCreateContextConfigMutation();
+    const [bulkUpdateContextConfigs] = useBulkUpdateContextConfigsMutation();
 
     const txTypeOptions = useMemo<DropdownOption[]>(() => {
         if (!txTypesData || !Array.isArray(txTypesData)) return [];
@@ -152,126 +164,61 @@ const useTxtpSelectionController = () => {
         }
     }, [addTxtp, fetchVersionsForAdd]);
 
-    const buildEntry = useCallback(
-        async (txtp: string, version: string, msgs: number): Promise<TxtpEntry> => {
-            try {
-                const payload = (await getPayload({ type: txtp, version }).unwrap()) as Record<
-                    string,
-                    unknown
-                >;
-                const fieldPaths = flattenPaths(payload);
-                return {
-                    id: `${txtp}_${version}_${Date.now()}`,
-                    txtp,
-                    version,
-                    numMessages: msgs,
-                    expanded: false,
-                    payload,
-                    fieldPaths,
-                    fieldConfigs: {},
-                    schemaLoaded: true,
-                    sampleAvailable: fieldPaths.length > 0,
-                };
-            } catch {
-                return {
-                    id: `${txtp}_${version}_${Date.now()}`,
-                    txtp,
-                    version,
-                    numMessages: msgs,
-                    expanded: false,
-                    payload: null,
-                    fieldPaths: [],
-                    fieldConfigs: {},
-                    schemaLoaded: false,
-                    sampleAvailable: false,
-                };
-            }
-        },
-        [getPayload]
-    );
-
-    // On mount: build primary entry from step1 data, then sync message_count
-    // from the seeded context_txtp_config row in the DB.
     useEffect(() => {
         if (initialized.current) return;
         initialized.current = true;
 
-        const simData = readSimData() as {
-            step1?: { txtp?: { value: string }; version?: { value: string } };
-            suiteId?: number;
-        };
-        const txtp = simData.step1?.txtp?.value;
-        const version = simData.step1?.version?.value;
-        if (!txtp || !version) return;
+        const genId = extractData("sim_gen_id", LocalStorage, false) as string | number | null;
+        if (!genId) return;
 
-        const suiteId = simData.suiteId;
+        void (async () => {
+            try {
+                const cfgRes = await fetchContextConfigs(Number(genId)).unwrap();
+                const configs = cfgRes.data ?? [];
+                if (configs.length === 0) return;
 
-        void buildEntry(txtp, version, 100).then(async (entry) => {
-            let initialMsgs = 100;
-
-            // Fetch the seeded context config to get message_count + configId
-            if (suiteId) {
-                try {
-                    const genRes = await fetchLatestGeneration(suiteId).unwrap();
-                    if (genRes.data?.id) {
-                        const cfgRes = await fetchContextConfigs(genRes.data.id).unwrap();
-                        const primary = cfgRes.data?.[0];
-                        if (primary) {
-                            setConfigId(primary.id);
-                            initialMsgs = primary.message_count ?? 100;
-                        }
-                    }
-                } catch {
-                    // non-blocking — UI still works without DB sync
-                }
+                const newEntries = configs.map((cfg) => buildEntryFromContextConfig(cfg));
+                setEntries(newEntries);
+                writeStep2(newEntries);
+            } catch {
+                // non-blocking — UI still works without DB sync
             }
+        })();
+    }, [fetchContextConfigs]);
 
-            const hydrated = { ...entry, numMessages: initialMsgs };
-            setEntries([hydrated]);
-            writeStep2([hydrated]);
-        });
-    }, [buildEntry, fetchLatestGeneration, fetchContextConfigs]);
-
-    // Called by parent wizard on "Next Step" — persists message_count + field strategies
     const saveStep2ToDb = useCallback(async (): Promise<boolean> => {
-        const suiteId = readSuiteId();
-        if (!suiteId || configId === null) return true; // no suite yet, skip silently
+        const genId = extractData("sim_gen_id", LocalStorage, false) as string | number | null;
+        if (!genId) return true;
 
-        setIsSaving(true);
-        try {
-            const primaryEntry = entries[0];
-            if (primaryEntry) {
-                await updateContextConfig({
-                    suiteId,
-                    configId,
-                    message_count: primaryEntry.numMessages,
-                }).unwrap();
-
-                const strategies: UpsertFieldStrategyItem[] = Object.entries(
-                    primaryEntry.fieldConfigs
-                ).map(([fieldPath, cfg]) => {
-                    const base = { field_path: fieldPath } as UpsertFieldStrategyItem;
+        const items: BulkConfigItem[] = entries
+            .filter((e) => e.contextConfigId)
+            .map((entry) => ({
+                context_txtp_config_id: entry.contextConfigId!,
+                message_count: entry.numMessages || 100,
+                field_strategies: Object.entries(entry.fieldConfigs).map(([fieldPath, cfg]) => {
                     switch (cfg.action) {
                         case "static":
-                            return { ...base, strategy_code: "static", static_value: cfg.staticValue };
+                            return { field_path: fieldPath, strategy_code: "static" as const, static_value: cfg.staticValue };
                         case "range":
                             return {
-                                ...base,
-                                strategy_code: "range",
+                                field_path: fieldPath,
+                                strategy_code: "range" as const,
                                 range_min: cfg.rangeStart ? Number(cfg.rangeStart) : undefined,
                                 range_max: cfg.rangeEnd ? Number(cfg.rangeEnd) : undefined,
                             };
                         case "skip":
-                            return { ...base, strategy_code: "skip" };
+                            return { field_path: fieldPath, strategy_code: "skip" as const };
                         default:
-                            return { ...base, strategy_code: "keep_sample" };
+                            return { field_path: fieldPath, strategy_code: "keep_sample" as const };
                     }
-                });
+                }),
+            }));
 
-                if (strategies.length > 0) {
-                    await upsertFieldStrategies({ suiteId, configId, strategies }).unwrap();
-                }
-            }
+        if (items.length === 0) return true;
+
+        setIsSaving(true);
+        try {
+            await bulkUpdateContextConfigs({ generationId: Number(genId), items }).unwrap();
             return true;
         } catch {
             toast.error("Failed to save TXTP configuration. Please try again.");
@@ -279,35 +226,45 @@ const useTxtpSelectionController = () => {
         } finally {
             setIsSaving(false);
         }
-    }, [entries, configId, updateContextConfig, upsertFieldStrategies]);
+    }, [entries, bulkUpdateContextConfigs]);
 
     const handleAdd = useCallback(() => {
         if (!addTxtp?.value || !addVersion?.value) {
             toast.error("Please select TXTP Type and Version");
             return;
         }
+
+        const genId = extractData("sim_gen_id", LocalStorage, false) as string | number | null;
+        if (!genId) {
+            toast.error("Generation ID not found. Please complete Step 1 first.");
+            return;
+        }
+
         setAdding(true);
-        void buildEntry(String(addTxtp.value), String(addVersion.value), numMessages).then(
-            (entry) => {
-                setEntries((prev) => {
-                    const updated = [...prev, entry];
-                    writeStep2(updated);
-                    return updated;
-                });
+        void (async () => {
+            try {
+                const res = await createContextConfig({
+                    generationId: Number(genId),
+                    txtp: String(addTxtp.value),
+                    txtp_version: String(addVersion.value),
+                    message_count: numMessages || 100,
+                }).unwrap();
+
+                const newEntry = buildEntryFromContextConfig(res.data);
+                setEntries((prev) => [...prev, newEntry]);
                 setAddTxtp(null);
                 setAddVersion(null);
                 setNumMessages(100);
+            } catch {
+                toast.error("Failed to add TXTP. Please try again.");
+            } finally {
                 setAdding(false);
             }
-        );
-    }, [addTxtp, addVersion, numMessages, buildEntry]);
+        })();
+    }, [addTxtp, addVersion, numMessages, entries.length, createContextConfig]);
 
     const handleRemove = useCallback((id: string) => {
-        setEntries((prev) => {
-            const updated = prev.filter((e) => e.id !== id);
-            writeStep2(updated);
-            return updated;
-        });
+        setEntries((prev) => prev.filter((e) => e.id !== id));
     }, []);
 
     const handleToggleExpand = useCallback((id: string) => {
@@ -318,17 +275,20 @@ const useTxtpSelectionController = () => {
 
     const handleFieldConfigChange = useCallback(
         (entryId: string, fieldPath: string, config: FieldConfig) => {
-            setEntries((prev) => {
-                const updated = prev.map((e) => {
-                    if (e.id !== entryId) return e;
-                    return { ...e, fieldConfigs: { ...e.fieldConfigs, [fieldPath]: config } };
-                });
-                writeStep2(updated);
-                return updated;
-            });
+            setEntries((prev) =>
+                prev.map((e) =>
+                    e.id !== entryId ? e : { ...e, fieldConfigs: { ...e.fieldConfigs, [fieldPath]: config } }
+                )
+            );
         },
         []
     );
+
+    const handleNumMessagesChange = useCallback((entryId: string, value: number) => {
+        setEntries((prev) =>
+            prev.map((e) => (e.id === entryId ? { ...e, numMessages: value } : e))
+        );
+    }, []);
 
     return {
         values: {
@@ -349,6 +309,7 @@ const useTxtpSelectionController = () => {
             handleAdd,
             handleRemove,
             handleToggleExpand,
+            handleNumMessagesChange,
             handleFieldConfigChange,
             saveStep2ToDb,
         },
