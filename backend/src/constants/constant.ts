@@ -74,5 +74,6 @@ export const GENERATION_TRIGGER_CONFIGS = (generationId: number): string =>
   `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/trigger-configs`;
 export const GENERATION_ENRICHMENT_TABLES = (generationId: number): string =>
   `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/enrichment-tables`;
+export const GENERATION_SUMMARY = (generationId: number): string => `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/summary`;
 export const ENRICHMENT_TABLE = (generationId: number, tableId: number): string =>
   `${GENERATION_ENRICHMENT_TABLES(generationId)}/${tableId}`;

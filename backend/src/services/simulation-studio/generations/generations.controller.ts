@@ -6,7 +6,12 @@ import { TazamaAuthGuard } from 'src/guards/tazama-auth.guard';
 import { User } from 'src/decorators/user.decorator';
 import type { AuthenticatedUser } from '../../auth/auth.types';
 import { GenerationsService } from './generations.service';
-import type { SuiteGenerationsListDto, SuiteGenerationResponseDto, ContextConfigsListDto } from './dto/generations.dto';
+import {
+  SuiteGenerationsListDto,
+  SuiteGenerationResponseDto,
+  ContextConfigsListDto,
+  GenerationSummaryResponseDto,
+} from './dto/generations.dto';
 
 @ApiTags('simulation-studio')
 @ApiBearerAuth('JWT-auth')
@@ -64,5 +69,24 @@ export class GenerationsController {
     @User() user: AuthenticatedUser,
   ): Promise<ContextConfigsListDto> {
     return await this.generationsService.getContextConfigsForGeneration(user.token.tokenString, generationId);
+  }
+
+  @Get('generations/:generationId/summary')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @ApiParam({ name: 'generationId', description: 'Generation id', example: 1 })
+  @ApiSwagger({
+    summary: 'Get generation summary (Step 5 - Preview & Save)',
+    description:
+      'Returns suite name, associated rule, primary TXTP, context TXTP configs, enrichment table names, and record counts for the generation.',
+    responses: mergeResponses(
+      CommonResponses.SUCCESS_200(GenerationSummaryResponseDto, 'Generation summary retrieved successfully'),
+      CommonResponses.NOT_FOUND_404('Generation not found'),
+    ),
+  })
+  async getGenerationSummary(
+    @Param('generationId', ParseIntPipe) generationId: number,
+    @User() user: AuthenticatedUser,
+  ): Promise<GenerationSummaryResponseDto> {
+    return await this.generationsService.getGenerationSummary(user.token.tokenString, generationId);
   }
 }
