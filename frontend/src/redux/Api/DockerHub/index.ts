@@ -31,7 +31,7 @@ export interface DockerHubTagsResponse {
 export const dockerHubApi = createApi({
     reducerPath: "dockerHubApi",
     baseQuery: fetchBaseQuery({
-        baseUrl: `${BASE_URL}/dockerhub/api/`,
+        baseUrl: `${BASE_URL}/simulation-studio/dockerhub/api/`,
         prepareHeaders: (headers) => {
             const token = getAuthToken();
             if (token) headers.set("authorization", `Bearer ${token}`);

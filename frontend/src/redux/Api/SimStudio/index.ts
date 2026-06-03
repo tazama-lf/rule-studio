@@ -11,6 +11,7 @@ export interface CreateSuitePayload {
     rule_version?: string;
     primary_txtp: string;
     primary_txtp_version: string;
+    rule_config?: Record<string, unknown>;
     wizard_progress?: Record<string, unknown>;
     metadata?: Record<string, unknown>;
 }

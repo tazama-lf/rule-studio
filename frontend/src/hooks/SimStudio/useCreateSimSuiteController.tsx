@@ -24,6 +24,7 @@ export interface Step1Values {
     rule_version: DropdownOption | null;
     txtp: DropdownOption | null;
     version: DropdownOption | null;
+    rule_config: string;
 }
 
 const step1Schema = yup.object({
@@ -78,6 +79,7 @@ const useCreateSimSuiteController = () => {
             associated_rule: null,
             rule_version: null,
             txtp: null,
+            rule_config: "{}",
             version: null,
         },
     });
@@ -148,6 +150,8 @@ const useCreateSimSuiteController = () => {
         if (selectedTab === SimStudioTabs[0].value) {
             void handleSubmit(async (data) => {
                 try {
+                    let parsedRuleConfig: Record<string, unknown> | undefined;
+                    try { parsedRuleConfig = JSON.parse(data.rule_config || '{}') as Record<string, unknown>; } catch { parsedRuleConfig = undefined; }
                     const result = await createSuite({
                         name: data.suite_name,
                         description: data.description || undefined,
@@ -155,6 +159,7 @@ const useCreateSimSuiteController = () => {
                         rule_version: data.rule_version?.value ? String(data.rule_version.value) : undefined,
                         primary_txtp: String(data.txtp!.value),
                         primary_txtp_version: String(data.version!.value),
+                        rule_config: parsedRuleConfig && Object.keys(parsedRuleConfig).length > 0 ? parsedRuleConfig : undefined,
                     }).unwrap();
                     insertData(result.data.generation_id, "sim_gen_id", LocalStorage, false);
                     enableNextTab();
