@@ -1,6 +1,9 @@
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import { Box, Typography } from "@mui/material";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import { Box, TextField, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
+import { useState } from "react";
 import { Controller, type Control, type FieldErrors } from "react-hook-form";
 import DropDown, { type DropdownOption } from "../../DropDown";
 import Input from "../../Input";
@@ -140,6 +143,95 @@ const Step1RuleDetails = ({
                                     error={errors.version?.message as string | undefined}
                                 />
                             )}
+                        />
+                    </Grid>
+                    <Grid size={12}>
+                        <Controller
+                            control={control}
+                            name="rule_config"
+                            render={({ field, fieldState: { error: schemaError } }) => {
+                                const [jsonError, setJsonError] = useState<string | null>(null);
+                                const [isValid, setIsValid] = useState<boolean | null>(null);
+
+                                const handleChange = (raw: string) => {
+                                    field.onChange(raw);
+                                    if (raw.trim() === "" || raw.trim() === "{}") {
+                                        setJsonError(null);
+                                        setIsValid(null);
+                                        return;
+                                    }
+                                    try {
+                                        JSON.parse(raw);
+                                        setJsonError(null);
+                                        setIsValid(true);
+                                    } catch (e) {
+                                        setJsonError((e as SyntaxError).message);
+                                        setIsValid(false);
+                                    }
+                                };
+
+                                // schemaError takes priority (empty/missing), jsonError for syntax
+                                const displayError = schemaError?.message ?? jsonError;
+                                const hasError = !!displayError;
+
+                                const borderColor = hasError
+                                    ? "#ef4444"
+                                    : isValid === true
+                                        ? "#22c55e"
+                                        : "#e5e7eb";
+
+                                return (
+                                    <Box>
+                                        <Box display="flex" alignItems="center" justifyContent="space-between" mb={0.75}>
+                                            <Typography fontSize={13} fontWeight={500} color="text.primary">
+                                                Rule Config
+                                                <Typography component="span" fontSize={11} color="#ef4444" ml={0.25}>*</Typography>
+                                                <Typography component="span" fontSize={11} color="text.secondary" ml={0.75}>
+                                                    (JSON)
+                                                </Typography>
+                                            </Typography>
+                                            {isValid === true && !hasError && (
+                                                <Box display="flex" alignItems="center" gap={0.5}>
+                                                    <CheckCircleOutlineIcon sx={{ fontSize: 14, color: "#22c55e" }} />
+                                                    <Typography fontSize={12} color="#22c55e">Valid JSON</Typography>
+                                                </Box>
+                                            )}
+                                            {hasError && (
+                                                <Box display="flex" alignItems="center" gap={0.5}>
+                                                    <ErrorOutlineIcon sx={{ fontSize: 14, color: "#ef4444" }} />
+                                                    <Typography fontSize={12} color="#ef4444">Invalid JSON</Typography>
+                                                </Box>
+                                            )}
+                                        </Box>
+                                        <TextField
+                                            fullWidth
+                                            multiline
+                                            minRows={8}
+                                            maxRows={20}
+                                            value={field.value === "{}" ? "" : (field.value ?? "")}
+                                            onChange={(e) => handleChange(e.target.value)}
+                                            placeholder={'Enter Rule Config here...\n{\n  "key": "value"\n}'}
+                                            spellCheck={false}
+                                            sx={{
+                                                "& .MuiOutlinedInput-root": {
+                                                    fontFamily: "monospace",
+                                                    fontSize: 13,
+                                                    lineHeight: 1.6,
+                                                    bgcolor: "#fafafa",
+                                                    "& fieldset": { borderColor },
+                                                    "&:hover fieldset": { borderColor },
+                                                    "&.Mui-focused fieldset": { borderColor },
+                                                },
+                                            }}
+                                        />
+                                        {displayError && (
+                                            <Typography fontSize={12} color="#ef4444" mt={0.5}>
+                                                {displayError}
+                                            </Typography>
+                                        )}
+                                    </Box>
+                                );
+                            }}
                         />
                     </Grid>
                 </Grid>

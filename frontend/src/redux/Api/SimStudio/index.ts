@@ -9,6 +9,7 @@ export interface CreateSuitePayload {
     rule_repo?: string;
     rule_name?: string;
     rule_version?: string;
+    rule_config: Record<string, unknown>;
     primary_txtp: string;
     primary_txtp_version: string;
     wizard_progress?: Record<string, unknown>;
@@ -115,6 +116,7 @@ export interface SuiteListItem {
     id: number;
     name: string;
     rule_name?: string;
+    rule_config?: Record<string, unknown>;
     primary_txtp?: string;
     status: string;
     iteration_count: number;
@@ -123,6 +125,7 @@ export interface SuiteListItem {
     updated_at: string;
     created_by: string;
     wizard_progress: Record<string, unknown>;
+    generation_id?: number;
 }
 
 export interface SuitesListResponse {
