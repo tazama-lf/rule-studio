@@ -4,39 +4,30 @@ import { EnrichmentTableService } from '../../src/services/simulation-studio/enr
 import { AdminServiceClient } from '../../src/services/admin-service-client';
 import type {
   CreateEnrichmentTableDto,
+  EnrichmentTableDto,
   EnrichmentTableResponseDto,
   EnrichmentTablesListDto,
   BulkEnrichmentUpdateItemDto,
   BulkUpdateEnrichmentTablesResponseDto,
   DeleteEnrichmentTableResponseDto,
-  EnrichmentTableWithStrategiesDto,
 } from '../../src/services/simulation-studio/enrichment-table/dto/enrichment-table.dto';
 
 describe('EnrichmentTableService', () => {
   let service: EnrichmentTableService;
   let adminServiceClient: jest.Mocked<AdminServiceClient>;
 
-  const mockStrategy = {
-    id: 1,
-    enrichment_table_id: 30,
-    column_name: 'name',
-    strategy_code: 'null',
-    generator_options: {},
-    created_at: '2026-06-01T00:00:00.000Z',
-  };
-
-  const mockTableWithStrategies: EnrichmentTableWithStrategiesDto = {
+  const mockTable: EnrichmentTableDto = {
     enrichment_table_id: 30,
     table_name: 'account_enrichment',
     table_order: 1,
     row_count: 13,
     payload_template_json: { name: 'feeba', country: 'Pak' },
-    field_strategies: [mockStrategy],
+    schema_template_json: { properties: [{ name: 'feeba', type: 'string' }] },
   };
 
-  const mockListResponse: EnrichmentTablesListDto = { success: true, data: [mockTableWithStrategies] };
-  const mockCreateResponse: EnrichmentTableResponseDto = { success: true, data: mockTableWithStrategies };
-  const mockBulkResponse: BulkUpdateEnrichmentTablesResponseDto = { success: true, data: [mockTableWithStrategies] };
+  const mockListResponse: EnrichmentTablesListDto = { success: true, data: [mockTable] };
+  const mockCreateResponse: EnrichmentTableResponseDto = { success: true, data: mockTable };
+  const mockBulkResponse: BulkUpdateEnrichmentTablesResponseDto = { success: true, data: [mockTable] };
   const mockDeleteResponse: DeleteEnrichmentTableResponseDto = { success: true, message: 'Enrichment table deleted' };
 
   beforeEach(async () => {
@@ -66,7 +57,7 @@ describe('EnrichmentTableService', () => {
   // ── getEnrichmentTables ──────────────────────────────────────────────────
 
   describe('getEnrichmentTables', () => {
-    it('forwards token and generationId, returns tables with strategies', async () => {
+    it('forwards token and generationId, returns tables', async () => {
       adminServiceClient.getEnrichmentTables.mockResolvedValue(mockListResponse);
       const result = await service.getEnrichmentTables('test-token', 1);
       expect(result).toEqual(mockListResponse);
@@ -91,23 +82,21 @@ describe('EnrichmentTableService', () => {
   // ── createEnrichmentTable ────────────────────────────────────────────────
 
   describe('createEnrichmentTable', () => {
-    it('forwards token, generationId and dto, returns table with strategies', async () => {
-      const dto: CreateEnrichmentTableDto = { table_name: 'account_enrichment', row_count: 13, payload_template_json: { name: 'feeba' } };
+    it('forwards token, generationId and dto, returns created table', async () => {
+      const dto: CreateEnrichmentTableDto = {
+        table_name: 'account_enrichment',
+        row_count: 13,
+        payload_template_json: { name: 'feeba' },
+        schema_template_json: { properties: [{ name: 'feeba', type: 'string' }] },
+      };
       adminServiceClient.createEnrichmentTable.mockResolvedValue(mockCreateResponse);
       const result = await service.createEnrichmentTable('test-token', 1, dto);
       expect(result).toEqual(mockCreateResponse);
       expect(adminServiceClient.createEnrichmentTable).toHaveBeenCalledWith('test-token', 1, dto);
     });
 
-    it('seeds field strategies with null as default', async () => {
-      const dto: CreateEnrichmentTableDto = { table_name: 'cnic', row_count: 1, payload_template_json: { id: '123' } };
-      adminServiceClient.createEnrichmentTable.mockResolvedValue(mockCreateResponse);
-      const result = await service.createEnrichmentTable('test-token', 1, dto);
-      expect(result.data.field_strategies[0].strategy_code).toBe('null');
-    });
-
     it('logs and rethrows on error', async () => {
-      const dto: CreateEnrichmentTableDto = { table_name: 'test', row_count: 1 };
+      const dto: CreateEnrichmentTableDto = { table_name: 'test', row_count: 1, payload_template_json: {}, schema_template_json: {} };
       adminServiceClient.createEnrichmentTable.mockRejectedValue(new Error('Create failed'));
       const loggerSpy = jest.spyOn(service['logger'], 'error');
       await expect(service.createEnrichmentTable('test-token', 1, dto)).rejects.toThrow('Create failed');
@@ -120,7 +109,7 @@ describe('EnrichmentTableService', () => {
   describe('bulkUpdateEnrichmentTables', () => {
     it('forwards token, generationId and items, returns updated tables', async () => {
       const items: BulkEnrichmentUpdateItemDto[] = [
-        { enrichment_table_id: 30, row_count: 5, field_strategies: [{ column_name: 'name', strategy_code: 'static', static_value: 'Ahmad' }] },
+        { enrichment_table_id: 30, row_count: 5, payload_template_json: { name: 'Ahmad' } },
       ];
       adminServiceClient.bulkUpdateEnrichmentTables.mockResolvedValue(mockBulkResponse);
       const result = await service.bulkUpdateEnrichmentTables('test-token', 1, items);
@@ -131,25 +120,19 @@ describe('EnrichmentTableService', () => {
     it('handles multiple tables in one call', async () => {
       const items: BulkEnrichmentUpdateItemDto[] = [
         { enrichment_table_id: 30, row_count: 5 },
-        { enrichment_table_id: 31, payload_template_json: { city: 'Karachi' }, field_strategies: [{ column_name: 'city', strategy_code: 'null' }] },
+        { enrichment_table_id: 31, payload_template_json: { city: 'Karachi' }, schema_template_json: { properties: [] } },
       ];
       adminServiceClient.bulkUpdateEnrichmentTables.mockResolvedValue(mockBulkResponse);
       await service.bulkUpdateEnrichmentTables('test-token', 1, items);
       expect(adminServiceClient.bulkUpdateEnrichmentTables).toHaveBeenCalledWith('test-token', 1, items);
     });
 
-    it('supports all strategy codes', async () => {
+    it('supports optional fields: row_count, payload, schema and faker_profile', async () => {
       const items: BulkEnrichmentUpdateItemDto[] = [
-        {
-          enrichment_table_id: 30,
-          field_strategies: [
-            { column_name: 'a', strategy_code: 'static', static_value: 'x' },
-            { column_name: 'b', strategy_code: 'range', range_min: 1, range_max: 100 },
-            { column_name: 'c', strategy_code: 'generated', generator_type: 'iso20022.bic' },
-            { column_name: 'd', strategy_code: 'null' },
-            { column_name: 'e', strategy_code: 'copy' },
-          ],
-        },
+        { enrichment_table_id: 30, row_count: 10 },
+        { enrichment_table_id: 31, payload_template_json: { field: 'value' } },
+        { enrichment_table_id: 32, schema_template_json: { properties: [] } },
+        { enrichment_table_id: 33, faker_profile: { locale: 'en' } },
       ];
       adminServiceClient.bulkUpdateEnrichmentTables.mockResolvedValue(mockBulkResponse);
       await service.bulkUpdateEnrichmentTables('test-token', 1, items);
