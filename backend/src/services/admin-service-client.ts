@@ -51,6 +51,8 @@ import {
   SUITE_LATEST_GENERATION,
   GENERATION_CONTEXT_CONFIGS,
   GENERATION_TRIGGER_CONFIGS,
+  GENERATION_ENRICHMENT_TABLES,
+  ENRICHMENT_TABLE,
   SIMULATION_ITEMS,
   EXCLUDED_TYPES,
   STAGE_SIMULATION_ITEMS,
@@ -592,5 +594,23 @@ export class AdminServiceClient {
 
   async bulkUpdateTriggerConfigs<T>(token: string, generationId: number, body: unknown): Promise<T> {
     return await this.executeHttpRequest<T>('PATCH', GENERATION_TRIGGER_CONFIGS(generationId), token, body);
+  }
+
+  // ── Enrichment Tables ─────────────────────────────────────────────────────────
+
+  async getEnrichmentTables<T>(token: string, generationId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('GET', GENERATION_ENRICHMENT_TABLES(generationId), token);
+  }
+
+  async createEnrichmentTable<T>(token: string, generationId: number, body: unknown): Promise<T> {
+    return await this.executeHttpRequest<T>('POST', GENERATION_ENRICHMENT_TABLES(generationId), token, body);
+  }
+
+  async bulkUpdateEnrichmentTables<T>(token: string, generationId: number, body: unknown): Promise<T> {
+    return await this.executeHttpRequest<T>('PATCH', GENERATION_ENRICHMENT_TABLES(generationId), token, body);
+  }
+
+  async deleteEnrichmentTable<T>(token: string, generationId: number, tableId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('DELETE', ENRICHMENT_TABLE(generationId, tableId), token);
   }
 }

@@ -21,6 +21,7 @@ import { SimulationStudioModule } from './services/simulation-studio/simulation-
 import { GenerationsModule } from './services/simulation-studio/generations/generations.module';
 import { ContextTxtpConfigModule } from './services/simulation-studio/context-txtp-config/context-txtp-config.module';
 import { TriggerTxtpConfigModule } from './services/simulation-studio/trigger-txtp-config/trigger-txtp-config.module';
+import { EnrichmentTableModule } from './services/simulation-studio/enrichment-table/enrichment-table.module';
 
 @Module({
   imports: [
@@ -46,8 +47,9 @@ import { TriggerTxtpConfigModule } from './services/simulation-studio/trigger-tx
     GenerationsModule,
     ContextTxtpConfigModule,
     TriggerTxtpConfigModule,
+    EnrichmentTableModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}
