@@ -1,24 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { DockerHubService } from '../../../src/services/dockerhub/dockerhub.service';
-import { TenantConfigService } from '../../../src/services/dockerhub/tenant-config.service';
-import type { TenantDockerHubCredentials } from '../../../src/services/dockerhub/tenant-config.service';
+import { InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { DockerHubService } from '../../src/services/simulation-studio/dockerhub/dockerhub.service';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 const TENANT_ID = 'cbe';
-const CREDS: TenantDockerHubCredentials = {
-  tenantId: TENANT_ID,
-  token: 'dckr_pat_test',
-  username: 'testuser',
-  namespace: 'testns',
-};
+const NAMESPACE = 'testns';
 
 const mockLoginResponse = { token: 'dh-jwt-token' };
 
 const makeRepo = (name: string) => ({
   name,
-  namespace: CREDS.namespace,
+  namespace: NAMESPACE,
   repository_type: 'image',
   pull_count: 0,
   last_updated: '2026-01-01T00:00:00Z',
@@ -46,36 +40,41 @@ const makeFetchFail = (status: number, statusText = 'Error') =>
     json: jest.fn().mockResolvedValue({}),
   } as unknown as Response);
 
+const mockConfigService = {
+  get: (key: string) =>
+  ({
+    DOCKERHUB_TOKEN: 'dckr_pat_test',
+    DOCKERHUB_USERNAME: 'testuser',
+    DOCKERHUB_NAMESPACE: NAMESPACE,
+  }[key]),
+};
+
 // ─── suite ───────────────────────────────────────────────────────────────────
 
 describe('DockerHubService', () => {
   let service: DockerHubService;
-  let tenantConfig: jest.Mocked<TenantConfigService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DockerHubService,
-        {
-          provide: TenantConfigService,
-          useValue: {
-            getCredentials: jest.fn().mockReturnValue(CREDS),
-          },
-        },
+        { provide: ConfigService, useValue: mockConfigService },
       ],
     }).compile();
 
     service = module.get(DockerHubService);
-    tenantConfig = module.get(TenantConfigService);
+    service.onModuleInit();
   });
 
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   // ─── getPublishedRules ──────────────────────────────────────────────────────
 
   describe('getPublishedRules', () => {
     it('returns mapped rules for a single page', async () => {
-      const repos = [makeRepo('case105'), makeRepo('case106')];
+      const repos = [makeRepo('cbe-case105'), makeRepo('cbe-case106')];
       global.fetch = jest
         .fn()
         // first call: login
@@ -93,14 +92,32 @@ describe('DockerHubService', () => {
 
       expect(result.count).toBe(2);
       expect(result.rules).toHaveLength(2);
-      expect(result.rules[0].name).toBe('case105');
-      expect(result.rules[1].name).toBe('case106');
-      expect(tenantConfig.getCredentials).toHaveBeenCalledWith(TENANT_ID);
+      expect(result.rules[0].name).toBe('cbe-case105');
+      expect(result.rules[1].name).toBe('cbe-case106');
+    });
+
+    it('filters out rules that do not match tenant prefix', async () => {
+      const repos = [makeRepo('cbe-case105'), makeRepo('abc-case105'), makeRepo('cbe-case106')];
+      global.fetch = jest
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true, status: 200, statusText: 'OK',
+          json: jest.fn().mockResolvedValue(mockLoginResponse),
+        } as unknown as Response)
+        .mockResolvedValueOnce({
+          ok: true, status: 200, statusText: 'OK',
+          json: jest.fn().mockResolvedValue({ count: 3, next: null, results: repos }),
+        } as unknown as Response);
+
+      const result = await service.getPublishedRules(TENANT_ID);
+
+      expect(result.count).toBe(2);
+      expect(result.rules.map((r) => r.name)).toEqual(['cbe-case105', 'cbe-case106']);
     });
 
     it('follows pagination and returns all repos across pages', async () => {
-      const page1Repos = [makeRepo('repo-a')];
-      const page2Repos = [makeRepo('repo-b')];
+      const page1Repos = [makeRepo('cbe-repo-a')];
+      const page2Repos = [makeRepo('cbe-repo-b')];
 
       global.fetch = jest
         .fn()
@@ -124,7 +141,7 @@ describe('DockerHubService', () => {
       const result = await service.getPublishedRules(TENANT_ID);
 
       expect(result.count).toBe(2);
-      expect(result.rules.map((r) => r.name)).toEqual(['repo-a', 'repo-b']);
+      expect(result.rules.map((r) => r.name)).toEqual(['cbe-repo-a', 'cbe-repo-b']);
     });
 
     it('throws InternalServerErrorException when Docker Hub login fails', async () => {
@@ -145,16 +162,8 @@ describe('DockerHubService', () => {
       await expect(service.getPublishedRules(TENANT_ID)).rejects.toThrow(InternalServerErrorException);
     });
 
-    it('throws UnauthorizedException when tenant is not configured', async () => {
-      tenantConfig.getCredentials.mockImplementation(() => {
-        throw new UnauthorizedException('No config for tenant');
-      });
-
-      await expect(service.getPublishedRules(TENANT_ID)).rejects.toThrow(UnauthorizedException);
-    });
-
     it('returns count equal to rules array length', async () => {
-      const repos = [makeRepo('only-one')];
+      const repos = [makeRepo('cbe-only-one')];
       global.fetch = jest
         .fn()
         .mockResolvedValueOnce({
@@ -175,6 +184,7 @@ describe('DockerHubService', () => {
 
   describe('getTagsForRule', () => {
     const RULE = 'case105';
+    const PREFIXED_RULE = `${TENANT_ID}-${RULE}`;
 
     it('returns mapped tags for a single page', async () => {
       const tags = [makeTag('latest'), makeTag('1.0.0')];
@@ -191,7 +201,7 @@ describe('DockerHubService', () => {
 
       const result = await service.getTagsForRule(TENANT_ID, RULE);
 
-      expect(result.rule).toBe(RULE);
+      expect(result.rule).toBe(PREFIXED_RULE);
       expect(result.count).toBe(2);
       expect(result.tags[0].name).toBe('latest');
       expect(result.tags[1].name).toBe('1.0.0');
@@ -238,7 +248,7 @@ describe('DockerHubService', () => {
       await expect(service.getTagsForRule(TENANT_ID, RULE)).rejects.toThrow(NotFoundException);
     });
 
-    it('NotFoundException message contains rule name, namespace and tenantId', async () => {
+    it('NotFoundException message contains rule name and namespace', async () => {
       global.fetch = jest
         .fn()
         .mockResolvedValueOnce({
@@ -251,7 +261,7 @@ describe('DockerHubService', () => {
         } as unknown as Response);
 
       await expect(service.getTagsForRule(TENANT_ID, RULE)).rejects.toThrow(
-        new RegExp(`${RULE}.*${CREDS.namespace}.*${TENANT_ID}`, 's'),
+        new RegExp(`${PREFIXED_RULE}.*${NAMESPACE}`, 's'),
       );
     });
 
@@ -276,14 +286,6 @@ describe('DockerHubService', () => {
       await expect(service.getTagsForRule(TENANT_ID, RULE)).rejects.toThrow(InternalServerErrorException);
     });
 
-    it('throws UnauthorizedException when tenant is not configured', async () => {
-      tenantConfig.getCredentials.mockImplementation(() => {
-        throw new UnauthorizedException('No config');
-      });
-
-      await expect(service.getTagsForRule(TENANT_ID, RULE)).rejects.toThrow(UnauthorizedException);
-    });
-
     it('encodes special characters in rule name in the URL', async () => {
       const specialRule = 'rule/with spaces';
       global.fetch = jest
@@ -301,7 +303,25 @@ describe('DockerHubService', () => {
 
       const tagCallUrl = (global.fetch as jest.Mock).mock.calls[1][0] as string;
       expect(tagCallUrl).not.toContain(' ');
-      expect(tagCallUrl).toContain(encodeURIComponent(specialRule));
+      expect(tagCallUrl).toContain(encodeURIComponent(`${TENANT_ID}-${specialRule}`));
+    });
+
+    it('does not double-prefix a rule that is already tenant-prefixed', async () => {
+      global.fetch = jest
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true, status: 200, statusText: 'OK',
+          json: jest.fn().mockResolvedValue(mockLoginResponse),
+        } as unknown as Response)
+        .mockResolvedValueOnce({
+          ok: true, status: 200, statusText: 'OK',
+          json: jest.fn().mockResolvedValue({ count: 0, next: null, results: [] }),
+        } as unknown as Response);
+
+      await service.getTagsForRule(TENANT_ID, PREFIXED_RULE);
+
+      const tagCallUrl = (global.fetch as jest.Mock).mock.calls[1][0] as string;
+      expect(tagCallUrl).toContain(encodeURIComponent(PREFIXED_RULE));
     });
 
     it('maps each tag fields correctly (name, last_updated, digest)', async () => {
@@ -329,3 +349,6 @@ describe('DockerHubService', () => {
     expect(resp.ok).toBe(true);
   });
 });
+
+
+// ─── helpers ─────────────────────────────────────────────────────────────────
