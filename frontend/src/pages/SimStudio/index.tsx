@@ -282,6 +282,7 @@ const SimStudio = () => {
                 columns={values.columns}
                 data={values.filteredData as unknown as Record<string, unknown>[]}
                 loading={values.isLoading}
+                pagination={values.pagination}
             />
         </BoxWrapper>
     );
