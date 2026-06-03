@@ -50,6 +50,7 @@ import {
   SUITE_GENERATIONS,
   SUITE_LATEST_GENERATION,
   GENERATION_CONTEXT_CONFIGS,
+  GENERATION_TRIGGER_CONFIGS,
   SIMULATION_ITEMS,
   EXCLUDED_TYPES,
   STAGE_SIMULATION_ITEMS,
@@ -577,5 +578,19 @@ export class AdminServiceClient {
 
   async bulkUpdateContextConfigs<T>(token: string, generationId: number, body: unknown): Promise<T> {
     return await this.executeHttpRequest<T>('PATCH', GENERATION_CONTEXT_CONFIGS(generationId), token, body);
+  }
+
+  // ── Trigger TXTP Config ───────────────────────────────────────────────────────
+
+  async getTriggerConfigs<T>(token: string, generationId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('GET', GENERATION_TRIGGER_CONFIGS(generationId), token);
+  }
+
+  async addTriggerTxtpConfig<T>(token: string, generationId: number, body: unknown): Promise<T> {
+    return await this.executeHttpRequest<T>('POST', GENERATION_TRIGGER_CONFIGS(generationId), token, body);
+  }
+
+  async bulkUpdateTriggerConfigs<T>(token: string, generationId: number, body: unknown): Promise<T> {
+    return await this.executeHttpRequest<T>('PATCH', GENERATION_TRIGGER_CONFIGS(generationId), token, body);
   }
 }
