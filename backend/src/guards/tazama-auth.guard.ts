@@ -70,14 +70,14 @@ export class TazamaAuthGuard implements CanActivate {
 
     if (matchedRoles.length === 0) {
       this.logger.warn(
-        `Invalid credentials. Token roles: [${realmRoles.join(', ')}], Allowed roles: [${allowedRoles.join(', ')}]`,
+        `Invalid credentials.`,
       );
 
       throw new UnauthorizedException('Invalid credentials');
     }
 
     const actorRole = matchedRoles[0];
-    
+
     const sourceIP =
       request.ip ?? (request.headers['x-forwarded-for'] as string | undefined)?.split(',')[0].trim() ?? request.socket.remoteAddress;
 
