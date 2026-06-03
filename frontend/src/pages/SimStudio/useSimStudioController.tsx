@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import StatusCard from "../../components/Cards/StatusCard";
 import type { TableColumn } from "../../components/Table";
@@ -30,7 +30,12 @@ const useSimStudioController = () => {
     const [txtpFilter, setTxtpFilter] = useState<string>("");
     const [lastUpdatedFrom, setLastUpdatedFrom] = useState<string>("");
     const [lastUpdatedTo, setLastUpdatedTo] = useState<string>("");
+    const [page, setPage] = useState(0);
 
+    const LIMIT = 10;
+
+    // Reset to first page whenever a filter changes
+    useEffect(() => { setPage(0); }, [debouncedSearch, statusFilter, ruleFilter, txtpFilter, lastUpdatedFrom, lastUpdatedTo]);
     const queryParams = useMemo(() => ({
         search: debouncedSearch || undefined,
         status: statusFilter || undefined,
@@ -38,9 +43,9 @@ const useSimStudioController = () => {
         txtp: txtpFilter || undefined,
         updated_from: lastUpdatedFrom || undefined,
         updated_to: lastUpdatedTo || undefined,
-        limit: 100,
-        offset: 0,
-    }), [debouncedSearch, statusFilter, ruleFilter, txtpFilter, lastUpdatedFrom, lastUpdatedTo]);
+        limit: LIMIT,
+        offset: page * LIMIT,
+    }), [debouncedSearch, statusFilter, ruleFilter, txtpFilter, lastUpdatedFrom, lastUpdatedTo, page]);
 
     const { data, isLoading, isFetching } = useGetSuitesQuery(queryParams);
     const { data: rulesData } = useGetRulesQuery();
@@ -96,6 +101,7 @@ const useSimStudioController = () => {
         setTxtpFilter("");
         setLastUpdatedFrom("");
         setLastUpdatedTo("");
+        setPage(0);
     };
 
     const handleResetAllFilters = () => {
@@ -105,6 +111,7 @@ const useSimStudioController = () => {
         setTxtpFilter("");
         setLastUpdatedFrom("");
         setLastUpdatedTo("");
+        setPage(0);
     };
 
     const handleView = useCallback((row: Record<string, unknown>) => {
@@ -147,6 +154,13 @@ const useSimStudioController = () => {
         navigate("/sim-studio/create");
     };
 
+    const pagination = useMemo(() => ({
+        offset: page,
+        limit: LIMIT,
+        total: data?.total ?? 0,
+        onPageChange: (newPage: number) => setPage(newPage - 1),
+    }), [page, data?.total]);
+
     return {
         values: {
             isLoading: isLoading || isFetching,
@@ -163,6 +177,7 @@ const useSimStudioController = () => {
             availableTxtps,
             hasAdvancedFilters,
             hasAnyFilter,
+            pagination,
         },
         functions: {
             handleSearch,

@@ -57,6 +57,7 @@ export class SimulationStudioService {
         clone_source_suite_id: suites.clone_source_suite_id,
         metadata: suites.metadata,
         rule_name: suites.rule_name ?? suites.associated_rule,
+        rule_config: suites.rule_config,
         primary_txtp: suites.primary_txtp ?? suites.txtp,
         primary_txtp_version: suites.primary_txtp_version ?? suites.txtp_version ?? suites.version,
       };
@@ -84,6 +85,7 @@ export class SimulationStudioService {
         wizard_progress: payload.wizard_progress,
         metadata: payload.metadata,
         rule_name: payload.rule_name ?? payload.associated_rule,
+        rule_config: payload.rule_config,
         primary_txtp: payload.primary_txtp ?? payload.txtp,
         primary_txtp_version: payload.primary_txtp_version ?? payload.txtp_version ?? payload.version,
       };
