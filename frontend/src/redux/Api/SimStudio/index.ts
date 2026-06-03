@@ -146,8 +146,26 @@ export interface SuitesListQuery {
     limit?: number;
 }
 
+export interface EnrichmentTableDto {
+    enrichment_table_id: number;
+    table_name: string;
+    table_order: number;
+    row_count: number;
+    payload_template_json: Record<string, unknown>;
+    schema_template_json: Record<string, unknown>;
+}
+
+export interface CreateEnrichmentTablePayload {
+    generationId: number;
+    table_name: string;
+    row_count: number;
+    payload_template_json: Record<string, unknown>;
+    schema_template_json: Record<string, unknown>;
+}
+
 export const simStudioApi = createApi({
     reducerPath: "simStudioApi",
+    tagTypes: ["EnrichmentTables"] as const,
     baseQuery: fetchBaseQuery({
         baseUrl: `${BASE_URL}/simulation-studio/`,
         prepareHeaders: (headers) => {
@@ -259,6 +277,28 @@ export const simStudioApi = createApi({
                 body: items,
             }),
         }),
+
+        getEnrichmentTables: builder.query<{ success: boolean; data: EnrichmentTableDto[] }, number>({
+            query: (generationId) => `generations/${generationId}/enrichment-tables`,
+            providesTags: ["EnrichmentTables"],
+        }),
+
+        createEnrichmentTable: builder.mutation<{ success: boolean; data: EnrichmentTableDto }, CreateEnrichmentTablePayload>({
+            query: ({ generationId, ...body }) => ({
+                url: `generations/${generationId}/enrichment-tables`,
+                method: "POST",
+                body,
+            }),
+            invalidatesTags: ["EnrichmentTables"],
+        }),
+
+        deleteEnrichmentTable: builder.mutation<{ success: boolean; message: string }, { generationId: number; tableId: number }>({
+            query: ({ generationId, tableId }) => ({
+                url: `generations/${generationId}/enrichment-tables/${tableId}`,
+                method: "DELETE",
+            }),
+            invalidatesTags: ["EnrichmentTables"],
+        }),
     }),
 });
 
@@ -276,4 +316,7 @@ export const {
     useLazyGetTriggerConfigsQuery,
     useCreateTriggerConfigMutation,
     useBulkUpdateTriggerConfigsMutation,
+    useGetEnrichmentTablesQuery,
+    useCreateEnrichmentTableMutation,
+    useDeleteEnrichmentTableMutation,
 } = simStudioApi;
