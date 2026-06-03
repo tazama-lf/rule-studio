@@ -537,3 +537,191 @@ export class BulkUpdateTriggerConfigsResponseDto {
   @ApiProperty({ type: [TriggerTxtpConfigWithOverridesDto] })
   data: TriggerTxtpConfigWithOverridesDto[];
 }
+
+// ── Enrichment Tables DTOs ────────────────────────────────────────────────────
+
+export class CreateEnrichmentTableDto {
+  @ApiProperty({ example: 'account_enrichment', description: 'Target DB table name' })
+  @IsString()
+  table_name: string;
+
+  @ApiProperty({ example: 13, description: 'Number of rows to generate' })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  row_count: number;
+
+  @ApiProperty({ required: false, example: { name: 'feeba', country: 'Pak' }, description: 'Sample payload template JSON' })
+  @IsOptional()
+  @IsObject()
+  payload_template_json?: Record<string, unknown>;
+
+  @ApiProperty({ required: false, example: {}, description: 'Schema template JSON' })
+  @IsOptional()
+  @IsObject()
+  schema_template_json?: Record<string, unknown>;
+}
+
+export class EnrichmentFieldStrategyDto {
+  @ApiProperty({ example: 1 })
+  id: number;
+
+  @ApiProperty({ example: 1 })
+  enrichment_table_id: number;
+
+  @ApiProperty({ example: 'name' })
+  column_name: string;
+
+  @ApiProperty({ required: false, example: 'VARCHAR(128)' })
+  column_type?: string;
+
+  @ApiProperty({ example: 'null', enum: ['static', 'range', 'generated', 'null', 'copy'] })
+  strategy_code: string;
+
+  @ApiProperty({ required: false })
+  static_value?: unknown;
+
+  @ApiProperty({ required: false })
+  range_min?: number;
+
+  @ApiProperty({ required: false })
+  range_max?: number;
+
+  @ApiProperty({ required: false })
+  generator_type?: string;
+
+  @ApiProperty({ required: false, example: {} })
+  generator_options?: Record<string, unknown>;
+
+  @ApiProperty()
+  created_at: string;
+}
+
+export class UpsertEnrichmentFieldStrategyDto {
+  @ApiProperty({ example: 'name' })
+  @IsString()
+  column_name: string;
+
+  @ApiProperty({ required: false, example: 'VARCHAR(128)' })
+  @IsOptional()
+  @IsString()
+  column_type?: string;
+
+  @ApiProperty({ example: 'null', enum: ['static', 'range', 'generated', 'null', 'copy'] })
+  @IsEnum(['static', 'range', 'generated', 'null', 'copy'])
+  strategy_code: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  static_value?: unknown;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  range_min?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  range_max?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  generator_type?: string;
+
+  @ApiProperty({ required: false, example: {} })
+  @IsOptional()
+  @IsObject()
+  generator_options?: Record<string, unknown>;
+}
+
+export class EnrichmentTableWithStrategiesDto {
+  @ApiProperty({ example: 1 })
+  enrichment_table_id: number;
+
+  @ApiProperty({ example: 'account_enrichment' })
+  table_name: string;
+
+  @ApiProperty({ example: 1 })
+  table_order: number;
+
+  @ApiProperty({ example: 13 })
+  row_count: number;
+
+  @ApiProperty({ required: false, example: { name: 'feeba', country: 'Pak' } })
+  payload_template_json?: Record<string, unknown>;
+
+  @ApiProperty({ required: false, example: {} })
+  schema_template_json?: Record<string, unknown>;
+
+  @ApiProperty({ type: [EnrichmentFieldStrategyDto] })
+  field_strategies: EnrichmentFieldStrategyDto[];
+}
+
+export class EnrichmentTablesListDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty({ type: [EnrichmentTableWithStrategiesDto] })
+  data: EnrichmentTableWithStrategiesDto[];
+}
+
+export class EnrichmentTableResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty({ type: EnrichmentTableWithStrategiesDto })
+  data: EnrichmentTableWithStrategiesDto;
+}
+
+export class BulkEnrichmentUpdateItemDto {
+  @ApiProperty({ example: 1 })
+  @IsInt()
+  enrichment_table_id: number;
+
+  @ApiProperty({ required: false, example: 5 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  row_count?: number;
+
+  @ApiProperty({ required: false, example: { name: 'updated' } })
+  @IsOptional()
+  @IsObject()
+  payload_template_json?: Record<string, unknown>;
+
+  @ApiProperty({ required: false, example: {} })
+  @IsOptional()
+  @IsObject()
+  schema_template_json?: Record<string, unknown>;
+
+  @ApiProperty({ required: false, example: {} })
+  @IsOptional()
+  @IsObject()
+  faker_profile?: Record<string, unknown>;
+
+  @ApiProperty({ required: false, type: [UpsertEnrichmentFieldStrategyDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => UpsertEnrichmentFieldStrategyDto)
+  field_strategies?: UpsertEnrichmentFieldStrategyDto[];
+}
+
+export class BulkUpdateEnrichmentTablesResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty({ type: [EnrichmentTableWithStrategiesDto] })
+  data: EnrichmentTableWithStrategiesDto[];
+}
+
+export class DeleteEnrichmentTableResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty({ example: 'Enrichment table deleted' })
+  message: string;
+}
