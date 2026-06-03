@@ -119,6 +119,26 @@ describe('SimulationStudioService', () => {
     expect(callArg).not.toHaveProperty('wizard_progress');
   });
 
+  it('createSimulationSuites forwards rule_config when provided', async () => {
+    const ruleConfig = { threshold: 1000, band: 'high' };
+    const createDto: RequestSimulationSuitesDto = {
+      name: 'Rule Config Suite',
+      rule_name: 'Rule 005',
+      primary_txtp: 'pacs.008',
+      primary_txtp_version: '001.08',
+      rule_config: ruleConfig,
+    } as RequestSimulationSuitesDto;
+
+    adminServiceClient.createSimulationSuite.mockResolvedValue(mockSuite);
+
+    await service.createSimulationSuites('test-token', createDto);
+
+    expect(adminServiceClient.createSimulationSuite).toHaveBeenCalledWith(
+      'test-token',
+      expect.objectContaining({ rule_config: ruleConfig }),
+    );
+  });
+
   it('patchSimulationSuite maps alias fields', async () => {
     const patchDto: PatchSimulationSuitesDto = {
       associated_rule: 'Rule 003',
@@ -140,6 +160,23 @@ describe('SimulationStudioService', () => {
         primary_txtp_version: 'v2.0',
         metadata: { step: 2 },
       }),
+    );
+  });
+
+  it('patchSimulationSuite forwards rule_config when provided', async () => {
+    const ruleConfig = { limit: 500 };
+    const patchDto: PatchSimulationSuitesDto = {
+      rule_config: ruleConfig,
+    } as PatchSimulationSuitesDto;
+
+    adminServiceClient.patchSimulationSuite.mockResolvedValue(mockSuiteResponse);
+
+    await service.patchSimulationSuite('test-token', 101, patchDto);
+
+    expect(adminServiceClient.patchSimulationSuite).toHaveBeenCalledWith(
+      'test-token',
+      101,
+      expect.objectContaining({ rule_config: ruleConfig }),
     );
   });
 

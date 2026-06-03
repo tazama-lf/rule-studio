@@ -45,6 +45,11 @@ export class SimulationSuitesDto {
   @IsString()
   rule_version?: string;
 
+  @ApiProperty({ description: 'Rule configuration JSON object', required: false, example: { threshold: 1000 } })
+  @IsOptional()
+  @IsObject()
+  rule_config?: Record<string, unknown>;
+
   @ApiProperty({ description: 'Primary transaction type (TXTP)', required: false, example: 'pacs.008' })
   @IsOptional()
   @IsString()
@@ -171,6 +176,11 @@ export class RequestSimulationSuitesDto {
   @IsString()
   rule_version?: string;
 
+  @ApiProperty({ description: 'Rule configuration JSON object', required: false, example: { threshold: 1000 } })
+  @IsOptional()
+  @IsObject()
+  rule_config?: Record<string, unknown>;
+
   @ApiProperty({ description: 'Primary transaction type (TXTP)', required: false, example: 'pacs.002' })
   @IsOptional()
   @IsString()
@@ -253,6 +263,11 @@ export class PatchSimulationSuitesDto {
   @IsOptional()
   @IsString()
   rule_version?: string;
+
+  @ApiProperty({ description: 'Rule configuration JSON object', required: false, example: { threshold: 1000 } })
+  @IsOptional()
+  @IsObject()
+  rule_config?: Record<string, unknown>;
 
   @ApiProperty({ description: 'Primary transaction type (TXTP)', required: false })
   @IsOptional()
