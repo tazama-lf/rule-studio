@@ -62,6 +62,7 @@ const useCreateSimSuiteController = () => {
     const { data: rulesData } = useGetRulesQuery();
     const [getRuleTags, { data: ruleTagsData, isFetching: ruleVersionLoading }] = useLazyGetRuleTagsQuery();
     const step2SaveRef = useRef<(() => Promise<boolean>) | null>(null);
+    const step3SaveRef = useRef<(() => Promise<boolean>) | null>(null);
 
     const {
         control,
@@ -167,6 +168,12 @@ const useCreateSimSuiteController = () => {
                 const ok = save ? await save() : true;
                 if (ok) enableNextTab();
             })();
+        } else if (selectedTab === SimStudioTabs[2].value) {
+            void (async () => {
+                const save = step3SaveRef.current;
+                const ok = save ? await save() : true;
+                if (ok) enableNextTab();
+            })();
         } else {
             enableNextTab();
         }
@@ -188,7 +195,7 @@ const useCreateSimSuiteController = () => {
                     />
                 );
             case 'txtp_selection':      return <TxtpSelection onSaveRef={step2SaveRef} />;
-            case 'trigger_data':        return <TriggerData />;
+            case 'trigger_data':        return <TriggerData onSaveRef={step3SaveRef} />;
             case 'enrichment_data':     return <PlaceholderStep title="Enrichment Data" />;
             case 'preview_save':        return <PlaceholderStep title="Preview & Save" />;
             case 'simulation_results':  return <PlaceholderStep title="Simulation Results" />;
