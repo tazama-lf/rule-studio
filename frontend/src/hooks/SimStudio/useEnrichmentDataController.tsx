@@ -1,4 +1,12 @@
 import { useCallback, useState, type MutableRefObject } from "react";
+import toast from "react-hot-toast";
+import { LocalStorage } from "../../utils/Common/enums";
+import { extractData } from "../../utils/Common/storage";
+import {
+    useGetEnrichmentTablesQuery,
+    useCreateEnrichmentTableMutation,
+    useDeleteEnrichmentTableMutation,
+} from "../../redux/Api/SimStudio";
 
 export type SchemaFieldType = "String" | "Number" | "Boolean" | "Date" | "UUID";
 export type GenerationStrategy = "Sample Value" | "Static" | "Range" | "Auto-generate";
@@ -48,6 +56,16 @@ const flattenJson = (obj: Record<string, unknown>, prefix = ""): { path: string;
 const useEnrichmentDataController = (
     onSaveRef?: MutableRefObject<(() => Promise<boolean>) | null>
 ) => {
+    const generationId = extractData("sim_gen_id", LocalStorage, false) as number | null;
+
+    const { data: enrichmentTablesData } = useGetEnrichmentTablesQuery(generationId!, {
+        skip: !generationId,
+    });
+    const [createEnrichmentTable, { isLoading: isSaving }] = useCreateEnrichmentTableMutation();
+    const [deleteEnrichmentTable, { isLoading: isDeleting }] = useDeleteEnrichmentTableMutation();
+
+    const savedRecords = enrichmentTablesData?.data ?? [];
+
     const [tableName, setTableName] = useState("");
     const [numberOfRows, setNumberOfRows] = useState(1);
     const [sampleJson, setSampleJson] = useState("");
@@ -83,7 +101,6 @@ const useEnrichmentDataController = (
             }));
             setSchemaFields(fields);
             setJsonError(null);
-            console.log("[EnrichmentData] Generated schema fields:", fields);
         } catch (e) {
             setJsonError((e as SyntaxError).message);
         }
@@ -93,34 +110,72 @@ const useEnrichmentDataController = (
         setSchemaFields((prev) => prev.map((f) => (f.id === id ? { ...f, ...changes } : f)));
     }, []);
 
-    const handleRemoveField = useCallback((id: string) => {
-        setSchemaFields((prev) => prev.filter((f) => f.id !== id));
-    }, []);
+    const handleSaveRecord = useCallback(async (): Promise<void> => {
+        if (!generationId) {
+            toast.error("Generation ID not found. Please complete Step 1 first.");
+            return;
+        }
+        if (!tableName.trim()) {
+            toast.error("Please enter a target table name.");
+            return;
+        }
+        if (!sampleJson.trim() || jsonError) {
+            toast.error("Please provide a valid sample JSON.");
+            return;
+        }
+        if (schemaFields.length === 0) {
+            toast.error("Please generate schema fields before saving.");
+            return;
+        }
+        try {
+            const payloadJson = JSON.parse(sampleJson) as Record<string, unknown>;
+            await createEnrichmentTable({
+                generationId,
+                table_name: tableName.trim(),
+                row_count: numberOfRows,
+                payload_template_json: payloadJson,
+                schema_template_json: { properties: schemaFields },
+            }).unwrap();
+            toast.success("Enrichment record saved successfully.");
+            setTableName("");
+            setNumberOfRows(1);
+            setSampleJson("");
+            setJsonError(null);
+            setSchemaFields([]);
+        } catch {
+            toast.error("Failed to save enrichment record. Please try again.");
+        }
+    }, [generationId, tableName, numberOfRows, sampleJson, jsonError, schemaFields, createEnrichmentTable]);
 
+    const handleDeleteRecord = useCallback(async (tableId: number): Promise<void> => {
+        if (!generationId) return;
+        try {
+            await deleteEnrichmentTable({ generationId, tableId }).unwrap();
+            toast.success("Enrichment record removed.");
+        } catch {
+            toast.error("Failed to remove enrichment record.");
+        }
+    }, [generationId, deleteEnrichmentTable]);
+
+    // Next button just proceeds — records are saved individually via Save Record
     const saveEnrichmentRecords = useCallback(async (): Promise<boolean> => {
-        console.log("[EnrichmentData] Saving enrichment record:", {
-            tableName,
-            numberOfRows,
-            schemaFields,
-        });
-        // TODO: wire API when ready
         return true;
-    }, [tableName, numberOfRows, schemaFields]);
+    }, []);
 
     if (onSaveRef) {
         onSaveRef.current = saveEnrichmentRecords;
     }
 
     return {
-        values: { tableName, numberOfRows, sampleJson, jsonError, schemaFields },
+        values: { tableName, numberOfRows, sampleJson, jsonError, schemaFields, savedRecords, isSaving, isDeleting },
         functions: {
             setTableName,
             setNumberOfRows,
             handleSampleJsonChange,
             handleGenerateSchemaFields,
             handleFieldChange,
-            handleRemoveField,
-            saveEnrichmentRecords,
+            handleSaveRecord,
+            handleDeleteRecord,
         },
     };
 };

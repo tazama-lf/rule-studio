@@ -1,8 +1,10 @@
 import { type MutableRefObject } from "react";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import {
     Box,
+    IconButton,
     MenuItem,
     Select,
     Table as MuiTable,
@@ -11,6 +13,7 @@ import {
     TableHead,
     TableRow,
     TextField,
+    Tooltip,
     Typography,
 } from "@mui/material";
 import Button from "../../Button";
@@ -22,12 +25,8 @@ import useEnrichmentDataController, {
     type GenerationStrategy,
 } from "../../../hooks/SimStudio/useEnrichmentDataController";
 
-// ── Constants ─────────────────────────────────────────────────────────────────
-
 const FIELD_TYPES: SchemaFieldType[] = ["String", "Number", "Boolean", "Date", "UUID"];
 const GENERATION_STRATEGIES: GenerationStrategy[] = ["Sample Value", "Static", "Range", "Auto-generate"];
-
-// ── Schema Row ────────────────────────────────────────────────────────────────
 
 interface SchemaRowProps {
     field: SchemaField;
@@ -111,21 +110,21 @@ const SchemaRow = ({ field, onChange }: SchemaRowProps) => (
     </TableRow>
 );
 
-// ── Main Component ────────────────────────────────────────────────────────────
-
 interface EnrichmentDataProps {
     onSaveRef?: MutableRefObject<(() => Promise<boolean>) | null>;
 }
 
 const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
     const { values, functions } = useEnrichmentDataController(onSaveRef);
-    const { tableName, numberOfRows, sampleJson, jsonError, schemaFields } = values;
+    const { tableName, numberOfRows, sampleJson, jsonError, schemaFields, savedRecords, isSaving, isDeleting } = values;
     const {
         setTableName,
         setNumberOfRows,
         handleSampleJsonChange,
         handleGenerateSchemaFields,
         handleFieldChange,
+        handleSaveRecord,
+        handleDeleteRecord,
     } = functions;
 
     const canGenerate = sampleJson.trim().length > 0 && !jsonError;
@@ -137,7 +136,6 @@ const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
 
     return (
         <Box width="100%" maxWidth="960px">
-            {/* Info Banner */}
             <S.InfoBanner>
                 <InfoOutlinedIcon sx={{ fontSize: 18, color: "#2563eb", mt: "1px", flexShrink: 0 }} />
                 <Typography sx={{ fontSize: 13, color: "#1e40af", lineHeight: 1.6 }}>
@@ -148,8 +146,73 @@ const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
                     sample record below and save it to the target table.
                 </Typography>
             </S.InfoBanner>
-
-            {/* Target Table + Rows + JSON */}
+            <S.SchemaTableContainer sx={{ mb: 2.5 }}>
+                <S.SchemaTableHeader>
+                    <Text size="body" weight="semibold">Enrichment Records</Text>
+                </S.SchemaTableHeader>
+                <MuiTable size="small">
+                    <TableHead>
+                        <TableRow>
+                            <TableCell><S.ColumnHeader>Target Table</S.ColumnHeader></TableCell>
+                            <TableCell><S.ColumnHeader>Rows</S.ColumnHeader></TableCell>
+                            <TableCell><S.ColumnHeader>Payload Preview</S.ColumnHeader></TableCell>
+                            <TableCell align="center"><S.ColumnHeader>Action</S.ColumnHeader></TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {savedRecords.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={4} align="center" sx={{ py: 5, color: "#9ca3af", fontSize: 13 }}>
+                                    No records to display. Add an enrichment record below.
+                                </TableCell>
+                            </TableRow>
+                        ) : (
+                            savedRecords.map((record) => (
+                                <TableRow hover key={record.enrichment_table_id}>
+                                    <TableCell sx={{ borderBottom: "1px solid #e0e0e0" }}>
+                                        <Typography sx={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>
+                                            {record.table_name}
+                                        </Typography>
+                                    </TableCell>
+                                    <TableCell sx={{ borderBottom: "1px solid #e0e0e0" }}>
+                                        <Typography sx={{ fontSize: 13, color: "#374151" }}>
+                                            {record.row_count}
+                                        </Typography>
+                                    </TableCell>
+                                    <TableCell sx={{ borderBottom: "1px solid #e0e0e0", maxWidth: 320 }}>
+                                        <Typography
+                                            sx={{
+                                                fontSize: 12,
+                                                color: "#6b7280",
+                                                fontFamily: "monospace",
+                                                whiteSpace: "nowrap",
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                            }}
+                                        >
+                                            {JSON.stringify(record.payload_template_json)}
+                                        </Typography>
+                                    </TableCell>
+                                    <TableCell align="center" sx={{ borderBottom: "1px solid #e0e0e0" }}>
+                                        <Tooltip title="Remove">
+                                            <span>
+                                                <IconButton
+                                                    size="small"
+                                                    disabled={isDeleting}
+                                                    onClick={() => { void handleDeleteRecord(record.enrichment_table_id); }}
+                                                    sx={{ color: "#ef4444", "&:hover": { backgroundColor: "#fef2f2" } }}
+                                                >
+                                                    <DeleteOutlineIcon fontSize="small" />
+                                                </IconButton>
+                                            </span>
+                                        </Tooltip>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        )}
+                    </TableBody>
+                </MuiTable>
+            </S.SchemaTableContainer>
             <S.FormCard>
                 <Box display="flex" gap={3} flexWrap="wrap">
                     <Box flex="7 1 200px">
@@ -174,8 +237,6 @@ const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
                         />
                     </Box>
                 </Box>
-
-                {/* Sample JSON */}
                 <Box mt={3}>
                     <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
                         <S.FieldLabel sx={{ mb: 0 }}>Sample Enrichment JSON</S.FieldLabel>
@@ -214,8 +275,6 @@ const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
                     )}
                 </Box>
             </S.FormCard>
-
-            {/* Configure Schema Fields */}
             <S.SchemaTableContainer>
                 <S.SchemaTableHeader>
                     <Text size="body" weight="semibold">Configure Schema Fields</Text>
@@ -249,7 +308,6 @@ const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
                         )}
                     </TableBody>
                 </MuiTable>
-
                 <Box display="flex" justifyContent="flex-end" mt={2}>
                     <Button
                         height="38px"
@@ -257,7 +315,9 @@ const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
                         size="md"
                         text="Save Record"
                         Icon={SaveOutlinedIcon}
-                        onClick={() => {}}
+                        loading={isSaving}
+                        disabled={!tableName.trim() || !sampleJson.trim() || !!jsonError || schemaFields.length === 0}
+                        onClick={() => { void handleSaveRecord(); }}
                     />
                 </Box>
             </S.SchemaTableContainer>
