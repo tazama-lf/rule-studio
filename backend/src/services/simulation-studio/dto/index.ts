@@ -45,10 +45,9 @@ export class SimulationSuitesDto {
   @IsString()
   rule_version?: string;
 
-  @ApiProperty({ description: 'Rule configuration JSON object', required: false, example: { threshold: 1000 } })
-  @IsOptional()
+  @ApiProperty({ description: 'Rule configuration JSON object', example: { threshold: 1000 } })
   @IsObject()
-  rule_config?: Record<string, unknown>;
+  rule_config: Record<string, unknown>;
 
   @ApiProperty({ description: 'Primary transaction type (TXTP)', required: false, example: 'pacs.008' })
   @IsOptional()
@@ -176,10 +175,9 @@ export class RequestSimulationSuitesDto {
   @IsString()
   rule_version?: string;
 
-  @ApiProperty({ description: 'Rule configuration JSON object', required: false, example: { threshold: 1000 } })
-  @IsOptional()
+  @ApiProperty({ description: 'Rule configuration JSON object', example: { threshold: 1000 } })
   @IsObject()
-  rule_config?: Record<string, unknown>;
+  rule_config: Record<string, unknown>;
 
   @ApiProperty({ description: 'Primary transaction type (TXTP)', required: false, example: 'pacs.002' })
   @IsOptional()

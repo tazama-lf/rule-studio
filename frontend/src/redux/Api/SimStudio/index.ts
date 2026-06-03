@@ -9,10 +9,9 @@ export interface CreateSuitePayload {
     rule_repo?: string;
     rule_name?: string;
     rule_version?: string;
-    rule_config?: Record<string, unknown>;
+    rule_config: Record<string, unknown>;
     primary_txtp: string;
     primary_txtp_version: string;
-    rule_config?: Record<string, unknown>;
     wizard_progress?: Record<string, unknown>;
     metadata?: Record<string, unknown>;
 }
