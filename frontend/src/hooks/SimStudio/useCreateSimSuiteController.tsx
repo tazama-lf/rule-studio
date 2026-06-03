@@ -53,6 +53,13 @@ const step1Schema = yup.object({
         .object({ label: yup.string().required(), value: yup.mixed().required() })
         .nullable()
         .test("not-null", "Version is required", (val) => val !== null && val !== undefined),
+    rule_config: yup
+        .string()
+        .required("Rule config is required")
+        .test("is-valid-json", "Rule config must be valid JSON", (val) => {
+            if (!val || val.trim() === "" || val.trim() === "{}") return false;
+            try { JSON.parse(val); return true; } catch { return false; }
+        }),
 });
 
 

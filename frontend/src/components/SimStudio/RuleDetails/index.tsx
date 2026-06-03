@@ -149,7 +149,7 @@ const Step1RuleDetails = ({
                         <Controller
                             control={control}
                             name="rule_config"
-                            render={({ field }) => {
+                            render={({ field, fieldState: { error: schemaError } }) => {
                                 const [jsonError, setJsonError] = useState<string | null>(null);
                                 const [isValid, setIsValid] = useState<boolean | null>(null);
 
@@ -170,7 +170,11 @@ const Step1RuleDetails = ({
                                     }
                                 };
 
-                                const borderColor = isValid === false
+                                // schemaError takes priority (empty/missing), jsonError for syntax
+                                const displayError = schemaError?.message ?? jsonError;
+                                const hasError = !!displayError;
+
+                                const borderColor = hasError
                                     ? "#ef4444"
                                     : isValid === true
                                         ? "#22c55e"
@@ -181,17 +185,18 @@ const Step1RuleDetails = ({
                                         <Box display="flex" alignItems="center" justifyContent="space-between" mb={0.75}>
                                             <Typography fontSize={13} fontWeight={500} color="text.primary">
                                                 Rule Config
+                                                <Typography component="span" fontSize={11} color="#ef4444" ml={0.25}>*</Typography>
                                                 <Typography component="span" fontSize={11} color="text.secondary" ml={0.75}>
                                                     (JSON)
                                                 </Typography>
                                             </Typography>
-                                            {isValid === true && (
+                                            {isValid === true && !hasError && (
                                                 <Box display="flex" alignItems="center" gap={0.5}>
                                                     <CheckCircleOutlineIcon sx={{ fontSize: 14, color: "#22c55e" }} />
                                                     <Typography fontSize={12} color="#22c55e">Valid JSON</Typography>
                                                 </Box>
                                             )}
-                                            {isValid === false && (
+                                            {hasError && (
                                                 <Box display="flex" alignItems="center" gap={0.5}>
                                                     <ErrorOutlineIcon sx={{ fontSize: 14, color: "#ef4444" }} />
                                                     <Typography fontSize={12} color="#ef4444">Invalid JSON</Typography>
@@ -219,9 +224,9 @@ const Step1RuleDetails = ({
                                                 },
                                             }}
                                         />
-                                        {jsonError && (
+                                        {displayError && (
                                             <Typography fontSize={12} color="#ef4444" mt={0.5}>
-                                                {jsonError}
+                                                {displayError}
                                             </Typography>
                                         )}
                                     </Box>
