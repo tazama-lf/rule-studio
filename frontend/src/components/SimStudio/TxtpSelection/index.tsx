@@ -1,4 +1,3 @@
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -41,6 +40,7 @@ interface EntryRowProps {
     isPrimary: boolean;
     onToggle: (id: string) => void;
     onRemove: (id: string) => void;
+    onNumMessagesChange: (id: string, value: number) => void;
     onFieldConfigChange: (entryId: string, path: string, config: FieldConfig) => void;
 }
 
@@ -231,6 +231,7 @@ const EntryRow = ({
     isPrimary,
     onToggle,
     onRemove,
+    onNumMessagesChange,
     onFieldConfigChange,
 }: EntryRowProps) => (
     <>
@@ -257,21 +258,25 @@ const EntryRow = ({
                 {entry.version}
             </TableCell>
             <TableCell sx={{ borderBottom: "1px solid #e0e0e0" }}>
-                <Box display="flex" gap={1} flexWrap="wrap">
-                    <S.StatusBadge variant={entry.schemaLoaded ? "success" : "default"}>
-                        <CheckCircleOutlineIcon sx={{ fontSize: 12 }} />
-                        Schema {entry.schemaLoaded ? "Loaded" : "Not Loaded"}
-                    </S.StatusBadge>
-                    <S.StatusBadge variant={entry.sampleAvailable ? "success" : "default"}>
-                        <CheckCircleOutlineIcon sx={{ fontSize: 12 }} />
-                        Sample {entry.sampleAvailable ? "Available" : "Unavailable"}
-                    </S.StatusBadge>
-                </Box>
+                <TextField
+                    type="text"
+                    inputMode="numeric"
+                    size="small"
+                    value={entry.numMessages || ""}
+                    onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "" || /^\d+$/.test(val)) {
+                            onNumMessagesChange(entry.id, val === "" ? 0 : Number(val));
+                        }
+                    }}
+                    sx={{
+                        width: 130,
+                        "& .MuiOutlinedInput-root": { height: "34px", fontSize: "13px" },
+                    }}
+                />
             </TableCell>
             <TableCell sx={{ borderBottom: "1px solid #e0e0e0" }}>
-                {!isPrimary && (
-                    <S.RemoveText onClick={() => onRemove(entry.id)}>Remove</S.RemoveText>
-                )}
+                <S.RemoveText onClick={() => onRemove(entry.id)}>Remove</S.RemoveText>
             </TableCell>
         </TableRow>
 
@@ -313,6 +318,7 @@ const TxtpSelection = ({ onSaveRef }: TxtpSelectionProps) => {
         handleAdd,
         handleRemove,
         handleToggleExpand,
+        handleNumMessagesChange,
         handleFieldConfigChange,
         saveStep2ToDb,
     } = functions;
@@ -360,11 +366,16 @@ const TxtpSelection = ({ onSaveRef }: TxtpSelectionProps) => {
                 <Box minWidth={140}>
                     <S.FieldLabel>No. of Messages</S.FieldLabel>
                     <TextField
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
                         size="small"
-                        value={numMessages}
-                        inputProps={{ min: 1 }}
-                        onChange={(e) => setNumMessages(Math.max(1, Number(e.target.value)))}
+                        value={numMessages || ""}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === "" || /^\d+$/.test(val)) {
+                                setNumMessages(val === "" ? 0 : Number(val));
+                            }
+                        }}
                         sx={{
                             width: "100%",
                             "& .MuiOutlinedInput-root": {
@@ -402,7 +413,7 @@ const TxtpSelection = ({ onSaveRef }: TxtpSelectionProps) => {
                                 Version
                             </TableCell>
                             <TableCell sx={{ bgcolor: "#fbf9fa", fontWeight: 600, fontSize: "13px" }}>
-                                Schema Status
+                                No. of Messages
                             </TableCell>
                             <TableCell sx={{ bgcolor: "#fbf9fa", fontWeight: 600, fontSize: "13px" }}>
                                 Action
@@ -425,6 +436,7 @@ const TxtpSelection = ({ onSaveRef }: TxtpSelectionProps) => {
                                     isPrimary={idx === 0}
                                     onToggle={handleToggleExpand}
                                     onRemove={handleRemove}
+                                    onNumMessagesChange={handleNumMessagesChange}
                                     onFieldConfigChange={handleFieldConfigChange}
                                 />
                             ))

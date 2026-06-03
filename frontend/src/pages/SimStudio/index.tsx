@@ -226,6 +226,11 @@ const SimStudio = () => {
                             onChange={(e) => functions.handleTxtpFilter(e.target.value)}
                             displayEmpty
                             sx={{ ...S.selectSx, minWidth: "unset" }}
+                            MenuProps={{
+                                PaperProps: {
+                                    sx: { maxHeight: 220, overflowY: "auto" },
+                                },
+                            }}
                         >
                             <MenuItem value="">All TXTPs</MenuItem>
                             {values.availableTxtps.map((txtp) => (

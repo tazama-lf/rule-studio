@@ -50,8 +50,7 @@ import {
   SUITE_GENERATIONS,
   SUITE_LATEST_GENERATION,
   GENERATION_CONTEXT_CONFIGS,
-  CONTEXT_CONFIG,
-  CONTEXT_CONFIG_FIELD_STRATEGIES,
+  GENERATION_TRIGGER_CONFIGS,
   SIMULATION_ITEMS,
   EXCLUDED_TYPES,
   STAGE_SIMULATION_ITEMS,
@@ -569,15 +568,29 @@ export class AdminServiceClient {
 
   // ── Context TXTP Config ───────────────────────────────────────────────────────
 
-  async updateContextTxtpConfig<T>(token: string, suiteId: number, configId: number, body: unknown): Promise<T> {
-    return await this.executeHttpRequest<T>('PATCH', CONTEXT_CONFIG(suiteId, configId), token, body);
+  async getContextConfigs<T>(token: string, generationId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('GET', GENERATION_CONTEXT_CONFIGS(generationId), token);
   }
 
-  async upsertFieldStrategies<T>(token: string, suiteId: number, configId: number, body: unknown): Promise<T> {
-    return await this.executeHttpRequest<T>('PUT', CONTEXT_CONFIG_FIELD_STRATEGIES(suiteId, configId), token, body);
+  async addContextTxtpConfig<T>(token: string, generationId: number, body: unknown): Promise<T> {
+    return await this.executeHttpRequest<T>('POST', GENERATION_CONTEXT_CONFIGS(generationId), token, body);
   }
 
-  async getFieldStrategies<T>(token: string, suiteId: number, configId: number): Promise<T> {
-    return await this.executeHttpRequest<T>('GET', CONTEXT_CONFIG_FIELD_STRATEGIES(suiteId, configId), token);
+  async bulkUpdateContextConfigs<T>(token: string, generationId: number, body: unknown): Promise<T> {
+    return await this.executeHttpRequest<T>('PATCH', GENERATION_CONTEXT_CONFIGS(generationId), token, body);
+  }
+
+  // ── Trigger TXTP Config ───────────────────────────────────────────────────────
+
+  async getTriggerConfigs<T>(token: string, generationId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('GET', GENERATION_TRIGGER_CONFIGS(generationId), token);
+  }
+
+  async addTriggerTxtpConfig<T>(token: string, generationId: number, body: unknown): Promise<T> {
+    return await this.executeHttpRequest<T>('POST', GENERATION_TRIGGER_CONFIGS(generationId), token, body);
+  }
+
+  async bulkUpdateTriggerConfigs<T>(token: string, generationId: number, body: unknown): Promise<T> {
+    return await this.executeHttpRequest<T>('PATCH', GENERATION_TRIGGER_CONFIGS(generationId), token, body);
   }
 }

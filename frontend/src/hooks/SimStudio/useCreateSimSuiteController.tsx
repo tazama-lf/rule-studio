@@ -8,12 +8,14 @@ import type { DropdownOption } from "../../components/DropDown";
 import { useSimStudioTab } from "../../contexts/SimStudioTabContext";
 import { useGetTypesQuery, useLazyGetTxtpVersionsQuery } from "../../redux/Api/Config";
 import { useCreateSuiteMutation } from "../../redux/Api/SimStudio";
+import { useGetRulesQuery, useLazyGetRuleTagsQuery } from "../../redux/Api/DockerHub";
 import { LocalStorage } from "../../utils/Common/enums";
-import { extractData, insertData } from "../../utils/Common/storage";
+import { insertData } from "../../utils/Common/storage";
 import { SimStudioTabs } from "../../utils/Constants/data";
 import PlaceholderStep from "../../components/SimStudio/PlaceholderStep";
 import Step1RuleDetails from "../../components/SimStudio/RuleDetails";
 import TxtpSelection from "../../components/SimStudio/TxtpSelection";
+import TriggerData from "../../components/SimStudio/TriggerData";
 
 export interface Step1Values {
     suite_name: string;
@@ -22,11 +24,6 @@ export interface Step1Values {
     rule_version: DropdownOption | null;
     txtp: DropdownOption | null;
     version: DropdownOption | null;
-}
-
-export interface SimData {
-    step1?: Step1Values;
-    suiteId?: number;
 }
 
 const step1Schema = yup.object({
@@ -57,46 +54,15 @@ const step1Schema = yup.object({
         .test("not-null", "Version is required", (val) => val !== null && val !== undefined),
 });
 
-const MOCK_RULES: DropdownOption[] = [
-    { label: "Rule 001", value: "Rule 001" },
-    { label: "Rule 002", value: "Rule 002" },
-    { label: "Rule 003", value: "Rule 003" },
-    { label: "Rule 004", value: "Rule 004" },
-    { label: "Rule 005", value: "Rule 005" },
-];
-
-const MOCK_RULE_VERSIONS: Record<string, DropdownOption[]> = {
-    "Rule 001": [{ label: "v1.0", value: "v1.0" }, { label: "v1.1", value: "v1.1" }, { label: "v2.0", value: "v2.0" }],
-    "Rule 002": [{ label: "v1.0", value: "v1.0" }],
-    "Rule 003": [{ label: "v1.0", value: "v1.0" }, { label: "v2.0", value: "v2.0" }],
-    "Rule 004": [{ label: "v1.0", value: "v1.0" }, { label: "v1.1", value: "v1.1" }],
-    "Rule 005": [{ label: "v1.0", value: "v1.0" }, { label: "v1.1", value: "v1.1" }, { label: "v2.0", value: "v2.0" }],
-};
-
-const SIM_DATA_KEY = 'sim_data';
-
-const readSimData = (): SimData => {
-    try {
-        return (extractData(SIM_DATA_KEY, LocalStorage, false) as SimData) ?? {};
-    } catch {
-        return {};
-    }
-};
-
-const writeSimData = (patch: Partial<SimData>) => {
-    const existing = readSimData();
-    insertData({ ...existing, ...patch }, SIM_DATA_KEY, LocalStorage, false);
-};
 
 const useCreateSimSuiteController = () => {
     const navigate = useNavigate();
     const { selectedTab, tabs, enableNextTab, enablePreviousTab } = useSimStudioTab();
     const [createSuite, { isLoading: isCreatingSuite }] = useCreateSuiteMutation();
+    const { data: rulesData } = useGetRulesQuery();
+    const [getRuleTags, { data: ruleTagsData, isFetching: ruleVersionLoading }] = useLazyGetRuleTagsQuery();
     const step2SaveRef = useRef<(() => Promise<boolean>) | null>(null);
-
-    useEffect(() => {
-        localStorage.removeItem(SIM_DATA_KEY);
-    }, []);
+    const step3SaveRef = useRef<(() => Promise<boolean>) | null>(null);
 
     const {
         control,
@@ -155,14 +121,20 @@ const useCreateSimSuiteController = () => {
         return (versionsData as string[]).map((v) => ({ label: v, value: v }));
     }, [versionsData]);
 
+    const ruleOptions = useMemo<DropdownOption[]>(() => {
+        return rulesData?.rules.map((r) => ({ label: r.name, value: r.name })) ?? [];
+    }, [rulesData]);
+
     useEffect(() => {
+        if (selectedRule?.value) {
+            void getRuleTags({ rule: String(selectedRule.value) });
+        }
         setValue("rule_version", null);
-    }, [selectedRule, setValue]);
+    }, [selectedRule, setValue, getRuleTags]);
 
     const ruleVersionOptions = useMemo<DropdownOption[]>(() => {
-        const key = String(selectedRule?.value ?? "");
-        return MOCK_RULE_VERSIONS[key] ?? [];
-    }, [selectedRule]);
+        return ruleTagsData?.tags.map((t) => ({ label: t.name, value: t.name })) ?? [];
+    }, [ruleTagsData]);
 
     const handleBack = () => {
         if (selectedTab === SimStudioTabs[0].value) {
@@ -175,7 +147,6 @@ const useCreateSimSuiteController = () => {
     const handleNextStep = () => {
         if (selectedTab === SimStudioTabs[0].value) {
             void handleSubmit(async (data) => {
-                writeSimData({ step1: data });
                 try {
                     const result = await createSuite({
                         name: data.suite_name,
@@ -185,7 +156,7 @@ const useCreateSimSuiteController = () => {
                         primary_txtp: String(data.txtp!.value),
                         primary_txtp_version: String(data.version!.value),
                     }).unwrap();
-                    writeSimData({ suiteId: result.data.id });
+                    insertData(result.data.generation_id, "sim_gen_id", LocalStorage, false);
                     enableNextTab();
                 } catch {
                     toast.error("Failed to create simulation suite. Please try again.");
@@ -194,6 +165,12 @@ const useCreateSimSuiteController = () => {
         } else if (selectedTab === SimStudioTabs[1].value) {
             void (async () => {
                 const save = step2SaveRef.current;
+                const ok = save ? await save() : true;
+                if (ok) enableNextTab();
+            })();
+        } else if (selectedTab === SimStudioTabs[2].value) {
+            void (async () => {
+                const save = step3SaveRef.current;
                 const ok = save ? await save() : true;
                 if (ok) enableNextTab();
             })();
@@ -211,14 +188,14 @@ const useCreateSimSuiteController = () => {
                         errors={errors}
                         txTypeOptions={txTypeOptions}
                         versionOptions={versionOptions}
-                        ruleOptions={MOCK_RULES}
+                        ruleOptions={ruleOptions}
                         ruleVersionOptions={ruleVersionOptions}
                         txLoading={txLoading}
                         versionLoading={versionLoading}
                     />
                 );
             case 'txtp_selection':      return <TxtpSelection onSaveRef={step2SaveRef} />;
-            case 'trigger_data':        return <PlaceholderStep title="Trigger Data" />;
+            case 'trigger_data':        return <TriggerData onSaveRef={step3SaveRef} />;
             case 'enrichment_data':     return <PlaceholderStep title="Enrichment Data" />;
             case 'preview_save':        return <PlaceholderStep title="Preview & Save" />;
             case 'simulation_results':  return <PlaceholderStep title="Simulation Results" />;

@@ -25,6 +25,7 @@ export interface SuiteGeneration {
 
 export interface ContextTxtpConfig {
     id: number;
+    context_txtp_config_id?: string | number;
     generation_id: number;
     txtp: string;
     txtp_version: string;
@@ -34,6 +35,7 @@ export interface ContextTxtpConfig {
     schema_snapshot: Record<string, unknown>;
     sample_payload_snapshot?: Record<string, unknown>;
     generator_profile?: Record<string, unknown>;
+    field_strategies?: FieldStrategy[];
 }
 
 export interface FieldStrategy {
@@ -58,6 +60,55 @@ export interface UpsertFieldStrategyItem {
     generator_type?: string;
     generator_options?: Record<string, unknown>;
     is_required_override?: boolean;
+}
+
+export interface BulkConfigItem {
+    context_txtp_config_id: number;
+    message_count?: number;
+    faker_seed?: number;
+    generator_profile?: Record<string, unknown>;
+    field_strategies?: UpsertFieldStrategyItem[];
+}
+
+export interface TriggerFieldOverride {
+    id: string | number;
+    trigger_txtp_config_id: string | number;
+    field_path: string;
+    override_type: string;
+    static_value?: unknown;
+    range_min?: number;
+    range_max?: number;
+    generator_type?: string;
+    generator_options?: Record<string, unknown>;
+    created_at: string;
+}
+
+export interface TriggerTxtpConfig {
+    trigger_txtp_config_id: string | number;
+    txtp: string;
+    txtp_version: string;
+    message_count: number;
+    display_order: number;
+    payload_template_json: Record<string, unknown>;
+    link_to_context_pairs: boolean;
+    expected_result_band?: string;
+    notes?: string;
+    field_overrides: TriggerFieldOverride[];
+}
+
+export interface BulkTriggerConfigItem {
+    trigger_txtp_config_id: number;
+    message_count?: number;
+    payload_template_json?: Record<string, unknown>;
+    field_overrides?: {
+        field_path: string;
+        override_type: string;
+        static_value?: unknown;
+        range_min?: number;
+        range_max?: number;
+        generator_type?: string;
+        generator_options?: Record<string, unknown>;
+    }[];
 }
 
 export interface SuiteListItem {
@@ -118,7 +169,9 @@ export const simStudioApi = createApi({
             },
         }),
 
-        createSuite: builder.mutation<{ success: boolean; data: { id: number; wizard_progress: Record<string, unknown> } }, CreateSuitePayload>({
+        createSuite: builder.mutation<{ success: boolean; data: {
+            generation_id(generation_id: any, arg1: string, LocalStorage: string, arg3: boolean): unknown; id: number; wizard_progress: Record<string, unknown> 
+} }, CreateSuitePayload>({
             query: (body) => ({
                 url: "suites",
                 method: "POST",
@@ -132,6 +185,28 @@ export const simStudioApi = createApi({
 
         getContextConfigs: builder.query<{ success: boolean; data: ContextTxtpConfig[] }, number>({
             query: (generationId) => `generations/${generationId}/context-configs`,
+        }),
+
+        createContextConfig: builder.mutation<
+            { success: boolean; data: ContextTxtpConfig },
+            { generationId: number; txtp: string; txtp_version: string; message_count?: number; display_order?: number }
+        >({
+            query: ({ generationId, ...body }) => ({
+                url: `generations/${generationId}/context-configs`,
+                method: "POST",
+                body,
+            }),
+        }),
+
+        bulkUpdateContextConfigs: builder.mutation<
+            { success: boolean; data: ContextTxtpConfig[] },
+            { generationId: number; items: BulkConfigItem[] }
+        >({
+            query: ({ generationId, items }) => ({
+                url: `generations/${generationId}/context-configs`,
+                method: "PATCH",
+                body: items,
+            }),
         }),
 
         updateContextConfig: builder.mutation<
@@ -155,6 +230,32 @@ export const simStudioApi = createApi({
                 body: { strategies },
             }),
         }),
+
+        getTriggerConfigs: builder.query<{ success: boolean; data: TriggerTxtpConfig[] }, number>({
+            query: (generationId) => `generations/${generationId}/trigger-configs`,
+        }),
+
+        createTriggerConfig: builder.mutation<
+            { success: boolean; data: TriggerTxtpConfig },
+            { generationId: number; txtp: string; txtp_version: string; message_count?: number }
+        >({
+            query: ({ generationId, ...body }) => ({
+                url: `generations/${generationId}/trigger-configs`,
+                method: "POST",
+                body,
+            }),
+        }),
+
+        bulkUpdateTriggerConfigs: builder.mutation<
+            { success: boolean; data: TriggerTxtpConfig[] },
+            { generationId: number; items: BulkTriggerConfigItem[] }
+        >({
+            query: ({ generationId, items }) => ({
+                url: `generations/${generationId}/trigger-configs`,
+                method: "PATCH",
+                body: items,
+            }),
+        }),
     }),
 });
 
@@ -165,6 +266,11 @@ export const {
     useLazyGetLatestGenerationQuery,
     useGetContextConfigsQuery,
     useLazyGetContextConfigsQuery,
+    useCreateContextConfigMutation,
+    useBulkUpdateContextConfigsMutation,
     useUpdateContextConfigMutation,
     useUpsertFieldStrategiesMutation,
+    useLazyGetTriggerConfigsQuery,
+    useCreateTriggerConfigMutation,
+    useBulkUpdateTriggerConfigsMutation,
 } = simStudioApi;

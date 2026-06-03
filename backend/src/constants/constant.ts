@@ -70,6 +70,5 @@ export const SUITE_GENERATIONS = (suiteId: number): string => `${SIMULATION_SUIT
 export const SUITE_LATEST_GENERATION = (suiteId: number): string => `${SIMULATION_SUITES}/${suiteId}/generations/latest`;
 export const GENERATION_CONTEXT_CONFIGS = (generationId: number): string =>
   `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/context-configs`;
-export const CONTEXT_CONFIG = (suiteId: number, configId: number): string => `${SIMULATION_SUITES}/${suiteId}/context-configs/${configId}`;
-export const CONTEXT_CONFIG_FIELD_STRATEGIES = (suiteId: number, configId: number): string =>
-  `${CONTEXT_CONFIG(suiteId, configId)}/field-strategies`;
+export const GENERATION_TRIGGER_CONFIGS = (generationId: number): string =>
+  `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/trigger-configs`;
