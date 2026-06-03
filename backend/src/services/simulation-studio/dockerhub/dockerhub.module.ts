@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { DockerHubController } from './dockerhub.controller';
 import { DockerHubService } from './dockerhub.service';
-import { TenantConfigService } from './tenant-config.service';
 
 @Module({
+  imports: [ConfigModule],
   controllers: [DockerHubController],
-  providers: [DockerHubService, TenantConfigService],
-  exports: [DockerHubService, TenantConfigService],
+  providers: [DockerHubService],
+  exports: [DockerHubService],
 })
 export class DockerHubModule { }

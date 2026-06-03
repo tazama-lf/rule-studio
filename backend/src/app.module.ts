@@ -17,7 +17,6 @@ import { FetchFromDlhModule } from './services/fetch-from-dlh/fetch-from-dlh.mod
 import { FetchCountModule } from './services/fetch-count/fetch-count.module';
 import { SimulationModule } from './services/simulation/simulation.module';
 import { FetchEvaluationModule } from './services/fetch-evaluation/fetch-evaluation.module';
-import { DockerHubModule } from './services/dockerhub/dockerhub.module';
 import { SimulationStudioModule } from './services/simulation-studio/simulation-studio.module';
 import { GenerationsModule } from './services/simulation-studio/generations/generations.module';
 import { ContextTxtpConfigModule } from './services/simulation-studio/context-txtp-config/context-txtp-config.module';
@@ -43,7 +42,6 @@ import { TriggerTxtpConfigModule } from './services/simulation-studio/trigger-tx
     FetchFromDlhModule,
     FetchCountModule,
     FetchEvaluationModule,
-    DockerHubModule,
     SimulationStudioModule,
     GenerationsModule,
     ContextTxtpConfigModule,
@@ -52,4 +50,4 @@ import { TriggerTxtpConfigModule } from './services/simulation-studio/trigger-tx
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

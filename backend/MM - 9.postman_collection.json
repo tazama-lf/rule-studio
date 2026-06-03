@@ -1,941 +1,1012 @@
 {
-	"info": {
-		"_postman_id": "d5dc7eef-19a8-4abf-afcd-c71b5c465a7d",
-		"name": "MM - Rahim - 7",
-		"description": "Complete API collection for Tazama Model Management Backend.\n\n## Authentication\nAll requests require a Bearer token obtained from your authentication provider (Keycloak).\n\n## Required Claims\n- **GET operations**: `view-profile`, `editor`, `approver`, or `publisher`\n- **POST/CREATE operations**: `editor`\n\n## Base URL\nUpdate the `{{baseUrl}}` variable with your Model-management backend URL (default: `http://localhost:3000`)",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "46619338",
-		"_collection_link": "https://abdulrahim-4067081.postman.co/workspace/My-Workspace~1479dc13-28ec-45a1-86f1-f329a6196e4b/collection/46619338-d5dc7eef-19a8-4abf-afcd-c71b5c465a7d?action=share&source=collection_link&creator=46619338"
-	},
-	"item": [
-		{
-			"name": "Authentication",
-			"item": [
-				{
-					"name": "Login",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"if (pm.response.code === 200) {",
-									"    var jsonData = pm.response.json();",
-									"    pm.environment.set('authToken', jsonData.token);",
-									"}"
-								],
-								"type": "text/javascript",
-								"packages": {},
-								"requests": {}
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/auth/login",
-							"protocol": "http",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"port": "3000",
-							"path": [
-								"auth",
-								"login"
-							]
-						}
-					},
-					"response": []
-				}
-			],
-			"description": "Authentication endpoints for obtaining and refreshing JWT tokens from Keycloak."
-		},
-		{
-			"name": "Rules Management",
-			"item": [
-				{
-					"name": "Get All Rules (Paginated)",
-					"event": [
-						{
-							"listen": "prerequest",
-							"script": {
-								"exec": [
-									"// Auto-set pagination defaults if not provided",
-									"if (!pm.request.url.query.has('offset')) {",
-									"    pm.request.url.query.add({key: 'offset', value: '0'});",
-									"}",
-									"if (!pm.request.url.query.has('limit')) {",
-									"    pm.request.url.query.add({key: 'limit', value: '10'});",
-									"}",
-									"",
-									"console.log('Request URL: ' + pm.request.url.toString());"
-								],
-								"type": "text/javascript",
-								"packages": {},
-								"requests": {}
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}",
-								"type": "text"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"status\": \"ACTIVE\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/rules/api/all?offset=0&limit=10",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"rules",
-								"api",
-								"all"
-							],
-							"query": [
-								{
-									"key": "offset",
-									"value": "0"
-								},
-								{
-									"key": "limit",
-									"value": "10"
-								}
-							]
-						},
-						"description": "Retrieves a paginated list of rules with optional filters.\n\n### Query Parameters\n- **offset**: Starting position (0-based index)\n- **limit**: Number of records per page\n\n### Request Body (Optional Filters)\nYou can filter results by any rule field:\n- `status`: Filter by rule status (e.g., \"ACTIVE\", \"INACTIVE\", \"DRAFT\")\n- `txtp`: Filter by transaction type (e.g., \"pain.001.001.11\")\n- `publishing_status`: Filter by publishing status\n- `rule_id`: Search by rule ID\n- `rule_name`: Search by rule name\n\n### Response\nReturns an array of rule objects matching the filters.\n\n### Required Claims\n`editor`, `approver`, or `publisher`"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Rule by ID",
-					"event": [
-						{
-							"listen": "prerequest",
-							"script": {
-								"exec": [
-									"// Validate that ID is provided",
-									"const ruleId = pm.request.url.path[2]; // rules/api/:id",
-									"if (!ruleId || ruleId === ':id') {",
-									"    throw new Error('Rule ID is required in the URL path');",
-									"}",
-									"console.log('Fetching rule with ID: ' + ruleId);"
-								],
-								"type": "text/javascript",
-								"packages": {},
-								"requests": {}
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/rules/api/:id",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"rules",
-								"api",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "2"
-								}
-							]
-						},
-						"description": "Retrieves a specific rule by its numeric ID.\n\n### Path Parameters\n- **id**: Numeric rule ID (integer)\n\n### Response\nReturns a single rule object with all fields:\n- `rule_id`: Unique rule identifier\n- `rule_name`: Human-readable rule name\n- `description`: Rule description\n- `tenant_id`: Tenant identifier\n- `txtp`: Transaction type\n- `version`: Rule version\n- `status`: Rule status\n- `publishing_status`: Publishing workflow status\n- `updated_by`: Last user who modified the rule\n- `updated_at`: Last update timestamp\n- `created_at`: Creation timestamp\n\n### Required Claims\n`editor`, `approver`, or `publisher`\n\n### Error Responses\n- **400**: Invalid ID format (must be numeric)\n- **404**: Rule not found"
-					},
-					"response": []
-				},
-				{
-					"name": "Create Rule - Payment Transfer",
-					"event": [
-						{
-							"listen": "prerequest",
-							"script": {
-								"exec": [
-									"// Generate unique rule ID",
-									"const timestamp = Date.now();",
-									"const ruleId = 'RULE-' + timestamp + '-PAYMENT-FRAUD';",
-									"pm.environment.set('generatedRuleId', ruleId);",
-									"console.log('Generated Rule ID: ' + ruleId);"
-								],
-								"type": "text/javascript",
-								"packages": {},
-								"requests": {}
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}",
-								"type": "text"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"rule_id\": \"{{generatedRuleId}}\",\n  \"rule_name\": \"High Value Payment Fraud Detection\",\n  \"description\": \"Detects potentially fraudulent high-value payment transfers by analyzing transaction amounts, frequency, and recipient patterns. Triggers alerts for transactions exceeding $10,000 or multiple high-value transactions within 5 minutes.\",\n  \"txtp\": \"pain.001.001.11\",\n  \"version\": \"1.0.0\",\n  \"rule_type\": \"fraud_detection\",\n  \"rule_config_id\": \"CFG-001-V1\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/rules/api/create",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"rules",
-								"api",
-								"create"
-							]
-						},
-						"description": "Creates a new rule for detecting high-value payment fraud.\n\n### Request Body (Required Fields)\n- **rule_id**: Unique identifier for the rule (alphanumeric with hyphens)\n- **rule_name**: Human-readable name\n- **description**: Detailed description of what the rule does\n- **txtp**: Transaction type (e.g., \"pain.001.001.11\" for credit transfer)\n- **version**: Semantic version (e.g., \"1.0.0\")\n- **rule_type**: Type classification of the rule (e.g., \"fraud_detection\", \"aml\", \"security\", \"compliance\")\n\n### Optional Fields\n- **rule_config_id**: Configuration identifier for the rule (VARCHAR(10)) - links rule to its configuration\n- **status**: Rule status - `ACTIVE`, `INACTIVE`, `TESTING`\n- **publishing_status**: Workflow status - `DRAFT`, `SUBMITTED`, `APPROVED`, `PUBLISHED`\n\n### Auto-populated Fields\nThe following fields are automatically set by the system with default values:\n- **status**: Defaults to `ACTIVE` if not provided\n- **publishing_status**: Defaults to `STATUS_01_IN_PROGRESS` if not provided\n- **tenant_id**: Extracted from authentication token\n- **updated_by**: User ID from authentication token\n- **updated_at**: Current timestamp\n- **created_at**: Current timestamp\n\n### Required Claims\n`editor`\n\n### Response\nReturns the created rule object with all fields populated (201 Created).\n\n### Use Case\nThis rule monitors payment transfers (pain.001.001.11) for fraud patterns like:\n- Transaction amounts exceeding $10,000\n- Multiple high-value transactions within 5 minutes\n- Transactions to flagged accounts"
-					},
-					"response": []
-				},
-				{
-					"name": "Update Rule (Partial Update)",
-					"event": [
-						{
-							"listen": "prerequest",
-							"script": {
-								"exec": [
-									"// Validate rule ID is provided",
-									"const ruleId = pm.request.url.path[2]; // rules/api/:ruleId",
-									"if (!ruleId || ruleId === ':ruleId') {",
-									"    throw new Error('Rule ID is required in the URL path');",
-									"}",
-									"console.log('Updating rule: ' + ruleId);",
-									"",
-									"// Add timestamp to description for tracking updates",
-									"const body = JSON.parse(pm.request.body.raw);",
-									"if (body.description) {",
-									"    body.description += ' (Updated: ' + new Date().toISOString() + ')';",
-									"    pm.request.body.raw = JSON.stringify(body, null, 2);",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}",
-								"type": "text"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"rule_name\": \"Enhanced High Value Payment Fraud Detection\",\n  \"description\": \"Updated rule with improved detection algorithms and lower threshold for better fraud detection accuracy\",\n  \"status\": \"ACTIVE\",\n  \"publishing_status\": \"DRAFT\",\n  \"rule_config_id\": \"CFG-001-V2\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/rules/api/:ruleId",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"rules",
-								"api",
-								":ruleId"
-							],
-							"variable": [
-								{
-									"key": "ruleId",
-									"value": "RULE-001-PAYMENT-FRAUD"
-								}
-							]
-						},
-						"description": "Updates an existing rule with partial field updates. Only the fields provided in the request body will be modified; all other fields remain unchanged.\n\n### Overview\nThis endpoint performs a partial update on a rule in the `trs_rules` table. You can update any subset of modifiable fields without affecting the rest of the rule data. This is useful for making targeted changes without needing to send the complete rule object.\n\n### Path Parameters\n- **ruleId**: The unique identifier of the rule to update (e.g., \"RULE-001-PAYMENT-FRAUD\")\n\n### Request Body (All Fields Optional)\nYou can include any combination of the following fields:\n- **rule_name**: Updated human-readable name\n- **description**: Updated description\n- **txtp**: Transaction type (e.g., \"pain.001.001.11\")\n- **version**: Updated version number\n- **status**: Updated status - `ACTIVE`, `INACTIVE`, `TESTING`, `DRAFT`\n- **publishing_status**: Updated publishing workflow status - `DRAFT`, `SUBMITTED`, `APPROVED`, `PUBLISHED`, `STATUS_04_APPROVED`, `STATUS_06_EXPORTED`\n- **rule_type**: Type classification of the rule\n- **rule_config_id**: Configuration identifier for the rule (VARCHAR(10))\n\n### Auto-updated Fields\nThe following fields are automatically managed by the system:\n- **updated_by**: Extracted from JWT token (user ID or client ID)\n- **updated_at**: Set to current timestamp (NOW())\n- **tenant_id**: Cannot be changed (preserved from original)\n- **rule_id**: Cannot be changed (used as identifier)\n- **created_at**: Cannot be changed (preserved from original)\n\n### Required Claims\n`editor` - Only users with editor privileges can update rules"
-					},
-					"response": []
-				},
-				{
-					"name": "Get All Rule IDs",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/rules/api/ids",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"rules",
-								"api",
-								"ids"
-							]
-						},
-						"description": "Retrieves all rule IDs with their configuration references and tenant information from the `rule` table.\n\n### Overview\nThis endpoint fetches a lightweight list of all rules configured in the system, showing their identifiers, configuration references, and tenant ownership. Use this to get an overview of all available rules before fetching detailed configurations.\n\n### Required Claims\n`editor`, `approver`, or `publisher`"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Rule Configuration by ID",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/rules/api/configuration/:ruleId",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"rules",
-								"api",
-								"configuration",
-								":ruleId"
-							],
-							"variable": [
-								{
-									"key": "ruleId",
-									"value": "0060@1.0.0"
-								}
-							]
-						},
-						"description": "Retrieves the complete JSONB configuration for a specific rule by its ID.\n\n### Path Parameters\n- **ruleId**: The unique identifier of the rule (e.g., \"rule-001\", \"FRAUD-DETECT-V2\")\n\n### Required Claims\n`editor`, `approver`, or `publisher`"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Active Network Map",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/rules/api/network-map/active",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"rules",
-								"api",
-								"network-map",
-								"active"
-							]
-						},
-						"description": "Retrieves the currently active network map for the authenticated tenant.\n\n### Overview\nThis endpoint fetches the network map configuration that defines how transactions are routed through typology processors and rules. Each tenant can have only **one** active network map at a time.\n\n### Required Claims\n`editor`, `approver`, or `publisher`"
-					},
-					"response": []
-				},
-				{
-					"name": "Update Rule Status",
-					"event": [
-						{
-							"listen": "prerequest",
-							"script": {
-								"exec": [
-									"// Validate rule ID is provided",
-									"const ruleId = pm.request.url.path[2]; // rules/api/:ruleId/status",
-									"if (!ruleId || ruleId === ':ruleId') {",
-									"    throw new Error('Rule ID is required in the URL path');",
-									"}",
-									"console.log('Updating status for rule: ' + ruleId);",
-									"",
-									"// Validate status is provided in request body",
-									"const body = JSON.parse(pm.request.body.raw);",
-									"if (!body.status) {",
-									"    throw new Error('Status is required in the request body');",
-									"}",
-									"console.log('New status: ' + body.status);"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}",
-								"type": "text"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"status\": \"ACTIVE\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/rules/api/:ruleId/status",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"rules",
-								"api",
-								":ruleId",
-								"status"
-							],
-							"variable": [
-								{
-									"key": "ruleId",
-									"value": "RULE-001-PAYMENT-FRAUD"
-								}
-							]
-						},
-						"description": "Updates the status of a specific rule identified by its rule ID.\n\n### Overview\nThis endpoint allows you to change the status of a rule without modifying other rule properties. This is useful for quickly activating, deactivating, or changing the operational state of a rule.\n\n### Path Parameters\n- **ruleId**: The unique identifier of the rule to update (e.g., \"RULE-001-PAYMENT-FRAUD\")\n\n### Request Body (Required)\n- **status**: The new status value for the rule. Common values include:\n  - `ACTIVE`: Rule is active and will be evaluated\n  - `INACTIVE`: Rule is inactive and will not be evaluated\n  - `TESTING`: Rule is in testing mode\n  - `DRAFT`: Rule is in draft state\n\n### Auto-updated Fields\nThe following fields are automatically managed by the system:\n- **updated_by**: Extracted from JWT token (user ID or client ID)\n- **updated_at**: Set to current timestamp\n\n### Response\nReturns the updated rule object with all fields, including the new status.\n\n### Required Claims\n`editor` - Only users with editor privileges can update rule status\n\n### Use Cases\n- Quickly enable or disable rules without full update\n- Change rule operational state during maintenance\n- Activate rules after testing\n- Deactivate problematic rules immediately\n\n### Error Responses\n- **400**: Invalid request body or missing status field\n- **404**: Rule not found\n- **401**: Missing or invalid JWT token\n- **403**: Insufficient permissions (requires editor claim)"
-					},
-					"response": []
-				}
-			],
-			"description": "API endpoints for managing transaction rules (TRS - Transaction Rule Service) in Tazama."
-		},
-		{
-			"name": "Configuration Management",
-			"item": [
-				{
-					"name": "Get Transaction Types",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/config/api/transaction-types",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"config",
-								"api",
-								"transaction-types"
-							]
-						},
-						"description": "Retrieves all distinct transaction types from the `config` table.\n\n### Overview\nThis endpoint fetches a unique list of all transaction types (txtp) configured in the system. Transaction types define the ISO 20022 message format for financial transactions, such as `pain.001.001.11` for credit transfers or `pacs.008.001.10` for payment clearing.\n\n### Required Claims\n`editor`, `approver`, or `publisher`"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Versions by Transaction Type",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/config/api/versions/:transactionType",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"config",
-								"api",
-								"versions",
-								":transactionType"
-							],
-							"variable": [
-								{
-									"key": "transactionType",
-									"value": "pain.001.001.11"
-								}
-							]
-						},
-						"description": "Retrieves all available versions for a specific transaction type.\n\n### Overview\nThis endpoint fetches a list of all versions available for a given transaction type from the `config` table. This is useful for understanding version evolution and selecting appropriate configurations for different message versions.\n\n### Path Parameters\n- **transactionType**: ISO 20022 transaction type (e.g., \"pain.001.001.11\")\n\n### Response\nReturns an array of version strings for the specified transaction type.\n\n```json\n[\n  \"1.0.0\",\n  \"1.1.0\",\n  \"2.0.0\"\n]\n```\n\n### Required Claims\n`editor`, `approver`, or `publisher`\n\n### Use Cases\n- Version management and tracking\n- Configuration selection based on version\n- API versioning support\n- Backward compatibility verification\n\n### Error Responses\n- **400**: Invalid transaction type format\n- **404**: No versions found for the specified transaction type\n- **401**: Missing or invalid JWT token\n- **403**: Insufficient permissions"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Payload by Transaction Type",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/config/api/payload/:transactionType",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"config",
-								"api",
-								"payload",
-								":transactionType"
-							],
-							"variable": [
-								{
-									"key": "transactionType",
-									"value": "pain.001.001.11"
-								}
-							]
-						},
-						"description": "Retrieves the payload schema/configuration for a specific transaction type.\n\n### Path Parameters\n- **transactionType**: ISO 20022 transaction type (e.g., \"pain.001.001.11\")\n\n### Required Claims\n`editor`, `approver`, or `publisher`"
-					},
-					"response": []
-				}
-			],
-			"description": "API endpoints for managing system configuration, transaction types, and payload schemas."
-		},
-		{
-			"name": "Parse & Extract",
-			"item": [
-				{
-					"name": "Process pain.001",
-					"event": [
-						{
-							"listen": "prerequest",
-							"script": {
-								"exec": [
-									"// Generate unique message ID for tracking",
-									"const timestamp = Date.now();",
-									"const messageId = 'MSG-' + timestamp;",
-									"pm.environment.set('generatedMessageId', messageId);",
-									"console.log('Generated Message ID: ' + messageId);",
-									"",
-									"// Set current timestamp",
-									"const currentTime = new Date().toISOString();",
-									"pm.environment.set('currentTimestamp', currentTime);",
-									"console.log('Current timestamp: ' + currentTime);"
-								],
-								"type": "text/javascript",
-								"packages": {},
-								"requests": {}
-							}
-						},
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status code is 200', function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test('Response has success field', function () {",
-									"    const responseJson = pm.response.json();",
-									"    pm.expect(responseJson).to.have.property('success');",
-									"});",
-									"",
-									"pm.test('Response has processedAt timestamp', function () {",
-									"    const responseJson = pm.response.json();",
-									"    pm.expect(responseJson).to.have.property('processedAt');",
-									"});",
-									"",
-									"pm.test('Message type is preserved in response', function () {",
-									"    const responseJson = pm.response.json();",
-									"    const requestJson = JSON.parse(pm.request.body.raw);",
-									"    pm.expect(responseJson.messageType).to.eql(requestJson.messageType);",
-									"});"
-								],
-								"type": "text/javascript",
-								"packages": {},
-								"requests": {}
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}",
-								"type": "text"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"TxTp\": \"pain.001\",\n  \"TenantId\":\"cbe\",\n  \"CstmrCdtTrfInitn\": {\n    \"GrpHdr\": {\n      \"MsgId\": \"17fa-afea-48d6-b147-05c8463ea494\",\n      \"CreDtTm\": \"2023-02-03T07:03:17.438Z\",\n      \"NbOfTxs\": 1,\n      \"InitgPty\": {\n        \"Nm\": \"April Blake Grant\",\n        \"Id\": {\n          \"PrvtId\": {\n            \"DtAndPlcOfBirth\": {\n              \"BirthDt\": \"1968-02-01\",\n              \"CityOfBirth\": \"Unknown\",\n              \"CtryOfBirth\": \"ZZ\"\n            },\n            \"Othr\": [\n              {\n                \"Id\": \"+36-432226947\",\n                \"SchmeNm\": {\n                  \"Prtry\": \"MSISDN\"\n                }\n              }\n            ]\n          }\n        },\n        \"CtctDtls\": {\n          \"MobNb\": \"+36-432226947\"\n        }\n      }\n    },\n    \"PmtInf\": {\n      \"PmtInfId\": \"23730c89dd57490a9a79f9b3747e3c08\",\n      \"PmtMtd\": \"TRA\",\n      \"ReqdAdvcTp\": {\n        \"DbtAdvc\": {\n          \"Cd\": \"ADWD\",\n          \"Prtry\": \"Advice with transaction details\"\n        }\n      },\n      \"ReqdExctnDt\": {\n        \"Dt\": \"2023-02-03\",\n        \"DtTm\": \"2023-02-03T07:03:17.438Z\"\n      },\n      \"Dbtr\": {\n        \"Nm\": \"April Blake Grant\",\n        \"Id\": {\n          \"PrvtId\": {\n            \"DtAndPlcOfBirth\": {\n              \"BirthDt\": \"1968-02-01\",\n              \"CityOfBirth\": \"Unknown\",\n              \"CtryOfBirth\": \"ZZ\"\n            },\n            \"Othr\": [\n              {\n                \"Id\": \"+36-432226947\",\n                \"SchmeNm\": {\n                  \"Prtry\": \"typolog028\"\n                }\n              }\n            ]\n          }\n        },\n        \"CtctDtls\": {\n          \"MobNb\": \"+36-432226947\"\n        }\n      },\n      \"DbtrAcct\": {\n        \"Id\": {\n          \"Othr\": [\n            {\n              \"Id\": \"+36-432226947\",\n              \"SchmeNm\": {\n                \"Prtry\": \"MSISDN\"\n              }\n            }\n          ]\n        },\n        \"Nm\": \"April Grant\"\n      },\n      \"DbtrAgt\": {\n        \"FinInstnId\": {\n          \"ClrSysMmbId\": {\n            \"MmbId\": \"typolog028\"\n          }\n        }\n      },\n      \"CdtTrfTxInf\": {\n        \"PmtId\": {\n          \"EndToEndId\": \"8f37-9e6f-4c30-bb87-5e0e42f0f000\"\n        },\n        \"PmtTpInf\": {\n          \"CtgyPurp\": {\n            \"Prtry\": \"TRANSFER BLANK\"\n          }\n        },\n        \"Amt\": {\n          \"InstdAmt\": {\n            \"Amt\": {\n              \"Amt\": 31020.89,\n              \"Ccy\": \"USD\"\n            }\n          },\n          \"EqvtAmt\": {\n            \"Amt\": {\n              \"Amt\": 31020.89,\n              \"Ccy\": \"USD\"\n            },\n            \"CcyOfTrf\": \"USD\"\n          }\n        },\n        \"ChrgBr\": \"DEBT\",\n        \"CdtrAgt\": {\n          \"FinInstnId\": {\n            \"ClrSysMmbId\": {\n              \"MmbId\": \"dfsp002\"\n            }\n          }\n        },\n        \"Cdtr\": {\n          \"Nm\": \"Felicia Easton Quill\",\n          \"Id\": {\n            \"PrvtId\": {\n              \"DtAndPlcOfBirth\": {\n                \"BirthDt\": \"1935-05-08\",\n                \"CityOfBirth\": \"Unknown\",\n                \"CtryOfBirth\": \"ZZ\"\n              },\n              \"Othr\": [\n                {\n                  \"Id\": \"+42-966969344\",\n                  \"SchmeNm\": {\n                    \"Prtry\": \"MSISDN\"\n                  }\n                }\n              ]\n            }\n          },\n          \"CtctDtls\": {\n            \"MobNb\": \"+42-966969344\"\n          }\n        },\n        \"CdtrAcct\": {\n          \"Id\": {\n            \"Othr\": [\n              {\n                \"Id\": \"+42-966969344\",\n                \"SchmeNm\": {\n                  \"Prtry\": \"MSISDN\"\n                }\n              }\n            ]\n          },\n          \"Nm\": \"Felicia Quill\"\n        },\n        \"Purp\": {\n          \"Cd\": \"MP2P\"\n        },\n        \"RgltryRptg\": {\n          \"Dtls\": {\n            \"Tp\": \"BALANCE OF PAYMENTS\",\n            \"Cd\": \"100\"\n          }\n        },\n        \"RmtInf\": {\n          \"Ustrd\": \"Payment of USD 30713.75 from April to Felicia\"\n        },\n        \"SplmtryData\": {\n          \"Envlp\": {\n            \"Doc\": {\n              \"Dbtr\": {\n                \"FrstNm\": \"April\",\n                \"MddlNm\": \"Blake\",\n                \"LastNm\": \"Grant\",\n                \"MrchntClssfctnCd\": \"BLANK\"\n              },\n              \"Cdtr\": {\n                \"FrstNm\": \"Felicia\",\n                \"MddlNm\": \"Easton\",\n                \"LastNm\": \"Quill\",\n                \"MrchntClssfctnCd\": \"BLANK\"\n              },\n              \"DbtrFinSvcsPrvdrFees\": {\n                \"Ccy\": \"USD\",\n                \"Amt\": 307.14\n              },\n              \"Xprtn\": \"2021-11-30T10:38:56.000Z\"\n            }\n          }\n        }\n      }\n    },\n    \"SplmtryData\": {\n      \"Envlp\": {\n        \"Doc\": {\n          \"InitgPty\": {\n            \"InitrTp\": \"CONSUMER\",\n            \"Glctn\": {\n              \"Lat\": \"-3,1609\",\n              \"Long\": \"38,3588\"\n            }\n          }\n        }\n      }\n    }\n  }\n}\n",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/parse/api/validatePayload",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"parse",
-								"api",
-								"validatePayload"
-							]
-						},
-						"description": "Processes a transactional message (pain.001, pacs.002, etc.) and logs it for analysis.\n\n### Overview\nThis endpoint accepts ISO 20022 transactional messages for parsing and extraction. Currently, it logs the message details to the console for monitoring and debugging purposes. This is the foundation for future message parsing and data extraction functionality.\n\n### Request Body\n- **messageType**: Type of the transactional message (e.g., \"pain.001\", \"pacs.002\")\n- **messageContent**: The actual message content (XML, JSON, or other formats)\n- **messageId**: Unique identifier for the message (optional)\n- **timestamp**: Message timestamp (optional, ISO 8601 format)\n- **metadata**: Additional metadata about the message (optional)\n\n### Response\n```json\n{\n  \"success\": true,\n  \"message\": \"Successfully processed pain.001 message\",\n  \"processedAt\": \"2026-01-05T10:30:15.123Z\",\n  \"messageType\": \"pain.001\",\n  \"messageId\": \"MSG-12345\"\n}\n```\n\n### Supported Message Types\n- **pain.001**: Customer Credit Transfer Initiation\n- **pain.002**: Customer Payment Status Report\n- **pacs.002**: FI to FI Payment Status Report\n- **pacs.008**: FI to FI Customer Credit Transfer\n- **camt.054**: Bank to Customer Debit Credit Notification\n- And other ISO 20022 message types\n\n### Use Cases\n- **Message Validation**: Verify message format and structure\n- **Data Extraction**: Extract key fields from transactional messages\n- **Audit Logging**: Log all incoming messages for compliance\n- **Pre-processing**: Prepare messages for rule evaluation\n- **Debugging**: Monitor message flow through the system\n\n### Required Claims\n`editor`, `approver`, or `publisher`\n\n### Logging Output\nThe service logs the following information:\n- Message type and ID\n- Message timestamp\n- Content preview (first 500 characters)\n- Metadata (if provided)\n- Processing status and completion time\n\n### Future Enhancements\n- Message parsing and field extraction\n- Schema validation\n- Message transformation\n- Integration with rule evaluation engine\n- Real-time message streaming\n\n### Error Responses\n- **400 Bad Request**: Invalid message format\n- **401 Unauthorized**: Missing or invalid JWT token\n- **403 Forbidden**: Insufficient permissions\n- **500 Internal Server Error**: Processing failure"
-					},
-					"response": [
-						{
-							"name": "Successful Processing - pain.001",
-							"originalRequest": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{authToken}}",
-										"type": "text"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"messageType\": \"pain.001\",\n  \"messageContent\": \"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>\\n<Document xmlns=\\\"urn:iso:std:iso:20022:tech:xsd:pain.001.001.11\\\">\\n  <CstmrCdtTrfInitn>\\n    <GrpHdr>\\n      <MsgId>MSG-001</MsgId>\\n      <CreDtTm>2026-01-05T10:00:00Z</CreDtTm>\\n      <NbOfTxs>1</NbOfTxs>\\n    </GrpHdr>\\n  </CstmrCdtTrfInitn>\\n</Document>\",\n  \"messageId\": \"MSG-001\",\n  \"timestamp\": \"2026-01-05T10:00:00Z\"\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/parse/api/process-message",
-									"host": [
-										"{{baseUrl}}"
-									],
-									"path": [
-										"parse",
-										"api",
-										"process-message"
-									]
-								}
-							},
-							"status": "OK",
-							"code": 200,
-							"_postman_previewlanguage": "json",
-							"header": [
-								{
-									"key": "Content-Type",
-									"value": "application/json"
-								}
-							],
-							"cookie": [],
-							"body": "{\n  \"success\": true,\n  \"message\": \"Successfully processed pain.001 message\",\n  \"processedAt\": \"2026-01-05T10:30:15.123Z\",\n  \"messageType\": \"pain.001\",\n  \"messageId\": \"MSG-001\"\n}"
-						},
-						{
-							"name": "Successful Processing - pacs.002",
-							"originalRequest": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{authToken}}",
-										"type": "text"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"messageType\": \"pacs.002\",\n  \"messageContent\": \"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>\\n<Document xmlns=\\\"urn:iso:std:iso:20022:tech:xsd:pacs.002.001.12\\\">\\n  <FIToFIPmtStsRpt>\\n    <GrpHdr>\\n      <MsgId>PACS-002-001</MsgId>\\n      <CreDtTm>2026-01-05T11:00:00Z</CreDtTm>\\n    </GrpHdr>\\n  </FIToFIPmtStsRpt>\\n</Document>\",\n  \"messageId\": \"PACS-002-001\",\n  \"metadata\": {\n    \"priority\": \"high\",\n    \"source\": \"core-banking\"\n  }\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/parse/api/process-message",
-									"host": [
-										"{{baseUrl}}"
-									],
-									"path": [
-										"parse",
-										"api",
-										"process-message"
-									]
-								}
-							},
-							"status": "OK",
-							"code": 200,
-							"_postman_previewlanguage": "json",
-							"header": [
-								{
-									"key": "Content-Type",
-									"value": "application/json"
-								}
-							],
-							"cookie": [],
-							"body": "{\n  \"success\": true,\n  \"message\": \"Successfully processed pacs.002 message\",\n  \"processedAt\": \"2026-01-05T11:30:45.789Z\",\n  \"messageType\": \"pacs.002\",\n  \"messageId\": \"PACS-002-001\"\n}"
-						}
-					]
-				},
-				{
-					"name": "Process Large Message",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}",
-								"type": "text"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"messageType\": \"pain.001\",\n  \"messageContent\": \"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>\\n<Document xmlns=\\\"urn:iso:std:iso:20022:tech:xsd:pain.001.001.11\\\">\\n  <!-- This is a large message with extensive content for testing content preview functionality -->\\n  <CstmrCdtTrfInitn>\\n    <GrpHdr>\\n      <MsgId>LARGE-MSG-001</MsgId>\\n      <CreDtTm>2026-01-05T12:00:00Z</CreDtTm>\\n      <NbOfTxs>100</NbOfTxs>\\n      <CtrlSum>1000000.00</CtrlSum>\\n      <InitgPty>\\n        <Nm>Large Corporation Ltd</Nm>\\n        <PstlAdr>\\n          <StrtNm>123 Business Street</StrtNm>\\n          <BldgNb>456</BldgNb>\\n          <PstCd>12345</PstCd>\\n          <TwnNm>Business City</TwnNm>\\n          <Ctry>US</Ctry>\\n        </PstlAdr>\\n      </InitgPty>\\n    </GrpHdr>\\n    <!-- Multiple payment information blocks would follow here -->\\n    <!-- This content is intentionally long to test the 500-character preview limit -->\\n    <!-- Additional payment details, transaction information, and other elements would be included -->\\n    <!-- The system should truncate this content in the log preview -->\\n  </CstmrCdtTrfInitn>\\n</Document>\",\n  \"messageId\": \"LARGE-MSG-001\",\n  \"timestamp\": \"2026-01-05T12:00:00Z\",\n  \"metadata\": {\n    \"source\": \"batch-processor\",\n    \"batchId\": \"BATCH-2026-001\",\n    \"priority\": \"low\",\n    \"messageSize\": 2048,\n    \"transactionCount\": 100,\n    \"totalAmount\": 1000000.00,\n    \"currency\": \"USD\",\n    \"processingType\": \"bulk\"\n  }\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/parse/api/process-message",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"parse",
-								"api",
-								"process-message"
-							]
-						},
-						"description": "Test processing of a large transactional message to verify content preview functionality.\n\n### Purpose\nThis request tests the service's ability to handle large messages and demonstrates the content preview feature that truncates message content to the first 500 characters in the logs.\n\n### Test Scenarios\n- Large XML content processing\n- Content preview truncation\n- Metadata logging for batch operations\n- Bulk transaction handling\n\n### Expected Behavior\n- Message content should be truncated in logs with \"...\" suffix\n- All metadata should be logged completely\n- Processing should succeed despite large content size\n- Response should maintain the same structure as smaller messages"
-					},
-					"response": []
-				}
-			],
-			"description": "API endpoints for parsing and extracting data from ISO 20022 transactional messages."
-		}
-	],
-	"event": [
-		{
-			"listen": "prerequest",
-			"script": {
-				"exec": [
-					"// Global pre-request script",
-					"console.log('Request: ' + pm.info.requestName);",
-					"console.log('URL: ' + pm.request.url.toString());",
-					"",
-					"// Validate auth token exists for protected endpoints",
-					"const authToken = pm.environment.get('authToken');",
-					"if (!authToken && pm.info.requestName !== 'Login') {",
-					"    console.warn('No auth token found. Please login first.');",
-					"}"
-				],
-				"type": "text/javascript"
-			}
-		},
-		{
-			"listen": "test",
-			"script": {
-				"exec": [
-					"// Global test script",
-					"console.log('Response Status: ' + pm.response.code + ' ' + pm.response.status);",
-					"console.log('Response Time: ' + pm.response.responseTime + 'ms');",
-					"",
-					"// Common assertions for protected endpoints",
-					"if (pm.response.code === 401) {",
-					"    pm.test('Authentication required', function () {",
-					"        console.log('Authentication failed. Please check your token.');",
-					"    });",
-					"} else if (pm.response.code === 403) {",
-					"    pm.test('Authorization failed', function () {",
-					"        console.log('Insufficient permissions for this operation.');",
-					"    });",
-					"}"
-				],
-				"type": "text/javascript"
-			}
-		}
-	],
-	"variable": [
-		{
-			"key": "baseUrl",
-			"value": "http://localhost:3000",
-			"type": "string"
-		},
-		{
-			"key": "authToken",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "keycloakUrl",
-			"value": "http://localhost:8080",
-			"type": "string"
-		},
-		{
-			"key": "realm",
-			"value": "tazama",
-			"type": "string"
-		},
-		{
-			"key": "keycloakClientId",
-			"value": "model-management-frontend",
-			"type": "string"
-		},
-		{
-			"key": "username",
-			"value": "your-username",
-			"type": "string"
-		},
-		{
-			"key": "password",
-			"value": "your-password",
-			"type": "string"
-		},
-		{
-			"key": "refreshToken",
-			"value": "",
-			"type": "string"
-		}
-	]
+  "info": {
+    "_postman_id": "d5dc7eef-19a8-4abf-afcd-c71b5c465a7d",
+    "name": "MM - Rahim - 7",
+    "description": "Complete API collection for Tazama Model Management Backend.\n\n## Authentication\nAll requests require a Bearer token obtained from your authentication provider (Keycloak).\n\n## Required Claims\n- **GET operations**: `view-profile`, `editor`, `approver`, or `publisher`\n- **POST/CREATE operations**: `editor`\n\n## Base URL\nUpdate the `{{baseUrl}}` variable with your Model-management backend URL (default: `http://localhost:3000`)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "46619338",
+    "_collection_link": "https://abdulrahim-4067081.postman.co/workspace/My-Workspace~1479dc13-28ec-45a1-86f1-f329a6196e4b/collection/46619338-d5dc7eef-19a8-4abf-afcd-c71b5c465a7d?action=share&source=collection_link&creator=46619338"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('authToken', jsonData.token);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "protocol": "http",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "port": "3000",
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Authentication endpoints for obtaining and refreshing JWT tokens from Keycloak."
+    },
+    {
+      "name": "Rules Management",
+      "item": [
+        {
+          "name": "Get All Rules (Paginated)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Auto-set pagination defaults if not provided",
+                  "if (!pm.request.url.query.has('offset')) {",
+                  "    pm.request.url.query.add({key: 'offset', value: '0'});",
+                  "}",
+                  "if (!pm.request.url.query.has('limit')) {",
+                  "    pm.request.url.query.add({key: 'limit', value: '10'});",
+                  "}",
+                  "",
+                  "console.log('Request URL: ' + pm.request.url.toString());"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/rules/api/all?offset=0&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "rules",
+                "api",
+                "all"
+              ],
+              "query": [
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Retrieves a paginated list of rules with optional filters.\n\n### Query Parameters\n- **offset**: Starting position (0-based index)\n- **limit**: Number of records per page\n\n### Request Body (Optional Filters)\nYou can filter results by any rule field:\n- `status`: Filter by rule status (e.g., \"ACTIVE\", \"INACTIVE\", \"DRAFT\")\n- `txtp`: Filter by transaction type (e.g., \"pain.001.001.11\")\n- `publishing_status`: Filter by publishing status\n- `rule_id`: Search by rule ID\n- `rule_name`: Search by rule name\n\n### Response\nReturns an array of rule objects matching the filters.\n\n### Required Claims\n`editor`, `approver`, or `publisher`"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Rule by ID",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Validate that ID is provided",
+                  "const ruleId = pm.request.url.path[2]; // rules/api/:id",
+                  "if (!ruleId || ruleId === ':id') {",
+                  "    throw new Error('Rule ID is required in the URL path');",
+                  "}",
+                  "console.log('Fetching rule with ID: ' + ruleId);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/rules/api/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "rules",
+                "api",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "2"
+                }
+              ]
+            },
+            "description": "Retrieves a specific rule by its numeric ID.\n\n### Path Parameters\n- **id**: Numeric rule ID (integer)\n\n### Response\nReturns a single rule object with all fields:\n- `rule_id`: Unique rule identifier\n- `rule_name`: Human-readable rule name\n- `description`: Rule description\n- `tenant_id`: Tenant identifier\n- `txtp`: Transaction type\n- `version`: Rule version\n- `status`: Rule status\n- `publishing_status`: Publishing workflow status\n- `updated_by`: Last user who modified the rule\n- `updated_at`: Last update timestamp\n- `created_at`: Creation timestamp\n\n### Required Claims\n`editor`, `approver`, or `publisher`\n\n### Error Responses\n- **400**: Invalid ID format (must be numeric)\n- **404**: Rule not found"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Rule - Payment Transfer",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Generate unique rule ID",
+                  "const timestamp = Date.now();",
+                  "const ruleId = 'RULE-' + timestamp + '-PAYMENT-FRAUD';",
+                  "pm.environment.set('generatedRuleId', ruleId);",
+                  "console.log('Generated Rule ID: ' + ruleId);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rule_id\": \"{{generatedRuleId}}\",\n  \"rule_name\": \"High Value Payment Fraud Detection\",\n  \"description\": \"Detects potentially fraudulent high-value payment transfers by analyzing transaction amounts, frequency, and recipient patterns. Triggers alerts for transactions exceeding $10,000 or multiple high-value transactions within 5 minutes.\",\n  \"txtp\": \"pain.001.001.11\",\n  \"version\": \"1.0.0\",\n  \"rule_type\": \"fraud_detection\",\n  \"rule_config_id\": \"CFG-001-V1\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/rules/api/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "rules",
+                "api",
+                "create"
+              ]
+            },
+            "description": "Creates a new rule for detecting high-value payment fraud.\n\n### Request Body (Required Fields)\n- **rule_id**: Unique identifier for the rule (alphanumeric with hyphens)\n- **rule_name**: Human-readable name\n- **description**: Detailed description of what the rule does\n- **txtp**: Transaction type (e.g., \"pain.001.001.11\" for credit transfer)\n- **version**: Semantic version (e.g., \"1.0.0\")\n- **rule_type**: Type classification of the rule (e.g., \"fraud_detection\", \"aml\", \"security\", \"compliance\")\n\n### Optional Fields\n- **rule_config_id**: Configuration identifier for the rule (VARCHAR(10)) - links rule to its configuration\n- **status**: Rule status - `ACTIVE`, `INACTIVE`, `TESTING`\n- **publishing_status**: Workflow status - `DRAFT`, `SUBMITTED`, `APPROVED`, `PUBLISHED`\n\n### Auto-populated Fields\nThe following fields are automatically set by the system with default values:\n- **status**: Defaults to `ACTIVE` if not provided\n- **publishing_status**: Defaults to `STATUS_01_IN_PROGRESS` if not provided\n- **tenant_id**: Extracted from authentication token\n- **updated_by**: User ID from authentication token\n- **updated_at**: Current timestamp\n- **created_at**: Current timestamp\n\n### Required Claims\n`editor`\n\n### Response\nReturns the created rule object with all fields populated (201 Created).\n\n### Use Case\nThis rule monitors payment transfers (pain.001.001.11) for fraud patterns like:\n- Transaction amounts exceeding $10,000\n- Multiple high-value transactions within 5 minutes\n- Transactions to flagged accounts"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Rule (Partial Update)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Validate rule ID is provided",
+                  "const ruleId = pm.request.url.path[2]; // rules/api/:ruleId",
+                  "if (!ruleId || ruleId === ':ruleId') {",
+                  "    throw new Error('Rule ID is required in the URL path');",
+                  "}",
+                  "console.log('Updating rule: ' + ruleId);",
+                  "",
+                  "// Add timestamp to description for tracking updates",
+                  "const body = JSON.parse(pm.request.body.raw);",
+                  "if (body.description) {",
+                  "    body.description += ' (Updated: ' + new Date().toISOString() + ')';",
+                  "    pm.request.body.raw = JSON.stringify(body, null, 2);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rule_name\": \"Enhanced High Value Payment Fraud Detection\",\n  \"description\": \"Updated rule with improved detection algorithms and lower threshold for better fraud detection accuracy\",\n  \"status\": \"ACTIVE\",\n  \"publishing_status\": \"DRAFT\",\n  \"rule_config_id\": \"CFG-001-V2\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/rules/api/:ruleId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "rules",
+                "api",
+                ":ruleId"
+              ],
+              "variable": [
+                {
+                  "key": "ruleId",
+                  "value": "RULE-001-PAYMENT-FRAUD"
+                }
+              ]
+            },
+            "description": "Updates an existing rule with partial field updates. Only the fields provided in the request body will be modified; all other fields remain unchanged.\n\n### Overview\nThis endpoint performs a partial update on a rule in the `trs_rules` table. You can update any subset of modifiable fields without affecting the rest of the rule data. This is useful for making targeted changes without needing to send the complete rule object.\n\n### Path Parameters\n- **ruleId**: The unique identifier of the rule to update (e.g., \"RULE-001-PAYMENT-FRAUD\")\n\n### Request Body (All Fields Optional)\nYou can include any combination of the following fields:\n- **rule_name**: Updated human-readable name\n- **description**: Updated description\n- **txtp**: Transaction type (e.g., \"pain.001.001.11\")\n- **version**: Updated version number\n- **status**: Updated status - `ACTIVE`, `INACTIVE`, `TESTING`, `DRAFT`\n- **publishing_status**: Updated publishing workflow status - `DRAFT`, `SUBMITTED`, `APPROVED`, `PUBLISHED`, `STATUS_04_APPROVED`, `STATUS_06_EXPORTED`\n- **rule_type**: Type classification of the rule\n- **rule_config_id**: Configuration identifier for the rule (VARCHAR(10))\n\n### Auto-updated Fields\nThe following fields are automatically managed by the system:\n- **updated_by**: Extracted from JWT token (user ID or client ID)\n- **updated_at**: Set to current timestamp (NOW())\n- **tenant_id**: Cannot be changed (preserved from original)\n- **rule_id**: Cannot be changed (used as identifier)\n- **created_at**: Cannot be changed (preserved from original)\n\n### Required Claims\n`editor` - Only users with editor privileges can update rules"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Rule IDs",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/rules/api/ids",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "rules",
+                "api",
+                "ids"
+              ]
+            },
+            "description": "Retrieves all rule IDs with their configuration references and tenant information from the `rule` table.\n\n### Overview\nThis endpoint fetches a lightweight list of all rules configured in the system, showing their identifiers, configuration references, and tenant ownership. Use this to get an overview of all available rules before fetching detailed configurations.\n\n### Required Claims\n`editor`, `approver`, or `publisher`"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Rule Configuration by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/rules/api/configuration/:ruleId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "rules",
+                "api",
+                "configuration",
+                ":ruleId"
+              ],
+              "variable": [
+                {
+                  "key": "ruleId",
+                  "value": "0060@1.0.0"
+                }
+              ]
+            },
+            "description": "Retrieves the complete JSONB configuration for a specific rule by its ID.\n\n### Path Parameters\n- **ruleId**: The unique identifier of the rule (e.g., \"rule-001\", \"FRAUD-DETECT-V2\")\n\n### Required Claims\n`editor`, `approver`, or `publisher`"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Active Network Map",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/rules/api/network-map/active",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "rules",
+                "api",
+                "network-map",
+                "active"
+              ]
+            },
+            "description": "Retrieves the currently active network map for the authenticated tenant.\n\n### Overview\nThis endpoint fetches the network map configuration that defines how transactions are routed through typology processors and rules. Each tenant can have only **one** active network map at a time.\n\n### Required Claims\n`editor`, `approver`, or `publisher`"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Rule Status",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Validate rule ID is provided",
+                  "const ruleId = pm.request.url.path[2]; // rules/api/:ruleId/status",
+                  "if (!ruleId || ruleId === ':ruleId') {",
+                  "    throw new Error('Rule ID is required in the URL path');",
+                  "}",
+                  "console.log('Updating status for rule: ' + ruleId);",
+                  "",
+                  "// Validate status is provided in request body",
+                  "const body = JSON.parse(pm.request.body.raw);",
+                  "if (!body.status) {",
+                  "    throw new Error('Status is required in the request body');",
+                  "}",
+                  "console.log('New status: ' + body.status);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/rules/api/:ruleId/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "rules",
+                "api",
+                ":ruleId",
+                "status"
+              ],
+              "variable": [
+                {
+                  "key": "ruleId",
+                  "value": "RULE-001-PAYMENT-FRAUD"
+                }
+              ]
+            },
+            "description": "Updates the status of a specific rule identified by its rule ID.\n\n### Overview\nThis endpoint allows you to change the status of a rule without modifying other rule properties. This is useful for quickly activating, deactivating, or changing the operational state of a rule.\n\n### Path Parameters\n- **ruleId**: The unique identifier of the rule to update (e.g., \"RULE-001-PAYMENT-FRAUD\")\n\n### Request Body (Required)\n- **status**: The new status value for the rule. Common values include:\n  - `ACTIVE`: Rule is active and will be evaluated\n  - `INACTIVE`: Rule is inactive and will not be evaluated\n  - `TESTING`: Rule is in testing mode\n  - `DRAFT`: Rule is in draft state\n\n### Auto-updated Fields\nThe following fields are automatically managed by the system:\n- **updated_by**: Extracted from JWT token (user ID or client ID)\n- **updated_at**: Set to current timestamp\n\n### Response\nReturns the updated rule object with all fields, including the new status.\n\n### Required Claims\n`editor` - Only users with editor privileges can update rule status\n\n### Use Cases\n- Quickly enable or disable rules without full update\n- Change rule operational state during maintenance\n- Activate rules after testing\n- Deactivate problematic rules immediately\n\n### Error Responses\n- **400**: Invalid request body or missing status field\n- **404**: Rule not found\n- **401**: Missing or invalid JWT token\n- **403**: Insufficient permissions (requires editor claim)"
+          },
+          "response": []
+        }
+      ],
+      "description": "API endpoints for managing transaction rules (TRS - Transaction Rule Service) in Tazama."
+    },
+    {
+      "name": "Configuration Management",
+      "item": [
+        {
+          "name": "Get Transaction Types",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/config/api/transaction-types",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "config",
+                "api",
+                "transaction-types"
+              ]
+            },
+            "description": "Retrieves all distinct transaction types from the `config` table.\n\n### Overview\nThis endpoint fetches a unique list of all transaction types (txtp) configured in the system. Transaction types define the ISO 20022 message format for financial transactions, such as `pain.001.001.11` for credit transfers or `pacs.008.001.10` for payment clearing.\n\n### Required Claims\n`editor`, `approver`, or `publisher`"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Versions by Transaction Type",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/config/api/versions/:transactionType",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "config",
+                "api",
+                "versions",
+                ":transactionType"
+              ],
+              "variable": [
+                {
+                  "key": "transactionType",
+                  "value": "pain.001.001.11"
+                }
+              ]
+            },
+            "description": "Retrieves all available versions for a specific transaction type.\n\n### Overview\nThis endpoint fetches a list of all versions available for a given transaction type from the `config` table. This is useful for understanding version evolution and selecting appropriate configurations for different message versions.\n\n### Path Parameters\n- **transactionType**: ISO 20022 transaction type (e.g., \"pain.001.001.11\")\n\n### Response\nReturns an array of version strings for the specified transaction type.\n\n```json\n[\n  \"1.0.0\",\n  \"1.1.0\",\n  \"2.0.0\"\n]\n```\n\n### Required Claims\n`editor`, `approver`, or `publisher`\n\n### Use Cases\n- Version management and tracking\n- Configuration selection based on version\n- API versioning support\n- Backward compatibility verification\n\n### Error Responses\n- **400**: Invalid transaction type format\n- **404**: No versions found for the specified transaction type\n- **401**: Missing or invalid JWT token\n- **403**: Insufficient permissions"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payload by Transaction Type",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/config/api/payload/:transactionType",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "config",
+                "api",
+                "payload",
+                ":transactionType"
+              ],
+              "variable": [
+                {
+                  "key": "transactionType",
+                  "value": "pain.001.001.11"
+                }
+              ]
+            },
+            "description": "Retrieves the payload schema/configuration for a specific transaction type.\n\n### Path Parameters\n- **transactionType**: ISO 20022 transaction type (e.g., \"pain.001.001.11\")\n\n### Required Claims\n`editor`, `approver`, or `publisher`"
+          },
+          "response": []
+        }
+      ],
+      "description": "API endpoints for managing system configuration, transaction types, and payload schemas."
+    },
+    {
+      "name": "Parse & Extract",
+      "item": [
+        {
+          "name": "Process pain.001",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Generate unique message ID for tracking",
+                  "const timestamp = Date.now();",
+                  "const messageId = 'MSG-' + timestamp;",
+                  "pm.environment.set('generatedMessageId', messageId);",
+                  "console.log('Generated Message ID: ' + messageId);",
+                  "",
+                  "// Set current timestamp",
+                  "const currentTime = new Date().toISOString();",
+                  "pm.environment.set('currentTimestamp', currentTime);",
+                  "console.log('Current timestamp: ' + currentTime);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson).to.have.property('success');",
+                  "});",
+                  "",
+                  "pm.test('Response has processedAt timestamp', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson).to.have.property('processedAt');",
+                  "});",
+                  "",
+                  "pm.test('Message type is preserved in response', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    const requestJson = JSON.parse(pm.request.body.raw);",
+                  "    pm.expect(responseJson.messageType).to.eql(requestJson.messageType);",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"TxTp\": \"pain.001\",\n  \"TenantId\":\"cbe\",\n  \"CstmrCdtTrfInitn\": {\n    \"GrpHdr\": {\n      \"MsgId\": \"17fa-afea-48d6-b147-05c8463ea494\",\n      \"CreDtTm\": \"2023-02-03T07:03:17.438Z\",\n      \"NbOfTxs\": 1,\n      \"InitgPty\": {\n        \"Nm\": \"April Blake Grant\",\n        \"Id\": {\n          \"PrvtId\": {\n            \"DtAndPlcOfBirth\": {\n              \"BirthDt\": \"1968-02-01\",\n              \"CityOfBirth\": \"Unknown\",\n              \"CtryOfBirth\": \"ZZ\"\n            },\n            \"Othr\": [\n              {\n                \"Id\": \"+36-432226947\",\n                \"SchmeNm\": {\n                  \"Prtry\": \"MSISDN\"\n                }\n              }\n            ]\n          }\n        },\n        \"CtctDtls\": {\n          \"MobNb\": \"+36-432226947\"\n        }\n      }\n    },\n    \"PmtInf\": {\n      \"PmtInfId\": \"23730c89dd57490a9a79f9b3747e3c08\",\n      \"PmtMtd\": \"TRA\",\n      \"ReqdAdvcTp\": {\n        \"DbtAdvc\": {\n          \"Cd\": \"ADWD\",\n          \"Prtry\": \"Advice with transaction details\"\n        }\n      },\n      \"ReqdExctnDt\": {\n        \"Dt\": \"2023-02-03\",\n        \"DtTm\": \"2023-02-03T07:03:17.438Z\"\n      },\n      \"Dbtr\": {\n        \"Nm\": \"April Blake Grant\",\n        \"Id\": {\n          \"PrvtId\": {\n            \"DtAndPlcOfBirth\": {\n              \"BirthDt\": \"1968-02-01\",\n              \"CityOfBirth\": \"Unknown\",\n              \"CtryOfBirth\": \"ZZ\"\n            },\n            \"Othr\": [\n              {\n                \"Id\": \"+36-432226947\",\n                \"SchmeNm\": {\n                  \"Prtry\": \"typolog028\"\n                }\n              }\n            ]\n          }\n        },\n        \"CtctDtls\": {\n          \"MobNb\": \"+36-432226947\"\n        }\n      },\n      \"DbtrAcct\": {\n        \"Id\": {\n          \"Othr\": [\n            {\n              \"Id\": \"+36-432226947\",\n              \"SchmeNm\": {\n                \"Prtry\": \"MSISDN\"\n              }\n            }\n          ]\n        },\n        \"Nm\": \"April Grant\"\n      },\n      \"DbtrAgt\": {\n        \"FinInstnId\": {\n          \"ClrSysMmbId\": {\n            \"MmbId\": \"typolog028\"\n          }\n        }\n      },\n      \"CdtTrfTxInf\": {\n        \"PmtId\": {\n          \"EndToEndId\": \"8f37-9e6f-4c30-bb87-5e0e42f0f000\"\n        },\n        \"PmtTpInf\": {\n          \"CtgyPurp\": {\n            \"Prtry\": \"TRANSFER BLANK\"\n          }\n        },\n        \"Amt\": {\n          \"InstdAmt\": {\n            \"Amt\": {\n              \"Amt\": 31020.89,\n              \"Ccy\": \"USD\"\n            }\n          },\n          \"EqvtAmt\": {\n            \"Amt\": {\n              \"Amt\": 31020.89,\n              \"Ccy\": \"USD\"\n            },\n            \"CcyOfTrf\": \"USD\"\n          }\n        },\n        \"ChrgBr\": \"DEBT\",\n        \"CdtrAgt\": {\n          \"FinInstnId\": {\n            \"ClrSysMmbId\": {\n              \"MmbId\": \"dfsp002\"\n            }\n          }\n        },\n        \"Cdtr\": {\n          \"Nm\": \"Felicia Easton Quill\",\n          \"Id\": {\n            \"PrvtId\": {\n              \"DtAndPlcOfBirth\": {\n                \"BirthDt\": \"1935-05-08\",\n                \"CityOfBirth\": \"Unknown\",\n                \"CtryOfBirth\": \"ZZ\"\n              },\n              \"Othr\": [\n                {\n                  \"Id\": \"+42-966969344\",\n                  \"SchmeNm\": {\n                    \"Prtry\": \"MSISDN\"\n                  }\n                }\n              ]\n            }\n          },\n          \"CtctDtls\": {\n            \"MobNb\": \"+42-966969344\"\n          }\n        },\n        \"CdtrAcct\": {\n          \"Id\": {\n            \"Othr\": [\n              {\n                \"Id\": \"+42-966969344\",\n                \"SchmeNm\": {\n                  \"Prtry\": \"MSISDN\"\n                }\n              }\n            ]\n          },\n          \"Nm\": \"Felicia Quill\"\n        },\n        \"Purp\": {\n          \"Cd\": \"MP2P\"\n        },\n        \"RgltryRptg\": {\n          \"Dtls\": {\n            \"Tp\": \"BALANCE OF PAYMENTS\",\n            \"Cd\": \"100\"\n          }\n        },\n        \"RmtInf\": {\n          \"Ustrd\": \"Payment of USD 30713.75 from April to Felicia\"\n        },\n        \"SplmtryData\": {\n          \"Envlp\": {\n            \"Doc\": {\n              \"Dbtr\": {\n                \"FrstNm\": \"April\",\n                \"MddlNm\": \"Blake\",\n                \"LastNm\": \"Grant\",\n                \"MrchntClssfctnCd\": \"BLANK\"\n              },\n              \"Cdtr\": {\n                \"FrstNm\": \"Felicia\",\n                \"MddlNm\": \"Easton\",\n                \"LastNm\": \"Quill\",\n                \"MrchntClssfctnCd\": \"BLANK\"\n              },\n              \"DbtrFinSvcsPrvdrFees\": {\n                \"Ccy\": \"USD\",\n                \"Amt\": 307.14\n              },\n              \"Xprtn\": \"2021-11-30T10:38:56.000Z\"\n            }\n          }\n        }\n      }\n    },\n    \"SplmtryData\": {\n      \"Envlp\": {\n        \"Doc\": {\n          \"InitgPty\": {\n            \"InitrTp\": \"CONSUMER\",\n            \"Glctn\": {\n              \"Lat\": \"-3,1609\",\n              \"Long\": \"38,3588\"\n            }\n          }\n        }\n      }\n    }\n  }\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/parse/api/validatePayload",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "parse",
+                "api",
+                "validatePayload"
+              ]
+            },
+            "description": "Processes a transactional message (pain.001, pacs.002, etc.) and logs it for analysis.\n\n### Overview\nThis endpoint accepts ISO 20022 transactional messages for parsing and extraction. Currently, it logs the message details to the console for monitoring and debugging purposes. This is the foundation for future message parsing and data extraction functionality.\n\n### Request Body\n- **messageType**: Type of the transactional message (e.g., \"pain.001\", \"pacs.002\")\n- **messageContent**: The actual message content (XML, JSON, or other formats)\n- **messageId**: Unique identifier for the message (optional)\n- **timestamp**: Message timestamp (optional, ISO 8601 format)\n- **metadata**: Additional metadata about the message (optional)\n\n### Response\n```json\n{\n  \"success\": true,\n  \"message\": \"Successfully processed pain.001 message\",\n  \"processedAt\": \"2026-01-05T10:30:15.123Z\",\n  \"messageType\": \"pain.001\",\n  \"messageId\": \"MSG-12345\"\n}\n```\n\n### Supported Message Types\n- **pain.001**: Customer Credit Transfer Initiation\n- **pain.002**: Customer Payment Status Report\n- **pacs.002**: FI to FI Payment Status Report\n- **pacs.008**: FI to FI Customer Credit Transfer\n- **camt.054**: Bank to Customer Debit Credit Notification\n- And other ISO 20022 message types\n\n### Use Cases\n- **Message Validation**: Verify message format and structure\n- **Data Extraction**: Extract key fields from transactional messages\n- **Audit Logging**: Log all incoming messages for compliance\n- **Pre-processing**: Prepare messages for rule evaluation\n- **Debugging**: Monitor message flow through the system\n\n### Required Claims\n`editor`, `approver`, or `publisher`\n\n### Logging Output\nThe service logs the following information:\n- Message type and ID\n- Message timestamp\n- Content preview (first 500 characters)\n- Metadata (if provided)\n- Processing status and completion time\n\n### Future Enhancements\n- Message parsing and field extraction\n- Schema validation\n- Message transformation\n- Integration with rule evaluation engine\n- Real-time message streaming\n\n### Error Responses\n- **400 Bad Request**: Invalid message format\n- **401 Unauthorized**: Missing or invalid JWT token\n- **403 Forbidden**: Insufficient permissions\n- **500 Internal Server Error**: Processing failure"
+          },
+          "response": [
+            {
+              "name": "Successful Processing - pain.001",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"messageType\": \"pain.001\",\n  \"messageContent\": \"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>\\n<Document xmlns=\\\"urn:iso:std:iso:20022:tech:xsd:pain.001.001.11\\\">\\n  <CstmrCdtTrfInitn>\\n    <GrpHdr>\\n      <MsgId>MSG-001</MsgId>\\n      <CreDtTm>2026-01-05T10:00:00Z</CreDtTm>\\n      <NbOfTxs>1</NbOfTxs>\\n    </GrpHdr>\\n  </CstmrCdtTrfInitn>\\n</Document>\",\n  \"messageId\": \"MSG-001\",\n  \"timestamp\": \"2026-01-05T10:00:00Z\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/parse/api/process-message",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "parse",
+                    "api",
+                    "process-message"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Successfully processed pain.001 message\",\n  \"processedAt\": \"2026-01-05T10:30:15.123Z\",\n  \"messageType\": \"pain.001\",\n  \"messageId\": \"MSG-001\"\n}"
+            },
+            {
+              "name": "Successful Processing - pacs.002",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"messageType\": \"pacs.002\",\n  \"messageContent\": \"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>\\n<Document xmlns=\\\"urn:iso:std:iso:20022:tech:xsd:pacs.002.001.12\\\">\\n  <FIToFIPmtStsRpt>\\n    <GrpHdr>\\n      <MsgId>PACS-002-001</MsgId>\\n      <CreDtTm>2026-01-05T11:00:00Z</CreDtTm>\\n    </GrpHdr>\\n  </FIToFIPmtStsRpt>\\n</Document>\",\n  \"messageId\": \"PACS-002-001\",\n  \"metadata\": {\n    \"priority\": \"high\",\n    \"source\": \"core-banking\"\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/parse/api/process-message",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "parse",
+                    "api",
+                    "process-message"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Successfully processed pacs.002 message\",\n  \"processedAt\": \"2026-01-05T11:30:45.789Z\",\n  \"messageType\": \"pacs.002\",\n  \"messageId\": \"PACS-002-001\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Process Large Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messageType\": \"pain.001\",\n  \"messageContent\": \"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>\\n<Document xmlns=\\\"urn:iso:std:iso:20022:tech:xsd:pain.001.001.11\\\">\\n  <!-- This is a large message with extensive content for testing content preview functionality -->\\n  <CstmrCdtTrfInitn>\\n    <GrpHdr>\\n      <MsgId>LARGE-MSG-001</MsgId>\\n      <CreDtTm>2026-01-05T12:00:00Z</CreDtTm>\\n      <NbOfTxs>100</NbOfTxs>\\n      <CtrlSum>1000000.00</CtrlSum>\\n      <InitgPty>\\n        <Nm>Large Corporation Ltd</Nm>\\n        <PstlAdr>\\n          <StrtNm>123 Business Street</StrtNm>\\n          <BldgNb>456</BldgNb>\\n          <PstCd>12345</PstCd>\\n          <TwnNm>Business City</TwnNm>\\n          <Ctry>US</Ctry>\\n        </PstlAdr>\\n      </InitgPty>\\n    </GrpHdr>\\n    <!-- Multiple payment information blocks would follow here -->\\n    <!-- This content is intentionally long to test the 500-character preview limit -->\\n    <!-- Additional payment details, transaction information, and other elements would be included -->\\n    <!-- The system should truncate this content in the log preview -->\\n  </CstmrCdtTrfInitn>\\n</Document>\",\n  \"messageId\": \"LARGE-MSG-001\",\n  \"timestamp\": \"2026-01-05T12:00:00Z\",\n  \"metadata\": {\n    \"source\": \"batch-processor\",\n    \"batchId\": \"BATCH-2026-001\",\n    \"priority\": \"low\",\n    \"messageSize\": 2048,\n    \"transactionCount\": 100,\n    \"totalAmount\": 1000000.00,\n    \"currency\": \"USD\",\n    \"processingType\": \"bulk\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/parse/api/process-message",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "parse",
+                "api",
+                "process-message"
+              ]
+            },
+            "description": "Test processing of a large transactional message to verify content preview functionality.\n\n### Purpose\nThis request tests the service's ability to handle large messages and demonstrates the content preview feature that truncates message content to the first 500 characters in the logs.\n\n### Test Scenarios\n- Large XML content processing\n- Content preview truncation\n- Metadata logging for batch operations\n- Bulk transaction handling\n\n### Expected Behavior\n- Message content should be truncated in logs with \"...\" suffix\n- All metadata should be logged completely\n- Processing should succeed despite large content size\n- Response should maintain the same structure as smaller messages"
+          },
+          "response": []
+        }
+      ],
+      "description": "API endpoints for parsing and extracting data from ISO 20022 transactional messages."
+    },
+    {
+      "name": "Simulation Studio",
+      "item": [
+        {
+          "name": "Docker Hub",
+          "item": [
+            {
+              "name": "Get Published Rules (Docker Hub)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/simulation-studio/dockerhub/api/rules",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "simulation-studio",
+                    "dockerhub",
+                    "api",
+                    "rules"
+                  ]
+                },
+                "description": "Retrieves all repositories (rules) published to the Docker Hub namespace configured for the calling tenant. The tenant is identified from the tenantId claim in the Bearer JWT."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Tags For Rule (Docker Hub)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/simulation-studio/dockerhub/api/tags?rule=case105",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "simulation-studio",
+                    "dockerhub",
+                    "api",
+                    "tags"
+                  ],
+                  "query": [
+                    {
+                      "key": "rule",
+                      "value": "case105",
+                      "description": "Rule (repository) name to fetch tags for"
+                    }
+                  ]
+                },
+                "description": "Retrieves all Docker Hub tags for the specified rule repository within the calling tenant's namespace. The tenant is identified from the tenantId claim in the Bearer JWT."
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "// Global pre-request script",
+          "console.log('Request: ' + pm.info.requestName);",
+          "console.log('URL: ' + pm.request.url.toString());",
+          "",
+          "// Validate auth token exists for protected endpoints",
+          "const authToken = pm.environment.get('authToken');",
+          "if (!authToken && pm.info.requestName !== 'Login') {",
+          "    console.warn('No auth token found. Please login first.');",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "exec": [
+          "// Global test script",
+          "console.log('Response Status: ' + pm.response.code + ' ' + pm.response.status);",
+          "console.log('Response Time: ' + pm.response.responseTime + 'ms');",
+          "",
+          "// Common assertions for protected endpoints",
+          "if (pm.response.code === 401) {",
+          "    pm.test('Authentication required', function () {",
+          "        console.log('Authentication failed. Please check your token.');",
+          "    });",
+          "} else if (pm.response.code === 403) {",
+          "    pm.test('Authorization failed', function () {",
+          "        console.log('Insufficient permissions for this operation.');",
+          "    });",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "keycloakUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "realm",
+      "value": "tazama",
+      "type": "string"
+    },
+    {
+      "key": "keycloakClientId",
+      "value": "model-management-frontend",
+      "type": "string"
+    },
+    {
+      "key": "username",
+      "value": "your-username",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "your-password",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    }
+  ]
 }

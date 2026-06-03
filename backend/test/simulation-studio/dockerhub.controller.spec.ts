@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
-import { DockerHubController } from '../../../src/services/dockerhub/dockerhub.controller';
-import { DockerHubService } from '../../../src/services/dockerhub/dockerhub.service';
-import type { AuthenticatedUser } from '../../../src/services/auth/auth.types';
+import { DockerHubController } from '../../src/services/simulation-studio/dockerhub/dockerhub.controller';
+import { DockerHubService } from '../../src/services/simulation-studio/dockerhub/dockerhub.service';
+import type { AuthenticatedUser } from '../../src/services/auth/auth.types';
 import type {
   DockerHubRepositoriesResponseDto,
   DockerHubTagsResponseDto,
-} from '../../../src/services/dockerhub/dto/dockerhub.dto';
+} from '../../src/services/simulation-studio/dockerhub/dto/dockerhub.dto';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
