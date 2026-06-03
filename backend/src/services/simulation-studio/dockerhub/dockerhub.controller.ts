@@ -1,16 +1,16 @@
 import { Controller, Get, Query, UseGuards, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
-import { TazamaAuthGuard } from '../../guards/tazama-auth.guard';
-import { RequireAnyClaims, TazamaClaims } from '../../decorators/auth.decorator';
-import { ApiSwagger, CommonResponses } from '../../decorators/swagger.decorator';
-import { User } from '../../decorators/user.decorator';
-import type { AuthenticatedUser } from '../auth/auth.types';
+import { TazamaAuthGuard } from '../../../guards/tazama-auth.guard';
+import { RequireAnyClaims, TazamaClaims } from '../../../decorators/auth.decorator';
+import { ApiSwagger, CommonResponses } from '../../../decorators/swagger.decorator';
+import { User } from '../../../decorators/user.decorator';
+import type { AuthenticatedUser } from '../../auth/auth.types';
 import { DockerHubService } from './dockerhub.service';
 import { DockerHubRepositoriesResponseDto, DockerHubTagsResponseDto } from './dto/dockerhub.dto';
 
-@ApiTags('DockerHub')
+@ApiTags('simulation-studio')
 @ApiBearerAuth('JWT-auth')
-@Controller('dockerhub')
+@Controller('simulation-studio/dockerhub')
 @UseGuards(TazamaAuthGuard)
 export class DockerHubController {
   constructor(private readonly dockerHubService: DockerHubService) { }
