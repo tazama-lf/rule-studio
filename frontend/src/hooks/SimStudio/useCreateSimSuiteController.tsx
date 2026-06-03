@@ -16,6 +16,7 @@ import PlaceholderStep from "../../components/SimStudio/PlaceholderStep";
 import Step1RuleDetails from "../../components/SimStudio/RuleDetails";
 import TxtpSelection from "../../components/SimStudio/TxtpSelection";
 import TriggerData from "../../components/SimStudio/TriggerData";
+import EnrichmentData from "../../components/SimStudio/EnrichmentData";
 
 export interface Step1Values {
     suite_name: string;
@@ -71,6 +72,7 @@ const useCreateSimSuiteController = () => {
     const [getRuleTags, { data: ruleTagsData, isFetching: ruleVersionLoading }] = useLazyGetRuleTagsQuery();
     const step2SaveRef = useRef<(() => Promise<boolean>) | null>(null);
     const step3SaveRef = useRef<(() => Promise<boolean>) | null>(null);
+    const step4SaveRef = useRef<(() => Promise<boolean>) | null>(null);
 
     const {
         control,
@@ -157,8 +159,8 @@ const useCreateSimSuiteController = () => {
         if (selectedTab === SimStudioTabs[0].value) {
             void handleSubmit(async (data) => {
                 try {
-                    let parsedRuleConfig: Record<string, unknown> | undefined;
-                    try { parsedRuleConfig = JSON.parse(data.rule_config || '{}') as Record<string, unknown>; } catch { parsedRuleConfig = undefined; }
+                    let parsedRuleConfig: Record<string, unknown>;
+                    try { parsedRuleConfig = JSON.parse(data.rule_config || '{}') as Record<string, unknown>; } catch { parsedRuleConfig = {}; }
                     const result = await createSuite({
                         name: data.suite_name,
                         description: data.description || undefined,
@@ -166,7 +168,7 @@ const useCreateSimSuiteController = () => {
                         rule_version: data.rule_version?.value ? String(data.rule_version.value) : undefined,
                         primary_txtp: String(data.txtp!.value),
                         primary_txtp_version: String(data.version!.value),
-                        rule_config: parsedRuleConfig && Object.keys(parsedRuleConfig).length > 0 ? parsedRuleConfig : undefined,
+                        rule_config: parsedRuleConfig,
                     }).unwrap();
                     insertData(result.data.generation_id, "sim_gen_id", LocalStorage, false);
                     enableNextTab();
@@ -183,6 +185,12 @@ const useCreateSimSuiteController = () => {
         } else if (selectedTab === SimStudioTabs[2].value) {
             void (async () => {
                 const save = step3SaveRef.current;
+                const ok = save ? await save() : true;
+                if (ok) enableNextTab();
+            })();
+        } else if (selectedTab === SimStudioTabs[3].value) {
+            void (async () => {
+                const save = step4SaveRef.current;
                 const ok = save ? await save() : true;
                 if (ok) enableNextTab();
             })();
@@ -208,7 +216,7 @@ const useCreateSimSuiteController = () => {
                 );
             case 'txtp_selection':      return <TxtpSelection onSaveRef={step2SaveRef} />;
             case 'trigger_data':        return <TriggerData onSaveRef={step3SaveRef} />;
-            case 'enrichment_data':     return <PlaceholderStep title="Enrichment Data" />;
+            case 'enrichment_data':     return <EnrichmentData onSaveRef={step4SaveRef} />;
             case 'preview_save':        return <PlaceholderStep title="Preview & Save" />;
             case 'simulation_results':  return <PlaceholderStep title="Simulation Results" />;
             case 'summary':             return <PlaceholderStep title="Summary" />;
