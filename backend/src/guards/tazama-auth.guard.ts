@@ -53,15 +53,31 @@ export class TazamaAuthGuard implements CanActivate {
 
     const actorName = innerDecoded.name as string | undefined;
 
-    const realmAccess = innerDecoded.realm_access as { roles?: string[] } | undefined;
-    const realmRoles = realmAccess?.roles;
+    const allowedRoles = (
+      process.env.ALLOWED_ROLES ?? ''
+    )
+      .split(',')
+      .map(role => role.trim().toLowerCase())
+      .filter(Boolean);
 
-    const supportedRoles = new Set(['trs_editor', 'trs_approver', 'trs_publisher', 'trs_data_engineer_editor', 'trs_data_engineer_approver']);
-    const actorRole = realmRoles?.find((role: string) => supportedRoles.has(role.toLowerCase()));
-    if (!actorRole) {
-      throw new UnauthorizedException('No supported RBAC role found in token');
+    const realmAccess = innerDecoded.realm_access as { roles?: string[] } | undefined;
+    const realmRoles =
+      realmAccess?.roles?.map(role => role.toLowerCase()) ?? [];
+
+    const matchedRoles = realmRoles.filter(role =>
+      allowedRoles.includes(role),
+    );
+
+    if (matchedRoles.length === 0) {
+      this.logger.warn(
+        `Invalid credentials. Token roles: [${realmRoles.join(', ')}], Allowed roles: [${allowedRoles.join(', ')}]`,
+      );
+
+      throw new UnauthorizedException('Invalid credentials');
     }
 
+    const actorRole = matchedRoles[0];
+    
     const sourceIP =
       request.ip ?? (request.headers['x-forwarded-for'] as string | undefined)?.split(',')[0].trim() ?? request.socket.remoteAddress;
 
