@@ -63,6 +63,7 @@ import {
   GET_ALL_EVALUATIONS,
   FETCH_COUNT_DLH,
   RESUME_GENERATION,
+  FAKER_SYMMETRIC_DATA,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto, UpdateMaskDto } from './masking/dto/masking.dto';
 import type {
@@ -637,5 +638,9 @@ export class AdminServiceClient {
 
   async resumeGeneration<T>(token: string, suiteId: number): Promise<T> {
     return await this.executeHttpRequest<T>('POST', RESUME_GENERATION(suiteId), token);
+  }
+
+  async generateFakerSymmetricData<T>(token: string): Promise<T> {
+    return await this.executeHttpRequest<T>('POST', FAKER_SYMMETRIC_DATA, token);
   }
 }

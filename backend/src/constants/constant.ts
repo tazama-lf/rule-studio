@@ -84,3 +84,4 @@ export const GENERATION_CONTEXT_CONFIG = (generationId: number, configId: number
 export const GENERATION_TRIGGER_CONFIG = (generationId: number, configId: number): string =>
   `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/trigger-configs/${configId}`;
 export const RESUME_GENERATION = (suiteId: number): string => `${SIMULATION_STUDIO_BASE_URL}/suites/${suiteId}/generation/resume`;
+export const FAKER_SYMMETRIC_DATA = `${SIMULATION_STUDIO_BASE_URL}/faker-symmetric-data`;
