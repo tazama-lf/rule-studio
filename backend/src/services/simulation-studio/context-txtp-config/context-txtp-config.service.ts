@@ -51,4 +51,14 @@ export class ContextTxtpConfigService {
       throw err;
     }
   }
+
+  async deleteContextTxtpConfig(token: string, generationId: number, configId: number): Promise<{ success: boolean; message: string }> {
+    try {
+      return await this.adminServiceClient.deleteContextTxtpConfig(token, generationId, configId);
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(`Error deleting context txtp config ${configId} for generation ${generationId}`, error.stack);
+      throw err;
+    }
+  }
 }

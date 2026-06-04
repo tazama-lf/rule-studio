@@ -183,7 +183,7 @@ export interface EnrichmentSchemaProperty {
 }
 
 export interface EnrichmentTableDto {
-    enrichment_table_id: number;
+    id: number;
     table_name: string;
     table_order: number;
     row_count: number;
@@ -314,6 +314,20 @@ export const simStudioApi = createApi({
             }),
         }),
 
+        deleteContextConfig: builder.mutation<{ success: boolean; message: string }, { generationId: number; configId: number }>({
+            query: ({ generationId, configId }) => ({
+                url: `generations/${generationId}/context-configs/${configId}`,
+                method: "DELETE",
+            }),
+        }),
+
+        deleteTriggerConfig: builder.mutation<{ success: boolean; message: string }, { generationId: number; configId: number }>({
+            query: ({ generationId, configId }) => ({
+                url: `generations/${generationId}/trigger-configs/${configId}`,
+                method: "DELETE",
+            }),
+        }),
+
         getEnrichmentTables: builder.query<{ success: boolean; data: EnrichmentTableDto[] }, number>({
             query: (generationId) => `generations/${generationId}/enrichment-tables`,
             providesTags: ["EnrichmentTables"],
@@ -339,6 +353,15 @@ export const simStudioApi = createApi({
         getGenerationSummary: builder.query<GenerationSummaryResponse, number>({
             query: (generationId) => `generations/${generationId}/summary`,
         }),
+
+        updateWizardProgress: builder.mutation<{ success: boolean }, { generationId: number; current_step_num: number; completed_step_num: number }>({
+            query: ({ generationId, current_step_num, completed_step_num }) => ({
+                url: `generations/${generationId}/wizard-progress`,
+                method: "PATCH",
+                body: { current_step_num, completed_step_num },
+            }),
+            transformResponse: (response: { success: boolean; message?: string }) => ({ success: response.success }),
+        }),
     }),
 });
 
@@ -356,8 +379,11 @@ export const {
     useLazyGetTriggerConfigsQuery,
     useCreateTriggerConfigMutation,
     useBulkUpdateTriggerConfigsMutation,
+    useDeleteContextConfigMutation,
+    useDeleteTriggerConfigMutation,
     useGetEnrichmentTablesQuery,
     useCreateEnrichmentTableMutation,
     useDeleteEnrichmentTableMutation,
     useGetGenerationSummaryQuery,
+    useUpdateWizardProgressMutation,
 } = simStudioApi;

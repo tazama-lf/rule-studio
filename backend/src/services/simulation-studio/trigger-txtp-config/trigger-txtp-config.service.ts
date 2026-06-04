@@ -51,4 +51,14 @@ export class TriggerTxtpConfigService {
       throw err;
     }
   }
+
+  async deleteTriggerTxtpConfig(token: string, generationId: number, configId: number): Promise<{ success: boolean; message: string }> {
+    try {
+      return await this.adminServiceClient.deleteTriggerTxtpConfig(token, generationId, configId);
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(`Error deleting trigger txtp config ${configId} for generation ${generationId}`, error.stack);
+      throw err;
+    }
+  }
 }

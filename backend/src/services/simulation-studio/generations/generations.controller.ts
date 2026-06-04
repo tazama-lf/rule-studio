@@ -1,17 +1,19 @@
-import { Controller, Get, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiBody, ApiParam } from '@nestjs/swagger';
 import { RequireAnyClaims, TazamaClaims } from 'src/decorators/auth.decorator';
 import { ApiSwagger, mergeResponses, CommonResponses } from 'src/decorators/swagger.decorator';
 import { TazamaAuthGuard } from 'src/guards/tazama-auth.guard';
 import { User } from 'src/decorators/user.decorator';
+import { Audit } from 'src/decorators/audit.decorator';
 import type { AuthenticatedUser } from '../../auth/auth.types';
 import { GenerationsService } from './generations.service';
 import {
   SuiteGenerationsListDto,
   SuiteGenerationResponseDto,
-  ContextConfigsListDto,
   GenerationSummaryResponseDto,
+  SuiteGenerationDto,
 } from './dto/generations.dto';
+import { ContextConfigsListDto } from '../context-txtp-config/dto/context-txtp-config.dto';
 
 @ApiTags('simulation-studio')
 @ApiBearerAuth('JWT-auth')
@@ -76,8 +78,7 @@ export class GenerationsController {
   @ApiParam({ name: 'generationId', description: 'Generation id', example: 1 })
   @ApiSwagger({
     summary: 'Get generation summary (Step 5 - Preview & Save)',
-    description:
-      'Returns suite name, associated rule, primary TXTP, context TXTP configs, enrichment table names, and record counts for the generation.',
+    description: 'Returns suite name, associated rule, primary TXTP, context TXTP configs, enrichment table names, and record counts.',
     responses: mergeResponses(
       CommonResponses.SUCCESS_200(GenerationSummaryResponseDto, 'Generation summary retrieved successfully'),
       CommonResponses.NOT_FOUND_404('Generation not found'),
@@ -88,5 +89,51 @@ export class GenerationsController {
     @User() user: AuthenticatedUser,
   ): Promise<GenerationSummaryResponseDto> {
     return await this.generationsService.getGenerationSummary(user.token.tokenString, generationId);
+  }
+
+  @Patch('generations/:generationId/wizard-progress')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @Audit()
+  @ApiParam({ name: 'generationId', description: 'Generation id', example: 1 })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        current_step_num: { type: 'number', example: 2, description: 'Active wizard step number' },
+        completed_step_num: { type: 'number', example: 2, description: 'Highest completed step (steps 1..N marked complete)' },
+      },
+      required: ['current_step_num', 'completed_step_num'],
+    },
+  })
+  @ApiSwagger({
+    summary: 'Update wizard progress',
+    description: 'Saves current_step_num + completedSteps=[1..completed_step_num] into generation wizard_snapshot.',
+    responses: mergeResponses(
+      CommonResponses.SUCCESS_200(Object, 'Wizard progress updated'),
+      CommonResponses.NOT_FOUND_404('Generation not found'),
+    ),
+  })
+  async updateWizardProgress(
+    @Param('generationId', ParseIntPipe) generationId: number,
+    @Body() body: { current_step_num: number; completed_step_num: number },
+    @User() user: AuthenticatedUser,
+  ): Promise<{ success: boolean; message: string }> {
+    return await this.generationsService.updateWizardProgress(user.token.tokenString, generationId, body);
+  }
+
+  @Get('suites/:id/generations/resume')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @ApiParam({ name: 'id', description: 'Simulation suite id', example: 1 })
+  @ApiSwagger({
+    summary: 'Resume generation for a suite',
+    description:
+      'Resumes the most recent generation for the given simulation suite that is DRAFT (wizard not completed). Returns the generation record with the latest wizard snapshot to restore UI state.',
+    responses: mergeResponses(
+      CommonResponses.SUCCESS_200(SuiteGenerationDto, 'Generation retrieved successfully'),
+      CommonResponses.NOT_FOUND_404('Suite not found'),
+    ),
+  })
+  async resumeGenerationForSuite(@Param('id', ParseIntPipe) id: number, @User() user: AuthenticatedUser): Promise<SuiteGenerationDto> {
+    return await this.generationsService.resumeGeneration(user.token.tokenString, id);
   }
 }

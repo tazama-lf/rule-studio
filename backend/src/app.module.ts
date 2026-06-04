@@ -17,7 +17,7 @@ import { FetchFromDlhModule } from './services/fetch-from-dlh/fetch-from-dlh.mod
 import { FetchCountModule } from './services/fetch-count/fetch-count.module';
 import { SimulationModule } from './services/simulation/simulation.module';
 import { FetchEvaluationModule } from './services/fetch-evaluation/fetch-evaluation.module';
-import { SimulationStudioModule } from './services/simulation-studio/simulation-studio.module';
+import { SimulationStudioModule } from './services/simulation-studio/suites/simulation-studio.module';
 import { GenerationsModule } from './services/simulation-studio/generations/generations.module';
 import { ContextTxtpConfigModule } from './services/simulation-studio/context-txtp-config/context-txtp-config.module';
 import { TriggerTxtpConfigModule } from './services/simulation-studio/trigger-txtp-config/trigger-txtp-config.module';
