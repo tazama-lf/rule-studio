@@ -2,8 +2,13 @@ import { type MutableRefObject } from "react";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
+    Accordion,
+    AccordionDetails,
+    AccordionSummary,
     Box,
+    Chip,
     IconButton,
     MenuItem,
     Select,
@@ -150,68 +155,100 @@ const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
                 <S.SchemaTableHeader>
                     <Text size="body" weight="semibold">Enrichment Records</Text>
                 </S.SchemaTableHeader>
-                <MuiTable size="small">
-                    <TableHead>
-                        <TableRow>
-                            <TableCell><S.ColumnHeader>Target Table</S.ColumnHeader></TableCell>
-                            <TableCell><S.ColumnHeader>Rows</S.ColumnHeader></TableCell>
-                            <TableCell><S.ColumnHeader>Payload Preview</S.ColumnHeader></TableCell>
-                            <TableCell align="center"><S.ColumnHeader>Action</S.ColumnHeader></TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {savedRecords.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={4} align="center" sx={{ py: 5, color: "#9ca3af", fontSize: 13 }}>
-                                    No records to display. Add an enrichment record below.
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            savedRecords.map((record) => (
-                                <TableRow hover key={record.enrichment_table_id}>
-                                    <TableCell sx={{ borderBottom: "1px solid #e0e0e0" }}>
-                                        <Typography sx={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>
-                                            {record.table_name}
-                                        </Typography>
-                                    </TableCell>
-                                    <TableCell sx={{ borderBottom: "1px solid #e0e0e0" }}>
-                                        <Typography sx={{ fontSize: 13, color: "#374151" }}>
-                                            {record.row_count}
-                                        </Typography>
-                                    </TableCell>
-                                    <TableCell sx={{ borderBottom: "1px solid #e0e0e0", maxWidth: 320 }}>
-                                        <Typography
-                                            sx={{
-                                                fontSize: 12,
-                                                color: "#6b7280",
-                                                fontFamily: "monospace",
-                                                whiteSpace: "nowrap",
-                                                overflow: "hidden",
-                                                textOverflow: "ellipsis",
-                                            }}
-                                        >
-                                            {JSON.stringify(record.payload_template_json)}
-                                        </Typography>
-                                    </TableCell>
-                                    <TableCell align="center" sx={{ borderBottom: "1px solid #e0e0e0" }}>
-                                        <Tooltip title="Remove">
-                                            <span>
-                                                <IconButton
-                                                    size="small"
-                                                    disabled={isDeleting}
-                                                    onClick={() => { void handleDeleteRecord(record.enrichment_table_id); }}
-                                                    sx={{ color: "#ef4444", "&:hover": { backgroundColor: "#fef2f2" } }}
-                                                >
-                                                    <DeleteOutlineIcon fontSize="small" />
-                                                </IconButton>
-                                            </span>
-                                        </Tooltip>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </MuiTable>
+                {savedRecords.length === 0 ? (
+                    <Typography sx={{ py: 4, textAlign: "center", color: "#9ca3af", fontSize: 13 }}>
+                        No records to display. Add an enrichment record below.
+                    </Typography>
+                ) : (
+                    <Box display="flex" flexDirection="column" gap={1}>
+                        {savedRecords.map((record) => (
+                            <Accordion
+                                key={record.enrichment_table_id}
+                                disableGutters
+                                elevation={0}
+                                sx={{
+                                    border: "1px solid #e5e7eb",
+                                    borderRadius: "6px !important",
+                                    "&:before": { display: "none" },
+                                    "&.Mui-expanded": { borderColor: "#bfdbfe" },
+                                }}
+                            >
+                                <AccordionSummary
+                                    expandIcon={<ExpandMoreIcon sx={{ fontSize: 18, color: "#6b7280" }} />}
+                                    sx={{
+                                        minHeight: 48,
+                                        px: 2,
+                                        "& .MuiAccordionSummary-content": { alignItems: "center", gap: 1.5, my: "10px" },
+                                    }}
+                                >
+                                    <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#111827", flex: 1 }}>
+                                        {record.table_name}
+                                    </Typography>
+                                    <Chip
+                                        label={`${record.row_count} row${record.row_count !== 1 ? "s" : ""}`}
+                                        size="small"
+                                        sx={{ fontSize: 11, height: 20, backgroundColor: "#eff6ff", color: "#2563eb" }}
+                                    />
+                                    <Tooltip title="Remove">
+                                        <span>
+                                            <IconButton
+                                                size="small"
+                                                disabled={isDeleting}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    void handleDeleteRecord(record.enrichment_table_id);
+                                                }}
+                                                sx={{ color: "#ef4444", "&:hover": { backgroundColor: "#fef2f2" } }}
+                                            >
+                                                <DeleteOutlineIcon fontSize="small" />
+                                            </IconButton>
+                                        </span>
+                                    </Tooltip>
+                                </AccordionSummary>
+                                <AccordionDetails sx={{ px: 2, pt: 0, pb: 2 }}>
+                                    <MuiTable size="small">
+                                        <TableHead>
+                                            <TableRow sx={{ backgroundColor: "#f8fafc" }}>
+                                                <TableCell><S.ColumnHeader>Field Name</S.ColumnHeader></TableCell>
+                                                <TableCell><S.ColumnHeader>Type</S.ColumnHeader></TableCell>
+                                                <TableCell><S.ColumnHeader>Strategy</S.ColumnHeader></TableCell>
+                                                <TableCell><S.ColumnHeader>Static Value</S.ColumnHeader></TableCell>
+                                                <TableCell><S.ColumnHeader>Range</S.ColumnHeader></TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {(record.schema_template_json.properties ?? []).map((prop) => (
+                                                <TableRow key={prop.id}>
+                                                    <TableCell sx={{ borderBottom: "1px solid #f3f4f6" }}>
+                                                        <Typography sx={{ fontSize: 12, fontWeight: 500, color: "#2563eb", fontFamily: "monospace" }}>
+                                                            {prop.fieldName}
+                                                        </Typography>
+                                                    </TableCell>
+                                                    <TableCell sx={{ borderBottom: "1px solid #f3f4f6" }}>
+                                                        <Typography sx={{ fontSize: 12, color: "#374151" }}>{prop.type}</Typography>
+                                                    </TableCell>
+                                                    <TableCell sx={{ borderBottom: "1px solid #f3f4f6" }}>
+                                                        <Typography sx={{ fontSize: 12, color: "#374151" }}>{prop.strategy}</Typography>
+                                                    </TableCell>
+                                                    <TableCell sx={{ borderBottom: "1px solid #f3f4f6" }}>
+                                                        <Typography sx={{ fontSize: 12, color: prop.staticValue ? "#374151" : "#d1d5db" }}>
+                                                            {prop.staticValue || "—"}
+                                                        </Typography>
+                                                    </TableCell>
+                                                    <TableCell sx={{ borderBottom: "1px solid #f3f4f6" }}>
+                                                        <Typography sx={{ fontSize: 12, color: prop.rangeMin || prop.rangeMax ? "#374151" : "#d1d5db" }}>
+                                                            {prop.rangeMin || prop.rangeMax ? `${prop.rangeMin} – ${prop.rangeMax}` : "—"}
+                                                        </Typography>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </MuiTable>
+                                </AccordionDetails>
+                            </Accordion>
+                        ))}
+                    </Box>
+                )}
             </S.SchemaTableContainer>
             <S.FormCard>
                 <Box display="flex" gap={3} flexWrap="wrap">

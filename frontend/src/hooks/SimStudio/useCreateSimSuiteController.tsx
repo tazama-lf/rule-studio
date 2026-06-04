@@ -17,6 +17,7 @@ import Step1RuleDetails from "../../components/SimStudio/RuleDetails";
 import TxtpSelection from "../../components/SimStudio/TxtpSelection";
 import TriggerData from "../../components/SimStudio/TriggerData";
 import EnrichmentData from "../../components/SimStudio/EnrichmentData";
+import PreviewSave from "../../components/SimStudio/PreviewSave";
 
 export interface Step1Values {
     suite_name: string;
@@ -217,7 +218,7 @@ const useCreateSimSuiteController = () => {
             case 'txtp_selection':      return <TxtpSelection onSaveRef={step2SaveRef} />;
             case 'trigger_data':        return <TriggerData onSaveRef={step3SaveRef} />;
             case 'enrichment_data':     return <EnrichmentData onSaveRef={step4SaveRef} />;
-            case 'preview_save':        return <PlaceholderStep title="Preview & Save" />;
+            case 'preview_save':        return <PreviewSave />;
             case 'simulation_results':  return <PlaceholderStep title="Simulation Results" />;
             case 'summary':             return <PlaceholderStep title="Summary" />;
             default:                    return null;
@@ -227,7 +228,7 @@ const useCreateSimSuiteController = () => {
     const currentStepIndex = tabs.findIndex(t => t.value === selectedTab);
 
     return {
-        values: { currentStepIndex, totalSteps: tabs.length, isCreatingSuite },
+        values: { currentStepIndex, totalSteps: tabs.length, isCreatingSuite, selectedTab },
         functions: { handleBack, handleNextStep, renderStep },
     };
 };
