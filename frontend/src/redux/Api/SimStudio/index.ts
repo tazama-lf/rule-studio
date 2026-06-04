@@ -146,13 +146,49 @@ export interface SuitesListQuery {
     limit?: number;
 }
 
+export interface ContextTxtpSummary {
+    txtp: string;
+    txtp_version: string;
+    message_count: number;
+}
+
+export interface GenerationSummaryData {
+    generation_id: string;
+    generation_number: number;
+    status: string;
+    suite_name: string;
+    associated_rule: string | null;
+    primary_txtp: string | null;
+    context_txtp_configs: ContextTxtpSummary[];
+    enrichment_table_names: string[];
+    context_count: number;
+    trigger_count: number;
+    enrichment_table_count: number;
+    iteration_number: number;
+}
+
+export interface GenerationSummaryResponse {
+    success: boolean;
+    data: GenerationSummaryData;
+}
+
+export interface EnrichmentSchemaProperty {
+    id: string;
+    fieldName: string;
+    type: string;
+    strategy: string;
+    staticValue: string;
+    rangeMin: string;
+    rangeMax: string;
+}
+
 export interface EnrichmentTableDto {
     enrichment_table_id: number;
     table_name: string;
     table_order: number;
     row_count: number;
     payload_template_json: Record<string, unknown>;
-    schema_template_json: Record<string, unknown>;
+    schema_template_json: { properties: EnrichmentSchemaProperty[] };
 }
 
 export interface CreateEnrichmentTablePayload {
@@ -299,6 +335,10 @@ export const simStudioApi = createApi({
             }),
             invalidatesTags: ["EnrichmentTables"],
         }),
+
+        getGenerationSummary: builder.query<GenerationSummaryResponse, number>({
+            query: (generationId) => `generations/${generationId}/summary`,
+        }),
     }),
 });
 
@@ -319,4 +359,5 @@ export const {
     useGetEnrichmentTablesQuery,
     useCreateEnrichmentTableMutation,
     useDeleteEnrichmentTableMutation,
+    useGetGenerationSummaryQuery,
 } = simStudioApi;

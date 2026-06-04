@@ -1,6 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AdminServiceClient } from '../../admin-service-client';
-import type { SuiteGenerationsListDto, SuiteGenerationResponseDto, ContextConfigsListDto } from './dto/generations.dto';
+import type {
+  SuiteGenerationsListDto,
+  SuiteGenerationResponseDto,
+  ContextConfigsListDto,
+  GenerationSummaryResponseDto,
+} from './dto/generations.dto';
 
 @Injectable()
 export class GenerationsService {
@@ -34,6 +39,16 @@ export class GenerationsService {
     } catch (err) {
       const error = err as Error;
       this.logger.error(`Error fetching context configs for generation ${generationId}`, error.stack);
+      throw err;
+    }
+  }
+
+  async getGenerationSummary(token: string, generationId: number): Promise<GenerationSummaryResponseDto> {
+    try {
+      return await this.adminServiceClient.getGenerationSummary(token, generationId);
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(`Error fetching summary for generation ${generationId}`, error.stack);
       throw err;
     }
   }
