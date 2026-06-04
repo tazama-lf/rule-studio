@@ -51,6 +51,7 @@ const CreateSimSuiteContent = () => {
                 >
                     Back
                 </Button>
+                {values.selectedTab !== "preview_save" && (
                 <Button
                     variant="contained"
                     endIcon={<ChevronRightIcon />}
@@ -69,6 +70,7 @@ const CreateSimSuiteContent = () => {
                 >
                     {values.isCreatingSuite ? "Creating..." : "Next Step"}
                 </Button>
+                )}
             </S.BottomBar>
         </S.PageContainer>
     );
