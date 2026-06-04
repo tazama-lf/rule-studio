@@ -1,4 +1,4 @@
-export type SuiteStatus = 'DRAFT' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'ARCHIVED';
+export type SuiteStatus = 'DRAFT' | 'RUNNING' | 'COMPLETED' | 'FAILED';
 export type RunStatus = 'ENV_PROVISIONING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'TIMED_OUT' | 'CANCELLED';
 export type RunPhase =
   | 'ENV_PROVISIONING'

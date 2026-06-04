@@ -53,6 +53,9 @@ import {
   GENERATION_TRIGGER_CONFIGS,
   GENERATION_ENRICHMENT_TABLES,
   GENERATION_SUMMARY,
+  GENERATION_WIZARD_PROGRESS,
+  GENERATION_CONTEXT_CONFIG,
+  GENERATION_TRIGGER_CONFIG,
   ENRICHMENT_TABLE,
   SIMULATION_ITEMS,
   EXCLUDED_TYPES,
@@ -617,5 +620,17 @@ export class AdminServiceClient {
 
   async getGenerationSummary<T>(token: string, generationId: number): Promise<T> {
     return await this.executeHttpRequest<T>('GET', GENERATION_SUMMARY(generationId), token);
+  }
+
+  async updateWizardProgress<T>(token: string, generationId: number, body: unknown): Promise<T> {
+    return await this.executeHttpRequest<T>('PATCH', GENERATION_WIZARD_PROGRESS(generationId), token, body);
+  }
+
+  async deleteContextTxtpConfig<T>(token: string, generationId: number, configId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('DELETE', GENERATION_CONTEXT_CONFIG(generationId, configId), token);
+  }
+
+  async deleteTriggerTxtpConfig<T>(token: string, generationId: number, configId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('DELETE', GENERATION_TRIGGER_CONFIG(generationId, configId), token);
   }
 }

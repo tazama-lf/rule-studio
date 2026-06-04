@@ -66,6 +66,9 @@ describe('GenerationsService', () => {
             getLatestSuiteGeneration: jest.fn(),
             getGenerationContextConfigs: jest.fn(),
             getGenerationSummary: jest.fn(),
+            updateWizardProgress: jest.fn(),
+            deleteContextTxtpConfig: jest.fn(),
+            deleteTriggerTxtpConfig: jest.fn(),
           },
         },
       ],
@@ -197,6 +200,70 @@ describe('GenerationsService', () => {
 
       await expect(service.getGenerationSummary('test-token', 7)).rejects.toThrow('Not found');
       expect(loggerSpy).toHaveBeenCalledWith('Error fetching summary for generation 7', expect.any(String));
+    });
+  });
+
+  describe('updateWizardProgress', () => {
+    it('forwards both current_step_num and completed_step_num to admin-service', async () => {
+      adminServiceClient.updateWizardProgress.mockResolvedValue({ success: true, message: 'Step 3 saved' });
+
+      const result = await service.updateWizardProgress('test-token', 7, { current_step_num: 3, completed_step_num: 3 });
+
+      expect(result.success).toBe(true);
+      expect(adminServiceClient.updateWizardProgress).toHaveBeenCalledWith(
+        'test-token',
+        7,
+        { current_step_num: 3, completed_step_num: 3 },
+      );
+    });
+
+    it('forwards step 1 (first step)', async () => {
+      adminServiceClient.updateWizardProgress.mockResolvedValue({ success: true, message: 'Step 1 saved' });
+      await service.updateWizardProgress('test-token', 7, { current_step_num: 1, completed_step_num: 1 });
+      expect(adminServiceClient.updateWizardProgress).toHaveBeenCalledWith('test-token', 7, { current_step_num: 1, completed_step_num: 1 });
+    });
+
+    it('logs and rethrows on error', async () => {
+      adminServiceClient.updateWizardProgress.mockRejectedValue(new Error('DB fail'));
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+      await expect(service.updateWizardProgress('test-token', 7, { current_step_num: 2, completed_step_num: 2 })).rejects.toThrow('DB fail');
+      expect(loggerSpy).toHaveBeenCalledWith('Error updating wizard progress for generation 7', expect.any(String));
+    });
+  });
+
+  describe('deleteContextTxtpConfig', () => {
+    it('forwards token, generationId and configId', async () => {
+      adminServiceClient.deleteContextTxtpConfig.mockResolvedValue({ success: true, message: 'Context txtp config deleted' });
+
+      const result = await service.deleteContextTxtpConfig('test-token', 7, 10);
+
+      expect(result.success).toBe(true);
+      expect(adminServiceClient.deleteContextTxtpConfig).toHaveBeenCalledWith('test-token', 7, 10);
+    });
+
+    it('logs and rethrows on error', async () => {
+      adminServiceClient.deleteContextTxtpConfig.mockRejectedValue(new Error('Not found'));
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+      await expect(service.deleteContextTxtpConfig('test-token', 7, 10)).rejects.toThrow('Not found');
+      expect(loggerSpy).toHaveBeenCalledWith('Error deleting context txtp config 10 for generation 7', expect.any(String));
+    });
+  });
+
+  describe('deleteTriggerTxtpConfig', () => {
+    it('forwards token, generationId and configId', async () => {
+      adminServiceClient.deleteTriggerTxtpConfig.mockResolvedValue({ success: true, message: 'Trigger txtp config deleted' });
+
+      const result = await service.deleteTriggerTxtpConfig('test-token', 7, 20);
+
+      expect(result.success).toBe(true);
+      expect(adminServiceClient.deleteTriggerTxtpConfig).toHaveBeenCalledWith('test-token', 7, 20);
+    });
+
+    it('logs and rethrows on error', async () => {
+      adminServiceClient.deleteTriggerTxtpConfig.mockRejectedValue(new Error('Not found'));
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+      await expect(service.deleteTriggerTxtpConfig('test-token', 7, 20)).rejects.toThrow('Not found');
+      expect(loggerSpy).toHaveBeenCalledWith('Error deleting trigger txtp config 20 for generation 7', expect.any(String));
     });
   });
 });
