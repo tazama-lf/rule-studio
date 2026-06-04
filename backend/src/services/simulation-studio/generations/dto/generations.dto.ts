@@ -23,7 +23,7 @@ export class SuiteGenerationDto {
   @ApiProperty({ required: false })
   rule_version?: string;
 
-  @ApiProperty({ example: {} })
+  @ApiProperty({ example: { currentStep: 1, completedSteps: [1] } })
   wizard_snapshot: Record<string, unknown>;
 
   @ApiProperty({ example: {} })

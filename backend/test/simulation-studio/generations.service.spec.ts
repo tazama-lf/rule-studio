@@ -5,11 +5,10 @@ import { AdminServiceClient } from '../../src/services/admin-service-client';
 import type {
   SuiteGenerationsListDto,
   SuiteGenerationResponseDto,
-  ContextConfigsListDto,
   GenerationSummaryResponseDto,
   SuiteGenerationDto,
-  SuiteContextTxtpConfigDto,
 } from '../../src/services/simulation-studio/generations/dto/generations.dto';
+import { SuiteContextTxtpConfigDto, ContextConfigsListDto } from 'src/services/simulation-studio/context-txtp-config/dto/context-txtp-config.dto';
 
 describe('GenerationsService', () => {
   let service: GenerationsService;
@@ -69,6 +68,7 @@ describe('GenerationsService', () => {
             updateWizardProgress: jest.fn(),
             deleteContextTxtpConfig: jest.fn(),
             deleteTriggerTxtpConfig: jest.fn(),
+            resumeGeneration: jest.fn(),
           },
         },
       ],
@@ -264,6 +264,40 @@ describe('GenerationsService', () => {
       const loggerSpy = jest.spyOn(service['logger'], 'error');
       await expect(service.deleteTriggerTxtpConfig('test-token', 7, 20)).rejects.toThrow('Not found');
       expect(loggerSpy).toHaveBeenCalledWith('Error deleting trigger txtp config 20 for generation 7', expect.any(String));
+    });
+  });
+
+  describe('resumeGeneration', () => {
+    it('forwards token and suiteId, returns the draft generation', async () => {
+      adminServiceClient.resumeGeneration.mockResolvedValue(mockGeneration);
+
+      const result = await service.resumeGeneration('test-token', 42);
+
+      expect(result).toEqual(mockGeneration);
+      expect(adminServiceClient.resumeGeneration).toHaveBeenCalledWith('test-token', 42);
+    });
+
+    it('returns a generation with DRAFT status and wizard snapshot', async () => {
+      const draftGeneration: SuiteGenerationDto = {
+        ...mockGeneration,
+        status: 'DRAFT',
+        wizard_snapshot: { current_step_num: 2, completed_step_num: 1 },
+      };
+      adminServiceClient.resumeGeneration.mockResolvedValue(draftGeneration);
+
+      const result = await service.resumeGeneration('test-token', 42);
+
+      expect(result.status).toBe('DRAFT');
+      expect(result.wizard_snapshot).toEqual({ current_step_num: 2, completed_step_num: 1 });
+    });
+
+    it('logs and rethrows on error', async () => {
+      const error = new Error('No draft generation found');
+      adminServiceClient.resumeGeneration.mockRejectedValue(error);
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+      await expect(service.resumeGeneration('test-token', 42)).rejects.toThrow('No draft generation found');
+      expect(loggerSpy).toHaveBeenCalledWith('Error resuming generation for suite 42', expect.any(String));
     });
   });
 });

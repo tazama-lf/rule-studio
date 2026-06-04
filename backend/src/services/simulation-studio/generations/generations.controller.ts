@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiBody, ApiParam } from '@nestjs/swagger';
 import { RequireAnyClaims, TazamaClaims } from 'src/decorators/auth.decorator';
 import { ApiSwagger, mergeResponses, CommonResponses } from 'src/decorators/swagger.decorator';
@@ -7,7 +7,12 @@ import { User } from 'src/decorators/user.decorator';
 import { Audit } from 'src/decorators/audit.decorator';
 import type { AuthenticatedUser } from '../../auth/auth.types';
 import { GenerationsService } from './generations.service';
-import { SuiteGenerationsListDto, SuiteGenerationResponseDto, GenerationSummaryResponseDto } from './dto/generations.dto';
+import {
+  SuiteGenerationsListDto,
+  SuiteGenerationResponseDto,
+  GenerationSummaryResponseDto,
+  SuiteGenerationDto,
+} from './dto/generations.dto';
 import { ContextConfigsListDto } from '../context-txtp-config/dto/context-txtp-config.dto';
 
 @ApiTags('simulation-studio')
@@ -116,45 +121,19 @@ export class GenerationsController {
     return await this.generationsService.updateWizardProgress(user.token.tokenString, generationId, body);
   }
 
-  @Delete('generations/:generationId/context-configs/:configId')
+  @Get('suites/:id/generations/resume')
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
-  @Audit()
-  @ApiParam({ name: 'generationId', description: 'Generation id', example: 1 })
-  @ApiParam({ name: 'configId', description: 'Context txtp config id', example: 1 })
+  @ApiParam({ name: 'id', description: 'Simulation suite id', example: 1 })
   @ApiSwagger({
-    summary: 'Delete context TXTP config',
-    description: 'Deletes context txtp config and field strategies (cascade). Step 2 Remove TXTP.',
+    summary: 'Resume generation for a suite',
+    description:
+      'Resumes the most recent generation for the given simulation suite that is DRAFT (wizard not completed). Returns the generation record with the latest wizard snapshot to restore UI state.',
     responses: mergeResponses(
-      CommonResponses.SUCCESS_200(Object, 'Context txtp config deleted'),
-      CommonResponses.NOT_FOUND_404('Config not found'),
+      CommonResponses.SUCCESS_200(SuiteGenerationDto, 'Generation retrieved successfully'),
+      CommonResponses.NOT_FOUND_404('Suite not found'),
     ),
   })
-  async deleteContextTxtpConfig(
-    @Param('generationId', ParseIntPipe) generationId: number,
-    @Param('configId', ParseIntPipe) configId: number,
-    @User() user: AuthenticatedUser,
-  ): Promise<{ success: boolean; message: string }> {
-    return await this.generationsService.deleteContextTxtpConfig(user.token.tokenString, generationId, configId);
-  }
-
-  @Delete('generations/:generationId/trigger-configs/:configId')
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
-  @Audit()
-  @ApiParam({ name: 'generationId', description: 'Generation id', example: 1 })
-  @ApiParam({ name: 'configId', description: 'Trigger txtp config id', example: 1 })
-  @ApiSwagger({
-    summary: 'Delete trigger TXTP config',
-    description: 'Deletes trigger txtp config and field overrides (cascade). Step 3 Remove TXTP.',
-    responses: mergeResponses(
-      CommonResponses.SUCCESS_200(Object, 'Trigger txtp config deleted'),
-      CommonResponses.NOT_FOUND_404('Config not found'),
-    ),
-  })
-  async deleteTriggerTxtpConfig(
-    @Param('generationId', ParseIntPipe) generationId: number,
-    @Param('configId', ParseIntPipe) configId: number,
-    @User() user: AuthenticatedUser,
-  ): Promise<{ success: boolean; message: string }> {
-    return await this.generationsService.deleteTriggerTxtpConfig(user.token.tokenString, generationId, configId);
+  async resumeGenerationForSuite(@Param('id', ParseIntPipe) id: number, @User() user: AuthenticatedUser): Promise<SuiteGenerationDto> {
+    return await this.generationsService.resumeGeneration(user.token.tokenString, id);
   }
 }

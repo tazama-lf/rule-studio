@@ -83,3 +83,4 @@ export const GENERATION_CONTEXT_CONFIG = (generationId: number, configId: number
   `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/context-configs/${configId}`;
 export const GENERATION_TRIGGER_CONFIG = (generationId: number, configId: number): string =>
   `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/trigger-configs/${configId}`;
+export const RESUME_GENERATION = (suiteId: number): string => `${SIMULATION_STUDIO_BASE_URL}/suites/${suiteId}/generation/resume`;

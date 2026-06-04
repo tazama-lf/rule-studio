@@ -62,6 +62,7 @@ import {
   STAGE_SIMULATION_ITEMS,
   GET_ALL_EVALUATIONS,
   FETCH_COUNT_DLH,
+  RESUME_GENERATION,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto, UpdateMaskDto } from './masking/dto/masking.dto';
 import type {
@@ -86,7 +87,7 @@ import {
   SimulationSuitesDto,
   SimulationSuitesListDto,
   SimulationSuitesQueryDto,
-} from './simulation-studio/dto';
+} from './simulation-studio/suites/dto';
 import type { ISimulationSuiteCreatePayload } from './simulation-studio/interface/simulation-studio.interface';
 
 export interface SimulationMessage {
@@ -632,5 +633,9 @@ export class AdminServiceClient {
 
   async deleteTriggerTxtpConfig<T>(token: string, generationId: number, configId: number): Promise<T> {
     return await this.executeHttpRequest<T>('DELETE', GENERATION_TRIGGER_CONFIG(generationId, configId), token);
+  }
+
+  async resumeGeneration<T>(token: string, suiteId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('POST', RESUME_GENERATION(suiteId), token);
   }
 }

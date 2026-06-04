@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { SimulationStudioController } from '../../src/services/simulation-studio/simulation-studio.controller';
-import { SimulationStudioService } from '../../src/services/simulation-studio/simulation-studio.service';
+import { SimulationStudioController } from '../../src/services/simulation-studio/suites/simulation-studio.controller';
+import { SimulationStudioService } from '../../src/services/simulation-studio/suites/simulation-studio.service';
 import { makeAuthenticatedUser } from '../helpers/rbac/user.factory';
 import type {
   PatchSimulationSuitesDto,
@@ -10,7 +10,7 @@ import type {
   SimulationSuitesDto,
   SimulationSuitesListDto,
   SimulationSuitesQueryDto,
-} from '../../src/services/simulation-studio/dto';
+} from '../../src/services/simulation-studio/suites/dto';
 
 describe('SimulationStudioController', () => {
   let controller: SimulationStudioController;

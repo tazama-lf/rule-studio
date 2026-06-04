@@ -4,7 +4,7 @@ import { RequireAnyClaims, TazamaClaims } from 'src/decorators/auth.decorator';
 import { ApiSwagger, mergeResponses, CommonResponses } from 'src/decorators/swagger.decorator';
 import { TazamaAuthGuard } from 'src/guards/tazama-auth.guard';
 import { SimulationStudioService } from './simulation-studio.service';
-import type { AuthenticatedUser } from '../auth/auth.types';
+import type { AuthenticatedUser } from '../../auth/auth.types';
 import { User } from 'src/decorators/user.decorator';
 import { Audit } from 'src/decorators/audit.decorator';
 import {
