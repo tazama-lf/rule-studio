@@ -1,6 +1,6 @@
-import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException, OnModuleDestroy } from '@nestjs/common';
 import { GenericContainer, Network, StartedNetwork, StartedTestContainer, Wait } from 'testcontainers';
-import { SimulationInfo, SimulationPorts, SpawnOptions } from './interfaces/ephemeral-env.interfaces';
+import { SimulationInfo, SimulationPorts, SimulationStatus, SpawnOptions } from './interfaces/ephemeral-env.interfaces';
 
 interface SimulationInstance {
   info: SimulationInfo;
@@ -14,6 +14,7 @@ interface SimulationInstance {
 
 const GITHUB_REPO = 'tazama-lf/Full-Stack-Docker-Tazama';
 const REPO_BRANCH = process.env.TAZAMA_REPO_BRANCH ?? 'dev';
+const DOCKERHUB_NAMESPACE = process.env.DOCKERHUB_NAMESPACE ?? 'tazamaorg';
 
 interface GithubEntry {
   type: string;
@@ -45,15 +46,16 @@ export class EphemeralEnvService implements OnModuleDestroy {
   }
 
   private async assertImageExists(image: string): Promise<void> {
-    const [nameTag, tag = 'latest'] = image.split(':') as [string, string?];
-    const [, repo] = nameTag.split('/') as [string, string];
+    const colonIdx = image.lastIndexOf(':');
+    const nameTag = colonIdx === -1 ? image : image.slice(0, colonIdx);
+    const tag = colonIdx === -1 ? 'latest' : image.slice(colonIdx + 1);
     const registryUrl = `https://hub.docker.com/v2/repositories/${nameTag}/tags/${tag}`;
     this.logger.log(`Checking Docker Hub for image: ${image}`);
     const res = await fetch(registryUrl);
     if (res.status === 404) {
-      throw new Error(
-        `Rule image '${image}' was not found on Docker Hub. ` +
-        `Check that tazamaorg/rule-${repo.replace('rule-', '')} exists and the version tag '${tag}' is published.`,
+      throw new BadRequestException(
+        `Image '${image}' was not found on Docker Hub. ` +
+        `Check that '${nameTag}' exists and the tag '${tag}' is published.`,
       );
     }
     if (!res.ok) {
@@ -63,17 +65,17 @@ export class EphemeralEnvService implements OnModuleDestroy {
 
   async spawn(name: string, options: SpawnOptions = {}): Promise<SimulationInfo> {
     if (this.simulations.has(name)) {
-      throw new Error(`Simulation '${name}' already exists. Destroy it first.`);
+      throw new BadRequestException(`Simulation '${name}' already exists. Destroy it first.`);
     }
 
-    const ruleNum = options.ruleNum ?? '901';
+    const ruleName = options.ruleName ?? 'rule-901';
     const version = options.version ?? 'rc';
-    const functionName = `rule-${ruleNum}-rel-${version}`;
-    const natsSubject = `sub-rule-${ruleNum}@${version}`;
-    const natsConsumer = `pub-rule-${ruleNum}@${version}`;
-    const ruleImage = `tazamaorg/rule-${ruleNum}:${version}`;
+    const functionName = `${ruleName}-rel-${version}`;
+    const natsSubject = `sub-${ruleName}@${version}`;
+    const natsConsumer = `pub-${ruleName}@${version}`;
+    const ruleImage = `${DOCKERHUB_NAMESPACE}/${ruleName}:${version}`;
 
-    this.logger.log(`Spawning '${name}': rule-${ruleNum} @ ${version}`);
+    this.logger.log(`Spawning '${name}': ${ruleImage}`);
 
     await this.assertImageExists(ruleImage);
 
@@ -159,7 +161,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
           APM_ACTIVE: 'false',
           APM_URL: 'http://apm:8200',
           APM_SECRET_TOKEN: '',
-          APM_SERVICE_NAME: `rule-${ruleNum}`,
+          APM_SERVICE_NAME: ruleName,
           LOCAL_CACHETTL: '300',
           LOCAL_CACHE_ENABLED: 'true',
           DISTRIBUTED_CACHE_ENABLED: 'false',
@@ -191,7 +193,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
           SERVER_URL: 'nats:4222',
           FUNCTION_NAME: functionName,
           RULE_VERSION: version,
-          RULE_NAME: ruleNum,
+          RULE_NAME: ruleName,
         })
         .withLogConsumer((stream) => {
           stream.on('data', (line: string) => { this.logger.log(`[${name}][rule-processor] ${line.trim()}`); });
@@ -236,13 +238,14 @@ export class EphemeralEnvService implements OnModuleDestroy {
 
       const info: SimulationInfo = {
         name,
-        ruleNum,
+        ruleName,
         version,
         functionName,
         natsSubject,
         natsConsumer,
         ports,
         startedAt: new Date(),
+        status: SimulationStatus.UP,
       };
 
       this.simulations.set(name, { info, network, postgres, nats, valkey, ruleProcessor, natsUtilities });
@@ -261,7 +264,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
 
   async destroy(name: string): Promise<void> {
     const sim = this.simulations.get(name);
-    if (!sim) throw new Error(`Simulation '${name}' not found`);
+    if (!sim) throw new NotFoundException(`Simulation '${name}' not found`);
 
     this.logger.log(`Destroying simulation '${name}'...`);
 
@@ -295,7 +298,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
 
   getNatsUtilsUrl(name: string): string {
     const sim = this.simulations.get(name);
-    if (!sim) throw new Error(`Simulation '${name}' not found`);
+    if (!sim) throw new NotFoundException(`Simulation '${name}' not found`);
     return `http://localhost:${sim.info.ports.natsUtils}`;
   }
 }

@@ -1,5 +1,10 @@
+export enum SimulationStatus {
+  UP = 'UP',
+  DOWN = 'DOWN',
+}
+
 export interface SpawnOptions {
-  ruleNum?: string;
+  ruleName?: string;
   version?: string;
 }
 
@@ -13,11 +18,12 @@ export interface SimulationPorts {
 
 export interface SimulationInfo {
   name: string;
-  ruleNum: string;
+  ruleName: string;
   version: string;
   functionName: string;
   natsSubject: string;
   natsConsumer: string;
   ports: SimulationPorts;
   startedAt: Date;
+  status: SimulationStatus;
 }

@@ -12,14 +12,14 @@ export class SpawnSimulationDto {
   @Matches(/^[a-z0-9-]+$/, { message: 'name must be lowercase alphanumeric and hyphens only' })
   name: string;
   @ApiPropertyOptional({
-    description: 'Rule number to deploy (e.g. "901", "902")',
-    example: '901',
-    default: '901',
+    description: 'Full rule image name on Docker Hub (e.g. "rule-901", "cbe-case107")',
+    example: 'rule-901',
+    default: 'rule-901',
   })
   @IsOptional()
   @IsString()
-  @Matches(/^\d+$/, { message: 'ruleNum must be a numeric string' })
-  ruleNum?: string;
+  @Matches(/^[a-z0-9-]+$/, { message: 'ruleName must be lowercase alphanumeric and hyphens only' })
+  ruleName?: string;
 
   @ApiPropertyOptional({
     description: 'Tazama image version tag',

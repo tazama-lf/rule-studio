@@ -42,7 +42,7 @@ export class EphemeralEnvController {
   })
   async spawn(@Body() body: SpawnSimulationDto): Promise<SimulationInfoDto> {
     const info = await this.ephemeralEnvService.spawn(body.name, {
-      ruleNum: body.ruleNum,
+      ruleName: body.ruleName,
       version: body.version,
     });
     return this.toDto(info);

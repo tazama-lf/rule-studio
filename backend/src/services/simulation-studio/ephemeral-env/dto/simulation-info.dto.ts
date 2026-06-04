@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { ApiProperty } from '@nestjs/swagger';
+import { SimulationStatus } from '../interfaces/ephemeral-env.interfaces';
 
 class SimulationPortsDto {
   @ApiProperty({ example: 54321 })
@@ -22,8 +23,8 @@ export class SimulationInfoDto {
   @ApiProperty({ example: 'sim-001' })
   name: string;
 
-  @ApiProperty({ example: '901' })
-  ruleNum: string;
+  @ApiProperty({ example: 'rule-901', description: 'Full rule image name on Docker Hub' })
+  ruleName: string;
 
   @ApiProperty({ example: 'rc' })
   version: string;
@@ -42,6 +43,9 @@ export class SimulationInfoDto {
 
   @ApiProperty({ example: '2026-06-03T12:00:00.000Z' })
   startedAt: Date;
+
+  @ApiProperty({ enum: SimulationStatus, example: SimulationStatus.UP, description: 'Whether all containers are running' })
+  status: SimulationStatus;
 
   @ApiProperty({
     description: 'Convenience URL for the REST-to-NATS bridge',
