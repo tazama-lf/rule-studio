@@ -42,7 +42,7 @@ export class TriggerFieldOverrideDto {
   range_max?: number;
 
   @ApiProperty({ required: false, example: 'iso20022.bic' })
-  generator_type?: string;
+  faker_semantic_type?: string;
 
   @ApiProperty({ required: false, example: {} })
   generator_options?: Record<string, unknown>;
@@ -77,7 +77,7 @@ export class UpsertTriggerFieldOverrideDto {
   @ApiProperty({ required: false, example: 'iso20022.bic' })
   @IsOptional()
   @IsString()
-  generator_type?: string;
+  faker_semantic_type?: string;
 
   @ApiProperty({ required: false, example: {} })
   @IsOptional()
