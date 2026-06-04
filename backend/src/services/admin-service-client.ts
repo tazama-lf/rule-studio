@@ -52,6 +52,7 @@ import {
   GENERATION_CONTEXT_CONFIGS,
   GENERATION_TRIGGER_CONFIGS,
   GENERATION_ENRICHMENT_TABLES,
+  GENERATION_SUMMARY,
   ENRICHMENT_TABLE,
   SIMULATION_ITEMS,
   EXCLUDED_TYPES,
@@ -612,5 +613,9 @@ export class AdminServiceClient {
 
   async deleteEnrichmentTable<T>(token: string, generationId: number, tableId: number): Promise<T> {
     return await this.executeHttpRequest<T>('DELETE', ENRICHMENT_TABLE(generationId, tableId), token);
+  }
+
+  async getGenerationSummary<T>(token: string, generationId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('GET', GENERATION_SUMMARY(generationId), token);
   }
 }

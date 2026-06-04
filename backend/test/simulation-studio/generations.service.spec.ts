@@ -6,6 +6,7 @@ import type {
   SuiteGenerationsListDto,
   SuiteGenerationResponseDto,
   ContextConfigsListDto,
+  GenerationSummaryResponseDto,
   SuiteGenerationDto,
   SuiteContextTxtpConfigDto,
 } from '../../src/services/simulation-studio/generations/dto/generations.dto';
@@ -64,6 +65,7 @@ describe('GenerationsService', () => {
             getSuiteGenerations: jest.fn(),
             getLatestSuiteGeneration: jest.fn(),
             getGenerationContextConfigs: jest.fn(),
+            getGenerationSummary: jest.fn(),
           },
         },
       ],
@@ -136,6 +138,65 @@ describe('GenerationsService', () => {
 
       await expect(service.getContextConfigsForGeneration('test-token', 1)).rejects.toThrow('DB error');
       expect(loggerSpy).toHaveBeenCalledWith('Error fetching context configs for generation 1', expect.any(String));
+    });
+  });
+
+  describe('getGenerationSummary', () => {
+    const mockSummaryResponse: GenerationSummaryResponseDto = {
+      success: true,
+      data: {
+        generation_id: 7,
+        generation_number: 1,
+        status: 'DRAFT',
+        suite_name: 'Q3 Edge Cases',
+        associated_rule: 'Rule 001',
+        primary_txtp: 'pacs.008',
+        context_txtp_configs: [{ txtp: 'pacs.008', txtp_version: '001.08', message_count: 100 }],
+        enrichment_table_names: ['account_enrichment'],
+        context_count: 100,
+        trigger_count: 10,
+        enrichment_table_count: 1,
+        iteration_number: 0,
+      },
+    };
+
+    it('forwards token and generationId, returns summary', async () => {
+      adminServiceClient.getGenerationSummary.mockResolvedValue(mockSummaryResponse);
+
+      const result = await service.getGenerationSummary('test-token', 7);
+
+      expect(result).toEqual(mockSummaryResponse);
+      expect(adminServiceClient.getGenerationSummary).toHaveBeenCalledWith('test-token', 7);
+    });
+
+    it('includes suite name, rule, txtp list and enrichment tables', async () => {
+      adminServiceClient.getGenerationSummary.mockResolvedValue(mockSummaryResponse);
+
+      const result = await service.getGenerationSummary('test-token', 7);
+
+      expect(result.data.suite_name).toBe('Q3 Edge Cases');
+      expect(result.data.primary_txtp).toBe('pacs.008');
+      expect(result.data.context_txtp_configs).toHaveLength(1);
+      expect(result.data.enrichment_table_names).toEqual(['account_enrichment']);
+    });
+
+    it('includes record counts', async () => {
+      adminServiceClient.getGenerationSummary.mockResolvedValue(mockSummaryResponse);
+
+      const result = await service.getGenerationSummary('test-token', 7);
+
+      expect(result.data.context_count).toBe(100);
+      expect(result.data.trigger_count).toBe(10);
+      expect(result.data.enrichment_table_count).toBe(1);
+    });
+
+    it('logs and rethrows on error', async () => {
+      const error = new Error('Not found');
+      adminServiceClient.getGenerationSummary.mockRejectedValue(error);
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+      await expect(service.getGenerationSummary('test-token', 7)).rejects.toThrow('Not found');
+      expect(loggerSpy).toHaveBeenCalledWith('Error fetching summary for generation 7', expect.any(String));
     });
   });
 });
