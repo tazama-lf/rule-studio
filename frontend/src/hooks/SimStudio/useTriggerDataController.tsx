@@ -5,7 +5,7 @@ import {
     useLazyGetTriggerConfigsQuery,
     useCreateTriggerConfigMutation,
     useBulkUpdateTriggerConfigsMutation,
-    type TriggerFieldOverride,
+    useDeleteTriggerConfigMutation,
     type TriggerTxtpConfig,
 } from "../../redux/Api/SimStudio";
 import { LocalStorage } from "../../utils/Common/enums";
@@ -87,6 +87,7 @@ const useTriggerDataController = () => {
     const [fetchTriggerConfigs] = useLazyGetTriggerConfigsQuery();
     const [createTriggerConfig] = useCreateTriggerConfigMutation();
     const [bulkUpdateTriggerConfigs] = useBulkUpdateTriggerConfigsMutation();
+    const [deleteTriggerConfig] = useDeleteTriggerConfigMutation();
 
     useEffect(() => {
         if (initialized.current) return;
@@ -149,8 +150,15 @@ const useTriggerDataController = () => {
     }, [primaryTxtp, numMessages, createTriggerConfig]);
 
     const handleRemove = useCallback((id: string) => {
+        const entry = entries.find((e) => e.id === id);
+        const genId = extractData("sim_gen_id", LocalStorage, false) as string | number | null;
+        if (entry?.triggerId && genId) {
+            void deleteTriggerConfig({ generationId: Number(genId), configId: entry.triggerId })
+                .unwrap()
+                .catch(() => toast.error("Failed to remove trigger config."));
+        }
         setEntries((prev) => prev.filter((e) => e.id !== id));
-    }, []);
+    }, [entries, deleteTriggerConfig]);
 
     const handleToggleExpand = useCallback((id: string) => {
         setEntries((prev) =>

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiParam, ApiBody } from '@nestjs/swagger';
 import { RequireAnyClaims, TazamaClaims } from 'src/decorators/auth.decorator';
 import { ApiSwagger, mergeResponses, CommonResponses } from 'src/decorators/swagger.decorator';
@@ -82,5 +82,25 @@ export class ContextTxtpConfigController {
     @User() user: AuthenticatedUser,
   ): Promise<BulkUpdateContextConfigsResponseDto> {
     return await this.contextTxtpConfigService.bulkUpdateContextConfigs(user.token.tokenString, generationId, items);
+  }
+
+  @Delete('generations/:generationId/context-configs/:configId')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @ApiParam({ name: 'generationId', description: 'Generation id', example: 1 })
+  @ApiParam({ name: 'configId', description: 'Context txtp config id', example: 1 })
+  @ApiSwagger({
+    summary: 'Delete context TXTP config (Step 2 - Remove TXTP button)',
+    description: 'Deletes a context txtp config and its field strategies (cascade). Used when user removes a TXTP in Step 2.',
+    responses: mergeResponses(
+      CommonResponses.SUCCESS_200(Object, 'Context txtp config deleted'),
+      CommonResponses.NOT_FOUND_404('Config not found'),
+    ),
+  })
+  async deleteContextTxtpConfig(
+    @Param('generationId', ParseIntPipe) generationId: number,
+    @Param('configId', ParseIntPipe) configId: number,
+    @User() user: AuthenticatedUser,
+  ): Promise<{ success: boolean; message: string }> {
+    return await this.contextTxtpConfigService.deleteContextTxtpConfig(user.token.tokenString, generationId, configId);
   }
 }

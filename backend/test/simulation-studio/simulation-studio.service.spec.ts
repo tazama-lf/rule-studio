@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { SimulationStudioService } from '../../src/services/simulation-studio/simulation-studio.service';
+import { SimulationStudioService } from '../../src/services/simulation-studio/suites/simulation-studio.service';
 import { AdminServiceClient } from '../../src/services/admin-service-client';
 import type {
   PatchSimulationSuitesDto,
@@ -9,7 +9,7 @@ import type {
   SimulationSuitesDto,
   SimulationSuitesListDto,
   SimulationSuitesQueryDto,
-} from '../../src/services/simulation-studio/dto';
+} from '../../src/services/simulation-studio/suites/dto';
 
 describe('SimulationStudioService', () => {
   let service: SimulationStudioService;
@@ -31,6 +31,40 @@ describe('SimulationStudioService', () => {
     wizard_progress: {},
     metadata: {},
     created_by: 'user-1',
+    rule_config: {
+      "id": "021@1.0.0",
+      "cfg": "1.0.0",
+      "desc": "A large number of similar transaction amounts - Creditor",
+      "config": {
+        "bands": [
+          {
+            "reason": "The creditor has received an insignificant number of transactions with the same amount in the last 24 hours",
+            "subRuleRef": ".01",
+            "upperLimit": 2
+          },
+          {
+            "reason": "The creditor has received a significant number of transactions with the same amount in the last 24 hours",
+            "lowerLimit": 2,
+            "subRuleRef": ".02"
+          }
+        ],
+        "parameters": {
+          "tolerance": 0.1,
+          "maxQueryRange": 86400000
+        },
+        "exitConditions": [
+          {
+            "reason": "Unsuccessful transaction",
+            "subRuleRef": ".x00"
+          },
+          {
+            "reason": "Insufficient transaction history",
+            "subRuleRef": ".x01"
+          }
+        ]
+      },
+      "tenantId": "cbe"
+    },
   };
 
   const mockList: SimulationSuitesListDto = {

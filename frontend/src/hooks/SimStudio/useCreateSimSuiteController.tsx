@@ -7,10 +7,10 @@ import * as yup from "yup";
 import type { DropdownOption } from "../../components/DropDown";
 import { useSimStudioTab } from "../../contexts/SimStudioTabContext";
 import { useGetTypesQuery, useLazyGetTxtpVersionsQuery } from "../../redux/Api/Config";
-import { useCreateSuiteMutation } from "../../redux/Api/SimStudio";
+import { useCreateSuiteMutation, useUpdateWizardProgressMutation } from "../../redux/Api/SimStudio";
 import { useGetRulesQuery, useLazyGetRuleTagsQuery } from "../../redux/Api/DockerHub";
 import { LocalStorage } from "../../utils/Common/enums";
-import { insertData } from "../../utils/Common/storage";
+import { insertData, extractData } from "../../utils/Common/storage";
 import { SimStudioTabs } from "../../utils/Constants/data";
 import PlaceholderStep from "../../components/SimStudio/PlaceholderStep";
 import Step1RuleDetails from "../../components/SimStudio/RuleDetails";
@@ -69,8 +69,14 @@ const useCreateSimSuiteController = () => {
     const navigate = useNavigate();
     const { selectedTab, tabs, enableNextTab, enablePreviousTab } = useSimStudioTab();
     const [createSuite, { isLoading: isCreatingSuite }] = useCreateSuiteMutation();
+    const [updateWizardProgress] = useUpdateWizardProgressMutation();
+
+    const extractGenId = useCallback(() => {
+        const genId = extractData("sim_gen_id", LocalStorage, false) as string | number | null;
+        return genId ? Number(genId) : null;
+    }, []);
     const { data: rulesData } = useGetRulesQuery();
-    const [getRuleTags, { data: ruleTagsData, isFetching: ruleVersionLoading }] = useLazyGetRuleTagsQuery();
+    const [getRuleTags, { data: ruleTagsData }] = useLazyGetRuleTagsQuery();
     const step2SaveRef = useRef<(() => Promise<boolean>) | null>(null);
     const step3SaveRef = useRef<(() => Promise<boolean>) | null>(null);
     const step4SaveRef = useRef<(() => Promise<boolean>) | null>(null);
@@ -171,7 +177,9 @@ const useCreateSimSuiteController = () => {
                         primary_txtp_version: String(data.version!.value),
                         rule_config: parsedRuleConfig,
                     }).unwrap();
-                    insertData(result.data.generation_id, "sim_gen_id", LocalStorage, false);
+                    const genId = result.data.generation_id as unknown as number;
+                    insertData(genId, "sim_gen_id", LocalStorage, false);
+                    void updateWizardProgress({ generationId: genId, current_step_num: 2, completed_step_num: 1 });
                     enableNextTab();
                 } catch {
                     toast.error("Failed to create simulation suite. Please try again.");
@@ -181,19 +189,31 @@ const useCreateSimSuiteController = () => {
             void (async () => {
                 const save = step2SaveRef.current;
                 const ok = save ? await save() : true;
-                if (ok) enableNextTab();
+                if (ok) {
+                    const genId = extractGenId();
+                    if (genId) void updateWizardProgress({ generationId: genId, current_step_num: 3, completed_step_num: 2 });
+                    enableNextTab();
+                }
             })();
         } else if (selectedTab === SimStudioTabs[2].value) {
             void (async () => {
                 const save = step3SaveRef.current;
                 const ok = save ? await save() : true;
-                if (ok) enableNextTab();
+                if (ok) {
+                    const genId = extractGenId();
+                    if (genId) void updateWizardProgress({ generationId: genId, current_step_num: 4, completed_step_num: 3 });
+                    enableNextTab();
+                }
             })();
         } else if (selectedTab === SimStudioTabs[3].value) {
             void (async () => {
                 const save = step4SaveRef.current;
                 const ok = save ? await save() : true;
-                if (ok) enableNextTab();
+                if (ok) {
+                    const genId = extractGenId();
+                    if (genId) void updateWizardProgress({ generationId: genId, current_step_num: 5, completed_step_num: 4 });
+                    enableNextTab();
+                }
             })();
         } else {
             enableNextTab();

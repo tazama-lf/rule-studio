@@ -163,7 +163,7 @@ const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
                     <Box display="flex" flexDirection="column" gap={1}>
                         {savedRecords.map((record) => (
                             <Accordion
-                                key={record.enrichment_table_id}
+                                key={record.id}
                                 disableGutters
                                 elevation={0}
                                 sx={{
@@ -196,7 +196,7 @@ const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
                                                 disabled={isDeleting}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    void handleDeleteRecord(record.enrichment_table_id);
+                                                    void handleDeleteRecord(record.id);
                                                 }}
                                                 sx={{ color: "#ef4444", "&:hover": { backgroundColor: "#fef2f2" } }}
                                             >
