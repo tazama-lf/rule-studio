@@ -595,7 +595,6 @@ export const SimStudioTabs = [
     { label: 'Enrichment Data',     value: 'enrichment_data',     enabled: false },
     { label: 'Preview & Save',      value: 'preview_save',        enabled: false },
     { label: 'Simulation Results',  value: 'simulation_results',  enabled: false },
-    { label: 'Summary',             value: 'summary',             enabled: false },
 ]
 
 export const claims = {

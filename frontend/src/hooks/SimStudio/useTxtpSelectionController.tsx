@@ -9,6 +9,7 @@ import {
     useLazyGetContextConfigsQuery,
     useCreateContextConfigMutation,
     useBulkUpdateContextConfigsMutation,
+    useDeleteContextConfigMutation,
     type BulkConfigItem,
     type FieldStrategy,
 } from "../../redux/Api/SimStudio";
@@ -132,6 +133,7 @@ const useTxtpSelectionController = () => {
     const [fetchContextConfigs] = useLazyGetContextConfigsQuery();
     const [createContextConfig] = useCreateContextConfigMutation();
     const [bulkUpdateContextConfigs] = useBulkUpdateContextConfigsMutation();
+    const [deleteContextConfig] = useDeleteContextConfigMutation();
 
     const txTypeOptions = useMemo<DropdownOption[]>(() => {
         if (!txTypesData || !Array.isArray(txTypesData)) return [];
@@ -264,8 +266,15 @@ const useTxtpSelectionController = () => {
     }, [addTxtp, addVersion, numMessages, entries.length, createContextConfig]);
 
     const handleRemove = useCallback((id: string) => {
+        const entry = entries.find((e) => e.id === id);
+        const genId = extractData("sim_gen_id", LocalStorage, false) as string | number | null;
+        if (entry?.contextConfigId && genId) {
+            void deleteContextConfig({ generationId: Number(genId), configId: entry.contextConfigId })
+                .unwrap()
+                .catch(() => toast.error("Failed to remove TXTP config."));
+        }
         setEntries((prev) => prev.filter((e) => e.id !== id));
-    }, []);
+    }, [entries, deleteContextConfig]);
 
     const handleToggleExpand = useCallback((id: string) => {
         setEntries((prev) =>

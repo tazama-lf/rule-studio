@@ -1,4 +1,4 @@
-import type { PatchSimulationSuitesDto, RequestSimulationSuitesDto, SimulationSuitesQueryDto, SimulationSuitesDto } from '../dto';
+import type { PatchSimulationSuitesDto, RequestSimulationSuitesDto, SimulationSuitesQueryDto, SimulationSuitesDto } from '../suites/dto';
 
 export interface ISimulationSuitesListResponse {
   suites: SimulationSuitesDto[];

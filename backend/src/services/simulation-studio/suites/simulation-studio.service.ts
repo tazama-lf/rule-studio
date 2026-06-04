@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { AdminServiceClient } from '../admin-service-client';
+import { AdminServiceClient } from '../../admin-service-client';
 import {
   PatchSimulationSuitesDto,
   RequestSimulationSuitesDto,
@@ -8,7 +8,7 @@ import {
   SimulationSuitesListDto,
   SimulationSuitesQueryDto,
 } from './dto';
-import type { ISimulationSuiteCreatePayload } from './interface/simulation-studio.interface';
+import type { ISimulationSuiteCreatePayload } from '../interface/simulation-studio.interface';
 
 @Injectable()
 export class SimulationStudioService {
