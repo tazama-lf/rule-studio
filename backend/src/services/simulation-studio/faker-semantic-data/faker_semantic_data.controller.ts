@@ -8,14 +8,14 @@ import { RequireAnyClaims, TazamaClaims } from 'src/decorators/auth.decorator';
 import type { AuthenticatedUser } from 'src/services/auth/auth.types';
 import { User } from 'src/decorators/user.decorator';
 
-@ApiTags('simulation-studio >  faker-semantic-data')
+@ApiTags('simulation-studio')
 @ApiBearerAuth('JWT-auth')
-@Controller('faker-semantic-data')
+@Controller('simulation-studio')
 @UseGuards(TazamaAuthGuard)
 export class FakerSemanticDataController {
   constructor(private readonly fakerSemanticDataService: FakerSemanticDataService) {}
 
-  @Get()
+  @Get('faker-semantic-data')
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
   @ApiBearerAuth('JWT-auth')
   @ApiSwagger({

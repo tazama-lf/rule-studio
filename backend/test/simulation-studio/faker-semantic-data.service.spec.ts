@@ -29,7 +29,7 @@ describe('FakerSemanticDataService', () => {
         {
           provide: AdminServiceClient,
           useValue: {
-            generateFakerSymmetricData: jest.fn(),
+            generateFakerSemanticData: jest.fn(),
           },
         },
       ],
@@ -43,31 +43,31 @@ describe('FakerSemanticDataService', () => {
 
   it('should be defined', () => expect(service).toBeDefined());
 
-  // ── generateFakerSymmetricData ───────────────────────────────────────────
+  // ── generateFakerSemanticData ───────────────────────────────────────────
 
-  describe('generateFakerSymmetricData', () => {
+  describe('generateFakerSemanticData', () => {
     it('forwards token to admin-service and returns the list response', async () => {
-      adminServiceClient.generateFakerSymmetricData.mockResolvedValue(mockListResponse);
+      adminServiceClient.generateFakerSemanticData.mockResolvedValue(mockListResponse);
 
-      const result = await service.generateFakerSymmetricData('test-token');
+      const result = await service.generateFakerSemanticData('test-token');
 
       expect(result).toEqual(mockListResponse);
-      expect(adminServiceClient.generateFakerSymmetricData).toHaveBeenCalledWith('test-token');
+      expect(adminServiceClient.generateFakerSemanticData).toHaveBeenCalledWith('test-token');
     });
 
     it('returns success flag and message from admin-service response', async () => {
-      adminServiceClient.generateFakerSymmetricData.mockResolvedValue(mockListResponse);
+      adminServiceClient.generateFakerSemanticData.mockResolvedValue(mockListResponse);
 
-      const result = await service.generateFakerSymmetricData('test-token');
+      const result = await service.generateFakerSemanticData('test-token');
 
       expect(result.success).toBe(true);
       expect(result.message).toBe('Data fetched successfully');
     });
 
     it('returns data array with faker items', async () => {
-      adminServiceClient.generateFakerSymmetricData.mockResolvedValue(mockListResponse);
+      adminServiceClient.generateFakerSemanticData.mockResolvedValue(mockListResponse);
 
-      const result = await service.generateFakerSymmetricData('test-token');
+      const result = await service.generateFakerSemanticData('test-token');
 
       expect(result.data).toHaveLength(1);
       expect(result.data[0].id).toBe(1);
@@ -75,24 +75,24 @@ describe('FakerSemanticDataService', () => {
     });
 
     it('returns empty data array when no faker items exist', async () => {
-      adminServiceClient.generateFakerSymmetricData.mockResolvedValue({
+      adminServiceClient.generateFakerSemanticData.mockResolvedValue({
         success: true,
         message: 'Data fetched successfully',
         data: [],
       });
 
-      const result = await service.generateFakerSymmetricData('test-token');
+      const result = await service.generateFakerSemanticData('test-token');
 
       expect(result.data).toHaveLength(0);
     });
 
     it('logs and rethrows on error', async () => {
       const error = new Error('Fetch failed');
-      adminServiceClient.generateFakerSymmetricData.mockRejectedValue(error);
+      adminServiceClient.generateFakerSemanticData.mockRejectedValue(error);
       const loggerSpy = jest.spyOn(service['logger'], 'error');
 
-      await expect(service.generateFakerSymmetricData('test-token')).rejects.toThrow('Fetch failed');
-      expect(loggerSpy).toHaveBeenCalledWith('Error getting faker symmetric data', expect.any(String));
+      await expect(service.generateFakerSemanticData('test-token')).rejects.toThrow('Fetch failed');
+      expect(loggerSpy).toHaveBeenCalledWith('Error getting faker semantic data', expect.any(String));
     });
   });
 });
