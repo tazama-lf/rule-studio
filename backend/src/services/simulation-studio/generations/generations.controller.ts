@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiBody, ApiParam } from '@nestjs/swagger';
 import { RequireAnyClaims, TazamaClaims } from 'src/decorators/auth.decorator';
 import { ApiSwagger, mergeResponses, CommonResponses } from 'src/decorators/swagger.decorator';
@@ -135,5 +135,25 @@ export class GenerationsController {
   })
   async resumeGenerationForSuite(@Param('id', ParseIntPipe) id: number, @User() user: AuthenticatedUser): Promise<SuiteGenerationDto> {
     return await this.generationsService.resumeGeneration(user.token.tokenString, id);
+  }
+
+  @Post('generations/:generationId/clone')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @Audit()
+  @ApiParam({ name: 'generationId', description: 'Source generation id to clone', example: 1 })
+  @ApiSwagger({
+    summary: 'Clone generation',
+    description:
+      'Creates a new generation under the same suite, copying all context configs, field strategies, trigger configs, field overrides, and enrichment tables.',
+    responses: mergeResponses(
+      CommonResponses.CREATED_201(SuiteGenerationResponseDto, 'Generation cloned successfully'),
+      CommonResponses.NOT_FOUND_404('Source generation not found'),
+    ),
+  })
+  async cloneGeneration(
+    @Param('generationId', ParseIntPipe) generationId: number,
+    @User() user: AuthenticatedUser,
+  ): Promise<SuiteGenerationResponseDto> {
+    return await this.generationsService.cloneGeneration(user.token.tokenString, generationId);
   }
 }

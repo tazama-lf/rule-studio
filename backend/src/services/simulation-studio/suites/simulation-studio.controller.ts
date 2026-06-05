@@ -102,4 +102,24 @@ export class SimulationStudioController {
   ): Promise<SimulationSuiteResponseDto> {
     return await this.simulationStudioService.patchSimulationSuite(user.token.tokenString, id, payload);
   }
+
+  @Post('suites/:id/clone')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @Audit()
+  @ApiParam({ name: 'id', description: 'Source suite id to clone', example: 1 })
+  @ApiSwagger({
+    summary: 'Clone simulation suite',
+    description:
+      'Creates a new suite (Copy) and clones the latest generation with all its context configs, field strategies, trigger configs, field overrides, and enrichment tables.',
+    responses: mergeResponses(
+      CommonResponses.CREATED_201(SimulationSuitesDto, 'Suite cloned successfully'),
+      CommonResponses.NOT_FOUND_404('Source suite not found'),
+    ),
+  })
+  async cloneSuite(
+    @Param('id', ParseIntPipe) id: number,
+    @User() user: AuthenticatedUser,
+  ): Promise<{ success: boolean; data: SimulationSuitesDto & { generation_id: number | null } }> {
+    return await this.simulationStudioService.cloneSuite(user.token.tokenString, id);
+  }
 }

@@ -63,6 +63,8 @@ import {
   GET_ALL_EVALUATIONS,
   FETCH_COUNT_DLH,
   RESUME_GENERATION,
+  CLONE_GENERATION,
+  CLONE_SUITE,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto, UpdateMaskDto } from './masking/dto/masking.dto';
 import type {
@@ -636,6 +638,14 @@ export class AdminServiceClient {
   }
 
   async resumeGeneration<T>(token: string, suiteId: number): Promise<T> {
-    return await this.executeHttpRequest<T>('POST', RESUME_GENERATION(suiteId), token);
+    return await this.executeHttpRequest<T>('GET', RESUME_GENERATION(suiteId), token);
+  }
+
+  async cloneGeneration<T>(token: string, generationId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('POST', CLONE_GENERATION(generationId), token);
+  }
+
+  async cloneSuite<T>(token: string, suiteId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('POST', CLONE_SUITE(suiteId), token);
   }
 }

@@ -97,4 +97,14 @@ export class GenerationsService {
       throw err;
     }
   }
+
+  async cloneGeneration(token: string, generationId: number): Promise<SuiteGenerationResponseDto> {
+    try {
+      return await this.adminServiceClient.cloneGeneration(token, generationId);
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(`Error cloning generation ${generationId}`, error.stack);
+      throw err;
+    }
+  }
 }
