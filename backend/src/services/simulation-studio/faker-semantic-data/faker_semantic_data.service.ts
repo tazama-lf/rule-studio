@@ -7,12 +7,12 @@ export class FakerSemanticDataService {
   private readonly logger = new Logger(FakerSemanticDataService.name);
   constructor(private readonly adminServiceClient: AdminServiceClient) {}
 
-  async generateFakerSymmetricData(token: string): Promise<FakerSemanticDataListDto> {
+  async generateFakerSemanticData(token: string): Promise<FakerSemanticDataListDto> {
     try {
-      return await this.adminServiceClient.generateFakerSymmetricData(token);
+      return await this.adminServiceClient.generateFakerSemanticData(token);
     } catch (err) {
       const error = err as Error;
-      this.logger.error('Error getting faker symmetric data', error.stack);
+      this.logger.error('Error getting faker semantic data', error.stack);
       throw err;
     }
   }
