@@ -589,7 +589,7 @@ export const SimulationTabs = [
 ]
 
 export const SimStudioTabs = [
-    { label: 'Rule & Details',      value: 'rule_details',        enabled: false },
+    { label: 'Rule & Details',      value: 'create_generation',   enabled: false },
     { label: 'TXTP Selection',      value: 'txtp_selection',      enabled: false },
     { label: 'Trigger Data',        value: 'trigger_data',        enabled: false },
     { label: 'Enrichment Data',     value: 'enrichment_data',     enabled: false },
