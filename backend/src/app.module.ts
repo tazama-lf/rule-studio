@@ -17,9 +17,16 @@ import { FetchFromDlhModule } from './services/fetch-from-dlh/fetch-from-dlh.mod
 import { FetchCountModule } from './services/fetch-count/fetch-count.module';
 import { SimulationModule } from './services/simulation/simulation.module';
 import { FetchEvaluationModule } from './services/fetch-evaluation/fetch-evaluation.module';
+import { ConfigModule as NestConfigModule } from '@nestjs/config';
+import { validate } from './services/config/env.validation';
 
 @Module({
   imports: [
+    NestConfigModule.forRoot({
+      envFilePath: `.env.${process.env.NODE_ENV}`,
+      isGlobal: true,
+      validate
+    }),
     AuditModule,
     AuthModule,
     LoggerModule,

@@ -1,3 +1,10 @@
+## Environment files
+
+Backend loads environment variables from `.env` and then overrides with an environment-specific file named `.env.<NODE_ENV>` (for example `.env.production` or `.env.development`). Set `NODE_ENV` before starting the app, e.g.: `NODE_ENV=production node dist/main.js`.
+
+Frontend (Vite) supports `.env` and `.env.<mode>` automatically; use Vite modes or `npm run build -- --mode production` to pick the correct `.env` file.
+
+
 # Tazama Rule Studio (TRS)
 
 Tazama Rule Studio (TRS) is a comprehensive design-time rule management platform that enables financial institutions to create, validate, test, and deploy transaction monitoring rules without writing code manually. TRS serves as the bridge between business logic requirements and runtime execution by providing a full-stack solution — a visual node-based rule builder for flow definition and code generation, combined with a robust backend API for lifecycle management, simulation, and deployment orchestration.

@@ -1,11 +1,26 @@
-import 'dotenv/config';
+import * as dotenv from 'dotenv';
+
+dotenv.config({ path: '.env' });
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { LoggerService } from '@tazama-lf/frms-coe-lib';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
+
+
+const _env = (process.env.NODE_ENV ?? 'dev').toLowerCase();
+const _baseEnvPath = path.resolve(process.cwd(), '.env');
+const _envFilePath = path.resolve(process.cwd(), `.env.${_env}`);
+if (fs.existsSync(_baseEnvPath)) {
+  dotenv.config({ path: _baseEnvPath });
+}
+if (fs.existsSync(_envFilePath)) {
+  dotenv.config({ path: _envFilePath, override: true });
+} else {
+  console.warn(`[dotenv] env-specific file not found: ${_envFilePath}`);
+}
 import { RedisIoAdapter } from './adapters/redis-io.adapter';
 
 /**
@@ -38,15 +53,15 @@ async function bootstrap(): Promise<void> {
     .map((origin) => origin.trim())
     .filter(Boolean);
 
-  const isDev = ['dev', 'development'].includes((process.env.NODE_ENV ?? '').toLowerCase());
+  const enviroment = `.env.${(process.env.NODE_ENV)?.toLowerCase()}`
 
   app.enableCors({
-    origin: isDev ? true : allowedOrigins,
+    origin: enviroment ? true : allowedOrigins,
     credentials: true,
   });
 
   // Swagger Configuration
-  const apiHost = process.env.API_HOST ?? 'localhost';
+  const apiHost = process.env.BASE_URL ?? 'localhost';
   const apiPort = process.env.PORT ?? '3005';
   const baseUrl = `http://${apiHost}:${apiPort}`;
 
@@ -93,9 +108,10 @@ async function bootstrap(): Promise<void> {
     }
   }
   const port = process.env.PORT ?? 3005;
+  const base_url = process.env.BASE_URL ;
   await app.listen(port);
 
   logger.log(`🚀 Application started on port ${port} (env=${process.env.NODE_ENV})`);
-  logger.log(`📚 API Documentation available at: http://10.10.80.37:${port}/api/docs`);
+  logger.log(`📚 API Documentation available at: ${base_url}:${port}/api/docs`);
 }
 bootstrap();

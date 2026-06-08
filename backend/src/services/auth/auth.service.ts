@@ -53,8 +53,10 @@ export class AuthService {
       this.loggerService.error('TAZAMA_AUTH_URL is not set in environment variables', AuthService.name);
       throw new ServiceUnavailableException('Authentication service unavailable');
     }
+    this.loggerService.log(`AUTH URL ${authUrl}`)
     try {
       const response = await firstValueFrom(this.httpService.post(`${authUrl}/login`, { username, password }, { timeout: 5000 }));
+      this.loggerService.log(`RESPONSE ${response}`)
       if (!response.data) {
         this.loggerService.error('Auth service did not return a valid response', AuthService.name);
         throw new ServiceUnavailableException('Authentication service unavailable');
@@ -63,6 +65,7 @@ export class AuthService {
 
       const token = this.extractToken(response.data);
       this.validateUserToken(token, username);
+
 
       this.loggerService.log(`User ${username} authenticated successfully`, AuthService.name);
 

@@ -5,7 +5,9 @@ import dotenv from 'dotenv';
 import * as path from 'node:path';
 import type { AuthenticatedUser } from '../services/auth/auth.types';
 import * as jwt from 'jsonwebtoken';
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+
+const _env = (process.env.APP_ENV ?? 'dev').toLowerCase();
+dotenv.config({ path: path.resolve(process.cwd(), `.env.${_env}`) });
 
 interface DecodedUserInfo {
   preferredUsername: string;

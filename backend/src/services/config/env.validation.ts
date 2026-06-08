@@ -9,7 +9,7 @@ enum NodeEnv {
 }
 class EnvironmentVariables {
   @IsEnum(NodeEnv)
-  NODE_ENV: NodeEnv = NodeEnv.DEVELOPMENT;
+  NODE_ENV: NodeEnv = NodeEnv.DEV;
   @IsNumberString()
   MAX_CPU: string;
   @IsString()
