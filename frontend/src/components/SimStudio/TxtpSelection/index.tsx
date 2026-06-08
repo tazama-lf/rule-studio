@@ -27,11 +27,13 @@ import useTxtpSelectionController, {
     type FieldConfig,
     type TxtpEntry,
 } from "../../../hooks/SimStudio/useTxtpSelectionController";
+import { useGetFakerSemanticDataQuery } from "../../../redux/Api/SimStudio";
 import * as S from "./TxtpSelection.styles";
 
 interface FieldConfigTableProps {
     entry: TxtpEntry;
     onFieldConfigChange: (entryId: string, path: string, config: FieldConfig) => void;
+    semanticOptions: { id: string; name: string }[];
 }
 
 interface EntryRowProps {
@@ -42,6 +44,7 @@ interface EntryRowProps {
     onRemove: (id: string) => void;
     onNumMessagesChange: (id: string, value: number) => void;
     onFieldConfigChange: (entryId: string, path: string, config: FieldConfig) => void;
+    semanticOptions: { id: string; name: string }[];
 }
 
 const FIELD_ACTION_OPTIONS: { label: string; value: FieldAction }[] = [
@@ -51,9 +54,9 @@ const FIELD_ACTION_OPTIONS: { label: string; value: FieldAction }[] = [
     { label: "Skip Field", value: "skip" },
 ];
 
-const FieldConfigTable = ({ entry, onFieldConfigChange }: FieldConfigTableProps) => {
+const FieldConfigTable = ({ entry, onFieldConfigChange, semanticOptions }: FieldConfigTableProps) => {
     const getConfig = (path: string): FieldConfig =>
-        entry.fieldConfigs[path] ?? { action: "sample", staticValue: "", rangeStart: "", rangeEnd: "" };
+        entry.fieldConfigs[path] ?? { action: "sample", staticValue: "", rangeStart: "", rangeEnd: "", semanticId: "" };
 
     return (
         <S.FieldConfigSection>
@@ -100,12 +103,17 @@ const FieldConfigTable = ({ entry, onFieldConfigChange }: FieldConfigTableProps)
                             >
                                 Range
                             </TableCell>
+                            <TableCell
+                                sx={{ fontWeight: 600, fontSize: "12px", bgcolor: "#fbf9fa", width: "18%" }}
+                            >
+                                Semantics
+                            </TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         {entry.fieldPaths.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={4} align="center" sx={{ py: 3, color: "#9ca3af" }}>
+                                <TableCell colSpan={5} align="center" sx={{ py: 3, color: "#9ca3af" }}>
                                     No fields available from payload
                                 </TableCell>
                             </TableRow>
@@ -148,6 +156,7 @@ const FieldConfigTable = ({ entry, onFieldConfigChange }: FieldConfigTableProps)
                                                         staticValue: newAction === "static" ? config.staticValue : "",
                                                         rangeStart: newAction === "range" ? config.rangeStart : "",
                                                         rangeEnd: newAction === "range" ? config.rangeEnd : "",
+                                                        semanticId: config.semanticId,
                                                     });
                                                 }}
                                                 sx={{
@@ -214,6 +223,27 @@ const FieldConfigTable = ({ entry, onFieldConfigChange }: FieldConfigTableProps)
                                                 <Typography sx={{ fontSize: "12px", color: "#d1d5db" }}>—</Typography>
                                             )}
                                         </TableCell>
+                                        <TableCell sx={{ borderBottom: "1px solid #e0e0e0" }}>
+                                            <Select
+                                                value={config.semanticId ?? ""}
+                                                size="small"
+                                                displayEmpty
+                                                onChange={(e) =>
+                                                    onFieldConfigChange(entry.id, path, {
+                                                        ...config,
+                                                        semanticId: e.target.value,
+                                                    })
+                                                }
+                                                sx={{ fontSize: "12px", minWidth: 140, "& .MuiSelect-select": { py: "4px" } }}
+                                            >
+                                                <MenuItem value="" sx={{ fontSize: "12px", color: "#9ca3af" }}>None</MenuItem>
+                                                {semanticOptions.map((opt) => (
+                                                    <MenuItem key={opt.id} value={opt.id} sx={{ fontSize: "12px" }}>
+                                                        {opt.name}
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                        </TableCell>
                                     </TableRow>
                                 );
                             })
@@ -233,6 +263,7 @@ const EntryRow = ({
     onRemove,
     onNumMessagesChange,
     onFieldConfigChange,
+    semanticOptions,
 }: EntryRowProps) => (
     <>
         <TableRow hover sx={{ bgcolor: "#fff" }}>
@@ -286,6 +317,7 @@ const EntryRow = ({
                     <FieldConfigTable
                         entry={entry}
                         onFieldConfigChange={onFieldConfigChange}
+                        semanticOptions={semanticOptions}
                     />
                 </Collapse>
             </TableCell>
@@ -299,6 +331,8 @@ interface TxtpSelectionProps {
 
 const TxtpSelection = ({ onSaveRef }: TxtpSelectionProps) => {
     const { values, functions } = useTxtpSelectionController();
+    const { data: semanticData } = useGetFakerSemanticDataQuery();
+    const semanticOptions = semanticData?.data ?? [];
 
     const {
         entries,
@@ -438,6 +472,7 @@ const TxtpSelection = ({ onSaveRef }: TxtpSelectionProps) => {
                                     onRemove={handleRemove}
                                     onNumMessagesChange={handleNumMessagesChange}
                                     onFieldConfigChange={handleFieldConfigChange}
+                                    semanticOptions={semanticOptions}
                                 />
                             ))
                         )}

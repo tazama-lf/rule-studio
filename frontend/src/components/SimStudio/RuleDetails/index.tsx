@@ -10,6 +10,7 @@ import Input from "../../Input";
 import Loader from "../../Loader";
 import * as S from "../../../pages/SimStudio/CreateSimSuite/CreateSimSuite.styles";
 import type { Step1Values } from "../../../hooks/SimStudio/useCreateSimSuiteController";
+import type { SuiteDetail } from "../../../redux/Api/SimStudio";
 
 interface Step1Props {
     control: Control<Step1Values>;
@@ -20,6 +21,8 @@ interface Step1Props {
     ruleVersionOptions: DropdownOption[];
     txLoading: boolean;
     versionLoading: boolean;
+    existingSuite?: SuiteDetail | null;
+    isSuiteLoading?: boolean;
 }
 
 const Step1RuleDetails = ({
@@ -31,8 +34,12 @@ const Step1RuleDetails = ({
     ruleVersionOptions,
     txLoading,
     versionLoading,
+    existingSuite,
+    isSuiteLoading,
 }: Step1Props) => {
-    if (txLoading) return <Loader center />;
+    if (txLoading || isSuiteLoading) return <Loader center />;
+
+    const isDisabled = !!existingSuite;
 
     return (
         <Box width="100%" maxWidth="700px" display="flex" flexDirection="column">
@@ -55,6 +62,7 @@ const Step1RuleDetails = ({
                                     label="Simulation Suite Name"
                                     placeholder="e.g., Q3 Edge Cases"
                                     {...field}
+                                    disabled={isDisabled}
                                     error={errors.suite_name?.message}
                                 />
                             )}
@@ -72,6 +80,7 @@ const Step1RuleDetails = ({
                                     label="Description"
                                     placeholder="Describe the purpose of this simulation suite..."
                                     {...field}
+                                    disabled={isDisabled}
                                 />
                             )}
                         />
@@ -87,6 +96,7 @@ const Step1RuleDetails = ({
                                     options={ruleOptions}
                                     value={field.value ?? null}
                                     onChange={(val) => field.onChange(val)}
+                                    disabled={isDisabled}
                                     error={errors.associated_rule?.message as string | undefined}
                                 />
                             )}
@@ -103,7 +113,7 @@ const Step1RuleDetails = ({
                                     options={ruleVersionOptions}
                                     value={field.value ?? null}
                                     onChange={(val) => field.onChange(val)}
-                                    disabled={ruleVersionOptions.length === 0}
+                                    disabled={isDisabled || ruleVersionOptions.length === 0}
                                     error={error?.message}
                                 />
                             )}
@@ -122,6 +132,7 @@ const Step1RuleDetails = ({
                                     searchable
                                     value={field.value ?? null}
                                     onChange={(val) => field.onChange(val)}
+                                    disabled={isDisabled}
                                     error={errors.txtp?.message as string | undefined}
                                 />
                             )}
@@ -139,7 +150,7 @@ const Step1RuleDetails = ({
                                     options={versionOptions}
                                     value={field.value ?? null}
                                     onChange={(val) => field.onChange(val)}
-                                    disabled={versionOptions.length === 0 || versionLoading}
+                                    disabled={isDisabled || versionOptions.length === 0 || versionLoading}
                                     error={errors.version?.message as string | undefined}
                                 />
                             )}
@@ -208,6 +219,7 @@ const Step1RuleDetails = ({
                                             multiline
                                             minRows={8}
                                             maxRows={20}
+                                            disabled={isDisabled}
                                             value={field.value === "{}" ? "" : (field.value ?? "")}
                                             onChange={(e) => handleChange(e.target.value)}
                                             placeholder={'Enter Rule Config here...\n{\n  "key": "value"\n}'}
@@ -241,3 +253,4 @@ const Step1RuleDetails = ({
 };
 
 export default Step1RuleDetails;
+

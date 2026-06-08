@@ -171,11 +171,11 @@ describe('TriggerTxtpConfigService', () => {
         {
           trigger_txtp_config_id: 20,
           field_overrides: [
-            { field_path: 'field.a', override_type: 'static', static_value: 'x' },
-            { field_path: 'field.b', override_type: 'range', range_min: 1, range_max: 100 },
-            { field_path: 'field.c', override_type: 'generated', generator_type: 'iso20022.bic' },
-            { field_path: 'field.d', override_type: 'remove' },
-            { field_path: 'field.e', override_type: 'null' },
+            { field_path: 'field.a', override_type: 'static', static_value: 'x', faker_semantic_type: 'iso20022.bic' },
+            { field_path: 'field.b', override_type: 'range', range_min: 1, range_max: 100, faker_semantic_type: 'iso20022.amount' },
+            { field_path: 'field.c', override_type: 'generated', faker_semantic_type: 'iso20022.bic' },
+            { field_path: 'field.d', override_type: 'remove', faker_semantic_type: 'iso20022.bic' },
+            { field_path: 'field.e', override_type: 'null', faker_semantic_type: 'iso20022.bic' },
           ],
         },
       ];

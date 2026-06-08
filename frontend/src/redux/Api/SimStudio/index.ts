@@ -3,6 +3,11 @@ import { getAuthToken } from "../../../utils/Common/storage";
 
 const BASE_URL = import.meta.env.VITE_API_URL as string;
 
+export interface FakerSemanticItem {
+    id: string;
+    name: string;
+}
+
 export interface CreateSuitePayload {
     name: string;
     description?: string;
@@ -47,6 +52,7 @@ export interface FieldStrategy {
     static_value?: unknown;
     range_min?: number;
     range_max?: number;
+    faker_semantic_type?: string;
     generator_type?: string;
     generator_options?: Record<string, unknown>;
     is_required_override?: boolean;
@@ -58,6 +64,7 @@ export interface UpsertFieldStrategyItem {
     static_value?: unknown;
     range_min?: number;
     range_max?: number;
+    faker_semantic_type?: string;
     generator_type?: string;
     generator_options?: Record<string, unknown>;
     is_required_override?: boolean;
@@ -79,6 +86,7 @@ export interface TriggerFieldOverride {
     static_value?: unknown;
     range_min?: number;
     range_max?: number;
+    faker_semantic_type?: string;
     generator_type?: string;
     generator_options?: Record<string, unknown>;
     created_at: string;
@@ -107,6 +115,7 @@ export interface BulkTriggerConfigItem {
         static_value?: unknown;
         range_min?: number;
         range_max?: number;
+        faker_semantic_type?: string;
         generator_type?: string;
         generator_options?: Record<string, unknown>;
     }[];
@@ -124,6 +133,20 @@ export interface SuiteListItem {
     last_run_at?: string;
     updated_at: string;
     created_by: string;
+    wizard_progress: Record<string, unknown>;
+    generation_id?: number;
+}
+
+export interface SuiteDetail {
+    id: number;
+    name: string;
+    description?: string;
+    rule_name?: string;
+    rule_version?: string;
+    rule_config?: Record<string, unknown>;
+    primary_txtp?: string;
+    primary_txtp_version?: string;
+    status: string;
     wizard_progress: Record<string, unknown>;
     generation_id?: number;
 }
@@ -180,6 +203,7 @@ export interface EnrichmentSchemaProperty {
     staticValue: string;
     rangeMin: string;
     rangeMax: string;
+    semanticId?: string;
 }
 
 export interface EnrichmentTableDto {
@@ -354,6 +378,22 @@ export const simStudioApi = createApi({
             query: (generationId) => `generations/${generationId}/summary`,
         }),
 
+        resumeGeneration: builder.query<{
+            success: boolean;
+            data: { id: number; suite_id: number; wizard_snapshot: { currentStep?: number; completedSteps?: number[] } };
+        }, number>({
+            query: (suiteId) => `suites/${suiteId}/generations/resume`,
+        }),
+
+        getSuiteById: builder.query<{ success: boolean; suite: SuiteDetail }, number>({
+            query: (suiteId) => `suites/${suiteId}`,
+        }),
+
+        getFakerSemanticData: builder.query<{ success: boolean; data: FakerSemanticItem[] }, void>({
+            query: () => `${BASE_URL}/faker-semantic-data`,
+            transformResponse: (response: { success: boolean; message?: string; data: FakerSemanticItem[] }) => ({ success: response.success, data: response.data }),
+        }),
+
         updateWizardProgress: builder.mutation<{ success: boolean }, { generationId: number; current_step_num: number; completed_step_num: number }>({
             query: ({ generationId, current_step_num, completed_step_num }) => ({
                 url: `generations/${generationId}/wizard-progress`,
@@ -385,5 +425,8 @@ export const {
     useCreateEnrichmentTableMutation,
     useDeleteEnrichmentTableMutation,
     useGetGenerationSummaryQuery,
+    useLazyResumeGenerationQuery,
+    useLazyGetSuiteByIdQuery,
+    useGetFakerSemanticDataQuery,
     useUpdateWizardProgressMutation,
 } = simStudioApi;
