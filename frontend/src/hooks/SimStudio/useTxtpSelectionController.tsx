@@ -23,6 +23,7 @@ export interface FieldConfig {
     staticValue: string;
     rangeStart: string;
     rangeEnd: string;
+    semanticId: string;
 }
 
 export interface TxtpEntry {
@@ -100,6 +101,7 @@ const buildEntryFromContextConfig = (cfg: {
             staticValue: s.static_value != null ? String(s.static_value) : "",
             rangeStart: s.range_min != null ? String(s.range_min) : "",
             rangeEnd: s.range_max != null ? String(s.range_max) : "",
+            semanticId: s.faker_semantic_type ?? "",
         };
     }
     return {
@@ -200,18 +202,19 @@ const useTxtpSelectionController = () => {
                 field_strategies: Object.entries(entry.fieldConfigs).map(([fieldPath, cfg]) => {
                     switch (cfg.action) {
                         case "static":
-                            return { field_path: fieldPath, strategy_code: "static" as const, static_value: cfg.staticValue };
+                            return { field_path: fieldPath, strategy_code: "static" as const, static_value: cfg.staticValue, faker_semantic_type: cfg.semanticId || undefined };
                         case "range":
                             return {
                                 field_path: fieldPath,
                                 strategy_code: "range" as const,
                                 range_min: cfg.rangeStart ? Number(cfg.rangeStart) : undefined,
                                 range_max: cfg.rangeEnd ? Number(cfg.rangeEnd) : undefined,
+                                faker_semantic_type: cfg.semanticId || undefined,
                             };
                         case "skip":
-                            return { field_path: fieldPath, strategy_code: "skip" as const };
+                            return { field_path: fieldPath, strategy_code: "skip" as const, faker_semantic_type: cfg.semanticId || undefined };
                         default:
-                            return { field_path: fieldPath, strategy_code: "keep_sample" as const };
+                            return { field_path: fieldPath, strategy_code: "keep_sample" as const, faker_semantic_type: cfg.semanticId || undefined };
                     }
                 }),
             }));

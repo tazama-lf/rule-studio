@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import StatusCard from "../../components/Cards/StatusCard";
 import type { TableColumn } from "../../components/Table";
 import useDebouncedSearch from "../../hooks/useDebouncedSearch";
-import { useGetSuitesQuery, type SuiteListItem } from "../../redux/Api/SimStudio";
+import { useGetSuitesQuery, useLazyResumeGenerationQuery, type SuiteListItem } from "../../redux/Api/SimStudio";
 import { useGetRulesQuery } from "../../redux/Api/DockerHub";
 import { useGetTypesQuery } from "../../redux/Api/Config";
+import { LocalStorage } from "../../utils/Common/enums";
+import { insertData, removeData } from "../../utils/Common/storage";
 import * as S from "./SimStudio.styles";
 import SimStudioActions from "./SimStudioActions";
 
@@ -31,6 +34,15 @@ const useSimStudioController = () => {
     const [lastUpdatedFrom, setLastUpdatedFrom] = useState<string>("");
     const [lastUpdatedTo, setLastUpdatedTo] = useState<string>("");
     const [page, setPage] = useState(0);
+    const [resumingId, setResumingId] = useState<number | null>(null);
+
+    const STEP_TAB_MAP: Record<number, string> = {
+        1: "create_generation",
+        2: "txtp_selection",
+        3: "trigger_data",
+        4: "enrichment_data",
+        5: "preview_save",
+    };
 
     const LIMIT = 10;
 
@@ -50,6 +62,7 @@ const useSimStudioController = () => {
     const { data, isLoading, isFetching } = useGetSuitesQuery(queryParams);
     const { data: rulesData } = useGetRulesQuery();
     const { data: txTypesData } = useGetTypesQuery({});
+    const [triggerResume] = useLazyResumeGenerationQuery();
 
     const suites: SuiteListItem[] = data?.suites ?? [];
 
@@ -118,6 +131,23 @@ const useSimStudioController = () => {
         navigate(`/sim-studio/view/${row.id}`);
     }, [navigate]);
 
+    const handleResume = useCallback(async (row: Record<string, unknown>) => {
+        const suiteId = row.id as number;
+        setResumingId(suiteId);
+        try {
+            const result = await triggerResume(suiteId).unwrap();
+            const genId = result.data.id;
+            const currentStep = (result.data.wizard_snapshot?.currentStep as number) ?? 1;
+            const tabValue = STEP_TAB_MAP[currentStep] ?? "create_generation";
+            insertData(genId, "sim_gen_id", LocalStorage, false);
+            navigate(`/sim-studio/create?simStudioTab=${tabValue}`);
+        } catch {
+            toast.error("Failed to resume simulation suite. Please try again.");
+        } finally {
+            setResumingId(null);
+        }
+    }, [triggerResume, navigate, STEP_TAB_MAP]);
+
     const columns: TableColumn[] = useMemo(() => [
         {
             label: "Suite Name",
@@ -145,13 +175,20 @@ const useSimStudioController = () => {
             label: "Actions",
             key: "actions",
             render: (row: Record<string, unknown>) => (
-                <SimStudioActions onView={() => handleView(row)} />
+                <SimStudioActions
+                    onView={() => handleView(row)}
+                    onResume={() => void handleResume(row)}
+                    isDraft={(row.status as string) === "DRAFT"}
+                    isResuming={resumingId === (row.id as number)}
+                />
             ),
         },
-    ], [handleView]);
+    ], [handleView, handleResume, resumingId]);
 
     const handleCreate = () => {
-        navigate("/sim-studio/create");
+        removeData("sim_gen_id", LocalStorage);
+        removeData("sim_suite_id", LocalStorage);
+        navigate("/sim-studio/create?simStudioTab=create_generation");
     };
 
     const pagination = useMemo(() => ({
