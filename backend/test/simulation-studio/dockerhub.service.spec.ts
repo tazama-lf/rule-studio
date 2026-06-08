@@ -77,12 +77,7 @@ describe('DockerHubService', () => {
       const repos = [makeRepo('cbe-case105'), makeRepo('cbe-case106')];
       global.fetch = jest
         .fn()
-        // first call: login
-        .mockResolvedValueOnce({
-          ok: true, status: 200, statusText: 'OK',
-          json: jest.fn().mockResolvedValue(mockLoginResponse),
-        } as unknown as Response)
-        // second call: list repos (single page)
+        // list repos (single page)
         .mockResolvedValueOnce({
           ok: true, status: 200, statusText: 'OK',
           json: jest.fn().mockResolvedValue({ count: 2, next: null, results: repos }),
@@ -102,10 +97,6 @@ describe('DockerHubService', () => {
         .fn()
         .mockResolvedValueOnce({
           ok: true, status: 200, statusText: 'OK',
-          json: jest.fn().mockResolvedValue(mockLoginResponse),
-        } as unknown as Response)
-        .mockResolvedValueOnce({
-          ok: true, status: 200, statusText: 'OK',
           json: jest.fn().mockResolvedValue({ count: 3, next: null, results: repos }),
         } as unknown as Response);
 
@@ -121,10 +112,6 @@ describe('DockerHubService', () => {
 
       global.fetch = jest
         .fn()
-        .mockResolvedValueOnce({ // login
-          ok: true, status: 200, statusText: 'OK',
-          json: jest.fn().mockResolvedValue(mockLoginResponse),
-        } as unknown as Response)
         .mockResolvedValueOnce({ // page 1 with next URL
           ok: true, status: 200, statusText: 'OK',
           json: jest.fn().mockResolvedValue({
@@ -153,10 +140,6 @@ describe('DockerHubService', () => {
     it('throws InternalServerErrorException when repo fetch fails', async () => {
       global.fetch = jest
         .fn()
-        .mockResolvedValueOnce({ // login ok
-          ok: true, status: 200, statusText: 'OK',
-          json: jest.fn().mockResolvedValue(mockLoginResponse),
-        } as unknown as Response)
         .mockResolvedValueOnce(makeFetchFail(500, 'Internal Server Error')());
 
       await expect(service.getPublishedRules(TENANT_ID)).rejects.toThrow(InternalServerErrorException);
@@ -166,10 +149,6 @@ describe('DockerHubService', () => {
       const repos = [makeRepo('cbe-only-one')];
       global.fetch = jest
         .fn()
-        .mockResolvedValueOnce({
-          ok: true, status: 200, statusText: 'OK',
-          json: jest.fn().mockResolvedValue(mockLoginResponse),
-        } as unknown as Response)
         .mockResolvedValueOnce({
           ok: true, status: 200, statusText: 'OK',
           json: jest.fn().mockResolvedValue({ count: 1, next: null, results: repos }),
@@ -190,10 +169,6 @@ describe('DockerHubService', () => {
       const tags = [makeTag('latest'), makeTag('1.0.0')];
       global.fetch = jest
         .fn()
-        .mockResolvedValueOnce({ // login
-          ok: true, status: 200, statusText: 'OK',
-          json: jest.fn().mockResolvedValue(mockLoginResponse),
-        } as unknown as Response)
         .mockResolvedValueOnce({ // tags page 1
           ok: true, status: 200, statusText: 'OK',
           json: jest.fn().mockResolvedValue({ count: 2, next: null, results: tags }),
@@ -201,19 +176,15 @@ describe('DockerHubService', () => {
 
       const result = await service.getTagsForRule(TENANT_ID, RULE);
 
+      // service filters out 'latest'; only versioned tags are returned
       expect(result.rule).toBe(PREFIXED_RULE);
-      expect(result.count).toBe(2);
-      expect(result.tags[0].name).toBe('latest');
-      expect(result.tags[1].name).toBe('1.0.0');
+      expect(result.count).toBe(1);
+      expect(result.tags[0].name).toBe('1.0.0');
     });
 
     it('follows pagination and returns all tags across pages', async () => {
       global.fetch = jest
         .fn()
-        .mockResolvedValueOnce({ // login
-          ok: true, status: 200, statusText: 'OK',
-          json: jest.fn().mockResolvedValue(mockLoginResponse),
-        } as unknown as Response)
         .mockResolvedValueOnce({ // page 1
           ok: true, status: 200, statusText: 'OK',
           json: jest.fn().mockResolvedValue({
@@ -236,10 +207,6 @@ describe('DockerHubService', () => {
     it('throws NotFoundException when the rule repository does not exist (404)', async () => {
       global.fetch = jest
         .fn()
-        .mockResolvedValueOnce({ // login ok
-          ok: true, status: 200, statusText: 'OK',
-          json: jest.fn().mockResolvedValue(mockLoginResponse),
-        } as unknown as Response)
         .mockResolvedValueOnce({ // 404 on tags
           ok: false, status: 404, statusText: 'Not Found',
           json: jest.fn().mockResolvedValue({}),
@@ -251,10 +218,6 @@ describe('DockerHubService', () => {
     it('NotFoundException message contains rule name and namespace', async () => {
       global.fetch = jest
         .fn()
-        .mockResolvedValueOnce({
-          ok: true, status: 200, statusText: 'OK',
-          json: jest.fn().mockResolvedValue(mockLoginResponse),
-        } as unknown as Response)
         .mockResolvedValueOnce({
           ok: false, status: 404, statusText: 'Not Found',
           json: jest.fn().mockResolvedValue({}),
@@ -274,10 +237,6 @@ describe('DockerHubService', () => {
     it('throws InternalServerErrorException on non-404 tags fetch error', async () => {
       global.fetch = jest
         .fn()
-        .mockResolvedValueOnce({ // login ok
-          ok: true, status: 200, statusText: 'OK',
-          json: jest.fn().mockResolvedValue(mockLoginResponse),
-        } as unknown as Response)
         .mockResolvedValueOnce({ // 500 on tags
           ok: false, status: 500, statusText: 'Server Error',
           json: jest.fn().mockResolvedValue({}),
@@ -292,16 +251,12 @@ describe('DockerHubService', () => {
         .fn()
         .mockResolvedValueOnce({
           ok: true, status: 200, statusText: 'OK',
-          json: jest.fn().mockResolvedValue(mockLoginResponse),
-        } as unknown as Response)
-        .mockResolvedValueOnce({
-          ok: true, status: 200, statusText: 'OK',
           json: jest.fn().mockResolvedValue({ count: 0, next: null, results: [] }),
         } as unknown as Response);
 
       await service.getTagsForRule(TENANT_ID, specialRule);
 
-      const tagCallUrl = (global.fetch as jest.Mock).mock.calls[1][0] as string;
+      const tagCallUrl = (global.fetch as jest.Mock).mock.calls[0][0] as string;
       expect(tagCallUrl).not.toContain(' ');
       expect(tagCallUrl).toContain(encodeURIComponent(`${TENANT_ID}-${specialRule}`));
     });
@@ -311,16 +266,12 @@ describe('DockerHubService', () => {
         .fn()
         .mockResolvedValueOnce({
           ok: true, status: 200, statusText: 'OK',
-          json: jest.fn().mockResolvedValue(mockLoginResponse),
-        } as unknown as Response)
-        .mockResolvedValueOnce({
-          ok: true, status: 200, statusText: 'OK',
           json: jest.fn().mockResolvedValue({ count: 0, next: null, results: [] }),
         } as unknown as Response);
 
       await service.getTagsForRule(TENANT_ID, PREFIXED_RULE);
 
-      const tagCallUrl = (global.fetch as jest.Mock).mock.calls[1][0] as string;
+      const tagCallUrl = (global.fetch as jest.Mock).mock.calls[0][0] as string;
       expect(tagCallUrl).toContain(encodeURIComponent(PREFIXED_RULE));
     });
 
@@ -328,10 +279,6 @@ describe('DockerHubService', () => {
       const rawTag = { name: 'v3', last_updated: '2026-05-01T00:00:00Z', digest: 'sha256:abc' };
       global.fetch = jest
         .fn()
-        .mockResolvedValueOnce({
-          ok: true, status: 200, statusText: 'OK',
-          json: jest.fn().mockResolvedValue(mockLoginResponse),
-        } as unknown as Response)
         .mockResolvedValueOnce({
           ok: true, status: 200, statusText: 'OK',
           json: jest.fn().mockResolvedValue({ count: 1, next: null, results: [rawTag] }),
