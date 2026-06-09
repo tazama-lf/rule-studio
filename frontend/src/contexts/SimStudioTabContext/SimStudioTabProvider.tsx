@@ -11,7 +11,15 @@ export const SimStudioTabProvider = ({ children }: SimStudioTabProviderProps) =>
     const [searchParams, setSearchParams] = useSearchParams()
     const tabFromUrl = searchParams.get('simStudioTab') ?? SimStudioTabs[0].value
     const [selectedTab, setSelectedTabState] = useState<string>(tabFromUrl)
-    const [enabledTabs, setEnabledTabs] = useState<string[]>([SimStudioTabs[0].value])
+
+    const getInitialEnabledTabs = (): string[] => {
+        const targetIdx = SimStudioTabs.findIndex(t => t.value === tabFromUrl)
+        if (targetIdx > 0) {
+            return SimStudioTabs.slice(0, targetIdx + 1).map(t => t.value)
+        }
+        return [SimStudioTabs[0].value]
+    }
+    const [enabledTabs, setEnabledTabs] = useState<string[]>(getInitialEnabledTabs)
     const filteredTabs = useMemo(() => SimStudioTabs, [])
 
     const handleSetSelectedTab = useCallback((tab: string) => {

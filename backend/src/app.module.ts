@@ -22,6 +22,7 @@ import { GenerationsModule } from './services/simulation-studio/generations/gene
 import { ContextTxtpConfigModule } from './services/simulation-studio/context-txtp-config/context-txtp-config.module';
 import { TriggerTxtpConfigModule } from './services/simulation-studio/trigger-txtp-config/trigger-txtp-config.module';
 import { EnrichmentTableModule } from './services/simulation-studio/enrichment-table/enrichment-table.module';
+import { FakerSemanticDataModule } from './services/simulation-studio/faker-semantic-data/faker_semantic_data.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { EnrichmentTableModule } from './services/simulation-studio/enrichment-t
     ContextTxtpConfigModule,
     TriggerTxtpConfigModule,
     EnrichmentTableModule,
+    FakerSemanticDataModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -29,6 +29,7 @@ import useEnrichmentDataController, {
     type SchemaFieldType,
     type GenerationStrategy,
 } from "../../../hooks/SimStudio/useEnrichmentDataController";
+import { useGetFakerSemanticDataQuery } from "../../../redux/Api/SimStudio";
 
 const FIELD_TYPES: SchemaFieldType[] = ["String", "Number", "Boolean", "Date", "UUID"];
 const GENERATION_STRATEGIES: GenerationStrategy[] = ["Sample Value", "Static", "Range", "Auto-generate"];
@@ -36,9 +37,10 @@ const GENERATION_STRATEGIES: GenerationStrategy[] = ["Sample Value", "Static", "
 interface SchemaRowProps {
     field: SchemaField;
     onChange: (id: string, changes: Partial<SchemaField>) => void;
+    semanticOptions: { id: string; name: string }[];
 }
 
-const SchemaRow = ({ field, onChange }: SchemaRowProps) => (
+const SchemaRow = ({ field, onChange, semanticOptions }: SchemaRowProps) => (
     <TableRow hover>
         <TableCell sx={{ maxWidth: 220, borderBottom: "1px solid #e0e0e0" }}>
             <Typography sx={{ fontSize: 13, fontWeight: 500, color: "#2563eb", wordBreak: "break-all" }}>
@@ -112,6 +114,20 @@ const SchemaRow = ({ field, onChange }: SchemaRowProps) => (
                 <Typography sx={{ fontSize: 13, color: "#d1d5db" }}>—</Typography>
             )}
         </TableCell>
+        <TableCell sx={{ borderBottom: "1px solid #e0e0e0" }}>
+            <Select
+                size="small"
+                value={field.semanticId ?? ""}
+                displayEmpty
+                onChange={(e) => onChange(field.id, { semanticId: e.target.value })}
+                sx={{ minWidth: 140, fontSize: 13 }}
+            >
+                <MenuItem value="" sx={{ fontSize: 13, color: "#9ca3af" }}>None</MenuItem>
+                {semanticOptions.map((opt) => (
+                    <MenuItem key={opt.id} value={opt.id} sx={{ fontSize: 13 }}>{opt.name}</MenuItem>
+                ))}
+            </Select>
+        </TableCell>
     </TableRow>
 );
 
@@ -121,6 +137,8 @@ interface EnrichmentDataProps {
 
 const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
     const { values, functions } = useEnrichmentDataController(onSaveRef);
+    const { data: semanticData } = useGetFakerSemanticDataQuery();
+    const semanticOptions = semanticData?.data ?? [];
     const { tableName, numberOfRows, sampleJson, jsonError, schemaFields, savedRecords, isSaving, isDeleting } = values;
     const {
         setTableName,
@@ -214,6 +232,7 @@ const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
                                                 <TableCell><S.ColumnHeader>Strategy</S.ColumnHeader></TableCell>
                                                 <TableCell><S.ColumnHeader>Static Value</S.ColumnHeader></TableCell>
                                                 <TableCell><S.ColumnHeader>Range</S.ColumnHeader></TableCell>
+                                                <TableCell><S.ColumnHeader>Semantics</S.ColumnHeader></TableCell>
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
@@ -238,6 +257,13 @@ const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
                                                     <TableCell sx={{ borderBottom: "1px solid #f3f4f6" }}>
                                                         <Typography sx={{ fontSize: 12, color: prop.rangeMin || prop.rangeMax ? "#374151" : "#d1d5db" }}>
                                                             {prop.rangeMin || prop.rangeMax ? `${prop.rangeMin} – ${prop.rangeMax}` : "—"}
+                                                        </Typography>
+                                                    </TableCell>
+                                                    <TableCell sx={{ borderBottom: "1px solid #f3f4f6" }}>
+                                                        <Typography sx={{ fontSize: 12, color: prop.semanticId ? "#374151" : "#d1d5db" }}>
+                                                            {prop.semanticId
+                                                                ? (semanticOptions.find((s) => s.id === prop.semanticId)?.name ?? prop.semanticId)
+                                                                : "—"}
                                                         </Typography>
                                                     </TableCell>
                                                 </TableRow>
@@ -325,12 +351,13 @@ const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
                             <TableCell><S.ColumnHeader>Generation Strategy</S.ColumnHeader></TableCell>
                             <TableCell><S.ColumnHeader>Static Value</S.ColumnHeader></TableCell>
                             <TableCell><S.ColumnHeader>Range</S.ColumnHeader></TableCell>
+                            <TableCell><S.ColumnHeader>Semantics</S.ColumnHeader></TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         {schemaFields.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={5} align="center" sx={{ py: 5, color: "#9ca3af", fontSize: 13 }}>
+                                <TableCell colSpan={6} align="center" sx={{ py: 5, color: "#9ca3af", fontSize: 13 }}>
                                     Paste a JSON sample above and click <strong>Generate Schema Fields</strong>.
                                 </TableCell>
                             </TableRow>
@@ -340,6 +367,7 @@ const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
                                     key={field.id}
                                     field={field}
                                     onChange={handleFieldChange}
+                                    semanticOptions={semanticOptions}
                                 />
                             ))
                         )}

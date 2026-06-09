@@ -18,6 +18,7 @@ export interface TriggerOverride {
     staticValue: string;
     rangeMin: string;
     rangeMax: string;
+    semanticId: string;
 }
 
 export interface TriggerEntry {
@@ -29,7 +30,17 @@ export interface TriggerEntry {
     expanded: boolean;
     payloadFields: string[];
     fieldOverrides: Record<string, TriggerOverride>;
+    relatedTxtpConfigId?: number | null;
 }
+
+const parseRelatedTransaction = (url: string): { txtp: string; version: string } | null => {
+    if (!url || url.length === 0) return null;
+    const parts = url.split("/");
+    const version = parts[2];
+    const txtp = parts[4];
+    if (!txtp || !version) return null;
+    return { txtp, version };
+};
 
 const overrideTypeFromApi = (type: string): TriggerOverrideType => {
     if (type === "static") return "static";
@@ -59,6 +70,7 @@ const buildTriggerEntry = (cfg: TriggerTxtpConfig): TriggerEntry => {
             staticValue: o.static_value != null ? String(o.static_value) : "",
             rangeMin: o.range_min != null ? String(o.range_min) : "",
             rangeMax: o.range_max != null ? String(o.range_max) : "",
+            semanticId: o.faker_semantic_type ?? "",
         };
     }
 
@@ -71,6 +83,7 @@ const buildTriggerEntry = (cfg: TriggerTxtpConfig): TriggerEntry => {
         expanded: false,
         payloadFields,
         fieldOverrides,
+        relatedTxtpConfigId: cfg.related_txtp_config_id ?? null,
     };
 };
 
@@ -110,6 +123,27 @@ const useTriggerDataController = () => {
                 const configs = trigRes.data ?? [];
                 if (configs.length > 0) {
                     setEntries(configs.map(buildTriggerEntry));
+
+                    // Auto-create related trigger config if primary has related_transaction but no related exists
+                    const primaryTrigCfg = configs.find((c) => !c.related_txtp_config_id);
+                    const hasRelated = configs.some((c) => c.related_txtp_config_id != null);
+
+                    if (primaryTrigCfg?.related_transaction && primaryTrigCfg.related_transaction.length > 0 && !hasRelated && primary) {
+                        const parsed = parseRelatedTransaction(primaryTrigCfg.related_transaction);
+                        if (parsed) {
+                            try {
+                                const res = await createTriggerConfig({
+                                    generationId: Number(genId),
+                                    txtp: parsed.txtp,
+                                    txtp_version: parsed.version,
+                                    message_count: primaryTrigCfg.message_count ?? 1,
+                                }).unwrap();
+                                setEntries((prev) => [...prev, buildTriggerEntry(res.data)]);
+                            } catch {
+                                // non-blocking
+                            }
+                        }
+                    }
                 }
             } catch {
                 // non-blocking
@@ -200,6 +234,7 @@ const useTriggerDataController = () => {
                     static_value: o.overrideType === "static" ? o.staticValue : undefined,
                     range_min: o.overrideType === "range" && o.rangeMin ? Number(o.rangeMin) : undefined,
                     range_max: o.overrideType === "range" && o.rangeMax ? Number(o.rangeMax) : undefined,
+                    faker_semantic_type: o.semanticId || undefined,
                 })),
             }));
 

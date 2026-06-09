@@ -2,8 +2,10 @@ import { useEffect, type MutableRefObject } from "react";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import LinkIcon from "@mui/icons-material/Link";
 import {
   Box,
+  Chip,
   Collapse,
   IconButton,
   MenuItem,
@@ -27,6 +29,7 @@ import useTriggerDataController, {
   type TriggerOverride,
   type TriggerOverrideType,
 } from "../../../hooks/SimStudio/useTriggerDataController";
+import { useGetFakerSemanticDataQuery } from "../../../redux/Api/SimStudio";
 
 const OVERRIDE_OPTIONS: { label: string; value: TriggerOverrideType }[] = [
   { label: "No Override", value: "null" },
@@ -41,11 +44,12 @@ const OVERRIDE_OPTIONS: { label: string; value: TriggerOverrideType }[] = [
 interface FieldOverridesTableProps {
   entry: TriggerEntry;
   onOverrideChange: (entryId: string, fieldPath: string, override: TriggerOverride) => void;
+  semanticOptions: { id: string; name: string }[];
 }
 
-const FieldOverridesTable = ({ entry, onOverrideChange }: FieldOverridesTableProps) => {
+const FieldOverridesTable = ({ entry, onOverrideChange, semanticOptions }: FieldOverridesTableProps) => {
   const getOverride = (path: string): TriggerOverride =>
-    entry.fieldOverrides[path] ?? { overrideType: "null", staticValue: "", rangeMin: "", rangeMax: "" };
+    entry.fieldOverrides[path] ?? { overrideType: "null", staticValue: "", rangeMin: "", rangeMax: "", semanticId: "" };
 
   return (
     <S.FieldConfigSection>
@@ -63,12 +67,13 @@ const FieldOverridesTable = ({ entry, onOverrideChange }: FieldOverridesTablePro
               <TableCell sx={{ fontWeight: 600, fontSize: "12px", bgcolor: "#fbf9fa", width: "20%" }}>Override Type</TableCell>
               <TableCell sx={{ fontWeight: 600, fontSize: "12px", bgcolor: "#fbf9fa", width: "22%" }}>Static Value</TableCell>
               <TableCell sx={{ fontWeight: 600, fontSize: "12px", bgcolor: "#fbf9fa" }}>Range</TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: "12px", bgcolor: "#fbf9fa", width: "18%" }}>Semantics</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {entry.payloadFields.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} align="center" sx={{ py: 3, color: "#9ca3af" }}>
+                <TableCell colSpan={5} align="center" sx={{ py: 3, color: "#9ca3af" }}>
                   No fields available from payload
                 </TableCell>
               </TableRow>
@@ -95,6 +100,7 @@ const FieldOverridesTable = ({ entry, onOverrideChange }: FieldOverridesTablePro
                             staticValue: newType === "static" ? override.staticValue : "",
                             rangeMin: newType === "range" ? override.rangeMin : "",
                             rangeMax: newType === "range" ? override.rangeMax : "",
+                            semanticId: override.semanticId,
                           });
                         }}
                         sx={{ fontSize: "12px", minWidth: 160, "& .MuiSelect-select": { py: "4px" } }}
@@ -142,6 +148,22 @@ const FieldOverridesTable = ({ entry, onOverrideChange }: FieldOverridesTablePro
                         <Typography sx={{ fontSize: "12px", color: "#d1d5db" }}>—</Typography>
                       )}
                     </TableCell>
+                    <TableCell sx={{ borderBottom: "1px solid #e0e0e0" }}>
+                      <Select
+                        value={override.semanticId ?? ""}
+                        size="small"
+                        displayEmpty
+                        onChange={(e) => onOverrideChange(entry.id, path, { ...override, semanticId: e.target.value })}
+                        sx={{ fontSize: "12px", minWidth: 140, "& .MuiSelect-select": { py: "4px" } }}
+                      >
+                        <MenuItem value="" sx={{ fontSize: "12px", color: "#9ca3af" }}>None</MenuItem>
+                        {semanticOptions.map((opt) => (
+                          <MenuItem key={opt.id} value={opt.id} sx={{ fontSize: "12px" }}>
+                            {opt.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </TableCell>
                   </TableRow>
                 );
               })
@@ -162,6 +184,7 @@ interface EntryRowProps {
   onRemove: (id: string) => void;
   onNumMessagesChange: (id: string, value: number) => void;
   onOverrideChange: (entryId: string, fieldPath: string, override: TriggerOverride) => void;
+  semanticOptions: { id: string; name: string }[];
 }
 
 const EntryRow = ({
@@ -171,6 +194,7 @@ const EntryRow = ({
   onRemove,
   onNumMessagesChange,
   onOverrideChange,
+  semanticOptions,
 }: EntryRowProps) => (
   <>
     <TableRow hover sx={{ bgcolor: "#fff" }}>
@@ -217,11 +241,114 @@ const EntryRow = ({
     <TableRow>
       <TableCell colSpan={6} sx={{ p: 0, borderBottom: entry.expanded ? "1px solid #e0e0e0" : "none" }}>
         <Collapse in={entry.expanded} timeout="auto" unmountOnExit>
-          <FieldOverridesTable entry={entry} onOverrideChange={onOverrideChange} />
+          <FieldOverridesTable entry={entry} onOverrideChange={onOverrideChange} semanticOptions={semanticOptions} />
         </Collapse>
       </TableCell>
     </TableRow>
   </>
+);
+
+// ── Entry Accordion ──────────────────────────────────────────────────────────
+
+interface EntryAccordionProps {
+  entry: TriggerEntry;
+  isPrimary: boolean;
+  onToggle: (id: string) => void;
+  onRemove: (id: string) => void;
+  onNumMessagesChange: (id: string, value: number) => void;
+  onOverrideChange: (entryId: string, fieldPath: string, override: TriggerOverride) => void;
+  semanticOptions: { id: string; name: string }[];
+}
+
+const EntryAccordion = ({
+  entry,
+  isPrimary,
+  onToggle,
+  onRemove,
+  onNumMessagesChange,
+  onOverrideChange,
+  semanticOptions,
+}: EntryAccordionProps) => (
+  <Box sx={{ border: "1px solid #e0e0e0", borderRadius: "6px", overflow: "hidden" }}>
+    <TableContainer>
+      <MuiTable>
+        <TableBody>
+          <EntryRow
+            entry={entry}
+            index={isPrimary ? 0 : 1}
+            onToggle={onToggle}
+            onRemove={onRemove}
+            onNumMessagesChange={onNumMessagesChange}
+            onOverrideChange={onOverrideChange}
+            semanticOptions={semanticOptions}
+          />
+        </TableBody>
+      </MuiTable>
+    </TableContainer>
+  </Box>
+);
+
+// ── Linked Pair Container ────────────────────────────────────────────────────
+
+interface LinkedPairContainerProps {
+  primary: TriggerEntry;
+  related: TriggerEntry;
+  isPrimaryFirst: boolean;
+  onToggle: (id: string) => void;
+  onRemove: (id: string) => void;
+  onNumMessagesChange: (id: string, value: number) => void;
+  onOverrideChange: (entryId: string, fieldPath: string, override: TriggerOverride) => void;
+  semanticOptions: { id: string; name: string }[];
+}
+
+const LinkedPairContainer = ({
+  primary,
+  related,
+  isPrimaryFirst,
+  onToggle,
+  onRemove,
+  onNumMessagesChange,
+  onOverrideChange,
+  semanticOptions,
+}: LinkedPairContainerProps) => (
+  <Box sx={{ border: "1px solid #e0e0e0", borderRadius: "6px", overflow: "hidden" }}>
+    <TableContainer>
+      <MuiTable>
+        <TableBody>
+          <EntryRow
+            entry={primary}
+            index={0}
+            onToggle={onToggle}
+            onRemove={onRemove}
+            onNumMessagesChange={onNumMessagesChange}
+            onOverrideChange={onOverrideChange}
+            semanticOptions={semanticOptions}
+          />
+          <TableRow sx={{ bgcolor: "#f9fafb" }}>
+            <TableCell colSpan={6} sx={{ py: 1.5, pl: 6, borderBottom: "1px solid #e0e0e0" }}>
+              <Box display="flex" alignItems="center" gap={1} mb={1.5}>
+                <LinkIcon sx={{ fontSize: 16, color: "#6b7280" }} />
+                <Typography sx={{ fontSize: "12px", fontWeight: 600, color: "#374151" }}>
+                  Related Entry
+                </Typography>
+              </Box>
+              <Box pl={3}>
+                <EntryRow
+                  entry={related}
+                  index={1}
+                  onToggle={onToggle}
+                  onRemove={onRemove}
+                  onNumMessagesChange={onNumMessagesChange}
+                  onOverrideChange={onOverrideChange}
+                  semanticOptions={semanticOptions}
+                />
+              </Box>
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </MuiTable>
+    </TableContainer>
+  </Box>
 );
 
 // ── Main Component ─────────────────────────────────────────────────────────────
@@ -232,6 +359,8 @@ interface TriggerDataProps {
 
 const TriggerData = ({ onSaveRef }: TriggerDataProps) => {
   const { values, functions } = useTriggerDataController();
+  const { data: semanticData } = useGetFakerSemanticDataQuery();
+  const semanticOptions = semanticData?.data ?? [];
   const { entries, numMessages, adding, primaryTxtp } = values;
   const {
     setNumMessages,
@@ -248,6 +377,14 @@ const TriggerData = ({ onSaveRef }: TriggerDataProps) => {
     return () => { if (onSaveRef) onSaveRef.current = null; };
   }, [onSaveRef, saveTriggerConfigs]);
 
+  const primaryEntries = entries.filter((e) => !e.relatedTxtpConfigId);
+  const relatedEntries = entries.filter((e) => e.relatedTxtpConfigId != null);
+  const entryPairs = primaryEntries.map((primary, idx) => ({
+    primary,
+    isFirstPrimary: idx === 0,
+    related: relatedEntries.find((r) => r.relatedTxtpConfigId === primary.triggerId),
+  }));
+
   return (
     <Box>
       <S.InfoBanner>
@@ -258,8 +395,6 @@ const TriggerData = ({ onSaveRef }: TriggerDataProps) => {
           field overrides.
         </Text>
       </S.InfoBanner>
-
-      {/* Add form */}
       <S.AddFormCard>
         <Box minWidth={140}>
           <S.FieldLabel>TXTP</S.FieldLabel>
@@ -320,41 +455,42 @@ const TriggerData = ({ onSaveRef }: TriggerDataProps) => {
           />
         </Box>
       </S.AddFormCard>
-      <TableContainer component={Paper} variant="outlined">
-        <MuiTable>
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ width: 48, bgcolor: "#fbf9fa", pr: 0 }} />
-              <TableCell sx={{ bgcolor: "#fbf9fa", fontWeight: 600, fontSize: "13px" }}>Order</TableCell>
-              <TableCell sx={{ bgcolor: "#fbf9fa", fontWeight: 600, fontSize: "13px" }}>TXTP</TableCell>
-              <TableCell sx={{ bgcolor: "#fbf9fa", fontWeight: 600, fontSize: "13px" }}>Version</TableCell>
-              <TableCell sx={{ bgcolor: "#fbf9fa", fontWeight: 600, fontSize: "13px" }}>No. of Messages</TableCell>
-              <TableCell sx={{ bgcolor: "#fbf9fa", fontWeight: 600, fontSize: "13px" }}>Action</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {entries.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 4, color: "#9ca3af" }}>
-                  No trigger configs added yet. Click <strong>Add</strong> to create one.
-                </TableCell>
-              </TableRow>
-            ) : (
-              entries.map((entry, idx) => (
-                <EntryRow
-                  key={entry.id}
-                  entry={entry}
-                  index={idx}
+      <Paper variant="outlined">
+        {entries.length === 0 ? (
+          <Box sx={{ py: 4, textAlign: "center", color: "#9ca3af" }}>
+            No trigger configs added yet. Click <strong>Add</strong> to create one.
+          </Box>
+        ) : (
+          <Box sx={{ p: 1.5, display: "flex", flexDirection: "column", gap: 1.5 }}>
+            {entryPairs.map((pair) =>
+              pair.related ? (
+                <LinkedPairContainer
+                  key={pair.primary.id}
+                  primary={pair.primary}
+                  related={pair.related}
+                  isPrimaryFirst={pair.isFirstPrimary}
                   onToggle={handleToggleExpand}
                   onRemove={handleRemove}
                   onNumMessagesChange={handleNumMessagesChange}
                   onOverrideChange={handleOverrideChange}
+                  semanticOptions={semanticOptions}
                 />
-              ))
+              ) : (
+                <EntryAccordion
+                  key={pair.primary.id}
+                  entry={pair.primary}
+                  isPrimary={pair.isFirstPrimary}
+                  onToggle={handleToggleExpand}
+                  onRemove={handleRemove}
+                  onNumMessagesChange={handleNumMessagesChange}
+                  onOverrideChange={handleOverrideChange}
+                  semanticOptions={semanticOptions}
+                />
+              )
             )}
-          </TableBody>
-        </MuiTable>
-      </TableContainer>
+          </Box>
+        )}
+      </Paper>
     </Box>
   );
 };

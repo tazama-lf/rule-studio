@@ -132,7 +132,7 @@ export class ContextFieldStrategyDto {
   range_max?: number;
 
   @ApiProperty({ required: false, example: 'iso20022.amount' })
-  generator_type?: string;
+  faker_semantic_type?: string;
 
   @ApiProperty({ required: false, example: {} })
   generator_options?: Record<string, unknown>;
@@ -215,7 +215,7 @@ export class UpsertFieldStrategyDto {
   @ApiProperty({ required: false, example: 'iso20022.bic' })
   @IsOptional()
   @IsString()
-  generator_type?: string;
+  faker_semantic_type?: string;
 
   @ApiProperty({ required: false, example: {} })
   @IsOptional()

@@ -1,9 +1,11 @@
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import { useEffect, type MutableRefObject } from "react";
+import LinkIcon from "@mui/icons-material/Link";
+import { useEffect, useState, type MutableRefObject } from "react";
 import {
     Box,
+    Chip,
     Collapse,
     IconButton,
     MenuItem,
@@ -27,21 +29,38 @@ import useTxtpSelectionController, {
     type FieldConfig,
     type TxtpEntry,
 } from "../../../hooks/SimStudio/useTxtpSelectionController";
+import { useGetFakerSemanticDataQuery } from "../../../redux/Api/SimStudio";
 import * as S from "./TxtpSelection.styles";
+import FieldMappingModal, { type FieldMapping } from "./FieldMappingModal";
 
 interface FieldConfigTableProps {
     entry: TxtpEntry;
     onFieldConfigChange: (entryId: string, path: string, config: FieldConfig) => void;
+    semanticOptions: { id: string; name: string }[];
 }
 
-interface EntryRowProps {
+interface EntryAccordionProps {
     entry: TxtpEntry;
-    index: number;
     isPrimary: boolean;
+    isRelated?: boolean;
+    canRemove?: boolean;
     onToggle: (id: string) => void;
     onRemove: (id: string) => void;
     onNumMessagesChange: (id: string, value: number) => void;
     onFieldConfigChange: (entryId: string, path: string, config: FieldConfig) => void;
+    semanticOptions: { id: string; name: string }[];
+}
+
+interface LinkedPairContainerProps {
+    primary: TxtpEntry;
+    related: TxtpEntry;
+    isPrimaryFirst: boolean;
+    onToggle: (id: string) => void;
+    onRemovePair: (primaryId: string, relatedId: string) => void;
+    onAddMapping: (primaryId: string, relatedId: string) => void;
+    onNumMessagesChange: (id: string, value: number) => void;
+    onFieldConfigChange: (entryId: string, path: string, config: FieldConfig) => void;
+    semanticOptions: { id: string; name: string }[];
 }
 
 const FIELD_ACTION_OPTIONS: { label: string; value: FieldAction }[] = [
@@ -51,9 +70,9 @@ const FIELD_ACTION_OPTIONS: { label: string; value: FieldAction }[] = [
     { label: "Skip Field", value: "skip" },
 ];
 
-const FieldConfigTable = ({ entry, onFieldConfigChange }: FieldConfigTableProps) => {
+const FieldConfigTable = ({ entry, onFieldConfigChange, semanticOptions }: FieldConfigTableProps) => {
     const getConfig = (path: string): FieldConfig =>
-        entry.fieldConfigs[path] ?? { action: "sample", staticValue: "", rangeStart: "", rangeEnd: "" };
+        entry.fieldConfigs[path] ?? { action: "sample", staticValue: "", rangeStart: "", rangeEnd: "", semanticId: "" };
 
     return (
         <S.FieldConfigSection>
@@ -100,12 +119,17 @@ const FieldConfigTable = ({ entry, onFieldConfigChange }: FieldConfigTableProps)
                             >
                                 Range
                             </TableCell>
+                            <TableCell
+                                sx={{ fontWeight: 600, fontSize: "12px", bgcolor: "#fbf9fa", width: "18%" }}
+                            >
+                                Semantics
+                            </TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         {entry.fieldPaths.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={4} align="center" sx={{ py: 3, color: "#9ca3af" }}>
+                                <TableCell colSpan={5} align="center" sx={{ py: 3, color: "#9ca3af" }}>
                                     No fields available from payload
                                 </TableCell>
                             </TableRow>
@@ -148,6 +172,7 @@ const FieldConfigTable = ({ entry, onFieldConfigChange }: FieldConfigTableProps)
                                                         staticValue: newAction === "static" ? config.staticValue : "",
                                                         rangeStart: newAction === "range" ? config.rangeStart : "",
                                                         rangeEnd: newAction === "range" ? config.rangeEnd : "",
+                                                        semanticId: config.semanticId,
                                                     });
                                                 }}
                                                 sx={{
@@ -214,6 +239,27 @@ const FieldConfigTable = ({ entry, onFieldConfigChange }: FieldConfigTableProps)
                                                 <Typography sx={{ fontSize: "12px", color: "#d1d5db" }}>—</Typography>
                                             )}
                                         </TableCell>
+                                        <TableCell sx={{ borderBottom: "1px solid #e0e0e0" }}>
+                                            <Select
+                                                value={config.semanticId ?? ""}
+                                                size="small"
+                                                displayEmpty
+                                                onChange={(e) =>
+                                                    onFieldConfigChange(entry.id, path, {
+                                                        ...config,
+                                                        semanticId: e.target.value,
+                                                    })
+                                                }
+                                                sx={{ fontSize: "12px", minWidth: 140, "& .MuiSelect-select": { py: "4px" } }}
+                                            >
+                                                <MenuItem value="" sx={{ fontSize: "12px", color: "#9ca3af" }}>None</MenuItem>
+                                                {semanticOptions.map((opt) => (
+                                                    <MenuItem key={opt.id} value={opt.id} sx={{ fontSize: "12px" }}>
+                                                        {opt.name}
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                        </TableCell>
                                     </TableRow>
                                 );
                             })
@@ -225,39 +271,41 @@ const FieldConfigTable = ({ entry, onFieldConfigChange }: FieldConfigTableProps)
     );
 };
 
-const EntryRow = ({
+const EntryAccordion = ({
     entry,
-    index,
     isPrimary,
+    isRelated,
+    canRemove = true,
     onToggle,
     onRemove,
     onNumMessagesChange,
     onFieldConfigChange,
-}: EntryRowProps) => (
-    <>
-        <TableRow hover sx={{ bgcolor: "#fff" }}>
-            <TableCell sx={{ width: 48, borderBottom: "1px solid #e0e0e0", pr: 0 }}>
-                <IconButton size="small" onClick={() => onToggle(entry.id)}>
-                    {entry.expanded ? (
-                        <ExpandMoreIcon sx={{ fontSize: 16 }} />
-                    ) : (
-                        <ChevronRightIcon sx={{ fontSize: 16 }} />
-                    )}
-                </IconButton>
-            </TableCell>
-            <TableCell sx={{ fontWeight: 500, fontSize: "13px", borderBottom: "1px solid #e0e0e0" }}>
-                {index + 1}
-            </TableCell>
-            <TableCell sx={{ borderBottom: "1px solid #e0e0e0" }}>
-                <Box display="flex" alignItems="center">
-                    <Typography sx={{ fontSize: "13px", fontWeight: 600 }}>{entry.txtp}</Typography>
-                    {isPrimary && <S.PrimaryBadge>Primary</S.PrimaryBadge>}
-                </Box>
-            </TableCell>
-            <TableCell sx={{ fontSize: "13px", borderBottom: "1px solid #e0e0e0" }}>
-                {entry.version}
-            </TableCell>
-            <TableCell sx={{ borderBottom: "1px solid #e0e0e0" }}>
+    semanticOptions,
+}: EntryAccordionProps) => (
+    <Box sx={{ bgcolor: "#fff", border: "1px solid #e5e7eb", borderRadius: 1, overflow: "hidden" }}>
+        <Box display="flex" alignItems="center" px={1.5} py={1} gap={1.5}>
+            <IconButton size="small" onClick={() => onToggle(entry.id)}>
+                {entry.expanded ? (
+                    <ExpandMoreIcon sx={{ fontSize: 16 }} />
+                ) : (
+                    <ChevronRightIcon sx={{ fontSize: 16 }} />
+                )}
+            </IconButton>
+            <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>
+                {entry.txtp}
+            </Typography>
+            {isPrimary && <S.PrimaryBadge>Primary</S.PrimaryBadge>}
+            {isRelated && (
+                <Chip
+                    label="Related"
+                    size="small"
+                    sx={{ height: 18, fontSize: "10px", bgcolor: "#ede9fe", color: "#6d28d9", fontWeight: 600 }}
+                />
+            )}
+            <Typography sx={{ fontSize: 12, color: "#6b7280" }}>v{entry.version}</Typography>
+            <Box flex={1} />
+            <Box display="flex" alignItems="center" gap={1}>
+                <Typography sx={{ fontSize: 12, color: "#6b7280", whiteSpace: "nowrap" }}>Messages:</Typography>
                 <TextField
                     type="text"
                     inputMode="numeric"
@@ -269,28 +317,80 @@ const EntryRow = ({
                             onNumMessagesChange(entry.id, val === "" ? 0 : Number(val));
                         }
                     }}
-                    sx={{
-                        width: 130,
-                        "& .MuiOutlinedInput-root": { height: "34px", fontSize: "13px" },
-                    }}
+                    sx={{ width: 90, "& .MuiOutlinedInput-root": { height: "30px", fontSize: "13px" } }}
                 />
-            </TableCell>
-            <TableCell sx={{ borderBottom: "1px solid #e0e0e0" }}>
+            </Box>
+            {canRemove && (
                 <S.RemoveText onClick={() => onRemove(entry.id)}>Remove</S.RemoveText>
-            </TableCell>
-        </TableRow>
+            )}
+        </Box>
+        <Collapse in={entry.expanded} timeout="auto" unmountOnExit>
+            <Box sx={{ borderTop: "1px solid #e5e7eb" }}>
+                <FieldConfigTable
+                    entry={entry}
+                    onFieldConfigChange={onFieldConfigChange}
+                    semanticOptions={semanticOptions}
+                />
+            </Box>
+        </Collapse>
+    </Box>
+);
 
-        <TableRow>
-            <TableCell colSpan={6} sx={{ p: 0, borderBottom: entry.expanded ? "1px solid #e0e0e0" : "none" }}>
-                <Collapse in={entry.expanded} timeout="auto" unmountOnExit>
-                    <FieldConfigTable
-                        entry={entry}
-                        onFieldConfigChange={onFieldConfigChange}
-                    />
-                </Collapse>
-            </TableCell>
-        </TableRow>
-    </>
+const LinkedPairContainer = ({
+    primary,
+    related,
+    isPrimaryFirst,
+    onToggle,
+    onRemovePair,
+    onAddMapping,
+    onNumMessagesChange,
+    onFieldConfigChange,
+    semanticOptions,
+}: LinkedPairContainerProps) => (
+    <Box sx={{ border: "2px solid #bfdbfe", borderRadius: 1.5, overflow: "hidden" }}>
+        <Box
+            sx={{
+                bgcolor: "#eff6ff",
+                px: 2,
+                py: 0.75,
+                borderBottom: "1px solid #dbeafe",
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+            }}
+        >
+            <LinkIcon sx={{ fontSize: 14, color: "#3b82f6" }} />
+            <Typography sx={{ fontSize: 11, fontWeight: 600, color: "#1d4ed8" }}>
+                Linked Transaction Pair
+            </Typography>
+            <Box flex={1} />
+            <S.AddMappingText onClick={() => onAddMapping(primary.id, related.id)}>Add Mapping</S.AddMappingText>
+            <S.RemoveText onClick={() => onRemovePair(primary.id, related.id)}>Remove</S.RemoveText>
+        </Box>
+        <Box sx={{ p: 1.5, display: "flex", flexDirection: "column", gap: 1 }}>
+            <EntryAccordion
+                entry={primary}
+                isPrimary={isPrimaryFirst}
+                canRemove={false}
+                onToggle={onToggle}
+                onRemove={() => {}}
+                onNumMessagesChange={onNumMessagesChange}
+                onFieldConfigChange={onFieldConfigChange}
+                semanticOptions={semanticOptions}
+            />
+            <EntryAccordion
+                entry={related}
+                isPrimary={false}
+                isRelated
+                canRemove={false}
+                onToggle={onToggle}
+                onRemove={() => {}}
+                onNumMessagesChange={onNumMessagesChange}
+                onFieldConfigChange={onFieldConfigChange}
+                semanticOptions={semanticOptions}
+            />
+        </Box>
+    </Box>
 );
 
 interface TxtpSelectionProps {
@@ -299,6 +399,23 @@ interface TxtpSelectionProps {
 
 const TxtpSelection = ({ onSaveRef }: TxtpSelectionProps) => {
     const { values, functions } = useTxtpSelectionController();
+    const { data: semanticData } = useGetFakerSemanticDataQuery();
+    const semanticOptions = semanticData?.data ?? [];
+
+    const [mappingModal, setMappingModal] = useState<{ primaryId: string; relatedId: string } | null>(null);
+    const [pairMappings, setPairMappings] = useState<Record<string, FieldMapping[]>>({});
+
+    const handleOpenMapping = (primaryId: string, relatedId: string) => {
+        setMappingModal({ primaryId, relatedId });
+    };
+
+    const handleCloseMappingModal = () => {
+        setMappingModal(null);
+    };
+
+    const handleMappingsChange = (primaryId: string, mappings: FieldMapping[]) => {
+        setPairMappings((prev) => ({ ...prev, [primaryId]: mappings }));
+    };
 
     const {
         entries,
@@ -317,17 +434,28 @@ const TxtpSelection = ({ onSaveRef }: TxtpSelectionProps) => {
         setNumMessages,
         handleAdd,
         handleRemove,
+        handleRemovePair,
         handleToggleExpand,
         handleNumMessagesChange,
         handleFieldConfigChange,
         saveStep2ToDb,
     } = functions;
 
-    // Register save fn with parent wizard so Next Step can call it
     useEffect(() => {
         if (onSaveRef) onSaveRef.current = saveStep2ToDb;
         return () => { if (onSaveRef) onSaveRef.current = null; };
     }, [onSaveRef, saveStep2ToDb]);
+
+    const primaryEntries = entries.filter((e) => !e.relatedTxtpConfigId);
+    const relatedEntries = entries.filter((e) => e.relatedTxtpConfigId != null);
+    const entryPairs = primaryEntries.map((primary, idx) => ({
+        primary,
+        isFirstPrimary: idx === 0,
+        related: relatedEntries.find((r) => r.relatedTxtpConfigId === primary.contextConfigId),
+    }));
+
+    const modalPrimary = mappingModal ? entries.find((e) => e.id === mappingModal.primaryId) : undefined;
+    const modalRelated = mappingModal ? entries.find((e) => e.id === mappingModal.relatedId) : undefined;
 
     return (
         <Box>
@@ -398,52 +526,53 @@ const TxtpSelection = ({ onSaveRef }: TxtpSelectionProps) => {
                     />
                 </Box>
             </S.AddFormCard>
-            <TableContainer component={Paper} variant="outlined">
-                <MuiTable>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell sx={{ width: 48, bgcolor: "#fbf9fa", fontWeight: 600, fontSize: "13px", pr: 0 }} />
-                            <TableCell sx={{ bgcolor: "#fbf9fa", fontWeight: 600, fontSize: "13px" }}>
-                                Order
-                            </TableCell>
-                            <TableCell sx={{ bgcolor: "#fbf9fa", fontWeight: 600, fontSize: "13px" }}>
-                                TXTP
-                            </TableCell>
-                            <TableCell sx={{ bgcolor: "#fbf9fa", fontWeight: 600, fontSize: "13px" }}>
-                                Version
-                            </TableCell>
-                            <TableCell sx={{ bgcolor: "#fbf9fa", fontWeight: 600, fontSize: "13px" }}>
-                                No. of Messages
-                            </TableCell>
-                            <TableCell sx={{ bgcolor: "#fbf9fa", fontWeight: 600, fontSize: "13px" }}>
-                                Action
-                            </TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {entries.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={6} align="center" sx={{ py: 4, color: "#9ca3af" }}>
-                                    No TXTPs added yet
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            entries.map((entry, idx) => (
-                                <EntryRow
-                                    key={entry.id}
-                                    entry={entry}
-                                    index={idx}
-                                    isPrimary={idx === 0}
+            <Paper variant="outlined">
+                {entries.length === 0 ? (
+                    <Box sx={{ py: 4, textAlign: "center", color: "#9ca3af" }}>
+                        No TXTPs added yet. Click <strong>Add TXTP</strong> to create one.
+                    </Box>
+                ) : (
+                    <Box sx={{ p: 1.5, display: "flex", flexDirection: "column", gap: 1.5 }}>
+                        {entryPairs.map((pair) =>
+                            pair.related ? (
+                                <LinkedPairContainer
+                                    key={pair.primary.id}
+                                    primary={pair.primary}
+                                    related={pair.related}
+                                    isPrimaryFirst={pair.isFirstPrimary}
+                                    onToggle={handleToggleExpand}
+                                    onRemovePair={handleRemovePair}
+                                    onAddMapping={handleOpenMapping}
+                                    onNumMessagesChange={handleNumMessagesChange}
+                                    onFieldConfigChange={handleFieldConfigChange}
+                                    semanticOptions={semanticOptions}
+                                />
+                            ) : (
+                                <EntryAccordion
+                                    key={pair.primary.id}
+                                    entry={pair.primary}
+                                    isPrimary={pair.isFirstPrimary}
                                     onToggle={handleToggleExpand}
                                     onRemove={handleRemove}
                                     onNumMessagesChange={handleNumMessagesChange}
                                     onFieldConfigChange={handleFieldConfigChange}
+                                    semanticOptions={semanticOptions}
                                 />
-                            ))
+                            )
                         )}
-                    </TableBody>
-                </MuiTable>
-            </TableContainer>
+                    </Box>
+                )}
+            </Paper>
+            {mappingModal && modalPrimary && modalRelated && (
+                <FieldMappingModal
+                    open
+                    onClose={handleCloseMappingModal}
+                    primary={modalPrimary}
+                    related={modalRelated}
+                    mappings={pairMappings[mappingModal.primaryId] ?? []}
+                    onMappingsChange={(m) => handleMappingsChange(mappingModal.primaryId, m)}
+                />
+            )}
         </Box>
     );
 };
