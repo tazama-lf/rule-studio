@@ -290,3 +290,64 @@ export class BulkUpdateContextConfigsResponseDto {
   @ApiProperty({ type: [ContextTxtpConfigWithStrategiesDto] })
   data: ContextTxtpConfigWithStrategiesDto[];
 }
+
+export class TxtpMappingPairDto {
+  @ApiProperty({ example: 'FITOFI.amount' })
+  @IsString()
+  primary: string;
+
+  @ApiProperty({ example: 'msgId' })
+  @IsString()
+  related: string;
+}
+
+export class CreateContextMappingDto {
+  @ApiProperty({ example: 123 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  primary_txtp_id: number;
+
+  @ApiProperty({ example: 456 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  related_txtp_id: number;
+
+  @ApiProperty({ type: [TxtpMappingPairDto] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => TxtpMappingPairDto)
+  mapping: TxtpMappingPairDto[];
+}
+
+export class ContextMappingDto {
+  @ApiProperty({ example: 1 })
+  id: number;
+
+  @ApiProperty({ example: 123 })
+  primary_tx_id: number;
+
+  @ApiProperty({ example: 456 })
+  related_tx_id: number;
+
+  @ApiProperty({ type: [TxtpMappingPairDto] })
+  mapping: TxtpMappingPairDto[];
+}
+
+export class ContextMappingsResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty({ type: [ContextMappingDto] })
+  data: ContextMappingDto[];
+}
+
+export class ContextMappingResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty({ type: ContextMappingDto })
+  data: ContextMappingDto;
+}

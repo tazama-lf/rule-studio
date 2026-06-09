@@ -57,6 +57,10 @@ import {
   GENERATION_CONTEXT_CONFIG,
   GENERATION_TRIGGER_CONFIG,
   ENRICHMENT_TABLE,
+  CONTEXT_MAPPINGS,
+  CONTEXT_MAPPING_BY_IDS,
+  TRIGGER_MAPPINGS,
+  TRIGGER_MAPPING_BY_IDS,
   SIMULATION_ITEMS,
   EXCLUDED_TYPES,
   STAGE_SIMULATION_ITEMS,
@@ -96,6 +100,24 @@ export interface SimulationMessage {
   timestamp: string;
   endpoint: string;
   data: Record<string, unknown>;
+}
+
+export interface TxtpMappingPair {
+  primary: string;
+  related: string;
+}
+
+export interface CreateTxtpMappingPayload {
+  primary_txtp_id: number;
+  related_txtp_id: number;
+  mapping: TxtpMappingPair[];
+}
+
+export interface TxtpMappingDto {
+  id: number;
+  primary_tx_id: number;
+  related_tx_id: number;
+  mapping: TxtpMappingPair[];
 }
 
 @Injectable()
@@ -584,6 +606,18 @@ export class AdminServiceClient {
     return await this.executeHttpRequest<T>('POST', GENERATION_CONTEXT_CONFIGS(generationId), token, body);
   }
 
+  async createContextMapping<T>(token: string, body: CreateTxtpMappingPayload): Promise<T> {
+    return await this.executeHttpRequest<T>('POST', CONTEXT_MAPPINGS, token, body);
+  }
+
+  async getContextMappings<T>(token: string, primaryTxtpId: number, relatedTxtpId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('GET', CONTEXT_MAPPING_BY_IDS(primaryTxtpId, relatedTxtpId), token);
+  }
+
+  async deleteContextMapping<T>(token: string, primaryTxtpId: number, relatedTxtpId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('DELETE', CONTEXT_MAPPING_BY_IDS(primaryTxtpId, relatedTxtpId), token);
+  }
+
   async bulkUpdateContextConfigs<T>(token: string, generationId: number, body: unknown): Promise<T> {
     return await this.executeHttpRequest<T>('PATCH', GENERATION_CONTEXT_CONFIGS(generationId), token, body);
   }
@@ -596,6 +630,18 @@ export class AdminServiceClient {
 
   async addTriggerTxtpConfig<T>(token: string, generationId: number, body: unknown): Promise<T> {
     return await this.executeHttpRequest<T>('POST', GENERATION_TRIGGER_CONFIGS(generationId), token, body);
+  }
+
+  async createTriggerMapping<T>(token: string, body: CreateTxtpMappingPayload): Promise<T> {
+    return await this.executeHttpRequest<T>('POST', TRIGGER_MAPPINGS, token, body);
+  }
+
+  async getTriggerMappings<T>(token: string, primaryTxtpId: number, relatedTxtpId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('GET', TRIGGER_MAPPING_BY_IDS(primaryTxtpId, relatedTxtpId), token);
+  }
+
+  async deleteTriggerMapping<T>(token: string, primaryTxtpId: number, relatedTxtpId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('DELETE', TRIGGER_MAPPING_BY_IDS(primaryTxtpId, relatedTxtpId), token);
   }
 
   async bulkUpdateTriggerConfigs<T>(token: string, generationId: number, body: unknown): Promise<T> {

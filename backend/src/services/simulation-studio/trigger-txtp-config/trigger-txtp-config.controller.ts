@@ -9,6 +9,9 @@ import type { AuthenticatedUser } from '../../auth/auth.types';
 import { TriggerTxtpConfigService } from './trigger-txtp-config.service';
 import {
   AddTriggerTxtpConfigDto,
+  CreateTriggerMappingDto,
+  TriggerMappingResponseDto,
+  TriggerMappingsResponseDto,
   BulkTriggerConfigItemDto,
   TriggerConfigsListDto,
   TriggerConfigWithOverridesResponseDto,
@@ -102,5 +105,53 @@ export class TriggerTxtpConfigController {
     @User() user: AuthenticatedUser,
   ): Promise<{ success: boolean; message: string }> {
     return await this.triggerTxtpConfigService.deleteTriggerTxtpConfig(user.token.tokenString, generationId, configId);
+  }
+
+  @Post('trigger-mappings')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @Audit()
+  @ApiBody({ type: CreateTriggerMappingDto })
+  @ApiSwagger({
+    summary: 'Create trigger mapping',
+    description: 'Creates a mapping row for primary_txtp_id and related_txtp_id.',
+    responses: mergeResponses(CommonResponses.CREATED_201(TriggerMappingResponseDto, 'Trigger mapping created successfully')),
+  })
+  async createTriggerMapping(@Body() body: CreateTriggerMappingDto, @User() user: AuthenticatedUser): Promise<TriggerMappingResponseDto> {
+    return await this.triggerTxtpConfigService.createTriggerMapping(user.token.tokenString, body);
+  }
+
+  @Get('trigger-mappings/:primaryTxtpId/:relatedTxtpId')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @ApiParam({ name: 'primaryTxtpId', description: 'Primary txtp config id', example: 123 })
+  @ApiParam({ name: 'relatedTxtpId', description: 'Related txtp config id', example: 456 })
+  @ApiSwagger({
+    summary: 'Get trigger mappings by ids',
+    description: 'Returns all mapping rows for a primary/related tx id pair.',
+    responses: mergeResponses(CommonResponses.SUCCESS_200(TriggerMappingsResponseDto, 'Trigger mappings retrieved successfully')),
+  })
+  async getTriggerMappings(
+    @Param('primaryTxtpId', ParseIntPipe) primaryTxtpId: number,
+    @Param('relatedTxtpId', ParseIntPipe) relatedTxtpId: number,
+    @User() user: AuthenticatedUser,
+  ): Promise<TriggerMappingsResponseDto> {
+    return await this.triggerTxtpConfigService.getTriggerMappings(user.token.tokenString, primaryTxtpId, relatedTxtpId);
+  }
+
+  @Delete('trigger-mappings/:primaryTxtpId/:relatedTxtpId')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @Audit()
+  @ApiParam({ name: 'primaryTxtpId', description: 'Primary txtp config id', example: 123 })
+  @ApiParam({ name: 'relatedTxtpId', description: 'Related txtp config id', example: 456 })
+  @ApiSwagger({
+    summary: 'Delete trigger mappings by ids',
+    description: 'Deletes all mapping rows for a primary/related tx id pair.',
+    responses: mergeResponses(CommonResponses.SUCCESS_200(Object, 'Trigger mappings deleted')),
+  })
+  async deleteTriggerMapping(
+    @Param('primaryTxtpId', ParseIntPipe) primaryTxtpId: number,
+    @Param('relatedTxtpId', ParseIntPipe) relatedTxtpId: number,
+    @User() user: AuthenticatedUser,
+  ): Promise<{ success: boolean; message: string }> {
+    return await this.triggerTxtpConfigService.deleteTriggerMapping(user.token.tokenString, primaryTxtpId, relatedTxtpId);
   }
 }

@@ -83,5 +83,11 @@ export const GENERATION_CONTEXT_CONFIG = (generationId: number, configId: number
   `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/context-configs/${configId}`;
 export const GENERATION_TRIGGER_CONFIG = (generationId: number, configId: number): string =>
   `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/trigger-configs/${configId}`;
+export const CONTEXT_MAPPINGS = `${SIMULATION_STUDIO_BASE_URL}/context-mappings`;
+export const CONTEXT_MAPPING_BY_IDS = (primaryTxtpId: number, relatedTxtpId: number): string =>
+  `${CONTEXT_MAPPINGS}/${primaryTxtpId}/${relatedTxtpId}`;
+export const TRIGGER_MAPPINGS = `${SIMULATION_STUDIO_BASE_URL}/trigger-mappings`;
+export const TRIGGER_MAPPING_BY_IDS = (primaryTxtpId: number, relatedTxtpId: number): string =>
+  `${TRIGGER_MAPPINGS}/${primaryTxtpId}/${relatedTxtpId}`;
 export const RESUME_GENERATION = (suiteId: number): string => `${SIMULATION_STUDIO_BASE_URL}/suites/${suiteId}/generation/resume`;
 export const FAKER_SEMANTIC_DATA = `${SIMULATION_STUDIO_BASE_URL}/faker-semantic-data`;

@@ -196,3 +196,63 @@ export class BulkUpdateTriggerConfigsResponseDto {
   @ApiProperty({ type: [TriggerTxtpConfigWithOverridesDto] })
   data: TriggerTxtpConfigWithOverridesDto[];
 }
+
+export class TriggerMappingPairDto {
+  @ApiProperty({ example: 'FITOFI.amount' })
+  @IsString()
+  primary: string;
+
+  @ApiProperty({ example: 'msgId' })
+  @IsString()
+  related: string;
+}
+
+export class CreateTriggerMappingDto {
+  @ApiProperty({ example: 123 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  primary_txtp_id: number;
+
+  @ApiProperty({ example: 456 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  related_txtp_id: number;
+
+  @ApiProperty({ type: [TriggerMappingPairDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TriggerMappingPairDto)
+  mapping: TriggerMappingPairDto[];
+}
+
+export class TriggerMappingDto {
+  @ApiProperty({ example: 1 })
+  id: number;
+
+  @ApiProperty({ example: 123 })
+  primary_tx_id: number;
+
+  @ApiProperty({ example: 456 })
+  related_tx_id: number;
+
+  @ApiProperty({ type: [TriggerMappingPairDto] })
+  mapping: TriggerMappingPairDto[];
+}
+
+export class TriggerMappingsResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty({ type: [TriggerMappingDto] })
+  data: TriggerMappingDto[];
+}
+
+export class TriggerMappingResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty({ type: TriggerMappingDto })
+  data: TriggerMappingDto;
+}

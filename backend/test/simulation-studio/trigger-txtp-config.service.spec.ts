@@ -4,6 +4,9 @@ import { TriggerTxtpConfigService } from '../../src/services/simulation-studio/t
 import { AdminServiceClient } from '../../src/services/admin-service-client';
 import type {
   AddTriggerTxtpConfigDto,
+  CreateTriggerMappingDto,
+  TriggerMappingResponseDto,
+  TriggerMappingsResponseDto,
   TriggerConfigsListDto,
   TriggerConfigWithOverridesResponseDto,
   BulkTriggerConfigItemDto,
@@ -50,6 +53,37 @@ describe('TriggerTxtpConfigService', () => {
     data: [mockConfigWithOverrides],
   };
 
+  const mockTriggerMappingCreateDto: CreateTriggerMappingDto = {
+    primary_txtp_id: 123,
+    related_txtp_id: 456,
+    mapping: [{ primary: 'FITOFI.amount', related: 'msgId' }],
+  };
+
+  const mockTriggerMappingRow = {
+    id: 201,
+    primary_tx_id: 123,
+    related_tx_id: 456,
+    mapping: [{ primary: 'FITOFI.amount', related: 'msgId' }],
+  };
+
+  const mockTriggerMappingCreateResponse: TriggerMappingResponseDto = {
+    success: true,
+    data: mockTriggerMappingRow,
+  };
+
+  const mockTriggerMappingsResponse: TriggerMappingsResponseDto = {
+    success: true,
+    data: [
+      mockTriggerMappingRow,
+      {
+        id: 202,
+        primary_tx_id: 123,
+        related_tx_id: 456,
+        mapping: [{ primary: 'FITOFI.currency', related: 'ccy' }],
+      },
+    ],
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -60,6 +94,9 @@ describe('TriggerTxtpConfigService', () => {
             getTriggerConfigs: jest.fn(),
             addTriggerTxtpConfig: jest.fn(),
             bulkUpdateTriggerConfigs: jest.fn(),
+            createTriggerMapping: jest.fn(),
+            getTriggerMappings: jest.fn(),
+            deleteTriggerMapping: jest.fn(),
           },
         },
       ],
@@ -216,6 +253,68 @@ describe('TriggerTxtpConfigService', () => {
 
       await expect(service.bulkUpdateTriggerConfigs('test-token', 1, [])).rejects.toThrow('Bulk update failed');
       expect(loggerSpy).toHaveBeenCalledWith('Error bulk updating trigger configs for generation 1', expect.any(String));
+    });
+  });
+
+  describe('createTriggerMapping', () => {
+    it('forwards token and dto, returns created mapping row', async () => {
+      adminServiceClient.createTriggerMapping.mockResolvedValue(mockTriggerMappingCreateResponse);
+
+      const result = await service.createTriggerMapping('test-token', mockTriggerMappingCreateDto);
+
+      expect(result).toEqual(mockTriggerMappingCreateResponse);
+      expect(adminServiceClient.createTriggerMapping).toHaveBeenCalledWith('test-token', mockTriggerMappingCreateDto);
+    });
+
+    it('logs and rethrows on error', async () => {
+      const error = new Error('Create mapping failed');
+      adminServiceClient.createTriggerMapping.mockRejectedValue(error);
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+      await expect(service.createTriggerMapping('test-token', mockTriggerMappingCreateDto)).rejects.toThrow('Create mapping failed');
+      expect(loggerSpy).toHaveBeenCalledWith('Error creating trigger mapping', expect.any(String));
+    });
+  });
+
+  describe('getTriggerMappings', () => {
+    it('forwards token and ids, returns all mapping rows for pair', async () => {
+      adminServiceClient.getTriggerMappings.mockResolvedValue(mockTriggerMappingsResponse);
+
+      const result = await service.getTriggerMappings('test-token', 123, 456);
+
+      expect(result).toEqual(mockTriggerMappingsResponse);
+      expect(result.data).toHaveLength(2);
+      expect(adminServiceClient.getTriggerMappings).toHaveBeenCalledWith('test-token', 123, 456);
+    });
+
+    it('logs and rethrows on error', async () => {
+      const error = new Error('Get mappings failed');
+      adminServiceClient.getTriggerMappings.mockRejectedValue(error);
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+      await expect(service.getTriggerMappings('test-token', 123, 456)).rejects.toThrow('Get mappings failed');
+      expect(loggerSpy).toHaveBeenCalledWith('Error fetching trigger mappings for 123/456', expect.any(String));
+    });
+  });
+
+  describe('deleteTriggerMapping', () => {
+    it('forwards token and ids, returns delete response', async () => {
+      const deleteResponse = { success: true, message: 'Trigger mapping deleted' };
+      adminServiceClient.deleteTriggerMapping.mockResolvedValue(deleteResponse);
+
+      const result = await service.deleteTriggerMapping('test-token', 123, 456);
+
+      expect(result).toEqual(deleteResponse);
+      expect(adminServiceClient.deleteTriggerMapping).toHaveBeenCalledWith('test-token', 123, 456);
+    });
+
+    it('logs and rethrows on error', async () => {
+      const error = new Error('Delete mappings failed');
+      adminServiceClient.deleteTriggerMapping.mockRejectedValue(error);
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+      await expect(service.deleteTriggerMapping('test-token', 123, 456)).rejects.toThrow('Delete mappings failed');
+      expect(loggerSpy).toHaveBeenCalledWith('Error deleting trigger mappings for 123/456', expect.any(String));
     });
   });
 });
