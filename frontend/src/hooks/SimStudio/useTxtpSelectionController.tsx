@@ -194,33 +194,37 @@ const useTxtpSelectionController = () => {
                 const configs = cfgRes.data ?? [];
                 if (configs.length === 0) return;
 
-                const newEntries = configs.map((cfg) => buildEntryFromContextConfig(cfg));
-                setEntries(newEntries);
+                const primariesNeedingRelated = configs.filter(
+                    (c) =>
+                        !c.related_txtp_config_id &&
+                        c.related_transaction &&
+                        c.related_transaction.length > 0 &&
+                        !configs.some((other) => other.related_txtp_config_id === Number(c.context_txtp_config_id ?? c.id))
+                );
 
-                // Auto-create related config if primary has related_transaction but no related entry exists
-                const primaryCfg = configs.find((c) => !c.related_txtp_config_id);
-                const hasRelated = configs.some((c) => c.related_txtp_config_id != null);
-
-                if (primaryCfg?.related_transaction && primaryCfg.related_transaction.length > 0 && !hasRelated) {
-                    const parsed = parseRelatedTransaction(primaryCfg.related_transaction);
-                    if (parsed) {
+                if (primariesNeedingRelated.length > 0) {
+                    for (const primaryCfg of primariesNeedingRelated) {
+                        const parsed = parseRelatedTransaction(primaryCfg.related_transaction!);
+                        if (!parsed) continue;
+                        const primaryContextId = Number(primaryCfg.context_txtp_config_id ?? primaryCfg.id ?? 0);
                         try {
-                            const primaryContextId = Number(primaryCfg.context_txtp_config_id ?? primaryCfg.id ?? 0);
-                            const res = await createContextConfig({
+                            await createContextConfig({
                                 generationId: Number(genId),
                                 txtp: parsed.txtp,
                                 txtp_version: parsed.version,
                                 message_count: primaryCfg.message_count ?? 100,
+                                related_context_txtp_id: primaryContextId || undefined,
                             }).unwrap();
-                            const newRelatedEntry = {
-                                ...buildEntryFromContextConfig(res.data),
-                                relatedTxtpConfigId: primaryContextId || null,
-                            };
-                            setEntries((prev) => [...prev, newRelatedEntry]);
                         } catch {
-                            // non-blocking
+                            // non-blocking — proceed to re-fetch even on partial failure
                         }
                     }
+
+                    const refreshed = await fetchContextConfigs(Number(genId)).unwrap();
+                    const refreshedConfigs = refreshed.data ?? [];
+                    setEntries(refreshedConfigs.map((cfg) => buildEntryFromContextConfig(cfg)));
+                } else {
+                    setEntries(configs.map((cfg) => buildEntryFromContextConfig(cfg)));
                 }
             } catch {
                 // non-blocking — UI still works without DB sync
@@ -307,14 +311,14 @@ const useTxtpSelectionController = () => {
                             txtp: parsed.txtp,
                             txtp_version: parsed.version,
                             message_count: numMessages || 100,
+                            related_context_txtp_id: primaryContextId || undefined,
                         }).unwrap();
-                        const relatedEntry = {
-                            ...buildEntryFromContextConfig(relRes.data),
-                            relatedTxtpConfigId: primaryContextId || null,
-                        };
-                        setEntries((prev) => [...prev, newEntry, relatedEntry]);
+
+                        const refreshed = await fetchContextConfigs(Number(genId)).unwrap();
+                        setEntries((refreshed.data ?? []).map((cfg) => buildEntryFromContextConfig(cfg)));
+
+                        void relRes;
                     } catch {
-                        // If related creation fails, still add the primary
                         setEntries((prev) => [...prev, newEntry]);
                     }
                 } else {
@@ -330,7 +334,7 @@ const useTxtpSelectionController = () => {
                 setAdding(false);
             }
         })();
-    }, [addTxtp, addVersion, numMessages, entries.length, createContextConfig]);
+    }, [addTxtp, addVersion, numMessages, entries.length, createContextConfig, fetchContextConfigs]);
 
     const handleRemove = useCallback((id: string) => {
         const entry = entries.find((e) => e.id === id);

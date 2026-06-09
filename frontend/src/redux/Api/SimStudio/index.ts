@@ -274,7 +274,7 @@ export const simStudioApi = createApi({
 
         createContextConfig: builder.mutation<
             { success: boolean; data: ContextTxtpConfig },
-            { generationId: number; txtp: string; txtp_version: string; message_count?: number; display_order?: number }
+            { generationId: number; txtp: string; txtp_version: string; message_count?: number; display_order?: number; related_context_txtp_id?: number }
         >({
             query: ({ generationId, ...body }) => ({
                 url: `generations/${generationId}/context-configs`,
