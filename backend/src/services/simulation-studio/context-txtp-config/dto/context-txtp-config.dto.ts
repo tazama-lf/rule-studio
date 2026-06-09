@@ -64,6 +64,11 @@ export class AddContextTxtpConfigDto {
   @IsInt()
   @Min(1)
   message_count?: number;
+
+  @ApiProperty({ required: false, example: 123 })
+  @IsOptional()
+  @IsNumber()
+  related_context_txtp_id?: number;
 }
 
 export class AddContextTxtpConfigResponseDto {
