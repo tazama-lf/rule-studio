@@ -7,7 +7,7 @@ import * as yup from "yup";
 import type { DropdownOption } from "../../components/DropDown";
 import { useSimStudioTab } from "../../contexts/SimStudioTabContext";
 import { useGetTypesQuery, useLazyGetTxtpVersionsQuery } from "../../redux/Api/Config";
-import { useCreateSuiteMutation, useUpdateWizardProgressMutation } from "../../redux/Api/SimStudio";
+import { useCreateSuiteMutation, useUpdateWizardProgressMutation, useLazyGetSuiteByIdQuery } from "../../redux/Api/SimStudio";
 import { useGetRulesQuery, useLazyGetRuleTagsQuery } from "../../redux/Api/DockerHub";
 import { LocalStorage } from "../../utils/Common/enums";
 import { insertData, extractData } from "../../utils/Common/storage";
@@ -75,6 +75,47 @@ const useCreateSimSuiteController = () => {
         const genId = extractData("sim_gen_id", LocalStorage, false) as string | number | null;
         return genId ? Number(genId) : null;
     }, []);
+
+    const extractSuiteId = useCallback(() => {
+        const suiteId = extractData("sim_suite_id", LocalStorage, false) as string | number | null;
+        return suiteId ? Number(suiteId) : null;
+    }, []);
+
+    const [getSuiteById, { data: existingSuiteData, isFetching: isSuiteLoading }] = useLazyGetSuiteByIdQuery();
+
+    useEffect(() => {
+        if (selectedTab === SimStudioTabs[0].value) {
+            const suiteId = extractSuiteId();
+            if (suiteId) void getSuiteById(suiteId);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedTab]);
+
+    const existingSuite = existingSuiteData?.suite ?? null;
+
+    useEffect(() => {
+        if (!existingSuite) return;
+        reset({
+            suite_name: existingSuite.name ?? "",
+            description: existingSuite.description ?? "",
+            associated_rule: existingSuite.rule_name
+                ? { label: existingSuite.rule_name, value: existingSuite.rule_name }
+                : null,
+            rule_version: existingSuite.rule_version
+                ? { label: existingSuite.rule_version, value: existingSuite.rule_version }
+                : null,
+            txtp: existingSuite.primary_txtp
+                ? { label: existingSuite.primary_txtp, value: existingSuite.primary_txtp }
+                : null,
+            version: existingSuite.primary_txtp_version
+                ? { label: existingSuite.primary_txtp_version, value: existingSuite.primary_txtp_version }
+                : null,
+            rule_config: existingSuite.rule_config
+                ? JSON.stringify(existingSuite.rule_config, null, 2)
+                : "{}",
+        });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [existingSuite]);
     const { data: rulesData } = useGetRulesQuery();
     const [getRuleTags, { data: ruleTagsData }] = useLazyGetRuleTagsQuery();
     const step2SaveRef = useRef<(() => Promise<boolean>) | null>(null);
@@ -86,6 +127,7 @@ const useCreateSimSuiteController = () => {
         handleSubmit,
         watch,
         setValue,
+        reset,
         formState: { errors },
     } = useForm<Step1Values>({
         resolver: yupResolver(step1Schema) as never,
@@ -164,6 +206,10 @@ const useCreateSimSuiteController = () => {
 
     const handleNextStep = () => {
         if (selectedTab === SimStudioTabs[0].value) {
+            if (existingSuite) {
+                enableNextTab();
+                return;
+            }
             void handleSubmit(async (data) => {
                 try {
                     let parsedRuleConfig: Record<string, unknown>;
@@ -178,7 +224,9 @@ const useCreateSimSuiteController = () => {
                         rule_config: parsedRuleConfig,
                     }).unwrap();
                     const genId = result.data.generation_id as unknown as number;
+                    const suiteId = result.data.id as unknown as number;
                     insertData(genId, "sim_gen_id", LocalStorage, false);
+                    insertData(suiteId, "sim_suite_id", LocalStorage, false);
                     void updateWizardProgress({ generationId: genId, current_step_num: 2, completed_step_num: 1 });
                     enableNextTab();
                 } catch {
@@ -222,7 +270,7 @@ const useCreateSimSuiteController = () => {
 
     const renderStep = () => {
         switch (selectedTab) {
-            case 'rule_details':
+            case 'create_generation':
                 return (
                     <Step1RuleDetails
                         control={control}
@@ -233,6 +281,8 @@ const useCreateSimSuiteController = () => {
                         ruleVersionOptions={ruleVersionOptions}
                         txLoading={txLoading}
                         versionLoading={versionLoading}
+                        existingSuite={existingSuite}
+                        isSuiteLoading={isSuiteLoading}
                     />
                 );
             case 'txtp_selection':      return <TxtpSelection onSaveRef={step2SaveRef} />;
@@ -246,9 +296,10 @@ const useCreateSimSuiteController = () => {
     };
 
     const currentStepIndex = tabs.findIndex(t => t.value === selectedTab);
+    const isStep1ReadOnly = selectedTab === SimStudioTabs[0].value && existingSuite !== null;
 
     return {
-        values: { currentStepIndex, totalSteps: tabs.length, isCreatingSuite, selectedTab },
+        values: { currentStepIndex, totalSteps: tabs.length, isCreatingSuite, selectedTab, isStep1ReadOnly },
         functions: { handleBack, handleNextStep, renderStep },
     };
 };

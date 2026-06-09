@@ -27,6 +27,7 @@ import useTriggerDataController, {
   type TriggerOverride,
   type TriggerOverrideType,
 } from "../../../hooks/SimStudio/useTriggerDataController";
+import { useGetFakerSemanticDataQuery } from "../../../redux/Api/SimStudio";
 
 const OVERRIDE_OPTIONS: { label: string; value: TriggerOverrideType }[] = [
   { label: "No Override", value: "null" },
@@ -41,11 +42,12 @@ const OVERRIDE_OPTIONS: { label: string; value: TriggerOverrideType }[] = [
 interface FieldOverridesTableProps {
   entry: TriggerEntry;
   onOverrideChange: (entryId: string, fieldPath: string, override: TriggerOverride) => void;
+  semanticOptions: { id: string; name: string }[];
 }
 
-const FieldOverridesTable = ({ entry, onOverrideChange }: FieldOverridesTableProps) => {
+const FieldOverridesTable = ({ entry, onOverrideChange, semanticOptions }: FieldOverridesTableProps) => {
   const getOverride = (path: string): TriggerOverride =>
-    entry.fieldOverrides[path] ?? { overrideType: "null", staticValue: "", rangeMin: "", rangeMax: "" };
+    entry.fieldOverrides[path] ?? { overrideType: "null", staticValue: "", rangeMin: "", rangeMax: "", semanticId: "" };
 
   return (
     <S.FieldConfigSection>
@@ -63,12 +65,13 @@ const FieldOverridesTable = ({ entry, onOverrideChange }: FieldOverridesTablePro
               <TableCell sx={{ fontWeight: 600, fontSize: "12px", bgcolor: "#fbf9fa", width: "20%" }}>Override Type</TableCell>
               <TableCell sx={{ fontWeight: 600, fontSize: "12px", bgcolor: "#fbf9fa", width: "22%" }}>Static Value</TableCell>
               <TableCell sx={{ fontWeight: 600, fontSize: "12px", bgcolor: "#fbf9fa" }}>Range</TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: "12px", bgcolor: "#fbf9fa", width: "18%" }}>Semantics</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {entry.payloadFields.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} align="center" sx={{ py: 3, color: "#9ca3af" }}>
+                <TableCell colSpan={5} align="center" sx={{ py: 3, color: "#9ca3af" }}>
                   No fields available from payload
                 </TableCell>
               </TableRow>
@@ -95,6 +98,7 @@ const FieldOverridesTable = ({ entry, onOverrideChange }: FieldOverridesTablePro
                             staticValue: newType === "static" ? override.staticValue : "",
                             rangeMin: newType === "range" ? override.rangeMin : "",
                             rangeMax: newType === "range" ? override.rangeMax : "",
+                            semanticId: override.semanticId,
                           });
                         }}
                         sx={{ fontSize: "12px", minWidth: 160, "& .MuiSelect-select": { py: "4px" } }}
@@ -142,6 +146,22 @@ const FieldOverridesTable = ({ entry, onOverrideChange }: FieldOverridesTablePro
                         <Typography sx={{ fontSize: "12px", color: "#d1d5db" }}>—</Typography>
                       )}
                     </TableCell>
+                    <TableCell sx={{ borderBottom: "1px solid #e0e0e0" }}>
+                      <Select
+                        value={override.semanticId ?? ""}
+                        size="small"
+                        displayEmpty
+                        onChange={(e) => onOverrideChange(entry.id, path, { ...override, semanticId: e.target.value })}
+                        sx={{ fontSize: "12px", minWidth: 140, "& .MuiSelect-select": { py: "4px" } }}
+                      >
+                        <MenuItem value="" sx={{ fontSize: "12px", color: "#9ca3af" }}>None</MenuItem>
+                        {semanticOptions.map((opt) => (
+                          <MenuItem key={opt.id} value={opt.id} sx={{ fontSize: "12px" }}>
+                            {opt.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </TableCell>
                   </TableRow>
                 );
               })
@@ -162,6 +182,7 @@ interface EntryRowProps {
   onRemove: (id: string) => void;
   onNumMessagesChange: (id: string, value: number) => void;
   onOverrideChange: (entryId: string, fieldPath: string, override: TriggerOverride) => void;
+  semanticOptions: { id: string; name: string }[];
 }
 
 const EntryRow = ({
@@ -171,6 +192,7 @@ const EntryRow = ({
   onRemove,
   onNumMessagesChange,
   onOverrideChange,
+  semanticOptions,
 }: EntryRowProps) => (
   <>
     <TableRow hover sx={{ bgcolor: "#fff" }}>
@@ -217,7 +239,7 @@ const EntryRow = ({
     <TableRow>
       <TableCell colSpan={6} sx={{ p: 0, borderBottom: entry.expanded ? "1px solid #e0e0e0" : "none" }}>
         <Collapse in={entry.expanded} timeout="auto" unmountOnExit>
-          <FieldOverridesTable entry={entry} onOverrideChange={onOverrideChange} />
+          <FieldOverridesTable entry={entry} onOverrideChange={onOverrideChange} semanticOptions={semanticOptions} />
         </Collapse>
       </TableCell>
     </TableRow>
@@ -232,6 +254,8 @@ interface TriggerDataProps {
 
 const TriggerData = ({ onSaveRef }: TriggerDataProps) => {
   const { values, functions } = useTriggerDataController();
+  const { data: semanticData } = useGetFakerSemanticDataQuery();
+  const semanticOptions = semanticData?.data ?? [];
   const { entries, numMessages, adding, primaryTxtp } = values;
   const {
     setNumMessages,
@@ -349,6 +373,7 @@ const TriggerData = ({ onSaveRef }: TriggerDataProps) => {
                   onRemove={handleRemove}
                   onNumMessagesChange={handleNumMessagesChange}
                   onOverrideChange={handleOverrideChange}
+                  semanticOptions={semanticOptions}
                 />
               ))
             )}

@@ -18,6 +18,7 @@ export interface TriggerOverride {
     staticValue: string;
     rangeMin: string;
     rangeMax: string;
+    semanticId: string;
 }
 
 export interface TriggerEntry {
@@ -59,6 +60,7 @@ const buildTriggerEntry = (cfg: TriggerTxtpConfig): TriggerEntry => {
             staticValue: o.static_value != null ? String(o.static_value) : "",
             rangeMin: o.range_min != null ? String(o.range_min) : "",
             rangeMax: o.range_max != null ? String(o.range_max) : "",
+            semanticId: o.faker_semantic_type ?? "",
         };
     }
 
@@ -200,6 +202,7 @@ const useTriggerDataController = () => {
                     static_value: o.overrideType === "static" ? o.staticValue : undefined,
                     range_min: o.overrideType === "range" && o.rangeMin ? Number(o.rangeMin) : undefined,
                     range_max: o.overrideType === "range" && o.rangeMax ? Number(o.rangeMax) : undefined,
+                    faker_semantic_type: o.semanticId || undefined,
                 })),
             }));
 

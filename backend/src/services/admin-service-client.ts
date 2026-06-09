@@ -65,6 +65,7 @@ import {
   RESUME_GENERATION,
   CLONE_GENERATION,
   CLONE_SUITE,
+  FAKER_SEMANTIC_DATA,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto, UpdateMaskDto } from './masking/dto/masking.dto';
 import type {
@@ -647,5 +648,9 @@ export class AdminServiceClient {
 
   async cloneSuite<T>(token: string, suiteId: number): Promise<T> {
     return await this.executeHttpRequest<T>('POST', CLONE_SUITE(suiteId), token);
+  }
+
+  async generateFakerSemanticData<T>(token: string): Promise<T> {
+    return await this.executeHttpRequest<T>('GET', FAKER_SEMANTIC_DATA, token);
   }
 }

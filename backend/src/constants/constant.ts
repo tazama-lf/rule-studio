@@ -86,3 +86,4 @@ export const GENERATION_TRIGGER_CONFIG = (generationId: number, configId: number
 export const RESUME_GENERATION = (suiteId: number): string => `${SIMULATION_STUDIO_BASE_URL}/suites/${suiteId}/generation/resume`;
 export const CLONE_GENERATION = (generationId: number): string => `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/clone`;
 export const CLONE_SUITE = (suiteId: number): string => `${SIMULATION_SUITES}/${suiteId}/clone`;
+export const FAKER_SEMANTIC_DATA = `${SIMULATION_STUDIO_BASE_URL}/faker-semantic-data`;
