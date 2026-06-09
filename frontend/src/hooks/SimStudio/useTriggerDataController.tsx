@@ -30,7 +30,17 @@ export interface TriggerEntry {
     expanded: boolean;
     payloadFields: string[];
     fieldOverrides: Record<string, TriggerOverride>;
+    relatedTxtpConfigId?: number | null;
 }
+
+const parseRelatedTransaction = (url: string): { txtp: string; version: string } | null => {
+    if (!url || url.length === 0) return null;
+    const parts = url.split("/");
+    const version = parts[2];
+    const txtp = parts[4];
+    if (!txtp || !version) return null;
+    return { txtp, version };
+};
 
 const overrideTypeFromApi = (type: string): TriggerOverrideType => {
     if (type === "static") return "static";
@@ -73,6 +83,7 @@ const buildTriggerEntry = (cfg: TriggerTxtpConfig): TriggerEntry => {
         expanded: false,
         payloadFields,
         fieldOverrides,
+        relatedTxtpConfigId: cfg.related_txtp_config_id ?? null,
     };
 };
 
@@ -112,6 +123,27 @@ const useTriggerDataController = () => {
                 const configs = trigRes.data ?? [];
                 if (configs.length > 0) {
                     setEntries(configs.map(buildTriggerEntry));
+
+                    // Auto-create related trigger config if primary has related_transaction but no related exists
+                    const primaryTrigCfg = configs.find((c) => !c.related_txtp_config_id);
+                    const hasRelated = configs.some((c) => c.related_txtp_config_id != null);
+
+                    if (primaryTrigCfg?.related_transaction && primaryTrigCfg.related_transaction.length > 0 && !hasRelated && primary) {
+                        const parsed = parseRelatedTransaction(primaryTrigCfg.related_transaction);
+                        if (parsed) {
+                            try {
+                                const res = await createTriggerConfig({
+                                    generationId: Number(genId),
+                                    txtp: parsed.txtp,
+                                    txtp_version: parsed.version,
+                                    message_count: primaryTrigCfg.message_count ?? 1,
+                                }).unwrap();
+                                setEntries((prev) => [...prev, buildTriggerEntry(res.data)]);
+                            } catch {
+                                // non-blocking
+                            }
+                        }
+                    }
                 }
             } catch {
                 // non-blocking

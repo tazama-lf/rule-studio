@@ -38,6 +38,7 @@ export interface TxtpEntry {
     schemaLoaded: boolean;
     sampleAvailable: boolean;
     contextConfigId?: number;
+    relatedTxtpConfigId?: number | null;
 }
 
 export interface SimFieldConfig {
@@ -83,6 +84,16 @@ const strategyToFieldAction = (code: string): FieldAction => {
     return "sample";
 };
 
+const parseRelatedTransaction = (url: string): { txtp: string; version: string } | null => {
+    if (!url || url.length === 0) return null;
+    const parts = url.split("/");
+    // e.g. ["", "cbe", "1.0.0", "e2etestfriday", "pacs.008.001.10"]
+    const version = parts[2];
+    const txtp = parts[4];
+    if (!txtp || !version) return null;
+    return { txtp, version };
+};
+
 const buildEntryFromContextConfig = (cfg: {
     context_txtp_config_id?: string | number;
     id?: number;
@@ -91,6 +102,7 @@ const buildEntryFromContextConfig = (cfg: {
     message_count: number;
     sample_payload_snapshot?: Record<string, unknown> | null;
     field_strategies?: FieldStrategy[];
+    related_txtp_config_id?: number | null;
 }): TxtpEntry => {
     const payload = cfg.sample_payload_snapshot ?? null;
     const fieldPaths = payload ? flattenPaths(payload) : [];
@@ -116,6 +128,7 @@ const buildEntryFromContextConfig = (cfg: {
         schemaLoaded: true,
         sampleAvailable: fieldPaths.length > 0,
         contextConfigId: Number(cfg.context_txtp_config_id ?? cfg.id ?? 0) || undefined,
+        relatedTxtpConfigId: cfg.related_txtp_config_id ?? null,
     };
 };
 
@@ -183,11 +196,37 @@ const useTxtpSelectionController = () => {
 
                 const newEntries = configs.map((cfg) => buildEntryFromContextConfig(cfg));
                 setEntries(newEntries);
+
+                // Auto-create related config if primary has related_transaction but no related entry exists
+                const primaryCfg = configs.find((c) => !c.related_txtp_config_id);
+                const hasRelated = configs.some((c) => c.related_txtp_config_id != null);
+
+                if (primaryCfg?.related_transaction && primaryCfg.related_transaction.length > 0 && !hasRelated) {
+                    const parsed = parseRelatedTransaction(primaryCfg.related_transaction);
+                    if (parsed) {
+                        try {
+                            const primaryContextId = Number(primaryCfg.context_txtp_config_id ?? primaryCfg.id ?? 0);
+                            const res = await createContextConfig({
+                                generationId: Number(genId),
+                                txtp: parsed.txtp,
+                                txtp_version: parsed.version,
+                                message_count: primaryCfg.message_count ?? 100,
+                            }).unwrap();
+                            const newRelatedEntry = {
+                                ...buildEntryFromContextConfig(res.data),
+                                relatedTxtpConfigId: primaryContextId || null,
+                            };
+                            setEntries((prev) => [...prev, newRelatedEntry]);
+                        } catch {
+                            // non-blocking
+                        }
+                    }
+                }
             } catch {
                 // non-blocking — UI still works without DB sync
             }
         })();
-    }, [fetchContextConfigs]);
+    }, [fetchContextConfigs, createContextConfig]);
 
     const saveStep2ToDb = useCallback(async (): Promise<boolean> => {
         const genId = extractData("sim_gen_id", LocalStorage, false) as string | number | null;
@@ -255,7 +294,33 @@ const useTxtpSelectionController = () => {
                 }).unwrap();
 
                 const newEntry = buildEntryFromContextConfig(res.data);
-                setEntries((prev) => [...prev, newEntry]);
+                const primaryContextId = Number(res.data.context_txtp_config_id ?? res.data.id ?? 0);
+
+                // Check if the added TXTP has a related transaction
+                const relatedUrl: string = (res.data as { related_transaction?: string }).related_transaction ?? "";
+                const parsed = relatedUrl.length > 0 ? parseRelatedTransaction(relatedUrl) : null;
+
+                if (parsed) {
+                    try {
+                        const relRes = await createContextConfig({
+                            generationId: Number(genId),
+                            txtp: parsed.txtp,
+                            txtp_version: parsed.version,
+                            message_count: numMessages || 100,
+                        }).unwrap();
+                        const relatedEntry = {
+                            ...buildEntryFromContextConfig(relRes.data),
+                            relatedTxtpConfigId: primaryContextId || null,
+                        };
+                        setEntries((prev) => [...prev, newEntry, relatedEntry]);
+                    } catch {
+                        // If related creation fails, still add the primary
+                        setEntries((prev) => [...prev, newEntry]);
+                    }
+                } else {
+                    setEntries((prev) => [...prev, newEntry]);
+                }
+
                 setAddTxtp(null);
                 setAddVersion(null);
                 setNumMessages(100);
@@ -276,6 +341,25 @@ const useTxtpSelectionController = () => {
                 .catch(() => toast.error("Failed to remove TXTP config."));
         }
         setEntries((prev) => prev.filter((e) => e.id !== id));
+    }, [entries, deleteContextConfig]);
+
+    const handleRemovePair = useCallback((primaryId: string, relatedId: string) => {
+        const genId = extractData("sim_gen_id", LocalStorage, false) as string | number | null;
+        const primaryEntry = entries.find((e) => e.id === primaryId);
+        const relatedEntry = entries.find((e) => e.id === relatedId);
+        if (genId) {
+            if (primaryEntry?.contextConfigId) {
+                void deleteContextConfig({ generationId: Number(genId), configId: primaryEntry.contextConfigId })
+                    .unwrap()
+                    .catch(() => toast.error("Failed to remove TXTP config."));
+            }
+            if (relatedEntry?.contextConfigId) {
+                void deleteContextConfig({ generationId: Number(genId), configId: relatedEntry.contextConfigId })
+                    .unwrap()
+                    .catch(() => toast.error("Failed to remove related TXTP config."));
+            }
+        }
+        setEntries((prev) => prev.filter((e) => e.id !== primaryId && e.id !== relatedId));
     }, [entries, deleteContextConfig]);
 
     const handleToggleExpand = useCallback((id: string) => {
@@ -319,6 +403,7 @@ const useTxtpSelectionController = () => {
             setNumMessages,
             handleAdd,
             handleRemove,
+            handleRemovePair,
             handleToggleExpand,
             handleNumMessagesChange,
             handleFieldConfigChange,

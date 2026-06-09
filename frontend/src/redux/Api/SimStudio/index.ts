@@ -42,6 +42,8 @@ export interface ContextTxtpConfig {
     sample_payload_snapshot?: Record<string, unknown>;
     generator_profile?: Record<string, unknown>;
     field_strategies?: FieldStrategy[];
+    related_transaction?: string | null;
+    related_txtp_config_id?: number | null;
 }
 
 export interface FieldStrategy {
@@ -103,6 +105,8 @@ export interface TriggerTxtpConfig {
     expected_result_band?: string;
     notes?: string;
     field_overrides: TriggerFieldOverride[];
+    related_transaction?: string | null;
+    related_txtp_config_id?: number | null;
 }
 
 export interface BulkTriggerConfigItem {
@@ -390,7 +394,7 @@ export const simStudioApi = createApi({
         }),
 
         getFakerSemanticData: builder.query<{ success: boolean; data: FakerSemanticItem[] }, void>({
-            query: () => `${BASE_URL}/faker-semantic-data`,
+            query: () => `faker-semantic-data`,
             transformResponse: (response: { success: boolean; message?: string; data: FakerSemanticItem[] }) => ({ success: response.success, data: response.data }),
         }),
 
@@ -427,6 +431,7 @@ export const {
     useGetGenerationSummaryQuery,
     useLazyResumeGenerationQuery,
     useLazyGetSuiteByIdQuery,
+    useGetSuiteByIdQuery,
     useGetFakerSemanticDataQuery,
     useUpdateWizardProgressMutation,
 } = simStudioApi;
