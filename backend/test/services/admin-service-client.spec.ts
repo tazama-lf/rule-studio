@@ -340,6 +340,31 @@ describe('AdminServiceClient', () => {
     });
   });
 
+  describe('getSimulationSuitesCounts', () => {
+    it('returns suites counts response', async () => {
+      const payload = {
+        success: true,
+        data: {
+          total_suites: 10,
+          total_draft_suites: 4,
+          total_completed_suites: 3,
+          latest_run_at: '2026-06-08T10:15:00.000Z',
+        },
+      };
+      mockRequest(payload);
+
+      const result = await client.getSimulationSuitesCounts('tok');
+
+      expect(result).toEqual(payload);
+      expect(httpService.request).toHaveBeenCalledWith(
+        expect.objectContaining({
+          method: 'GET',
+          url: expect.stringContaining('/v1/admin/trs/simulation-studio/suites/counts'),
+        }),
+      );
+    });
+  });
+
   describe('getSimulationLogs', () => {
     it('returns simulation logs', async () => {
       mockRequest({ logs: [] });

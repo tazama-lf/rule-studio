@@ -3,6 +3,7 @@ import { AdminServiceClient } from '../../admin-service-client';
 import {
   PatchSimulationSuitesDto,
   RequestSimulationSuitesDto,
+  SimulationSuitesCountsResponseDto,
   SimulationSuiteResponseDto,
   SimulationSuitesDto,
   SimulationSuitesListDto,
@@ -31,6 +32,18 @@ export class SimulationStudioService {
     } catch (err) {
       const error = err as Error;
       this.logger.error('Error fetching simulation suites', error.stack);
+      throw error;
+    }
+  }
+
+  async getSimulationSuitesCounts(token: string): Promise<SimulationSuitesCountsResponseDto> {
+    try {
+      const response = await this.adminServiceClient.getSimulationSuitesCounts(token);
+      this.logger.log('Successfully fetched simulation suites counts');
+      return response;
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error('Error fetching simulation suites counts', error.stack);
       throw error;
     }
   }

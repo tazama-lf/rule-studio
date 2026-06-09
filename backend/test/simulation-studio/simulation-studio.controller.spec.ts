@@ -6,6 +6,7 @@ import { makeAuthenticatedUser } from '../helpers/rbac/user.factory';
 import type {
   PatchSimulationSuitesDto,
   RequestSimulationSuitesDto,
+  SimulationSuitesCountsResponseDto,
   SimulationSuiteResponseDto,
   SimulationSuitesDto,
   SimulationSuitesListDto,
@@ -29,6 +30,7 @@ describe('SimulationStudioController', () => {
     rule_version: 'v1.0',
     primary_txtp: 'pacs.008',
     primary_txtp_version: 'v1.0',
+    rule_config: {},
     iteration_count: 0,
     run_count: 0,
     wizard_progress: {},
@@ -49,6 +51,16 @@ describe('SimulationStudioController', () => {
     suite: mockSuite,
   };
 
+  const mockCounts: SimulationSuitesCountsResponseDto = {
+    success: true,
+    data: {
+      total_suites: 10,
+      total_draft_suites: 4,
+      total_completed_suites: 3,
+      latest_run_at: '2026-06-08T10:15:00.000Z',
+    },
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [SimulationStudioController],
@@ -63,6 +75,7 @@ describe('SimulationStudioController', () => {
           provide: SimulationStudioService,
           useValue: {
             getSimulationSuites: jest.fn(),
+            getSimulationSuitesCounts: jest.fn(),
             getSimulationSuiteById: jest.fn(),
             createSimulationSuites: jest.fn(),
             patchSimulationSuite: jest.fn(),
@@ -92,6 +105,16 @@ describe('SimulationStudioController', () => {
 
     expect(result).toEqual(mockList);
     expect(service.getSimulationSuites).toHaveBeenCalledWith(user.token.tokenString, query);
+  });
+
+  it('getSimulationSuitesCounts delegates with token', async () => {
+    const user = makeUser();
+    service.getSimulationSuitesCounts.mockResolvedValue(mockCounts);
+
+    const result = await controller.getSimulationSuitesCounts(user);
+
+    expect(result).toEqual(mockCounts);
+    expect(service.getSimulationSuitesCounts).toHaveBeenCalledWith(user.token.tokenString);
   });
 
   it('getSimulationSuiteById delegates with token and id', async () => {

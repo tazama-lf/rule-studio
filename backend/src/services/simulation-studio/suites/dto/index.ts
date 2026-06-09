@@ -123,6 +123,39 @@ export class SimulationSuitesListDto {
   total?: number;
 }
 
+export class SimulationSuitesCountsDto {
+  @ApiProperty({ description: 'Total suites count', example: 42 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  total_suites: number;
+
+  @ApiProperty({ description: 'Total suites in DRAFT status', example: 18 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  total_draft_suites: number;
+
+  @ApiProperty({ description: 'Total suites in COMPLETED status', example: 12 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  total_completed_suites: number;
+
+  @ApiProperty({ description: 'Latest last_run_at across all suites', required: false, example: '2026-06-08T10:15:00.000Z' })
+  @IsOptional()
+  @IsDateString()
+  latest_run_at?: string;
+}
+
+export class SimulationSuitesCountsResponseDto {
+  @ApiProperty({ description: 'Request status flag', example: true })
+  success: boolean;
+
+  @ApiProperty({ type: SimulationSuitesCountsDto })
+  data: SimulationSuitesCountsDto;
+}
+
 export class SimulationSuiteResponseDto {
   @ApiProperty({ description: 'Request status flag', example: true })
   success: boolean;

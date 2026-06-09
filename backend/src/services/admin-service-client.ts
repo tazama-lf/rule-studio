@@ -47,6 +47,7 @@ import {
   SIMULATION_STATS,
   SIMULATION_RESULTS,
   SIMULATION_SUITES,
+  SIMULATION_SUITES_COUNTS,
   SUITE_GENERATIONS,
   SUITE_LATEST_GENERATION,
   GENERATION_CONTEXT_CONFIGS,
@@ -88,6 +89,7 @@ import { TransactionTypeDto } from './config/dto/config.dto';
 import { DlhCountDataDto, DlhCountResponse } from './fetch-from-dlh/dto/fetch-from-dlh.dto';
 import {
   PatchSimulationSuitesDto,
+  SimulationSuitesCountsResponseDto,
   SimulationSuiteResponseDto,
   SimulationSuitesDto,
   SimulationSuitesListDto,
@@ -568,6 +570,10 @@ export class AdminServiceClient {
     if (query.limit !== undefined) params.limit = String(query.limit);
 
     return await this.executeHttpRequest<SimulationSuitesListDto>('GET', SIMULATION_SUITES, token, undefined, params);
+  }
+
+  async getSimulationSuitesCounts(token: string): Promise<SimulationSuitesCountsResponseDto> {
+    return await this.executeHttpRequest<SimulationSuitesCountsResponseDto>('GET', SIMULATION_SUITES_COUNTS, token);
   }
 
   async getSimulationSuiteById(token: string, id: number): Promise<SimulationSuiteResponseDto> {

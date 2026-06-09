@@ -10,6 +10,7 @@ import { Audit } from 'src/decorators/audit.decorator';
 import {
   PatchSimulationSuitesDto,
   RequestSimulationSuitesDto,
+  SimulationSuitesCountsResponseDto,
   SimulationSuiteResponseDto,
   SimulationSuitesDto,
   SimulationSuitesListDto,
@@ -43,6 +44,20 @@ export class SimulationStudioController {
   })
   async getSimulationSuites(@User() user: AuthenticatedUser, @Query() query: SimulationSuitesQueryDto): Promise<SimulationSuitesListDto> {
     return await this.simulationStudioService.getSimulationSuites(user.token.tokenString, query);
+  }
+
+  @Get('suites/counts')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @ApiSwagger({
+    summary: 'Get simulation suites counts',
+    description: 'Retrieves total suites, draft suites, completed suites, and latest run timestamp',
+    responses: mergeResponses(
+      CommonResponses.SUCCESS_200(SimulationSuitesCountsResponseDto, 'Simulation suites counts retrieved successfully'),
+      CommonResponses.NOT_FOUND_404('Simulation suites not found'),
+    ),
+  })
+  async getSimulationSuitesCounts(@User() user: AuthenticatedUser): Promise<SimulationSuitesCountsResponseDto> {
+    return await this.simulationStudioService.getSimulationSuitesCounts(user.token.tokenString);
   }
 
   @Get('suites/:id')
