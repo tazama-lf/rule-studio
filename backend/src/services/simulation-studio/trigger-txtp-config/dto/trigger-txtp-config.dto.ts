@@ -17,6 +17,11 @@ export class AddTriggerTxtpConfigDto {
   @IsInt()
   @Min(1)
   message_count?: number;
+
+  @ApiProperty({ required: false, example: 123 })
+  @IsOptional()
+  @IsNumber()
+  related_trigger_txtp_id?: number;
 }
 
 export class TriggerFieldOverrideDto {
@@ -30,6 +35,7 @@ export class TriggerFieldOverrideDto {
   field_path: string;
 
   @ApiProperty({ example: 'static', enum: ['static', 'range', 'generated', 'remove', 'null'] })
+  @IsEnum(['static', 'range', 'generated', 'remove', 'null'])
   override_type: string;
 
   @ApiProperty({ required: false })
