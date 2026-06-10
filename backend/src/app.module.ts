@@ -56,4 +56,4 @@ import { MsgSampleGenerationModule } from './services/msg-sample-generation/msg-
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
