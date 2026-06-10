@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 import StatusCard from "../../components/Cards/StatusCard";
 import type { TableColumn } from "../../components/Table";
 import useDebouncedSearch from "../../hooks/useDebouncedSearch";
-import { useGetSuitesQuery, useLazyResumeGenerationQuery, type SuiteListItem } from "../../redux/Api/SimStudio";
+import { useGetSuitesQuery, useGetSuitesCountQuery, useLazyResumeGenerationQuery, type SuiteListItem } from "../../redux/Api/SimStudio";
 import { useGetRulesQuery } from "../../redux/Api/DockerHub";
 import { useGetTypesQuery } from "../../redux/Api/Config";
 import { LocalStorage } from "../../utils/Common/enums";
@@ -20,6 +20,15 @@ const computeLatestIteration = (suites: SuiteListItem[]): string => {
         new Date(curr.last_run_at!) > new Date(acc.last_run_at!) ? curr : acc
     );
     const latestDate = new Date(latest.last_run_at!);
+    const today = new Date();
+    if (latestDate.toDateString() === today.toDateString()) return "Today";
+    return latestDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+};
+
+const formatLatestIteration = (latestRunAt?: string | number | null): string => {
+    if (latestRunAt === null || latestRunAt === undefined || latestRunAt === "") return "—";
+    const latestDate = new Date(latestRunAt);
+    if (Number.isNaN(latestDate.getTime())) return "—";
     const today = new Date();
     if (latestDate.toDateString() === today.toDateString()) return "Today";
     return latestDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
@@ -63,6 +72,7 @@ const useSimStudioController = () => {
     const { data: rulesData } = useGetRulesQuery();
     const { data: txTypesData } = useGetTypesQuery({});
     const [triggerResume] = useLazyResumeGenerationQuery();
+    const { data: suitesCountData } = useGetSuitesCountQuery();
 
     const suites: SuiteListItem[] = data?.suites ?? [];
 
@@ -83,12 +93,16 @@ const useSimStudioController = () => {
         return result;
     }, [txTypesData]);
 
-    const stats = useMemo(() => ({
-        total: data?.total ?? suites.length,
-        readyForSimulation: suites.filter((s) => s.status === "COMPLETED" || s.status === "RUNNING").length,
-        drafts: suites.filter((s) => s.status === "DRAFT").length,
-        latestIteration: computeLatestIteration(suites),
-    }), [data, suites]);
+    const stats = useMemo(() => {
+        const counts = suitesCountData?.data;
+
+        return {
+            total: counts?.total_suites ?? data?.total ?? suites.length,
+            readyForSimulation: counts?.total_completed_suites ?? suites.filter((s) => s.status === "COMPLETED" || s.status === "RUNNING").length,
+            drafts: counts?.total_draft_suites ?? suites.filter((s) => s.status === "DRAFT").length,
+            latestIteration: counts ? formatLatestIteration(counts.latest_run_at) : computeLatestIteration(suites),
+        };
+    }, [data?.total, suites, suitesCountData]);
 
     const tableData = useMemo(() =>
         suites.map((s) => ({

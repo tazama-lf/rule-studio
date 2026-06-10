@@ -173,6 +173,18 @@ export interface SuitesListQuery {
     limit?: number;
 }
 
+export interface SuitesCountData {
+    total_suites: number;
+    total_draft_suites: number;
+    total_completed_suites: number;
+    latest_run_at: string | number | null;
+}
+
+export interface SuitesCountResponse {
+    success: boolean;
+    data: SuitesCountData;
+}
+
 export interface ContextTxtpSummary {
     txtp: string;
     txtp_version: string;
@@ -269,6 +281,10 @@ export const simStudioApi = createApi({
                 if (params.limit !== undefined) q.set("limit", String(params.limit));
                 return `suites${q.toString() ? `?${q.toString()}` : ""}`;
             },
+        }),
+
+        getSuitesCount: builder.query<SuitesCountResponse, void>({
+            query: () => "suites/counts",
         }),
 
         createSuite: builder.mutation<{ success: boolean; data: {
@@ -452,6 +468,7 @@ export const simStudioApi = createApi({
 
 export const {
     useGetSuitesQuery,
+    useGetSuitesCountQuery,
     useCreateSuiteMutation,
     useGetLatestGenerationQuery,
     useLazyGetLatestGenerationQuery,
