@@ -34,9 +34,9 @@ export class TriggerFieldOverrideDto {
   @ApiProperty({ example: 'CdtTrfTxInf.IntrBkSttlmAmt.value' })
   field_path: string;
 
-  @ApiProperty({ example: 'static', enum: ['static', 'range', 'generated', 'remove', 'null'] })
-  @IsEnum(['static', 'range', 'generated', 'remove', 'null'])
-  override_type: string;
+  @ApiProperty({ example: 'static', enum: ['keep_sample', 'static', 'range', 'random', 'skip'] })
+  @IsEnum(['keep_sample', 'static', 'range', 'random', 'skip'])
+  strategy_code: string;
 
   @ApiProperty({ required: false })
   static_value?: unknown;
@@ -62,9 +62,9 @@ export class UpsertTriggerFieldOverrideDto {
   @IsString()
   field_path: string;
 
-  @ApiProperty({ example: 'static', enum: ['static', 'range', 'generated', 'remove', 'null'] })
-  @IsEnum(['static', 'range', 'generated', 'remove', 'null'])
-  override_type: string;
+  @ApiProperty({ example: 'static', enum: ['keep_sample', 'static', 'range', 'skip', 'random'] })
+  @IsEnum(['keep_sample', 'static', 'range', 'skip', 'random'])
+  strategy_code: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
@@ -120,7 +120,7 @@ export class TriggerTxtpConfigWithOverridesDto {
   notes?: string;
 
   @ApiProperty({ type: [TriggerFieldOverrideDto] })
-  field_overrides: TriggerFieldOverrideDto[];
+  field_startegy: TriggerFieldOverrideDto[];
 }
 
 export class TriggerConfigsListDto {
