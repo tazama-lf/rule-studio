@@ -120,7 +120,7 @@ export class TriggerTxtpConfigWithOverridesDto {
   notes?: string;
 
   @ApiProperty({ type: [TriggerFieldOverrideDto] })
-  field_startegy: TriggerFieldOverrideDto[];
+  field_strategies: TriggerFieldOverrideDto[];
 }
 
 export class TriggerConfigsListDto {
@@ -186,7 +186,7 @@ export class BulkTriggerConfigItemDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => UpsertTriggerFieldOverrideDto)
-  field_overrides?: UpsertTriggerFieldOverrideDto[];
+  field_strategies?: UpsertTriggerFieldOverrideDto[];
 }
 
 export class BulkUpdateTriggerConfigsResponseDto {
