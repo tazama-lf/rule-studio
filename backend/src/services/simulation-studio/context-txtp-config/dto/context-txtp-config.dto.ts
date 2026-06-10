@@ -194,8 +194,8 @@ export class UpsertFieldStrategyDto {
   @IsString()
   field_path: string;
 
-  @ApiProperty({ example: 'static', enum: ['keep_sample', 'static', 'range', 'generated', 'null', 'skip'] })
-  @IsEnum(['keep_sample', 'static', 'range', 'generated', 'null', 'skip'])
+  @ApiProperty({ example: 'static', enum: ['keep_sample', 'static', 'range', 'skip', 'random'] })
+  @IsEnum(['keep_sample', 'static', 'range', 'skip', 'random'])
   strategy_code: ContextFieldStrategy;
 
   @ApiProperty({ required: false })

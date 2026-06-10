@@ -8,10 +8,10 @@ import type {
   TriggerMappingResponseDto,
   TriggerMappingsResponseDto,
   TriggerConfigsListDto,
-  TriggerConfigWithOverridesResponseDto,
+  TriggerConfigWithStrategiesResponseDto,
   BulkTriggerConfigItemDto,
   BulkUpdateTriggerConfigsResponseDto,
-  TriggerTxtpConfigWithOverridesDto,
+  TriggerTxtpConfigWithStrategiesDto,
 } from '../../src/services/simulation-studio/trigger-txtp-config/dto/trigger-txtp-config.dto';
 
 describe('TriggerTxtpConfigService', () => {
@@ -22,12 +22,12 @@ describe('TriggerTxtpConfigService', () => {
     id: 1,
     trigger_txtp_config_id: 20,
     field_path: 'amount',
-    override_type: 'null',
+    strategy_code: 'null',
     generator_options: {},
     created_at: '2026-05-01T00:00:00.000Z',
   };
 
-  const mockConfigWithOverrides: TriggerTxtpConfigWithOverridesDto = {
+  const mockConfigWithStrategies: TriggerTxtpConfigWithStrategiesDto = {
     trigger_txtp_config_id: 20,
     txtp: 'pacs.008',
     txtp_version: '001.08',
@@ -35,22 +35,22 @@ describe('TriggerTxtpConfigService', () => {
     display_order: 1,
     payload_template_json: { amount: 100 },
     link_to_context_pairs: false,
-    field_overrides: [mockOverride],
+    field_strategies: [mockOverride],
   };
 
   const mockGetResponse: TriggerConfigsListDto = {
     success: true,
-    data: [mockConfigWithOverrides],
+    data: [mockConfigWithStrategies],
   };
 
-  const mockAddResponse: TriggerConfigWithOverridesResponseDto = {
+  const mockAddResponse: TriggerConfigWithStrategiesResponseDto = {
     success: true,
-    data: mockConfigWithOverrides,
+    data: mockConfigWithStrategies,
   };
 
   const mockBulkResponse: BulkUpdateTriggerConfigsResponseDto = {
     success: true,
-    data: [mockConfigWithOverrides],
+    data: [mockConfigWithStrategies],
   };
 
   const mockTriggerMappingCreateDto: CreateTriggerMappingDto = {
@@ -170,7 +170,7 @@ describe('TriggerTxtpConfigService', () => {
 
       const result = await service.addTriggerConfig('test-token', 1, dto);
 
-      expect(result.data.field_overrides[0].override_type).toBe('null');
+      expect(result.data.field_strategies[0].strategy_code).toBe('null');
     });
 
     it('logs and rethrows on error', async () => {
@@ -192,7 +192,7 @@ describe('TriggerTxtpConfigService', () => {
         {
           trigger_txtp_config_id: 20,
           message_count: 2,
-          field_overrides: [{ field_path: 'amount', override_type: 'static', static_value: '999' }],
+          field_strategies: [{ field_path: 'amount', strategy_code: 'static', static_value: '999' }],
         },
       ];
       adminServiceClient.bulkUpdateTriggerConfigs.mockResolvedValue(mockBulkResponse);
@@ -207,12 +207,12 @@ describe('TriggerTxtpConfigService', () => {
       const items: BulkTriggerConfigItemDto[] = [
         {
           trigger_txtp_config_id: 20,
-          field_overrides: [
-            { field_path: 'field.a', override_type: 'static', static_value: 'x', faker_semantic_type: 'iso20022.bic' },
-            { field_path: 'field.b', override_type: 'range', range_min: 1, range_max: 100, faker_semantic_type: 'iso20022.amount' },
-            { field_path: 'field.c', override_type: 'generated', faker_semantic_type: 'iso20022.bic' },
-            { field_path: 'field.d', override_type: 'remove', faker_semantic_type: 'iso20022.bic' },
-            { field_path: 'field.e', override_type: 'null', faker_semantic_type: 'iso20022.bic' },
+          field_strategies: [
+            { field_path: 'field.a', strategy_code: 'static', static_value: 'x', faker_semantic_type: 'iso20022.bic' },
+            { field_path: 'field.b', strategy_code: 'range', range_min: 1, range_max: 100, faker_semantic_type: 'iso20022.amount' },
+            { field_path: 'field.c', strategy_code: 'generated', faker_semantic_type: 'iso20022.bic' },
+            { field_path: 'field.d', strategy_code: 'remove', faker_semantic_type: 'iso20022.bic' },
+            { field_path: 'field.e', strategy_code: 'null', faker_semantic_type: 'iso20022.bic' },
           ],
         },
       ];

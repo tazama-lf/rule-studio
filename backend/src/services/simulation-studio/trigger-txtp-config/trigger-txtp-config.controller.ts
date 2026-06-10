@@ -14,7 +14,7 @@ import {
   TriggerMappingsResponseDto,
   BulkTriggerConfigItemDto,
   TriggerConfigsListDto,
-  TriggerConfigWithOverridesResponseDto,
+  TriggerConfigWithStrategiesResponseDto,
   BulkUpdateTriggerConfigsResponseDto,
 } from './dto/trigger-txtp-config.dto';
 
@@ -53,7 +53,7 @@ export class TriggerTxtpConfigController {
     description:
       'Creates a new trigger txtp config. txtp+version should match the primary TXTP (locked in UI). Uses sample payload from tcs_config as payload_template_json. Default message_count = 1.',
     responses: mergeResponses(
-      CommonResponses.CREATED_201(TriggerConfigWithOverridesResponseDto, 'Trigger config created successfully'),
+      CommonResponses.CREATED_201(TriggerConfigWithStrategiesResponseDto, 'Trigger config created successfully'),
       CommonResponses.NOT_FOUND_404('tcs_config entry not found for given txtp+version'),
     ),
   })
@@ -61,7 +61,7 @@ export class TriggerTxtpConfigController {
     @Param('generationId', ParseIntPipe) generationId: number,
     @Body() dto: AddTriggerTxtpConfigDto,
     @User() user: AuthenticatedUser,
-  ): Promise<TriggerConfigWithOverridesResponseDto> {
+  ): Promise<TriggerConfigWithStrategiesResponseDto> {
     return await this.triggerTxtpConfigService.addTriggerConfig(user.token.tokenString, generationId, dto);
   }
 
