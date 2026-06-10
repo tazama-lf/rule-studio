@@ -6,7 +6,7 @@ import type {
   TriggerMappingResponseDto,
   TriggerMappingsResponseDto,
   TriggerConfigsListDto,
-  TriggerConfigWithOverridesResponseDto,
+  TriggerConfigWithStrategiesResponseDto,
   BulkTriggerConfigItemDto,
   BulkUpdateTriggerConfigsResponseDto,
 } from './dto/trigger-txtp-config.dto';
@@ -31,7 +31,7 @@ export class TriggerTxtpConfigService {
     token: string,
     generationId: number,
     dto: AddTriggerTxtpConfigDto,
-  ): Promise<TriggerConfigWithOverridesResponseDto> {
+  ): Promise<TriggerConfigWithStrategiesResponseDto> {
     try {
       return await this.adminServiceClient.addTriggerTxtpConfig(token, generationId, dto);
     } catch (err) {

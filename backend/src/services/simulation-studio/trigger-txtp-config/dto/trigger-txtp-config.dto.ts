@@ -24,7 +24,7 @@ export class AddTriggerTxtpConfigDto {
   related_trigger_txtp_id?: number;
 }
 
-export class TriggerFieldOverrideDto {
+export class TriggerFieldStrategyDto {
   @ApiProperty({ example: 1 })
   id: number;
 
@@ -57,7 +57,7 @@ export class TriggerFieldOverrideDto {
   created_at: string;
 }
 
-export class UpsertTriggerFieldOverrideDto {
+export class UpsertTriggerFieldStrategyDto {
   @ApiProperty({ example: 'CdtTrfTxInf.IntrBkSttlmAmt.value' })
   @IsString()
   field_path: string;
@@ -91,7 +91,7 @@ export class UpsertTriggerFieldOverrideDto {
   generator_options?: Record<string, unknown>;
 }
 
-export class TriggerTxtpConfigWithOverridesDto {
+export class TriggerTxtpConfigWithStrategiesDto {
   @ApiProperty({ example: 1 })
   trigger_txtp_config_id: number;
 
@@ -119,24 +119,24 @@ export class TriggerTxtpConfigWithOverridesDto {
   @ApiProperty({ required: false, example: 'optional notes' })
   notes?: string;
 
-  @ApiProperty({ type: [TriggerFieldOverrideDto] })
-  field_strategies: TriggerFieldOverrideDto[];
+  @ApiProperty({ type: [TriggerFieldStrategyDto] })
+  field_strategies: TriggerFieldStrategyDto[];
 }
 
 export class TriggerConfigsListDto {
   @ApiProperty()
   success: boolean;
 
-  @ApiProperty({ type: [TriggerTxtpConfigWithOverridesDto] })
-  data: TriggerTxtpConfigWithOverridesDto[];
+  @ApiProperty({ type: [TriggerTxtpConfigWithStrategiesDto] })
+  data: TriggerTxtpConfigWithStrategiesDto[];
 }
 
-export class TriggerConfigWithOverridesResponseDto {
+export class TriggerConfigWithStrategiesResponseDto {
   @ApiProperty()
   success: boolean;
 
-  @ApiProperty({ type: TriggerTxtpConfigWithOverridesDto })
-  data: TriggerTxtpConfigWithOverridesDto;
+  @ApiProperty({ type: TriggerTxtpConfigWithStrategiesDto })
+  data: TriggerTxtpConfigWithStrategiesDto;
 }
 
 export class BulkTriggerConfigItemDto {
@@ -181,20 +181,20 @@ export class BulkTriggerConfigItemDto {
   @IsObject()
   generator_profile?: Record<string, unknown>;
 
-  @ApiProperty({ required: false, type: [UpsertTriggerFieldOverrideDto] })
+  @ApiProperty({ required: false, type: [UpsertTriggerFieldStrategyDto] })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => UpsertTriggerFieldOverrideDto)
-  field_strategies?: UpsertTriggerFieldOverrideDto[];
+  @Type(() => UpsertTriggerFieldStrategyDto)
+  field_strategies?: UpsertTriggerFieldStrategyDto[];
 }
 
 export class BulkUpdateTriggerConfigsResponseDto {
   @ApiProperty()
   success: boolean;
 
-  @ApiProperty({ type: [TriggerTxtpConfigWithOverridesDto] })
-  data: TriggerTxtpConfigWithOverridesDto[];
+  @ApiProperty({ type: [TriggerTxtpConfigWithStrategiesDto] })
+  data: TriggerTxtpConfigWithStrategiesDto[];
 }
 
 export class TriggerMappingPairDto {
