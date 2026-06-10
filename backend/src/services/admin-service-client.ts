@@ -69,6 +69,7 @@ import {
   FETCH_COUNT_DLH,
   RESUME_GENERATION,
   FAKER_SEMANTIC_DATA,
+  SIMULATION_STUDIO_BASE_URL,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto, UpdateMaskDto } from './masking/dto/masking.dto';
 import type {
@@ -96,6 +97,7 @@ import {
   SimulationSuitesQueryDto,
 } from './simulation-studio/suites/dto';
 import type { ISimulationSuiteCreatePayload } from './simulation-studio/interface/simulation-studio.interface';
+import { GenerateSampleMessagesResponseDto } from './msg-sample-generation/dto/msg-sample-generation.dto';
 
 export interface SimulationMessage {
   messageId: string;
@@ -586,6 +588,15 @@ export class AdminServiceClient {
 
   async patchSimulationSuite(token: string, id: number, payload: PatchSimulationSuitesDto): Promise<SimulationSuiteResponseDto> {
     return await this.executeHttpRequest<SimulationSuiteResponseDto>('PATCH', `${SIMULATION_SUITES}/${id}`, token, payload);
+  }
+
+  // --- message sampler ---------------------------------------------------------
+
+  async getSampleMessages(token: string, generationId: number): Promise<GenerateSampleMessagesResponseDto> {
+    const response = await this.executeHttpRequest<GenerateSampleMessagesResponseDto>(
+      'GET',  `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/sample-messages`, token
+    );
+    return response;
   }
 
   // ── Generations ──────────────────────────────────────────────────────────────
