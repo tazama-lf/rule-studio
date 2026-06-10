@@ -11,7 +11,7 @@ import {
 import { LocalStorage } from "../../utils/Common/enums";
 import { extractData } from "../../utils/Common/storage";
 
-export type TriggerOverrideType = "null" | "static" | "range" | "generated" | "remove";
+export type TriggerOverrideType = "null" | "static" | "range" | "random" | "remove";
 
 export interface TriggerOverride {
     overrideType: TriggerOverrideType;
@@ -45,7 +45,7 @@ const parseRelatedTransaction = (url: string): { txtp: string; version: string }
 const overrideTypeFromApi = (type: string): TriggerOverrideType => {
     if (type === "static") return "static";
     if (type === "range") return "range";
-    if (type === "generated") return "generated";
+    if (type === "generated") return "random";
     if (type === "remove") return "remove";
     return "null";
 };
