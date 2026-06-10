@@ -24,6 +24,7 @@ import { TriggerTxtpConfigModule } from './services/simulation-studio/trigger-tx
 import { EnrichmentTableModule } from './services/simulation-studio/enrichment-table/enrichment-table.module';
 import { FakerSemanticDataModule } from './services/simulation-studio/faker-semantic-data/faker_semantic_data.module';
 import { MsgSampleGenerationModule } from './services/msg-sample-generation/msg-sample-generation.module';
+import { RunSimulationModule } from './services/simulation-studio/generation-engine/run-simulation.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { MsgSampleGenerationModule } from './services/msg-sample-generation/msg-
     EnrichmentTableModule,
     FakerSemanticDataModule,
     MsgSampleGenerationModule,
+    RunSimulationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -70,6 +70,8 @@ import {
   RESUME_GENERATION,
   FAKER_SEMANTIC_DATA,
   SIMULATION_STUDIO_BASE_URL,
+  GENERATION_SAMPLE_TRIGGER_MESSAGES,
+  GENERATION_SAMPLE_ENRICHMENT_ROWS,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto, UpdateMaskDto } from './masking/dto/masking.dto';
 import type {
@@ -594,7 +596,7 @@ export class AdminServiceClient {
 
   async getSampleMessages(token: string, generationId: number): Promise<GenerateSampleMessagesResponseDto> {
     const response = await this.executeHttpRequest<GenerateSampleMessagesResponseDto>(
-      'GET',  `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/sample-messages`, token
+      'GET', `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/sample-messages`, token
     );
     return response;
   }
@@ -705,5 +707,13 @@ export class AdminServiceClient {
 
   async generateFakerSemanticData<T>(token: string): Promise<T> {
     return await this.executeHttpRequest<T>('GET', FAKER_SEMANTIC_DATA, token);
+  }
+
+  async getSampleTriggerMessages<T>(token: string, generationId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('GET', GENERATION_SAMPLE_TRIGGER_MESSAGES(generationId), token);
+  }
+
+  async getSampleEnrichmentRows<T>(token: string, generationId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('GET', GENERATION_SAMPLE_ENRICHMENT_ROWS(generationId), token);
   }
 }

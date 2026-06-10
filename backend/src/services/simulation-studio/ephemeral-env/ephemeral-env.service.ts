@@ -70,9 +70,12 @@ export class EphemeralEnvService implements OnModuleDestroy {
 
     const ruleName = options.ruleName ?? 'rule-901';
     const version = options.version ?? 'rc';
+    // rule-executer builds streams as sub-rule-${RULE_NAME}@${VERSION} — strip any existing 'rule-' prefix
+    // so RULE_NAME env stays clean and subjects don't double up (e.g. sub-rule-rule-901@rc)
+    const ruleBaseName = ruleName.replace(/^rule-/, '');
     const functionName = `${ruleName}-rel-${version}`;
-    const natsSubject = `sub-${ruleName}@${version}`;
-    const natsConsumer = `pub-${ruleName}@${version}`;
+    const natsSubject = `sub-rule-${ruleBaseName}@${version}`;
+    const natsConsumer = `pub-rule-${ruleBaseName}@${version}`;
     const ruleImage = `${DOCKERHUB_NAMESPACE}/${ruleName}:${version}`;
 
     this.logger.log(`Spawning '${name}': ${ruleImage}`);
@@ -193,7 +196,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
           SERVER_URL: 'nats:4222',
           FUNCTION_NAME: functionName,
           RULE_VERSION: version,
-          RULE_NAME: ruleName,
+          RULE_NAME: ruleBaseName,
         })
         .withLogConsumer((stream) => {
           stream.on('data', (line: string) => { this.logger.log(`[${name}][rule-processor] ${line.trim()}`); });
