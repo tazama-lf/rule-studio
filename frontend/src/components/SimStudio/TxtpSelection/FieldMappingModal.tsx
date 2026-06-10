@@ -4,6 +4,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import SearchIcon from "@mui/icons-material/Search";
 import {
     Box,
+    CircularProgress,
     Dialog,
     DialogActions,
     DialogContent,
@@ -14,21 +15,34 @@ import {
     Tooltip,
     Typography,
 } from "@mui/material";
-import { useState, useMemo } from "react";
-import type { TxtpEntry } from "../../../hooks/SimStudio/useTxtpSelectionController";
+import { useState, useMemo, useEffect } from "react";
+import toast from "react-hot-toast";
+import {
+    useLazyGetContextMappingQuery,
+    useSaveContextMappingMutation,
+    useLazyGetTriggerMappingQuery,
+    useSaveTriggerMappingMutation,
+} from "../../../redux/Api/SimStudio";
 
 export interface FieldMapping {
     source: string;
     target: string;
 }
 
+export interface MappingEntry {
+    txtp: string;
+    version: string;
+    fields: string[];
+}
+
 interface FieldMappingModalProps {
     open: boolean;
     onClose: () => void;
-    primary: TxtpEntry;
-    related: TxtpEntry;
-    mappings: FieldMapping[];
-    onMappingsChange: (mappings: FieldMapping[]) => void;
+    primary: MappingEntry;
+    related: MappingEntry;
+    primaryConfigId: number;
+    relatedConfigId: number;
+    mappingType: "context" | "trigger";
 }
 
 interface FieldListProps {
@@ -76,9 +90,11 @@ const FieldList = ({
                     bgcolor: side === "source" ? "#eff6ff" : "#f5f3ff",
                 }}
             >
-                <Typography sx={{ fontSize: 11, fontWeight: 700, color: accentColor, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                    {label}
-                </Typography>
+                {label && (
+                    <Typography sx={{ fontSize: 11, fontWeight: 700, color: accentColor, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                        {label}
+                    </Typography>
+                )}
                 <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#111827", mt: 0.25 }}>
                     {txtp}
                 </Typography>
@@ -176,15 +192,68 @@ const FieldMappingModal = ({
     onClose,
     primary,
     related,
-    mappings,
-    onMappingsChange,
+    primaryConfigId,
+    relatedConfigId,
+    mappingType,
 }: FieldMappingModalProps) => {
     const [sourceSearch, setSourceSearch] = useState("");
     const [targetSearch, setTargetSearch] = useState("");
     const [pendingSource, setPendingSource] = useState<string | null>(null);
+    const [existingMappings, setExistingMappings] = useState<FieldMapping[]>([]);
+    const [newMappings, setNewMappings] = useState<FieldMapping[]>([]);
+    const [isFetching, setIsFetching] = useState(false);
 
-    const sourceMappedFields = useMemo(() => new Set(mappings.map((m) => m.source)), [mappings]);
-    const targetMappedFields = useMemo(() => new Set(mappings.map((m) => m.target)), [mappings]);
+    const [fetchContextMapping] = useLazyGetContextMappingQuery();
+    const [fetchTriggerMapping] = useLazyGetTriggerMappingQuery();
+    const [saveContextMapping, { isLoading: isSavingContext }] = useSaveContextMappingMutation();
+    const [saveTriggerMapping, { isLoading: isSavingTrigger }] = useSaveTriggerMappingMutation();
+    const isSaving = isSavingContext || isSavingTrigger;
+
+    // Load existing mappings when modal opens
+    useEffect(() => {
+        if (!open || !primaryConfigId || !relatedConfigId) return;
+        setIsFetching(true);
+        setExistingMappings([]);
+        setNewMappings([]);
+        setPendingSource(null);
+        const fetchFn = mappingType === "context" ? fetchContextMapping : fetchTriggerMapping;
+        void fetchFn({ primaryId: primaryConfigId, relatedId: relatedConfigId })
+            .then((res) => {                // data is an array of mapping records — flatten all mapping pairs
+                const existing = (res.data?.data ?? []).flatMap((record) => record.mapping);
+                setExistingMappings(existing.map((m) => ({ source: m.primary, target: m.related })));
+            })
+            .catch(() => {
+                // Non-blocking – start fresh if fetch fails
+            })
+            .finally(() => setIsFetching(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, primaryConfigId, relatedConfigId, mappingType]);
+
+    const handleSave = async () => {
+        if (newMappings.length === 0) return;
+        try {
+            const saveFn = mappingType === "context" ? saveContextMapping : saveTriggerMapping;
+            await saveFn({
+                primary_txtp_id: primaryConfigId,
+                related_txtp_id: relatedConfigId,
+                mapping: newMappings.map((m) => ({ primary: m.source, related: m.target })),
+            }).unwrap();
+            toast.success("Mappings saved");
+            onClose();
+        } catch {
+            toast.error("Failed to save mappings");
+        }
+    };
+
+    const sourceMappedFields = useMemo(
+        () => new Set([...existingMappings, ...newMappings].map((m) => m.source)),
+        [existingMappings, newMappings]
+    );
+    const targetMappedFields = useMemo(
+        () => new Set([...existingMappings, ...newMappings].map((m) => m.target)),
+        [existingMappings, newMappings]
+    );
+    const allMappings = useMemo(() => [...existingMappings, ...newMappings], [existingMappings, newMappings]);
 
     const handleSourceSelect = (field: string) => {
         setPendingSource((prev) => (prev === field ? null : field));
@@ -192,17 +261,17 @@ const FieldMappingModal = ({
 
     const handleTargetSelect = (field: string) => {
         if (!pendingSource) return;
-        const alreadyExists = mappings.some(
+        const alreadyExists = allMappings.some(
             (m) => m.source === pendingSource && m.target === field
         );
         if (!alreadyExists) {
-            onMappingsChange([...mappings, { source: pendingSource, target: field }]);
+            setNewMappings((prev) => [...prev, { source: pendingSource, target: field }]);
         }
         setPendingSource(null);
     };
 
     const handleRemoveMapping = (index: number) => {
-        onMappingsChange(mappings.filter((_, i) => i !== index));
+        setNewMappings((prev) => prev.filter((_, i) => i !== index));
     };
 
     return (
@@ -239,6 +308,14 @@ const FieldMappingModal = ({
             </DialogTitle>
 
             <DialogContent sx={{ p: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                {/* Fetch loader */}
+                {isFetching ? (
+                    <Box sx={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 1.5 }}>
+                        <CircularProgress size={28} />
+                        <Typography sx={{ fontSize: 13, color: "#6b7280" }}>Loading existing mappings…</Typography>
+                    </Box>
+                ) : (
+                    <>
                 {/* Instruction banner */}
                 <Box
                     sx={{
@@ -252,16 +329,16 @@ const FieldMappingModal = ({
                     }}
                 >
                     <Typography sx={{ fontSize: 12, color: "#92400e" }}>
-                        <strong>How to map:</strong> Click a field in the <strong>Primary</strong> panel, then click the corresponding field in the <strong>Related</strong> panel to create a mapping pair.
+                        <strong>How to map:</strong> Click a field in the left panel, then click the corresponding field in the right panel to create a mapping pair.
                     </Typography>
                 </Box>
                 <Box sx={{ flex: 1, display: "flex", overflow: "hidden", minHeight: 0 }}>
                     <Box sx={{ flex: 1, borderRight: "1px solid #e5e7eb", display: "flex", flexDirection: "column", minWidth: 0 }}>
                         <FieldList
-                            label="Primary"
+                            label=""
                             txtp={primary.txtp}
                             version={primary.version}
-                            fields={primary.fieldPaths}
+                            fields={primary.fields}
                             searchQuery={sourceSearch}
                             onSearchChange={setSourceSearch}
                             selected={pendingSource}
@@ -291,11 +368,11 @@ const FieldMappingModal = ({
                                 Mapped Pairs
                             </Typography>
                             <Typography sx={{ fontSize: 11, color: "#9ca3af", mt: 0.25 }}>
-                                {mappings.length} mapping{mappings.length !== 1 ? "s" : ""}
+                                {existingMappings.length} existing · {newMappings.length} new
                             </Typography>
                         </Box>
                         <Box sx={{ flex: 1, overflowY: "auto", p: 1 }}>
-                            {mappings.length === 0 ? (
+                            {allMappings.length === 0 ? (
                                 <Box sx={{ py: 4, textAlign: "center" }}>
                                     <Typography sx={{ fontSize: 12, color: "#d1d5db", mb: 1 }}>No mappings yet</Typography>
                                     <Typography sx={{ fontSize: 11, color: "#e5e7eb" }}>
@@ -303,64 +380,72 @@ const FieldMappingModal = ({
                                     </Typography>
                                 </Box>
                             ) : (
-                                mappings.map((mapping, idx) => (
-                                    <Box
-                                        key={idx}
-                                        sx={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: 0.5,
-                                            mb: 0.75,
-                                            p: 1,
-                                            borderRadius: 1,
-                                            border: "1px solid #e5e7eb",
-                                            bgcolor: "#fff",
-                                            "&:hover": { bgcolor: "#fafafa", "& .remove-btn": { opacity: 1 } },
-                                        }}
-                                    >
-                                        <Tooltip title={mapping.source}>
-                                            <Typography
-                                                sx={{
-                                                    fontSize: "11px",
-                                                    fontFamily: "monospace",
-                                                    color: "#2563eb",
-                                                    overflow: "hidden",
-                                                    textOverflow: "ellipsis",
-                                                    whiteSpace: "nowrap",
-                                                    flex: 1,
-                                                    minWidth: 0,
-                                                }}
-                                            >
-                                                {mapping.source}
-                                            </Typography>
-                                        </Tooltip>
-                                        <ArrowForwardIcon sx={{ fontSize: 13, color: "#9ca3af", flexShrink: 0 }} />
-                                        <Tooltip title={mapping.target}>
-                                            <Typography
-                                                sx={{
-                                                    fontSize: "11px",
-                                                    fontFamily: "monospace",
-                                                    color: "#7c3aed",
-                                                    overflow: "hidden",
-                                                    textOverflow: "ellipsis",
-                                                    whiteSpace: "nowrap",
-                                                    flex: 1,
-                                                    minWidth: 0,
-                                                }}
-                                            >
-                                                {mapping.target}
-                                            </Typography>
-                                        </Tooltip>
-                                        <IconButton
-                                            className="remove-btn"
-                                            size="small"
-                                            onClick={() => handleRemoveMapping(idx)}
-                                            sx={{ opacity: 0, transition: "opacity 0.12s", flexShrink: 0, p: 0.25 }}
+                                <>
+                                    {existingMappings.map((mapping, idx) => (
+                                        <Box
+                                            key={`existing-${idx}`}
+                                            sx={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 0.5,
+                                                mb: 0.75,
+                                                p: 1,
+                                                borderRadius: 1,
+                                                border: "1px solid #e5e7eb",
+                                                bgcolor: "#f9fafb",
+                                                opacity: 0.7,
+                                            }}
                                         >
-                                            <DeleteOutlineIcon sx={{ fontSize: 14, color: "#ef4444" }} />
-                                        </IconButton>
-                                    </Box>
-                                ))
+                                            <Tooltip title={mapping.source}>
+                                                <Typography sx={{ fontSize: "11px", fontFamily: "monospace", color: "#2563eb", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
+                                                    {mapping.source}
+                                                </Typography>
+                                            </Tooltip>
+                                            <ArrowForwardIcon sx={{ fontSize: 13, color: "#9ca3af", flexShrink: 0 }} />
+                                            <Tooltip title={mapping.target}>
+                                                <Typography sx={{ fontSize: "11px", fontFamily: "monospace", color: "#7c3aed", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
+                                                    {mapping.target}
+                                                </Typography>
+                                            </Tooltip>
+                                        </Box>
+                                    ))}
+                                    {newMappings.map((mapping, idx) => (
+                                        <Box
+                                            key={`new-${idx}`}
+                                            sx={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 0.5,
+                                                mb: 0.75,
+                                                p: 1,
+                                                borderRadius: 1,
+                                                border: "1px solid #bbf7d0",
+                                                bgcolor: "#f0fdf4",
+                                                "&:hover": { bgcolor: "#dcfce7", "& .remove-btn": { opacity: 1 } },
+                                            }}
+                                        >
+                                            <Tooltip title={mapping.source}>
+                                                <Typography sx={{ fontSize: "11px", fontFamily: "monospace", color: "#2563eb", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
+                                                    {mapping.source}
+                                                </Typography>
+                                            </Tooltip>
+                                            <ArrowForwardIcon sx={{ fontSize: 13, color: "#9ca3af", flexShrink: 0 }} />
+                                            <Tooltip title={mapping.target}>
+                                                <Typography sx={{ fontSize: "11px", fontFamily: "monospace", color: "#7c3aed", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
+                                                    {mapping.target}
+                                                </Typography>
+                                            </Tooltip>
+                                            <IconButton
+                                                className="remove-btn"
+                                                size="small"
+                                                onClick={() => handleRemoveMapping(idx)}
+                                                sx={{ opacity: 0, transition: "opacity 0.12s", flexShrink: 0, p: 0.25 }}
+                                            >
+                                                <DeleteOutlineIcon sx={{ fontSize: 14, color: "#ef4444" }} />
+                                            </IconButton>
+                                        </Box>
+                                    ))}
+                                </>
                             )}
                         </Box>
                         {pendingSource && (
@@ -383,10 +468,10 @@ const FieldMappingModal = ({
                     </Box>
                     <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
                         <FieldList
-                            label="Related"
+                            label=""
                             txtp={related.txtp}
                             version={related.version}
-                            fields={related.fieldPaths}
+                            fields={related.fields}
                             searchQuery={targetSearch}
                             onSearchChange={setTargetSearch}
                             selected={null}
@@ -396,6 +481,8 @@ const FieldMappingModal = ({
                         />
                     </Box>
                 </Box>
+                    </>
+                )}
             </DialogContent>
             <DialogActions
                 sx={{
@@ -409,7 +496,7 @@ const FieldMappingModal = ({
                 }}
             >
                 <Typography sx={{ fontSize: 12, color: "#6b7280" }}>
-                    {mappings.length} mapping{mappings.length !== 1 ? "s" : ""} configured
+                    {newMappings.length} new mapping{newMappings.length !== 1 ? "s" : ""} to save
                 </Typography>
                 <Box display="flex" gap={1.5}>
                     <Box
@@ -430,9 +517,9 @@ const FieldMappingModal = ({
                     >
                         Cancel
                     </Box>
-                    <Box
+                <Box
                         component="button"
-                        onClick={onClose}
+                        onClick={() => { void handleSave(); }}
                         sx={{
                             fontSize: 13,
                             fontWeight: 600,
@@ -443,11 +530,15 @@ const FieldMappingModal = ({
                             px: 2,
                             py: 0.75,
                             cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
                             "&:hover": { background: "#1d4ed8" },
                             "&:disabled": { background: "#93c5fd", borderColor: "#93c5fd", cursor: "not-allowed" },
                         }}
-                        disabled={mappings.length === 0}
+                        disabled={newMappings.length === 0 || isSaving || isFetching}
                     >
+                        {isSaving && <CircularProgress size={12} sx={{ color: "#fff" }} />}
                         Save Mappings
                     </Box>
                 </Box>

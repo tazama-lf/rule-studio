@@ -59,7 +59,7 @@ const useEnrichmentDataController = (
 ) => {
     const generationId = extractData("sim_gen_id", LocalStorage, false) as number | null;
 
-    const { data: enrichmentTablesData } = useGetEnrichmentTablesQuery(generationId!, {
+    const { data: enrichmentTablesData, isLoading: isLoadingTables } = useGetEnrichmentTablesQuery(generationId!, {
         skip: !generationId,
     });
     const [createEnrichmentTable, { isLoading: isSaving }] = useCreateEnrichmentTableMutation();
@@ -169,7 +169,7 @@ const useEnrichmentDataController = (
     }
 
     return {
-        values: { tableName, numberOfRows, sampleJson, jsonError, schemaFields, savedRecords, isSaving, isDeleting },
+        values: { tableName, numberOfRows, sampleJson, jsonError, schemaFields, savedRecords, isSaving, isDeleting, isLoading: isLoadingTables },
         functions: {
             setTableName,
             setNumberOfRows,

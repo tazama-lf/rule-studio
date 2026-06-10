@@ -9,6 +9,7 @@ import {
     AccordionSummary,
     Box,
     Chip,
+    CircularProgress,
     IconButton,
     MenuItem,
     Select,
@@ -139,7 +140,7 @@ const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
     const { values, functions } = useEnrichmentDataController(onSaveRef);
     const { data: semanticData } = useGetFakerSemanticDataQuery();
     const semanticOptions = semanticData?.data ?? [];
-    const { tableName, numberOfRows, sampleJson, jsonError, schemaFields, savedRecords, isSaving, isDeleting } = values;
+    const { tableName, numberOfRows, sampleJson, jsonError, schemaFields, savedRecords, isSaving, isDeleting, isLoading } = values;
     const {
         setTableName,
         setNumberOfRows,
@@ -173,7 +174,12 @@ const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
                 <S.SchemaTableHeader>
                     <Text size="body" weight="semibold">Enrichment Records</Text>
                 </S.SchemaTableHeader>
-                {savedRecords.length === 0 ? (
+                {isLoading ? (
+                    <Box sx={{ py: 6, display: "flex", justifyContent: "center", alignItems: "center", gap: 2 }}>
+                        <CircularProgress size={22} />
+                        <Typography sx={{ fontSize: 13, color: "#6b7280" }}>Loading enrichment records…</Typography>
+                    </Box>
+                ) : savedRecords.length === 0 ? (
                     <Typography sx={{ py: 4, textAlign: "center", color: "#9ca3af", fontSize: 13 }}>
                         No records to display. Add an enrichment record below.
                     </Typography>
@@ -184,6 +190,7 @@ const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
                                 key={record.id}
                                 disableGutters
                                 elevation={0}
+                                TransitionProps={{ timeout: 150 }}
                                 sx={{
                                     border: "1px solid #e5e7eb",
                                     borderRadius: "6px !important",

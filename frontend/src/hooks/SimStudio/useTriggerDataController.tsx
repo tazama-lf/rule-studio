@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, startTransition } from "react";
 import toast from "react-hot-toast";
 import {
     useLazyGetContextConfigsQuery,
@@ -94,6 +94,7 @@ const useTriggerDataController = () => {
     const [adding, setAdding] = useState(false);
     const [numMessages, setNumMessages] = useState<number>(1);
     const [isSaving, setIsSaving] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [primaryTxtp, setPrimaryTxtp] = useState<{ txtp: string; txtp_version: string } | null>(null);
 
     const [fetchContextConfigs] = useLazyGetContextConfigsQuery();
@@ -109,6 +110,7 @@ const useTriggerDataController = () => {
         const genId = extractData("sim_gen_id", LocalStorage, false) as string | number | null;
         if (!genId) return;
 
+        setIsLoading(true);
         void (async () => {
             try {
                 // Get primary txtp from context configs
@@ -121,35 +123,52 @@ const useTriggerDataController = () => {
                 // Load existing trigger configs
                 const trigRes = await fetchTriggerConfigs(Number(genId)).unwrap();
                 const configs = trigRes.data ?? [];
-                if (configs.length > 0) {
-                    setEntries(configs.map(buildTriggerEntry));
 
-                    // Auto-create related trigger config if primary has related_transaction but no related exists
-                    const primaryTrigCfg = configs.find((c) => !c.related_txtp_config_id);
-                    const hasRelated = configs.some((c) => c.related_txtp_config_id != null);
+                if (configs.length === 0) return;
 
-                    if (primaryTrigCfg?.related_transaction && primaryTrigCfg.related_transaction.length > 0 && !hasRelated && primary) {
-                        const parsed = parseRelatedTransaction(primaryTrigCfg.related_transaction);
-                        if (parsed) {
-                            try {
-                                const res = await createTriggerConfig({
-                                    generationId: Number(genId),
-                                    txtp: parsed.txtp,
-                                    txtp_version: parsed.version,
-                                    message_count: primaryTrigCfg.message_count ?? 1,
-                                }).unwrap();
-                                setEntries((prev) => [...prev, buildTriggerEntry(res.data)]);
-                            } catch {
-                                // non-blocking
-                            }
+                // Find primaries that need a related trigger config created
+                const primariesNeedingRelated = configs.filter(
+                    (c) =>
+                        !c.related_txtp_config_id &&
+                        c.related_transaction &&
+                        c.related_transaction.length > 0 &&
+                        !configs.some(
+                            (other) =>
+                                other.related_txtp_config_id === Number(c.trigger_txtp_config_id)
+                        )
+                );
+
+                if (primariesNeedingRelated.length > 0) {
+                    for (const primaryCfg of primariesNeedingRelated) {
+                        const parsed = parseRelatedTransaction(primaryCfg.related_transaction!);
+                        if (!parsed) continue;
+                        const primaryTrigId = Number(primaryCfg.trigger_txtp_config_id);
+                        try {
+                            await createTriggerConfig({
+                                generationId: Number(genId),
+                                txtp: parsed.txtp,
+                                txtp_version: parsed.version,
+                                message_count: primaryCfg.message_count ?? 1,
+                                related_trigger_txtp_id: primaryTrigId || undefined,
+                            }).unwrap();
+                        } catch {
+                            // non-blocking
                         }
                     }
+
+                    // Re-fetch to get the complete authoritative list
+                    const refreshed = await fetchTriggerConfigs(Number(genId)).unwrap();
+                    setEntries((refreshed.data ?? []).map(buildTriggerEntry));
+                } else {
+                    setEntries(configs.map(buildTriggerEntry));
                 }
             } catch {
                 // non-blocking
+            } finally {
+                setIsLoading(false);
             }
         })();
-    }, [fetchContextConfigs, fetchTriggerConfigs]);
+    }, [fetchContextConfigs, fetchTriggerConfigs, createTriggerConfig]);
 
     const handleAdd = useCallback(() => {
         if (!primaryTxtp) {
@@ -173,7 +192,33 @@ const useTriggerDataController = () => {
                     message_count: numMessages || 1,
                 }).unwrap();
 
-                setEntries((prev) => [...prev, buildTriggerEntry(res.data)]);
+                const newEntry = buildTriggerEntry(res.data);
+                const primaryTrigId = Number(res.data.trigger_txtp_config_id);
+
+                // Check if the added trigger has a related transaction
+                const relatedUrl: string = (res.data as { related_transaction?: string }).related_transaction ?? "";
+                const parsed = relatedUrl.length > 0 ? parseRelatedTransaction(relatedUrl) : null;
+
+                if (parsed) {
+                    try {
+                        await createTriggerConfig({
+                            generationId: Number(genId),
+                            txtp: parsed.txtp,
+                            txtp_version: parsed.version,
+                            message_count: numMessages || 1,
+                            related_trigger_txtp_id: primaryTrigId || undefined,
+                        }).unwrap();
+
+                        // Re-fetch for authoritative state
+                        const refreshed = await fetchTriggerConfigs(Number(genId)).unwrap();
+                        setEntries((refreshed.data ?? []).map(buildTriggerEntry));
+                    } catch {
+                        setEntries((prev) => [...prev, newEntry]);
+                    }
+                } else {
+                    setEntries((prev) => [...prev, newEntry]);
+                }
+
                 setNumMessages(1);
             } catch {
                 toast.error("Failed to add trigger config. Please try again.");
@@ -181,7 +226,7 @@ const useTriggerDataController = () => {
                 setAdding(false);
             }
         })();
-    }, [primaryTxtp, numMessages, createTriggerConfig]);
+    }, [primaryTxtp, numMessages, createTriggerConfig, fetchTriggerConfigs]);
 
     const handleRemove = useCallback((id: string) => {
         const entry = entries.find((e) => e.id === id);
@@ -194,10 +239,23 @@ const useTriggerDataController = () => {
         setEntries((prev) => prev.filter((e) => e.id !== id));
     }, [entries, deleteTriggerConfig]);
 
+    const handleRemovePair = useCallback((primaryId: string, relatedId: string) => {
+        const genId = extractData("sim_gen_id", LocalStorage, false) as string | number | null;
+        const primaryEntry = entries.find((e) => e.id === primaryId);
+        if (genId && primaryEntry?.triggerId) {
+            void deleteTriggerConfig({ generationId: Number(genId), configId: primaryEntry.triggerId })
+                .unwrap()
+                .catch(() => toast.error("Failed to remove trigger config."));
+        }
+        setEntries((prev) => prev.filter((e) => e.id !== primaryId && e.id !== relatedId));
+    }, [entries, deleteTriggerConfig]);
+
     const handleToggleExpand = useCallback((id: string) => {
-        setEntries((prev) =>
-            prev.map((e) => (e.id === id ? { ...e, expanded: !e.expanded } : e))
-        );
+        startTransition(() => {
+            setEntries((prev) =>
+                prev.map((e) => (e.id === id ? { ...e, expanded: !e.expanded } : e))
+            );
+        });
     }, []);
 
     const handleNumMessagesChange = useCallback((entryId: string, value: number) => {
@@ -253,11 +311,12 @@ const useTriggerDataController = () => {
     }, [entries, bulkUpdateTriggerConfigs]);
 
     return {
-        values: { entries, numMessages, adding, isSaving, primaryTxtp },
+        values: { entries, numMessages, adding, isSaving, isLoading, primaryTxtp },
         functions: {
             setNumMessages,
             handleAdd,
             handleRemove,
+            handleRemovePair,
             handleToggleExpand,
             handleNumMessagesChange,
             handleOverrideChange,

@@ -1,11 +1,11 @@
-import { useEffect, type MutableRefObject } from "react";
+import { useEffect, memo, useState, type MutableRefObject } from "react";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import LinkIcon from "@mui/icons-material/Link";
 import {
   Box,
-  Chip,
+  CircularProgress,
   Collapse,
   IconButton,
   MenuItem,
@@ -30,6 +30,7 @@ import useTriggerDataController, {
   type TriggerOverrideType,
 } from "../../../hooks/SimStudio/useTriggerDataController";
 import { useGetFakerSemanticDataQuery } from "../../../redux/Api/SimStudio";
+import FieldMappingModal from "../TxtpSelection/FieldMappingModal";
 
 const OVERRIDE_OPTIONS: { label: string; value: TriggerOverrideType }[] = [
   { label: "No Override", value: "null" },
@@ -47,7 +48,7 @@ interface FieldOverridesTableProps {
   semanticOptions: { id: string; name: string }[];
 }
 
-const FieldOverridesTable = ({ entry, onOverrideChange, semanticOptions }: FieldOverridesTableProps) => {
+const FieldOverridesTable = memo(({ entry, onOverrideChange, semanticOptions }: FieldOverridesTableProps) => {
   const getOverride = (path: string): TriggerOverride =>
     entry.fieldOverrides[path] ?? { overrideType: "null", staticValue: "", rangeMin: "", rangeMax: "", semanticId: "" };
 
@@ -173,13 +174,13 @@ const FieldOverridesTable = ({ entry, onOverrideChange, semanticOptions }: Field
       </TableContainer>
     </S.FieldConfigSection>
   );
-};
+});
 
-// ── Entry Row ─────────────────────────────────────────────────────────────────
+// ── Entry Accordion ──────────────────────────────────────────────────────────
 
-interface EntryRowProps {
+interface EntryAccordionProps {
   entry: TriggerEntry;
-  index: number;
+  canRemove?: boolean;
   onToggle: (id: string) => void;
   onRemove: (id: string) => void;
   onNumMessagesChange: (id: string, value: number) => void;
@@ -187,39 +188,31 @@ interface EntryRowProps {
   semanticOptions: { id: string; name: string }[];
 }
 
-const EntryRow = ({
+const EntryAccordion = memo(({
   entry,
-  index,
+
+  canRemove = true,
   onToggle,
   onRemove,
   onNumMessagesChange,
   onOverrideChange,
   semanticOptions,
-}: EntryRowProps) => (
-  <>
-    <TableRow hover sx={{ bgcolor: "#fff" }}>
-      <TableCell sx={{ width: 48, borderBottom: "1px solid #e0e0e0", pr: 0 }}>
-        <IconButton size="small" onClick={() => onToggle(entry.id)}>
-          {entry.expanded ? (
-            <ExpandMoreIcon sx={{ fontSize: 16 }} />
-          ) : (
-            <ChevronRightIcon sx={{ fontSize: 16 }} />
-          )}
-        </IconButton>
-      </TableCell>
-      <TableCell sx={{ fontWeight: 500, fontSize: "13px", borderBottom: "1px solid #e0e0e0" }}>
-        {index + 1}
-      </TableCell>
-      <TableCell sx={{ borderBottom: "1px solid #e0e0e0" }}>
-        <Box display="flex" alignItems="center">
-          <Typography sx={{ fontSize: "13px", fontWeight: 600 }}>{entry.txtp}</Typography>
-          {index === 0 && <S.PrimaryBadge>Primary</S.PrimaryBadge>}
-        </Box>
-      </TableCell>
-      <TableCell sx={{ fontSize: "13px", borderBottom: "1px solid #e0e0e0" }}>
-        {entry.version}
-      </TableCell>
-      <TableCell sx={{ borderBottom: "1px solid #e0e0e0" }}>
+}: EntryAccordionProps) => (
+  <Box sx={{ bgcolor: "#fff", border: "1px solid #e5e7eb", borderRadius: 1, overflow: "hidden" }}>
+    <Box display="flex" alignItems="center" px={1.5} py={1} gap={1.5}>
+      <IconButton size="small" onClick={() => onToggle(entry.id)}>
+        {entry.expanded ? (
+          <ExpandMoreIcon sx={{ fontSize: 16 }} />
+        ) : (
+          <ChevronRightIcon sx={{ fontSize: 16 }} />
+        )}
+      </IconButton>
+      <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>{entry.txtp}</Typography>
+
+      <Typography sx={{ fontSize: 12, color: "#6b7280" }}>v{entry.version}</Typography>
+      <Box flex={1} />
+      <Box display="flex" alignItems="center" gap={1}>
+        <Typography sx={{ fontSize: 12, color: "#6b7280", whiteSpace: "nowrap" }}>Messages:</Typography>
         <TextField
           type="text"
           inputMode="numeric"
@@ -231,62 +224,20 @@ const EntryRow = ({
               onNumMessagesChange(entry.id, val === "" ? 0 : Number(val));
             }
           }}
-          sx={{ width: 130, "& .MuiOutlinedInput-root": { height: "34px", fontSize: "13px" } }}
+          sx={{ width: 90, "& .MuiOutlinedInput-root": { height: "30px", fontSize: "13px" } }}
         />
-      </TableCell>
-      <TableCell sx={{ borderBottom: "1px solid #e0e0e0" }}>
+      </Box>
+      {canRemove && (
         <S.RemoveText onClick={() => onRemove(entry.id)}>Remove</S.RemoveText>
-      </TableCell>
-    </TableRow>
-    <TableRow>
-      <TableCell colSpan={6} sx={{ p: 0, borderBottom: entry.expanded ? "1px solid #e0e0e0" : "none" }}>
-        <Collapse in={entry.expanded} timeout="auto" unmountOnExit>
-          <FieldOverridesTable entry={entry} onOverrideChange={onOverrideChange} semanticOptions={semanticOptions} />
-        </Collapse>
-      </TableCell>
-    </TableRow>
-  </>
-);
-
-// ── Entry Accordion ──────────────────────────────────────────────────────────
-
-interface EntryAccordionProps {
-  entry: TriggerEntry;
-  isPrimary: boolean;
-  onToggle: (id: string) => void;
-  onRemove: (id: string) => void;
-  onNumMessagesChange: (id: string, value: number) => void;
-  onOverrideChange: (entryId: string, fieldPath: string, override: TriggerOverride) => void;
-  semanticOptions: { id: string; name: string }[];
-}
-
-const EntryAccordion = ({
-  entry,
-  isPrimary,
-  onToggle,
-  onRemove,
-  onNumMessagesChange,
-  onOverrideChange,
-  semanticOptions,
-}: EntryAccordionProps) => (
-  <Box sx={{ border: "1px solid #e0e0e0", borderRadius: "6px", overflow: "hidden" }}>
-    <TableContainer>
-      <MuiTable>
-        <TableBody>
-          <EntryRow
-            entry={entry}
-            index={isPrimary ? 0 : 1}
-            onToggle={onToggle}
-            onRemove={onRemove}
-            onNumMessagesChange={onNumMessagesChange}
-            onOverrideChange={onOverrideChange}
-            semanticOptions={semanticOptions}
-          />
-        </TableBody>
-      </MuiTable>
-    </TableContainer>
+      )}
+    </Box>
+    <Collapse in={entry.expanded} timeout={150}>
+      <Box sx={{ borderTop: "1px solid #e5e7eb" }}>
+        <FieldOverridesTable entry={entry} onOverrideChange={onOverrideChange} semanticOptions={semanticOptions} />
+      </Box>
+    </Collapse>
   </Box>
-);
+));
 
 // ── Linked Pair Container ────────────────────────────────────────────────────
 
@@ -295,7 +246,8 @@ interface LinkedPairContainerProps {
   related: TriggerEntry;
   isPrimaryFirst: boolean;
   onToggle: (id: string) => void;
-  onRemove: (id: string) => void;
+  onRemovePair: (primaryId: string, relatedId: string) => void;
+  onAddMapping: (primaryId: string, relatedId: string) => void;
   onNumMessagesChange: (id: string, value: number) => void;
   onOverrideChange: (entryId: string, fieldPath: string, override: TriggerOverride) => void;
   semanticOptions: { id: string; name: string }[];
@@ -304,50 +256,53 @@ interface LinkedPairContainerProps {
 const LinkedPairContainer = ({
   primary,
   related,
-  isPrimaryFirst,
   onToggle,
-  onRemove,
+  onRemovePair,
+  onAddMapping,
   onNumMessagesChange,
   onOverrideChange,
   semanticOptions,
 }: LinkedPairContainerProps) => (
-  <Box sx={{ border: "1px solid #e0e0e0", borderRadius: "6px", overflow: "hidden" }}>
-    <TableContainer>
-      <MuiTable>
-        <TableBody>
-          <EntryRow
-            entry={primary}
-            index={0}
-            onToggle={onToggle}
-            onRemove={onRemove}
-            onNumMessagesChange={onNumMessagesChange}
-            onOverrideChange={onOverrideChange}
-            semanticOptions={semanticOptions}
-          />
-          <TableRow sx={{ bgcolor: "#f9fafb" }}>
-            <TableCell colSpan={6} sx={{ py: 1.5, pl: 6, borderBottom: "1px solid #e0e0e0" }}>
-              <Box display="flex" alignItems="center" gap={1} mb={1.5}>
-                <LinkIcon sx={{ fontSize: 16, color: "#6b7280" }} />
-                <Typography sx={{ fontSize: "12px", fontWeight: 600, color: "#374151" }}>
-                  Related Entry
-                </Typography>
-              </Box>
-              <Box pl={3}>
-                <EntryRow
-                  entry={related}
-                  index={1}
-                  onToggle={onToggle}
-                  onRemove={onRemove}
-                  onNumMessagesChange={onNumMessagesChange}
-                  onOverrideChange={onOverrideChange}
-                  semanticOptions={semanticOptions}
-                />
-              </Box>
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </MuiTable>
-    </TableContainer>
+  <Box sx={{ border: "2px solid #bfdbfe", borderRadius: 1.5, overflow: "hidden" }}>
+    <Box
+      sx={{
+        bgcolor: "#eff6ff",
+        px: 2,
+        py: 0.75,
+        borderBottom: "1px solid #dbeafe",
+        display: "flex",
+        alignItems: "center",
+        gap: 1,
+      }}
+    >
+      <LinkIcon sx={{ fontSize: 14, color: "#3b82f6" }} />
+      <Typography sx={{ fontSize: 11, fontWeight: 600, color: "#1d4ed8" }}>
+        Linked Transaction Pair
+      </Typography>
+      <Box flex={1} />
+      <S.AddMappingText onClick={() => onAddMapping(primary.id, related.id)}>Add Mapping</S.AddMappingText>
+      <S.RemoveText onClick={() => onRemovePair(primary.id, related.id)}>Remove</S.RemoveText>
+    </Box>
+    <Box sx={{ p: 1.5, display: "flex", flexDirection: "column", gap: 1 }}>
+      <EntryAccordion
+        entry={primary}
+        canRemove={false}
+        onToggle={onToggle}
+        onRemove={() => {}}
+        onNumMessagesChange={onNumMessagesChange}
+        onOverrideChange={onOverrideChange}
+        semanticOptions={semanticOptions}
+      />
+      <EntryAccordion
+        entry={related}
+        canRemove={false}
+        onToggle={onToggle}
+        onRemove={() => {}}
+        onNumMessagesChange={onNumMessagesChange}
+        onOverrideChange={onOverrideChange}
+        semanticOptions={semanticOptions}
+      />
+    </Box>
   </Box>
 );
 
@@ -361,16 +316,41 @@ const TriggerData = ({ onSaveRef }: TriggerDataProps) => {
   const { values, functions } = useTriggerDataController();
   const { data: semanticData } = useGetFakerSemanticDataQuery();
   const semanticOptions = semanticData?.data ?? [];
-  const { entries, numMessages, adding, primaryTxtp } = values;
+  const { entries, numMessages, adding, isLoading, primaryTxtp } = values;
   const {
     setNumMessages,
     handleAdd,
     handleRemove,
+    handleRemovePair,
     handleToggleExpand,
     handleNumMessagesChange,
     handleOverrideChange,
     saveTriggerConfigs,
   } = functions;
+
+  const [mappingModal, setMappingModal] = useState<{
+    primaryId: string;
+    relatedId: string;
+    primaryConfigId: number;
+    relatedConfigId: number;
+  } | null>(null);
+
+  const handleOpenMapping = (primaryId: string, relatedId: string) => {
+    const primaryEntry = entries.find((e) => e.id === primaryId);
+    const relatedEntry = entries.find((e) => e.id === relatedId);
+    if (!primaryEntry?.triggerId || !relatedEntry?.triggerId) return;
+    setMappingModal({
+      primaryId,
+      relatedId,
+      primaryConfigId: primaryEntry.triggerId,
+      relatedConfigId: relatedEntry.triggerId,
+    });
+  };
+
+  const handleCloseMappingModal = () => setMappingModal(null);
+
+  const modalPrimary = mappingModal ? entries.find((e) => e.id === mappingModal.primaryId) : undefined;
+  const modalRelated = mappingModal ? entries.find((e) => e.id === mappingModal.relatedId) : undefined;
 
   useEffect(() => {
     if (onSaveRef) onSaveRef.current = saveTriggerConfigs;
@@ -456,7 +436,12 @@ const TriggerData = ({ onSaveRef }: TriggerDataProps) => {
         </Box>
       </S.AddFormCard>
       <Paper variant="outlined">
-        {entries.length === 0 ? (
+        {isLoading ? (
+          <Box sx={{ py: 6, display: "flex", justifyContent: "center", alignItems: "center", gap: 2 }}>
+            <CircularProgress size={22} />
+            <Typography sx={{ fontSize: 13, color: "#6b7280" }}>Loading trigger configurations…</Typography>
+          </Box>
+        ) : entries.length === 0 ? (
           <Box sx={{ py: 4, textAlign: "center", color: "#9ca3af" }}>
             No trigger configs added yet. Click <strong>Add</strong> to create one.
           </Box>
@@ -470,7 +455,8 @@ const TriggerData = ({ onSaveRef }: TriggerDataProps) => {
                   related={pair.related}
                   isPrimaryFirst={pair.isFirstPrimary}
                   onToggle={handleToggleExpand}
-                  onRemove={handleRemove}
+                  onRemovePair={handleRemovePair}
+                  onAddMapping={handleOpenMapping}
                   onNumMessagesChange={handleNumMessagesChange}
                   onOverrideChange={handleOverrideChange}
                   semanticOptions={semanticOptions}
@@ -479,7 +465,6 @@ const TriggerData = ({ onSaveRef }: TriggerDataProps) => {
                 <EntryAccordion
                   key={pair.primary.id}
                   entry={pair.primary}
-                  isPrimary={pair.isFirstPrimary}
                   onToggle={handleToggleExpand}
                   onRemove={handleRemove}
                   onNumMessagesChange={handleNumMessagesChange}
@@ -491,6 +476,17 @@ const TriggerData = ({ onSaveRef }: TriggerDataProps) => {
           </Box>
         )}
       </Paper>
+      {mappingModal && modalPrimary && modalRelated && (
+        <FieldMappingModal
+          open
+          onClose={handleCloseMappingModal}
+          primary={{ txtp: modalPrimary.txtp, version: modalPrimary.version, fields: modalPrimary.payloadFields }}
+          related={{ txtp: modalRelated.txtp, version: modalRelated.version, fields: modalRelated.payloadFields }}
+          primaryConfigId={mappingModal.primaryConfigId}
+          relatedConfigId={mappingModal.relatedConfigId}
+          mappingType="trigger"
+        />
+      )}
     </Box>
   );
 };

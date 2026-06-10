@@ -2,10 +2,10 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import LinkIcon from "@mui/icons-material/Link";
-import { useEffect, useState, type MutableRefObject } from "react";
+import { useEffect, useState, memo, type MutableRefObject } from "react";
 import {
     Box,
-    Chip,
+    CircularProgress,
     Collapse,
     IconButton,
     MenuItem,
@@ -31,7 +31,7 @@ import useTxtpSelectionController, {
 } from "../../../hooks/SimStudio/useTxtpSelectionController";
 import { useGetFakerSemanticDataQuery } from "../../../redux/Api/SimStudio";
 import * as S from "./TxtpSelection.styles";
-import FieldMappingModal, { type FieldMapping } from "./FieldMappingModal";
+import FieldMappingModal from "./FieldMappingModal";
 
 interface FieldConfigTableProps {
     entry: TxtpEntry;
@@ -41,8 +41,6 @@ interface FieldConfigTableProps {
 
 interface EntryAccordionProps {
     entry: TxtpEntry;
-    isPrimary: boolean;
-    isRelated?: boolean;
     canRemove?: boolean;
     onToggle: (id: string) => void;
     onRemove: (id: string) => void;
@@ -70,7 +68,7 @@ const FIELD_ACTION_OPTIONS: { label: string; value: FieldAction }[] = [
     { label: "Skip Field", value: "skip" },
 ];
 
-const FieldConfigTable = ({ entry, onFieldConfigChange, semanticOptions }: FieldConfigTableProps) => {
+const FieldConfigTable = memo(({ entry, onFieldConfigChange, semanticOptions }: FieldConfigTableProps) => {
     const getConfig = (path: string): FieldConfig =>
         entry.fieldConfigs[path] ?? { action: "sample", staticValue: "", rangeStart: "", rangeEnd: "", semanticId: "" };
 
@@ -269,12 +267,11 @@ const FieldConfigTable = ({ entry, onFieldConfigChange, semanticOptions }: Field
             </TableContainer>
         </S.FieldConfigSection>
     );
-};
+});
 
-const EntryAccordion = ({
+const EntryAccordion = memo(({
     entry,
-    isPrimary,
-    isRelated,
+
     canRemove = true,
     onToggle,
     onRemove,
@@ -294,14 +291,7 @@ const EntryAccordion = ({
             <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>
                 {entry.txtp}
             </Typography>
-            {isPrimary && <S.PrimaryBadge>Primary</S.PrimaryBadge>}
-            {isRelated && (
-                <Chip
-                    label="Related"
-                    size="small"
-                    sx={{ height: 18, fontSize: "10px", bgcolor: "#ede9fe", color: "#6d28d9", fontWeight: 600 }}
-                />
-            )}
+
             <Typography sx={{ fontSize: 12, color: "#6b7280" }}>v{entry.version}</Typography>
             <Box flex={1} />
             <Box display="flex" alignItems="center" gap={1}>
@@ -324,7 +314,7 @@ const EntryAccordion = ({
                 <S.RemoveText onClick={() => onRemove(entry.id)}>Remove</S.RemoveText>
             )}
         </Box>
-        <Collapse in={entry.expanded} timeout="auto" unmountOnExit>
+        <Collapse in={entry.expanded} timeout={150}>
             <Box sx={{ borderTop: "1px solid #e5e7eb" }}>
                 <FieldConfigTable
                     entry={entry}
@@ -334,12 +324,11 @@ const EntryAccordion = ({
             </Box>
         </Collapse>
     </Box>
-);
+));
 
 const LinkedPairContainer = ({
     primary,
     related,
-    isPrimaryFirst,
     onToggle,
     onRemovePair,
     onAddMapping,
@@ -370,7 +359,6 @@ const LinkedPairContainer = ({
         <Box sx={{ p: 1.5, display: "flex", flexDirection: "column", gap: 1 }}>
             <EntryAccordion
                 entry={primary}
-                isPrimary={isPrimaryFirst}
                 canRemove={false}
                 onToggle={onToggle}
                 onRemove={() => {}}
@@ -380,8 +368,6 @@ const LinkedPairContainer = ({
             />
             <EntryAccordion
                 entry={related}
-                isPrimary={false}
-                isRelated
                 canRemove={false}
                 onToggle={onToggle}
                 onRemove={() => {}}
@@ -402,19 +388,27 @@ const TxtpSelection = ({ onSaveRef }: TxtpSelectionProps) => {
     const { data: semanticData } = useGetFakerSemanticDataQuery();
     const semanticOptions = semanticData?.data ?? [];
 
-    const [mappingModal, setMappingModal] = useState<{ primaryId: string; relatedId: string } | null>(null);
-    const [pairMappings, setPairMappings] = useState<Record<string, FieldMapping[]>>({});
+    const [mappingModal, setMappingModal] = useState<{
+        primaryId: string;
+        relatedId: string;
+        primaryConfigId: number;
+        relatedConfigId: number;
+    } | null>(null);
 
     const handleOpenMapping = (primaryId: string, relatedId: string) => {
-        setMappingModal({ primaryId, relatedId });
+        const primaryEntry = entries.find((e) => e.id === primaryId);
+        const relatedEntry = entries.find((e) => e.id === relatedId);
+        if (!primaryEntry?.contextConfigId || !relatedEntry?.contextConfigId) return;
+        setMappingModal({
+            primaryId,
+            relatedId,
+            primaryConfigId: primaryEntry.contextConfigId,
+            relatedConfigId: relatedEntry.contextConfigId,
+        });
     };
 
     const handleCloseMappingModal = () => {
         setMappingModal(null);
-    };
-
-    const handleMappingsChange = (primaryId: string, mappings: FieldMapping[]) => {
-        setPairMappings((prev) => ({ ...prev, [primaryId]: mappings }));
     };
 
     const {
@@ -426,6 +420,7 @@ const TxtpSelection = ({ onSaveRef }: TxtpSelectionProps) => {
         addVersionsLoading,
         numMessages,
         adding,
+        isLoading,
     } = values;
 
     const {
@@ -527,7 +522,12 @@ const TxtpSelection = ({ onSaveRef }: TxtpSelectionProps) => {
                 </Box>
             </S.AddFormCard>
             <Paper variant="outlined">
-                {entries.length === 0 ? (
+                {isLoading ? (
+                    <Box sx={{ py: 6, display: "flex", justifyContent: "center", alignItems: "center", gap: 2 }}>
+                        <CircularProgress size={22} />
+                        <Typography sx={{ fontSize: 13, color: "#6b7280" }}>Loading TXTP configurations…</Typography>
+                    </Box>
+                ) : entries.length === 0 ? (
                     <Box sx={{ py: 4, textAlign: "center", color: "#9ca3af" }}>
                         No TXTPs added yet. Click <strong>Add TXTP</strong> to create one.
                     </Box>
@@ -551,7 +551,6 @@ const TxtpSelection = ({ onSaveRef }: TxtpSelectionProps) => {
                                 <EntryAccordion
                                     key={pair.primary.id}
                                     entry={pair.primary}
-                                    isPrimary={pair.isFirstPrimary}
                                     onToggle={handleToggleExpand}
                                     onRemove={handleRemove}
                                     onNumMessagesChange={handleNumMessagesChange}
@@ -567,10 +566,11 @@ const TxtpSelection = ({ onSaveRef }: TxtpSelectionProps) => {
                 <FieldMappingModal
                     open
                     onClose={handleCloseMappingModal}
-                    primary={modalPrimary}
-                    related={modalRelated}
-                    mappings={pairMappings[mappingModal.primaryId] ?? []}
-                    onMappingsChange={(m) => handleMappingsChange(mappingModal.primaryId, m)}
+                    primary={{ txtp: modalPrimary.txtp, version: modalPrimary.version, fields: modalPrimary.fieldPaths }}
+                    related={{ txtp: modalRelated.txtp, version: modalRelated.version, fields: modalRelated.fieldPaths }}
+                    primaryConfigId={mappingModal.primaryConfigId}
+                    relatedConfigId={mappingModal.relatedConfigId}
+                    mappingType="context"
                 />
             )}
         </Box>

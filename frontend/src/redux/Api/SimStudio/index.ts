@@ -199,6 +199,23 @@ export interface GenerationSummaryResponse {
     data: GenerationSummaryData;
 }
 
+export interface MappingItem {
+    primary: string;
+    related: string;
+}
+
+export interface MappingData {
+    id: string;
+    primary_tx_id: string;
+    related_tx_id: string;
+    mapping: MappingItem[];
+}
+
+export interface MappingResponse {
+    success: boolean;
+    data: MappingData[];
+}
+
 export interface EnrichmentSchemaProperty {
     id: string;
     fieldName: string;
@@ -322,7 +339,7 @@ export const simStudioApi = createApi({
 
         createTriggerConfig: builder.mutation<
             { success: boolean; data: TriggerTxtpConfig },
-            { generationId: number; txtp: string; txtp_version: string; message_count?: number }
+            { generationId: number; txtp: string; txtp_version: string; message_count?: number; related_trigger_txtp_id?: number }
         >({
             query: ({ generationId, ...body }) => ({
                 url: `generations/${generationId}/trigger-configs`,
@@ -398,6 +415,30 @@ export const simStudioApi = createApi({
             transformResponse: (response: { success: boolean; message?: string; data: FakerSemanticItem[] }) => ({ success: response.success, data: response.data }),
         }),
 
+        getContextMapping: builder.query<MappingResponse, { primaryId: number; relatedId: number }>({
+            query: ({ primaryId, relatedId }) => `context-mappings/${primaryId}/${relatedId}`,
+        }),
+
+        saveContextMapping: builder.mutation<{ success: boolean }, { primary_txtp_id: number; related_txtp_id: number; mapping: MappingItem[] }>({
+            query: (body) => ({
+                url: `context-mappings`,
+                method: "POST",
+                body,
+            }),
+        }),
+
+        getTriggerMapping: builder.query<MappingResponse, { primaryId: number; relatedId: number }>({
+            query: ({ primaryId, relatedId }) => `trigger-mappings/${primaryId}/${relatedId}`,
+        }),
+
+        saveTriggerMapping: builder.mutation<{ success: boolean }, { primary_txtp_id: number; related_txtp_id: number; mapping: MappingItem[] }>({
+            query: (body) => ({
+                url: `trigger-mappings`,
+                method: "POST",
+                body,
+            }),
+        }),
+
         updateWizardProgress: builder.mutation<{ success: boolean }, { generationId: number; current_step_num: number; completed_step_num: number }>({
             query: ({ generationId, current_step_num, completed_step_num }) => ({
                 url: `generations/${generationId}/wizard-progress`,
@@ -434,4 +475,8 @@ export const {
     useGetSuiteByIdQuery,
     useGetFakerSemanticDataQuery,
     useUpdateWizardProgressMutation,
+    useLazyGetContextMappingQuery,
+    useSaveContextMappingMutation,
+    useLazyGetTriggerMappingQuery,
+    useSaveTriggerMappingMutation,
 } = simStudioApi;

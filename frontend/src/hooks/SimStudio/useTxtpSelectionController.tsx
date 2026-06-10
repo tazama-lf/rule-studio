@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, startTransition } from "react";
 import toast from "react-hot-toast";
 import type { DropdownOption } from "../../components/DropDown";
 import {
@@ -141,6 +141,7 @@ const useTxtpSelectionController = () => {
     const [addVersion, setAddVersion] = useState<DropdownOption | null>(null);
     const [numMessages, setNumMessages] = useState<number>(100);
     const [isSaving, setIsSaving] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     const { data: txTypesData } = useGetTypesQuery({});
     const [fetchVersionsForAdd, { data: addVersionsData, isFetching: addVersionsLoading }] =
@@ -189,6 +190,7 @@ const useTxtpSelectionController = () => {
         if (!genId) return;
 
         void (async () => {
+            setIsLoading(true);
             try {
                 const cfgRes = await fetchContextConfigs(Number(genId)).unwrap();
                 const configs = cfgRes.data ?? [];
@@ -228,6 +230,8 @@ const useTxtpSelectionController = () => {
                 }
             } catch {
                 // non-blocking — UI still works without DB sync
+            } finally {
+                setIsLoading(false);
             }
         })();
     }, [fetchContextConfigs, createContextConfig]);
@@ -350,26 +354,20 @@ const useTxtpSelectionController = () => {
     const handleRemovePair = useCallback((primaryId: string, relatedId: string) => {
         const genId = extractData("sim_gen_id", LocalStorage, false) as string | number | null;
         const primaryEntry = entries.find((e) => e.id === primaryId);
-        const relatedEntry = entries.find((e) => e.id === relatedId);
-        if (genId) {
-            if (primaryEntry?.contextConfigId) {
-                void deleteContextConfig({ generationId: Number(genId), configId: primaryEntry.contextConfigId })
-                    .unwrap()
-                    .catch(() => toast.error("Failed to remove TXTP config."));
-            }
-            if (relatedEntry?.contextConfigId) {
-                void deleteContextConfig({ generationId: Number(genId), configId: relatedEntry.contextConfigId })
-                    .unwrap()
-                    .catch(() => toast.error("Failed to remove related TXTP config."));
-            }
+        if (genId && primaryEntry?.contextConfigId) {
+            void deleteContextConfig({ generationId: Number(genId), configId: primaryEntry.contextConfigId })
+                .unwrap()
+                .catch(() => toast.error("Failed to remove TXTP config."));
         }
         setEntries((prev) => prev.filter((e) => e.id !== primaryId && e.id !== relatedId));
     }, [entries, deleteContextConfig]);
 
     const handleToggleExpand = useCallback((id: string) => {
-        setEntries((prev) =>
-            prev.map((e) => (e.id === id ? { ...e, expanded: !e.expanded } : e))
-        );
+        startTransition(() => {
+            setEntries((prev) =>
+                prev.map((e) => (e.id === id ? { ...e, expanded: !e.expanded } : e))
+            );
+        });
     }, []);
 
     const handleFieldConfigChange = useCallback(
@@ -400,6 +398,7 @@ const useTxtpSelectionController = () => {
             numMessages,
             adding,
             isSaving,
+            isLoading,
         },
         functions: {
             handleTxtpChange,
