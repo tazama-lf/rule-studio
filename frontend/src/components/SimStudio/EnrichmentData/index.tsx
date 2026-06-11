@@ -357,7 +357,7 @@ const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
                         <TableRow>
                             <TableCell><S.ColumnHeader>Field Name</S.ColumnHeader></TableCell>
                             <TableCell><S.ColumnHeader>Type</S.ColumnHeader></TableCell>
-                            <TableCell><S.ColumnHeader>Generation Strategy</S.ColumnHeader></TableCell>
+                            <TableCell><S.ColumnHeader>Action</S.ColumnHeader></TableCell>
                             <TableCell><S.ColumnHeader>Static Value</S.ColumnHeader></TableCell>
                             <TableCell><S.ColumnHeader>Range</S.ColumnHeader></TableCell>
                             <TableCell><S.ColumnHeader>Semantics</S.ColumnHeader></TableCell>

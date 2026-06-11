@@ -46,7 +46,7 @@ const Step1RuleDetails = ({
             <S.InfoBanner>
                 <InfoOutlinedIcon sx={{ color: "#3b82f6", fontSize: 18, flexShrink: 0, mt: "1px" }} />
                 <Typography fontSize={13} color="#1d4ed8" lineHeight={1.5}>
-                    Define the simulation suite metadata and optionally associate it with a rule.
+                    Define the simulation suite metadata and associate it with a rule.
                 </Typography>
             </S.InfoBanner>
             <S.FormCard>
