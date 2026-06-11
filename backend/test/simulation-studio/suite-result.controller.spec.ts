@@ -15,38 +15,21 @@ describe('SuiteResultController', () => {
     success: true,
     message: 'Suite result retrieved successfully',
     data: {
-      suite_id: 3,
-      total_runs: 2,
+      suite_id: 1,
       results: [
         {
-          id: 1,
-          outcome: 'PASS',
-          rule_version: 'v10',
-          rule_name: 'rule021',
+          run_id: 1,
+          generation_id: 13,
+          rule_name: 'rule01',
+          rule_version: 'v1.0.1',
+          trigger_count: 12,
+          outcome: 'success',
           triggers: [
             {
               id: 10,
-              outcome: 'PASS',
-              independent_variable: '500',
-              result_band: 'good',
               rule_result: { score: 0.5 },
-              trigger: {
-                id: 1,
-                generation_id: 10,
-                txtp: 'pacs.002.001.12',
-                txtp_version: '001.12',
-                display_order: 1,
-                message_count: 100,
-                link_to_context_pairs: false,
-                payload_template_json: {},
-                expected_independent_variable: 500,
-                expected_result_band: 'good',
-                notes: null,
-                faker_seed: null,
-                generator_profile: {},
-                related_txtp_config_id: null,
-                related_transaction: null,
-              },
+              independent_variable: '500',
+              sub_rule_ref: '.02',
             },
           ],
         },
@@ -84,10 +67,10 @@ describe('SuiteResultController', () => {
       const user = makeUser();
       service.getSuiteResult.mockResolvedValue(mockResponse);
 
-      const result = await controller.getSuiteResult(3, user);
+      const result = await controller.getSuiteResult(1, user);
 
       expect(result).toEqual(mockResponse);
-      expect(service.getSuiteResult).toHaveBeenCalledWith('test-token', 3);
+      expect(service.getSuiteResult).toHaveBeenCalledWith('test-token', 1);
     });
 
     it('passes numeric suiteId (ParseIntPipe result) to service', async () => {
@@ -103,19 +86,19 @@ describe('SuiteResultController', () => {
       const user = makeUser();
       service.getSuiteResult.mockResolvedValue(mockResponse);
 
-      const result = await controller.getSuiteResult(3, user);
+      const result = await controller.getSuiteResult(1, user);
 
       expect(result.success).toBe(true);
-      expect(result.data.suite_id).toBe(3);
-      expect(result.data.total_runs).toBe(2);
-      expect(result.data.results[0].triggers[0].trigger).not.toBeNull();
+      expect(result.data.suite_id).toBe(1);
+      expect(result.data.results[0].run_id).toBe(1);
+      expect(result.data.results[0].triggers[0].sub_rule_ref).toBe('.02');
     });
 
     it('propagates service error to caller', async () => {
       const user = makeUser();
       service.getSuiteResult.mockRejectedValue(new Error('not found'));
 
-      await expect(controller.getSuiteResult(3, user)).rejects.toThrow('not found');
+      await expect(controller.getSuiteResult(1, user)).rejects.toThrow('not found');
     });
   });
 });
