@@ -92,6 +92,7 @@ describe('TriggerTxtpConfigService', () => {
           provide: AdminServiceClient,
           useValue: {
             getTriggerConfigs: jest.fn(),
+            getTriggerConfigById: jest.fn(),
             addTriggerTxtpConfig: jest.fn(),
             bulkUpdateTriggerConfigs: jest.fn(),
             createTriggerMapping: jest.fn(),
@@ -294,6 +295,37 @@ describe('TriggerTxtpConfigService', () => {
 
       await expect(service.getTriggerMappings('test-token', 123, 456)).rejects.toThrow('Get mappings failed');
       expect(loggerSpy).toHaveBeenCalledWith('Error fetching trigger mappings for 123/456', expect.any(String));
+    });
+  });
+
+  // ── getTriggerConfigById ───────────────────────────────────────────────────
+
+  describe('getTriggerConfigById', () => {
+    it('forwards token and configId, returns config with strategies', async () => {
+      adminServiceClient.getTriggerConfigById.mockResolvedValue(mockAddResponse);
+
+      const result = await service.getTriggerConfigById('test-token', 20);
+
+      expect(result).toEqual(mockAddResponse);
+      expect(adminServiceClient.getTriggerConfigById).toHaveBeenCalledWith('test-token', 20);
+    });
+
+    it('returns config data with field strategies', async () => {
+      adminServiceClient.getTriggerConfigById.mockResolvedValue(mockAddResponse);
+
+      const result = await service.getTriggerConfigById('test-token', 20);
+
+      expect(result.data.trigger_txtp_config_id).toBe(20);
+      expect(result.data.field_strategies).toHaveLength(1);
+    });
+
+    it('logs and rethrows on error', async () => {
+      const error = new Error('Config not found');
+      adminServiceClient.getTriggerConfigById.mockRejectedValue(error);
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+      await expect(service.getTriggerConfigById('test-token', 20)).rejects.toThrow('Config not found');
+      expect(loggerSpy).toHaveBeenCalledWith('Error fetching trigger config 20', expect.any(String));
     });
   });
 

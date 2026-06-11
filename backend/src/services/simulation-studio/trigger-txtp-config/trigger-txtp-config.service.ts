@@ -27,6 +27,16 @@ export class TriggerTxtpConfigService {
     }
   }
 
+  async getTriggerConfigById(token: string, configId: number): Promise<TriggerConfigWithStrategiesResponseDto> {
+    try {
+      return await this.adminServiceClient.getTriggerConfigById(token, configId);
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(`Error fetching trigger config ${configId}`, error.stack);
+      throw err;
+    }
+  }
+
   async addTriggerConfig(
     token: string,
     generationId: number,

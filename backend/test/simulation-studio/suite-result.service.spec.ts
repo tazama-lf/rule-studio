@@ -2,7 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { SuiteResultService } from '../../src/services/simulation-studio/suite-result/suite-result.service';
 import { AdminServiceClient } from '../../src/services/admin-service-client';
-import type { SuiteResultResponseDto } from '../../src/services/simulation-studio/suite-result/dto/suite-result.dto';
+import type {
+  SaveRunResultResponseDto,
+  SuiteResultResponseDto,
+} from '../../src/services/simulation-studio/suite-result/dto/suite-result.dto';
 
 describe('SuiteResultService', () => {
   let service: SuiteResultService;
@@ -26,13 +29,19 @@ describe('SuiteResultService', () => {
     triggers: [mockTriggerEntry],
   };
 
-  const mockResponse: SuiteResultResponseDto = {
+  const mockGetResponse: SuiteResultResponseDto = {
     success: true,
     message: 'Suite result retrieved successfully',
     data: {
       suite_id: 1,
       results: [mockRunResult],
     },
+  };
+
+  const mockSaveResponse: SaveRunResultResponseDto = {
+    success: true,
+    message: 'Run result saved successfully',
+    data: { run_id: 10, result_id: 100 },
   };
 
   beforeEach(async () => {
@@ -43,6 +52,7 @@ describe('SuiteResultService', () => {
           provide: AdminServiceClient,
           useValue: {
             getSuiteResult: jest.fn(),
+            saveRunResult: jest.fn(),
           },
         },
       ],
@@ -58,16 +68,16 @@ describe('SuiteResultService', () => {
 
   describe('getSuiteResult', () => {
     it('forwards token and suiteId to admin-service and returns response', async () => {
-      adminServiceClient.getSuiteResult.mockResolvedValue(mockResponse);
+      adminServiceClient.getSuiteResult.mockResolvedValue(mockGetResponse);
 
       const result = await service.getSuiteResult('test-token', 1);
 
-      expect(result).toEqual(mockResponse);
+      expect(result).toEqual(mockGetResponse);
       expect(adminServiceClient.getSuiteResult).toHaveBeenCalledWith('test-token', 1);
     });
 
     it('returns success flag and message', async () => {
-      adminServiceClient.getSuiteResult.mockResolvedValue(mockResponse);
+      adminServiceClient.getSuiteResult.mockResolvedValue(mockGetResponse);
 
       const result = await service.getSuiteResult('test-token', 1);
 
@@ -76,7 +86,7 @@ describe('SuiteResultService', () => {
     });
 
     it('returns correct suite_id', async () => {
-      adminServiceClient.getSuiteResult.mockResolvedValue(mockResponse);
+      adminServiceClient.getSuiteResult.mockResolvedValue(mockGetResponse);
 
       const result = await service.getSuiteResult('test-token', 1);
 
@@ -84,7 +94,7 @@ describe('SuiteResultService', () => {
     });
 
     it('returns results with correct run fields', async () => {
-      adminServiceClient.getSuiteResult.mockResolvedValue(mockResponse);
+      adminServiceClient.getSuiteResult.mockResolvedValue(mockGetResponse);
 
       const result = await service.getSuiteResult('test-token', 1);
 
@@ -98,7 +108,7 @@ describe('SuiteResultService', () => {
     });
 
     it('returns trigger entries with correct fields', async () => {
-      adminServiceClient.getSuiteResult.mockResolvedValue(mockResponse);
+      adminServiceClient.getSuiteResult.mockResolvedValue(mockGetResponse);
 
       const result = await service.getSuiteResult('test-token', 1);
 
@@ -128,6 +138,49 @@ describe('SuiteResultService', () => {
 
       await expect(service.getSuiteResult('test-token', 1)).rejects.toThrow('admin-service unavailable');
       expect(loggerSpy).toHaveBeenCalledWith('Error fetching suite result for suiteId: 1', expect.any(String));
+    });
+  });
+
+  describe('saveRunResult', () => {
+    const mockBody = {
+      gen_id: 13,
+      trigger_id: 5,
+      rule_result: { id: 'rule01@1.0.0', cfg: 'none', wght: 0, prcgTm: 843982, tenantId: 'cbe', subRuleRef: '.02', indpdntVarbl: 500 },
+    };
+
+    it('forwards token and body to admin-service and returns response', async () => {
+      adminServiceClient.saveRunResult.mockResolvedValue(mockSaveResponse);
+
+      const result = await service.saveRunResult('test-token', mockBody);
+
+      expect(result).toEqual(mockSaveResponse);
+      expect(adminServiceClient.saveRunResult).toHaveBeenCalledWith('test-token', mockBody);
+    });
+
+    it('returns run_id and result_id', async () => {
+      adminServiceClient.saveRunResult.mockResolvedValue(mockSaveResponse);
+
+      const result = await service.saveRunResult('test-token', mockBody);
+
+      expect(result.data.run_id).toBe(10);
+      expect(result.data.result_id).toBe(100);
+    });
+
+    it('works with null trigger_id', async () => {
+      adminServiceClient.saveRunResult.mockResolvedValue(mockSaveResponse);
+
+      await service.saveRunResult('test-token', { ...mockBody, trigger_id: null });
+
+      expect(adminServiceClient.saveRunResult).toHaveBeenCalledWith('test-token', expect.objectContaining({ trigger_id: null }));
+    });
+
+    it('logs and rethrows on error', async () => {
+      const error = new Error('admin-service unavailable');
+      adminServiceClient.saveRunResult.mockRejectedValue(error);
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+      await expect(service.saveRunResult('test-token', mockBody)).rejects.toThrow('admin-service unavailable');
+      expect(loggerSpy).toHaveBeenCalledWith('Error saving run result for gen_id: 13', expect.any(String));
     });
   });
 });

@@ -43,6 +43,24 @@ export class TriggerTxtpConfigController {
     return await this.triggerTxtpConfigService.getTriggerConfigs(user.token.tokenString, generationId);
   }
 
+  @Get('trigger-configs/:configId')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @ApiParam({ name: 'configId', description: 'Trigger txtp config id', example: 1 })
+  @ApiSwagger({
+    summary: 'Get trigger TXTP config by ID',
+    description: 'Returns a single trigger txtp config with its field strategies by config id.',
+    responses: mergeResponses(
+      CommonResponses.SUCCESS_200(TriggerConfigWithStrategiesResponseDto, 'Trigger config retrieved successfully'),
+      CommonResponses.NOT_FOUND_404('Trigger config not found'),
+    ),
+  })
+  async getTriggerConfigById(
+    @Param('configId', ParseIntPipe) configId: number,
+    @User() user: AuthenticatedUser,
+  ): Promise<TriggerConfigWithStrategiesResponseDto> {
+    return await this.triggerTxtpConfigService.getTriggerConfigById(user.token.tokenString, configId);
+  }
+
   @Post('generations/:generationId/trigger-configs')
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
   @Audit()

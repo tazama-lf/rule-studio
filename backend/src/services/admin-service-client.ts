@@ -70,6 +70,8 @@ import {
   RESUME_GENERATION,
   FAKER_SEMANTIC_DATA,
   SUITE_RESULT,
+  SAVE_RUN_RESULT,
+  TRIGGER_CONFIG_BY_ID,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto, UpdateMaskDto } from './masking/dto/masking.dto';
 import type {
@@ -635,6 +637,10 @@ export class AdminServiceClient {
     return await this.executeHttpRequest<T>('GET', GENERATION_TRIGGER_CONFIGS(generationId), token);
   }
 
+  async getTriggerConfigById<T>(token: string, configId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('GET', TRIGGER_CONFIG_BY_ID(configId), token);
+  }
+
   async addTriggerTxtpConfig<T>(token: string, generationId: number, body: unknown): Promise<T> {
     return await this.executeHttpRequest<T>('POST', GENERATION_TRIGGER_CONFIGS(generationId), token, body);
   }
@@ -699,5 +705,12 @@ export class AdminServiceClient {
 
   async getSuiteResult<T>(token: string, suiteId: number): Promise<T> {
     return await this.executeHttpRequest<T>('GET', SUITE_RESULT(suiteId), token);
+  }
+
+  async saveRunResult<T>(
+    token: string,
+    body: { gen_id: number; trigger_id: number | null; rule_result: Record<string, unknown>; outcome?: string },
+  ): Promise<T> {
+    return await this.executeHttpRequest<T>('POST', SAVE_RUN_RESULT, token, body);
   }
 }

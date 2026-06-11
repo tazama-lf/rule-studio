@@ -82,6 +82,9 @@ export const CommonResponses = {
   NOT_FOUND_404: (description = 'Resource not found') => ({
     404: { description },
   }),
+  SUCCESS_201: (type?: SwaggerType, description = 'Resource created successfully') => ({
+    201: { description, type },
+  }),
 } as const;
 
 /**
