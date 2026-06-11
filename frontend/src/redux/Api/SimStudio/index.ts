@@ -94,6 +94,34 @@ export interface TriggerFieldOverride {
     created_at: string;
 }
 
+export interface TriggerFieldStrategy {
+    id: string;
+    trigger_txtp_config_id: string;
+    field_path: string;
+    strategy_code: string;
+    range_min: number | null;
+    range_max: number | null;
+    faker_semantic_type: string | null;
+    generator_options: Record<string, unknown>;
+    created_at: string;
+    static_value?: unknown;
+}
+
+export interface TriggerTxtpConfigDetail {
+    trigger_txtp_config_id: string | number;
+    txtp: string;
+    txtp_version: string;
+    message_count: number;
+    display_order: number;
+    payload_template_json: Record<string, unknown>;
+    link_to_context_pairs: boolean;
+    expected_result_band?: string | null;
+    notes?: string | null;
+    related_txtp_config_id?: number | null;
+    related_transaction?: string | null;
+    field_strategies: TriggerFieldStrategy[];
+}
+
 export interface TriggerTxtpConfig {
     trigger_txtp_config_id: string | number;
     txtp: string;
@@ -209,6 +237,33 @@ export interface GenerationSummaryData {
 export interface GenerationSummaryResponse {
     success: boolean;
     data: GenerationSummaryData;
+}
+
+export interface SuiteTriggerResult {
+    id: string;
+    trigger_id: string;
+    rule_result: Record<string, unknown>;
+    independent_variable: string;
+    sub_rule_ref: string;
+}
+
+export interface SuiteRunResult {
+    run_id: string;
+    generation_id: string;
+    rule_name: string;
+    rule_version: string;
+    trigger_count: number;
+    outcome: string;
+    triggers: SuiteTriggerResult[];
+}
+
+export interface SuiteResultResponse {
+    success: boolean;
+    message: string;
+    data: {
+        suite_id: number;
+        results: SuiteRunResult[];
+    };
 }
 
 export interface MappingItem {
@@ -463,6 +518,14 @@ export const simStudioApi = createApi({
             }),
             transformResponse: (response: { success: boolean; message?: string }) => ({ success: response.success }),
         }),
+
+        getSuiteResult: builder.query<SuiteResultResponse, number>({
+            query: (suiteId) => `suites/${suiteId}/result`,
+        }),
+
+        getTriggerConfigById: builder.query<{ success: boolean; data: TriggerTxtpConfigDetail }, number>({
+            query: (configId) => `trigger-configs/${configId}`,
+        }),
     }),
 });
 
@@ -496,4 +559,6 @@ export const {
     useSaveContextMappingMutation,
     useLazyGetTriggerMappingQuery,
     useSaveTriggerMappingMutation,
+    useGetSuiteResultQuery,
+    useLazyGetTriggerConfigByIdQuery,
 } = simStudioApi;

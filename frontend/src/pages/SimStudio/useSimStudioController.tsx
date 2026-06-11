@@ -151,9 +151,11 @@ const useSimStudioController = () => {
         try {
             const result = await triggerResume(suiteId).unwrap();
             const genId = result.data.id;
+            const resumeSuiteId = result.data.suite_id;
             const currentStep = (result.data.wizard_snapshot?.currentStep as number) ?? 1;
             const tabValue = STEP_TAB_MAP[currentStep] ?? "create_generation";
             insertData(genId, "sim_gen_id", LocalStorage, false);
+            insertData(resumeSuiteId, "sim_suite_id", LocalStorage, false);
             navigate(`/sim-studio/create?simStudioTab=${tabValue}`);
         } catch {
             toast.error("Failed to resume simulation suite. Please try again.");
