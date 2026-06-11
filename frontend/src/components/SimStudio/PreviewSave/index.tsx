@@ -4,10 +4,12 @@ import Button from "../../Button";
 import { LocalStorage } from "../../../utils/Common/enums";
 import { extractData } from "../../../utils/Common/storage";
 import { useGetGenerationSummaryQuery } from "../../../redux/Api/SimStudio";
+import { useSimStudioTab } from "../../../contexts/SimStudioTabContext";
 import * as S from "./PreviewSave.styles";
 
 const PreviewSave = () => {
     const generationId = extractData("sim_gen_id", LocalStorage, false) as number | null;
+    const { enableNextTab } = useSimStudioTab();
 
     const { data, isLoading } = useGetGenerationSummaryQuery(generationId!, {
         skip: !generationId,
@@ -90,7 +92,7 @@ const PreviewSave = () => {
                         width="auto"
                         height="38px"
                         Icon={PlayArrowOutlinedIcon}
-                        onClick={() => {}}
+                        onClick={() => enableNextTab()}
                     />
                 </S.ActionRow>
             </S.SummaryCard>

@@ -66,6 +66,7 @@ const FIELD_ACTION_OPTIONS: { label: string; value: FieldAction }[] = [
     { label: "Set Static Value", value: "static" },
     { label: "Use Range", value: "range" },
     { label: "Skip Field", value: "skip" },
+    { label: "Random", value: "random" },
 ];
 
 const FieldConfigTable = memo(({ entry, onFieldConfigChange, semanticOptions }: FieldConfigTableProps) => {
@@ -170,7 +171,7 @@ const FieldConfigTable = memo(({ entry, onFieldConfigChange, semanticOptions }: 
                                                         staticValue: newAction === "static" ? config.staticValue : "",
                                                         rangeStart: newAction === "range" ? config.rangeStart : "",
                                                         rangeEnd: newAction === "range" ? config.rangeEnd : "",
-                                                        semanticId: config.semanticId,
+                                                        semanticId: newAction === "random" ? config.semanticId : "",
                                                     });
                                                 }}
                                                 sx={{
@@ -242,6 +243,7 @@ const FieldConfigTable = memo(({ entry, onFieldConfigChange, semanticOptions }: 
                                                 value={config.semanticId ?? ""}
                                                 size="small"
                                                 displayEmpty
+                                                disabled={config.action !== "random"}
                                                 onChange={(e) =>
                                                     onFieldConfigChange(entry.id, path, {
                                                         ...config,

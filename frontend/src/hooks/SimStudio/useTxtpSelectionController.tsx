@@ -16,7 +16,7 @@ import {
 import { LocalStorage } from "../../utils/Common/enums";
 import { extractData } from "../../utils/Common/storage";
 
-export type FieldAction = "sample" | "static" | "range" | "skip";
+export type FieldAction = "sample" | "static" | "range" | "skip" | "random";
 
 export interface FieldConfig {
     action: FieldAction;
@@ -42,7 +42,7 @@ export interface TxtpEntry {
 }
 
 export interface SimFieldConfig {
-    action: "sample" | "static" | "range" | "skip";
+    action: "sample" | "static" | "range" | "skip" | "random";
     static_value: string | null;
     range_start: string | null;
     range_end: string | null;
@@ -81,6 +81,7 @@ const strategyToFieldAction = (code: string): FieldAction => {
     if (code === "static") return "static";
     if (code === "range") return "range";
     if (code === "skip") return "skip";
+    if (code === "generated") return "random";
     return "sample";
 };
 

@@ -12,12 +12,12 @@ import { useGetRulesQuery, useLazyGetRuleTagsQuery } from "../../redux/Api/Docke
 import { LocalStorage } from "../../utils/Common/enums";
 import { insertData, extractData } from "../../utils/Common/storage";
 import { SimStudioTabs } from "../../utils/Constants/data";
-import PlaceholderStep from "../../components/SimStudio/PlaceholderStep";
 import Step1RuleDetails from "../../components/SimStudio/RuleDetails";
 import TxtpSelection from "../../components/SimStudio/TxtpSelection";
 import TriggerData from "../../components/SimStudio/TriggerData";
 import EnrichmentData from "../../components/SimStudio/EnrichmentData";
 import PreviewSave from "../../components/SimStudio/PreviewSave";
+import SimulationResults from "../../components/SimStudio/SimulationResults";
 
 export interface Step1Values {
     suite_name: string;
@@ -289,8 +289,7 @@ const useCreateSimSuiteController = () => {
             case 'trigger_data':        return <TriggerData onSaveRef={step3SaveRef} />;
             case 'enrichment_data':     return <EnrichmentData onSaveRef={step4SaveRef} />;
             case 'preview_save':        return <PreviewSave />;
-            case 'simulation_results':  return <PlaceholderStep title="Simulation Results" />;
-            case 'summary':             return <PlaceholderStep title="Summary" />;
+            case 'simulation_results':  return <SimulationResults />;
             default:                    return null;
         }
     };

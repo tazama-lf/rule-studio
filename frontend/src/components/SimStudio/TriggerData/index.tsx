@@ -33,11 +33,11 @@ import { useGetFakerSemanticDataQuery } from "../../../redux/Api/SimStudio";
 import FieldMappingModal from "../TxtpSelection/FieldMappingModal";
 
 const OVERRIDE_OPTIONS: { label: string; value: TriggerOverrideType }[] = [
-  { label: "No Override", value: "null" },
+  { label: "Use Sample Value", value: "null" },
   { label: "Set Static Value", value: "static" },
   { label: "Use Range", value: "range" },
-  { label: "Auto-generate", value: "generated" },
-  { label: "Remove Field", value: "remove" },
+  { label: "Skip Field", value: "remove" },
+  { label: "Random", value: "random" },
 ];
 
 // ── Field Overrides Table ─────────────────────────────────────────────────────
@@ -101,7 +101,7 @@ const FieldOverridesTable = memo(({ entry, onOverrideChange, semanticOptions }: 
                             staticValue: newType === "static" ? override.staticValue : "",
                             rangeMin: newType === "range" ? override.rangeMin : "",
                             rangeMax: newType === "range" ? override.rangeMax : "",
-                            semanticId: override.semanticId,
+                            semanticId: newType === "random" ? override.semanticId : "",
                           });
                         }}
                         sx={{ fontSize: "12px", minWidth: 160, "& .MuiSelect-select": { py: "4px" } }}
@@ -154,6 +154,7 @@ const FieldOverridesTable = memo(({ entry, onOverrideChange, semanticOptions }: 
                         value={override.semanticId ?? ""}
                         size="small"
                         displayEmpty
+                        disabled={override.overrideType !== "random"}
                         onChange={(e) => onOverrideChange(entry.id, path, { ...override, semanticId: e.target.value })}
                         sx={{ fontSize: "12px", minWidth: 140, "& .MuiSelect-select": { py: "4px" } }}
                       >

@@ -33,7 +33,7 @@ import useEnrichmentDataController, {
 import { useGetFakerSemanticDataQuery } from "../../../redux/Api/SimStudio";
 
 const FIELD_TYPES: SchemaFieldType[] = ["String", "Number", "Boolean", "Date", "UUID"];
-const GENERATION_STRATEGIES: GenerationStrategy[] = ["Sample Value", "Static", "Range", "Auto-generate"];
+const GENERATION_STRATEGIES: GenerationStrategy[] = ["Sample Value", "Static", "Range", "Skip Field", "Random"];
 
 interface SchemaRowProps {
     field: SchemaField;
@@ -70,6 +70,7 @@ const SchemaRow = ({ field, onChange, semanticOptions }: SchemaRowProps) => (
                         staticValue: "",
                         rangeMin: "",
                         rangeMax: "",
+                        semanticId: "",
                     })
                 }
                 sx={{ minWidth: 155, fontSize: 13 }}
@@ -120,6 +121,7 @@ const SchemaRow = ({ field, onChange, semanticOptions }: SchemaRowProps) => (
                 size="small"
                 value={field.semanticId ?? ""}
                 displayEmpty
+                disabled={field.strategy !== "Random"}
                 onChange={(e) => onChange(field.id, { semanticId: e.target.value })}
                 sx={{ minWidth: 140, fontSize: 13 }}
             >

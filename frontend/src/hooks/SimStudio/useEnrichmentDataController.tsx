@@ -9,7 +9,7 @@ import {
 } from "../../redux/Api/SimStudio";
 
 export type SchemaFieldType = "String" | "Number" | "Boolean" | "Date" | "UUID";
-export type GenerationStrategy = "Sample Value" | "Static" | "Range" | "Auto-generate";
+export type GenerationStrategy = "Sample Value" | "Static" | "Range" | "Skip Field" | "Random";
 
 export interface SchemaField {
     id: string;
