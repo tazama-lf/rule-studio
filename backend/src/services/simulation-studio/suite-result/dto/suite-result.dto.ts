@@ -4,6 +4,9 @@ export class RunResultEntryDto {
   @ApiProperty({ example: 1 })
   id: number;
 
+  @ApiProperty({ example: 1, nullable: true })
+  trigger_id: number | null;
+
   @ApiProperty({ type: Object, nullable: true })
   rule_result: unknown;
 

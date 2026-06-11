@@ -27,6 +27,7 @@ describe('SuiteResultController', () => {
           triggers: [
             {
               id: 10,
+              trigger_id: 1,
               rule_result: { score: 0.5 },
               independent_variable: '500',
               sub_rule_ref: '.02',
