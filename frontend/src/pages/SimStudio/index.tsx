@@ -36,7 +36,7 @@ const STAT_CONFIG = [
     },
     {
         key: "readyForSimulation" as const,
-        label: "Ready for Simulation",
+        label: "Ready for Re-run",
         Icon: CheckCircleOutlineIcon,
         iconColor: "#00a63e",
     },
@@ -153,14 +153,12 @@ const SimStudio = () => {
                         </MenuItem>
                     ))}
                 </Select>
-                <Button
-                    Icon={FilterListIcon}
-                    height="36px"
-                    type="secondary"
-                    size=""
-                    text="More Filters"
+                <S.FilterButton
+                    startIcon={<FilterListIcon />}
                     onClick={handleOpenFilters}
-                />
+                >
+                    More Filters
+                </S.FilterButton>
 
                 {values.hasAnyFilter && (
                     <IconButton

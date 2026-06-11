@@ -460,9 +460,7 @@ const TxtpSelection = ({ onSaveRef }: TxtpSelectionProps) => {
                 <InfoOutlinedIcon sx={{ fontSize: 18, color: "#3b82f6", flexShrink: 0, mt: "1px" }} />
                 <Text size="sub" sx={{ color: "#1e40af", lineHeight: 1.6 }}>
                     TXTP schemas, sample payloads, and mapping configurations are used to generate
-                    valid synthetic messages. The first TXTP in the list is marked as{" "}
-                    <strong>Primary</strong>, meaning it will act as the root trigger message for
-                    the simulation transaction.
+                    valid synthetic messages.
                 </Text>
             </S.InfoBanner>
             <S.AddFormCard>

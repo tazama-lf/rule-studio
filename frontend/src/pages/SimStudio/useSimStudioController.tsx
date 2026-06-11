@@ -184,7 +184,7 @@ const useSimStudioController = () => {
             ),
         },
         { label: "Iterations", key: "iterations" },
-        { label: "Last Updated", key: "last_updated", type: "date" as const },
+        { label: "Last Updated", key: "last_updated" },
         {
             label: "Actions",
             key: "actions",
