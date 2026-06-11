@@ -95,3 +95,7 @@ export const FAKER_SEMANTIC_DATA = `${SIMULATION_STUDIO_BASE_URL}/faker-semantic
 export const SUITE_RESULT = (suiteId: number): string => `${SIMULATION_STUDIO_BASE_URL}/suites/${suiteId}/result`;
 export const SAVE_RUN_RESULT = `${SIMULATION_STUDIO_BASE_URL}/runs/result`;
 export const TRIGGER_CONFIG_BY_ID = (configId: number): string => `${SIMULATION_STUDIO_BASE_URL}/trigger-configs/${configId}`;
+export const GENERATION_SAMPLE_TRIGGER_MESSAGES = (generationId: number): string =>
+  `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/sample-trigger-messages`;
+export const GENERATION_SAMPLE_ENRICHMENT_ROWS = (generationId: number): string =>
+  `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/sample-enrichment-rows`;
