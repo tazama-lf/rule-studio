@@ -74,6 +74,7 @@ import {
   TRIGGER_CONFIG_BY_ID,
   GENERATION_SAMPLE_TRIGGER_MESSAGES,
   GENERATION_SAMPLE_ENRICHMENT_ROWS,
+  SIMULATION_STUDIO_BASE_URL,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto, UpdateMaskDto } from './masking/dto/masking.dto';
 import type {
@@ -598,7 +599,9 @@ export class AdminServiceClient {
 
   async getSampleMessages(token: string, generationId: number): Promise<GenerateSampleMessagesResponseDto> {
     const response = await this.executeHttpRequest<GenerateSampleMessagesResponseDto>(
-      'GET', `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/sample-messages`, token
+      'GET',
+      `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/sample-messages`,
+      token,
     );
     return response;
   }
