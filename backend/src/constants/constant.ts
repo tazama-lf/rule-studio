@@ -92,3 +92,4 @@ export const TRIGGER_MAPPING_BY_IDS = (primaryTxtpId: number, relatedTxtpId: num
   `${TRIGGER_MAPPINGS}/${primaryTxtpId}/${relatedTxtpId}`;
 export const RESUME_GENERATION = (suiteId: number): string => `${SIMULATION_STUDIO_BASE_URL}/suites/${suiteId}/generation/resume`;
 export const FAKER_SEMANTIC_DATA = `${SIMULATION_STUDIO_BASE_URL}/faker-semantic-data`;
+export const SUITE_RESULT = (suiteId: number): string => `${SIMULATION_STUDIO_BASE_URL}/suites/${suiteId}/result`;

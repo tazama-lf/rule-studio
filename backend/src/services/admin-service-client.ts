@@ -69,6 +69,7 @@ import {
   FETCH_COUNT_DLH,
   RESUME_GENERATION,
   FAKER_SEMANTIC_DATA,
+  SUITE_RESULT,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto, UpdateMaskDto } from './masking/dto/masking.dto';
 import type {
@@ -694,5 +695,9 @@ export class AdminServiceClient {
 
   async generateFakerSemanticData<T>(token: string): Promise<T> {
     return await this.executeHttpRequest<T>('GET', FAKER_SEMANTIC_DATA, token);
+  }
+
+  async getSuiteResult<T>(token: string, suiteId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('GET', SUITE_RESULT(suiteId), token);
   }
 }
