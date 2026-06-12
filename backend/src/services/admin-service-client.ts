@@ -75,6 +75,7 @@ import {
   GENERATION_SAMPLE_TRIGGER_MESSAGES,
   GENERATION_SAMPLE_ENRICHMENT_ROWS,
   SIMULATION_STUDIO_BASE_URL,
+  GENERATION_STATUS,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto, UpdateMaskDto } from './masking/dto/masking.dto';
 import type {
@@ -735,5 +736,9 @@ export class AdminServiceClient {
 
   async getSampleEnrichmentRows<T>(token: string, generationId: number): Promise<T> {
     return await this.executeHttpRequest<T>('GET', GENERATION_SAMPLE_ENRICHMENT_ROWS(generationId), token);
+  }
+
+  async updateGenerationStatus<T>(token: string, generationId: number, body: { status: string }): Promise<T> {
+    return await this.executeHttpRequest<T>('PATCH', GENERATION_STATUS(generationId), token, body);
   }
 }

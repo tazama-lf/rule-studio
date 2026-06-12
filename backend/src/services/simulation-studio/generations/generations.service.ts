@@ -97,4 +97,14 @@ export class GenerationsService {
       throw err;
     }
   }
+
+  async updateGenerationStatus(token: string, generationId: number, status: string): Promise<{ success: boolean; message: string }> {
+    try {
+      return await this.adminServiceClient.updateGenerationStatus(token, generationId, { status });
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(`Error updating status for generation ${generationId}`, error.stack);
+      throw err;
+    }
+  }
 }

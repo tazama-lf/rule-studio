@@ -130,19 +130,13 @@ export class SimulationSuitesCountsDto {
   @Min(0)
   total_suites: number;
 
-  @ApiProperty({ description: 'Total suites in DRAFT status', example: 18 })
+  @ApiProperty({ description: 'Total run entries across all suites', example: 7 })
   @Type(() => Number)
   @IsInt()
   @Min(0)
-  total_draft_suites: number;
+  total_run: number;
 
-  @ApiProperty({ description: 'Total suites in COMPLETED status', example: 12 })
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  total_completed_suites: number;
-
-  @ApiProperty({ description: 'Latest last_run_at across all suites', required: false, example: '2026-06-08T10:15:00.000Z' })
+  @ApiProperty({ description: 'Latest run created_at across all runs', required: false, example: '2026-06-08T10:15:00.000Z' })
   @IsOptional()
   @IsDateString()
   latest_run_at?: string;

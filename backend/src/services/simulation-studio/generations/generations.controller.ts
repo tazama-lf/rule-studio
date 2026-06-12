@@ -136,4 +136,33 @@ export class GenerationsController {
   async resumeGenerationForSuite(@Param('id', ParseIntPipe) id: number, @User() user: AuthenticatedUser): Promise<SuiteGenerationDto> {
     return await this.generationsService.resumeGeneration(user.token.tokenString, id);
   }
+
+  @Patch('generations/:generationId/status')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @Audit()
+  @ApiParam({ name: 'generationId', description: 'Generation id', example: 1 })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', example: 'COMPLETED', description: 'Generation status (DRAFT, READY, RUNNING, COMPLETED, FAILED)' },
+      },
+      required: ['status'],
+    },
+  })
+  @ApiSwagger({
+    summary: 'Update generation status',
+    description: 'Updates the status of a generation',
+    responses: mergeResponses(
+      CommonResponses.SUCCESS_200(Object, 'Generation status updated'),
+      CommonResponses.NOT_FOUND_404('Generation not found'),
+    ),
+  })
+  async updateGenerationStatus(
+    @Param('generationId', ParseIntPipe) generationId: number,
+    @Body() body: { status: string },
+    @User() user: AuthenticatedUser,
+  ): Promise<{ success: boolean; message: string }> {
+    return await this.generationsService.updateGenerationStatus(user.token.tokenString, generationId, body.status);
+  }
 }

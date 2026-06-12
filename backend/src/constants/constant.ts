@@ -99,3 +99,4 @@ export const GENERATION_SAMPLE_TRIGGER_MESSAGES = (generationId: number): string
   `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/sample-trigger-messages`;
 export const GENERATION_SAMPLE_ENRICHMENT_ROWS = (generationId: number): string =>
   `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/sample-enrichment-rows`;
+export const GENERATION_STATUS = (generationId: number): string => `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/status`;
