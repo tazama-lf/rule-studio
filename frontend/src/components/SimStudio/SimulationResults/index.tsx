@@ -532,9 +532,14 @@ const SimulationResults = () => {
 
     if (isLoading) {
         return (
-            <Box display="flex" justifyContent="center" alignItems="center" py={12}>
-                <CircularProgress size={32} />
-                <Typography sx={{ ml: 2, fontSize: 13, color: "#6b7280" }}>Loading simulation results…</Typography>
+            <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" py={12} gap={2}>
+                <CircularProgress size={48} thickness={3} sx={{ color: "#4789f6" }} />
+                <Typography sx={{ fontSize: 14, fontWeight: 600, color: "#374151" }}>
+                    Loading simulation results…
+                </Typography>
+                <Typography sx={{ fontSize: 12, color: "#9ca3af" }}>
+                    Please wait while we fetch your results
+                </Typography>
             </Box>
         );
     }
@@ -560,7 +565,7 @@ const SimulationResults = () => {
     }
 
     return (
-        <Box sx={{ p: 3, maxWidth: 1100, mx: "auto", width: "100%" }}>
+        <Box sx={{ p: 3, width: "100%", boxSizing: "border-box" }}>
 
             {/* ── Stat row ── */}
             <Box display="flex" gap={2} mb={3} flexWrap="wrap">

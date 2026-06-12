@@ -526,6 +526,14 @@ export const simStudioApi = createApi({
         getTriggerConfigById: builder.query<{ success: boolean; data: TriggerTxtpConfigDetail }, number>({
             query: (configId) => `trigger-configs/${configId}`,
         }),
+
+        runSimulation: builder.mutation<{ success: boolean; message: string }, { suiteId: number; generationId: number }>({
+            query: (body) => ({
+                url: "run-simulation",
+                method: "POST",
+                body,
+            }),
+        }),
     }),
 });
 
@@ -561,4 +569,5 @@ export const {
     useSaveTriggerMappingMutation,
     useGetSuiteResultQuery,
     useLazyGetTriggerConfigByIdQuery,
+    useRunSimulationMutation,
 } = simStudioApi;
