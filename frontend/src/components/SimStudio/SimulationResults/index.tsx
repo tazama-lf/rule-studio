@@ -565,7 +565,7 @@ const SimulationResults = () => {
     }
 
     return (
-        <Box sx={{ p: 3, maxWidth: 1100, mx: "auto", width: "100%" }}>
+        <Box sx={{ p: 3, width: "100%", boxSizing: "border-box" }}>
 
             {/* ── Stat row ── */}
             <Box display="flex" gap={2} mb={3} flexWrap="wrap">

@@ -161,7 +161,7 @@ const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
         : "#e5e7eb";
 
     return (
-        <Box width="100%" maxWidth="960px">
+        <Box width="100%">
             <S.InfoBanner>
                 <InfoOutlinedIcon sx={{ fontSize: 18, color: "#2563eb", mt: "1px", flexShrink: 0 }} />
                 <Typography sx={{ fontSize: 13, color: "#1e40af", lineHeight: 1.6 }}>

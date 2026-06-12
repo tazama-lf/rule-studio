@@ -2,7 +2,6 @@ import { Box, styled, Typography } from "@mui/material";
 
 export const PageWrapper = styled(Box)(() => ({
     width: "100%",
-    maxWidth: "960px",
     display: "flex",
     flexDirection: "column",
     gap: "20px",
