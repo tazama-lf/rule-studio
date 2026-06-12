@@ -18,104 +18,6 @@ const STATIC_NETWORK_MAP = {
   active: true,
   messages: [
     {
-      id: '123@1.0.0',
-      cfg: '1.0.0',
-      txTp: 'test_transaction',
-      typologies: [
-        {
-          id: 'test-processor@1.0.0',
-          cfg: 'test@1.0.0',
-          rules: [{ id: 'cbe-rule-test@1.0.0', cfg: '1.0.0' }],
-          tenantId: 'cbe',
-        },
-      ],
-    },
-    {
-      id: '123@1.0.0',
-      cfg: '1.0.0',
-      txTp: 'fable004',
-      typologies: [
-        {
-          id: 'story-processor@1.0.0',
-          cfg: 'fables@1.0.0',
-          rules: [{ id: 'cbe-rule-fable004@1.0.0', cfg: '1.0.0' }],
-          tenantId: 'cbe',
-        },
-      ],
-    },
-    {
-      id: '135@1.0.0',
-      cfg: '1.0.0',
-      txTp: 'amount',
-      typologies: [
-        {
-          id: 'new-test-rule-processor@1.0.0',
-          cfg: 'new-test-rule@1.0.0',
-          rules: [{ id: 'cbe-rule-new@1.0.0', cfg: '1.0.0' }],
-          tenantId: 'cbe',
-        },
-      ],
-    },
-    {
-      id: '999@1.0.0',
-      cfg: '1.0.0',
-      txTp: 'kashif123',
-      typologies: [
-        {
-          id: 'kashif-processor@1.0.0',
-          cfg: 'kashif@1.0.0',
-          rules: [{ id: 'cbe-rule-kashif@1.0.0', cfg: '1.0.0' }],
-          tenantId: 'cbe',
-        },
-      ],
-    },
-    {
-      id: '456@1.0.0',
-      cfg: '1.0.0',
-      txTp: 'amount_processor_transaction',
-      typologies: [
-        {
-          id: 'test-processor@1.0.0',
-          cfg: 'test@1.0.0',
-          rules: [{ id: 'cbe-rule-test@1.0.0', cfg: '1.0.0' }],
-          tenantId: 'cbe',
-        },
-      ],
-    },
-    {
-      id: '987@1.0.0',
-      cfg: '1.0.0',
-      txTp: 'country',
-      typologies: [
-        {
-          id: 'cases-processor@1.0.0',
-          cfg: 'cases@1.0.0',
-          rules: [
-            { id: 'cbe-cases-rule@1.0.0', cfg: '1.0.0' },
-            { id: 'cbe-rule-cnic@1.0.0', cfg: '1.0.0' },
-          ],
-          tenantId: 'cbe',
-        },
-      ],
-    },
-    {
-      id: '004@1.0.0',
-      cfg: '1.0.0',
-      txTp: 'dems_pacs002',
-      typologies: [
-        {
-          id: 'typology-processor@1.0.0',
-          cfg: '999@1.0.0',
-          rules: [
-            { id: 'EFRuP@1.0.0', cfg: 'none' },
-            { id: '901@1.0.0', cfg: '1.0.0' },
-            { id: '902@1.0.0', cfg: '1.0.0' },
-          ],
-          tenantId: 'cbe',
-        },
-      ],
-    },
-    {
       id: '619@1.0.0',
       cfg: '1.0.0',
       txTp: 'amounttransaction',
@@ -173,7 +75,7 @@ export class RunSimulationService {
 
       // Intentionally hardcoded endpoint and routing for now, per current local testing flow.
       const natsUtilsBase = 'http://10.10.80.37:4000';
-      const results = await this.publishTriggerMessages(natsUtilsBase, triggerMessages, token, generationId);
+      const results = await this.publishTriggerMessages(natsUtilsBase, triggerMessages, token, generationId, ruleName, version);
 
       return { success: true, results };
     } finally {
@@ -206,6 +108,8 @@ export class RunSimulationService {
     triggerMessages: SampleTriggerMessage[],
     token: string,
     generationId: number,
+    ruleName: string,
+    version: string,
   ): Promise<RuleResult[]> {
     this.logger.log(JSON.stringify(triggerMessages));
     const publishTasks = triggerMessages.map(async (msg): Promise<RuleResult> => {
@@ -223,6 +127,11 @@ export class RunSimulationService {
       let result: unknown = null;
       let error: string | undefined;
 
+      // Build dynamic NATS routing parameters based on ruleName and version
+      const destination = `sub-${ruleName}@${version}`;
+      const consumer = `pub-${ruleName}@${version}`;
+      const functionName = ruleName;
+
       const natsMessage = {
         transaction: mappedPayload,
         DataCache: {},
@@ -230,10 +139,10 @@ export class RunSimulationService {
       };
 
       const requestBody = {
-        functionName: '',
+        functionName,
         awaitReply: true,
-        destination: 'sub-rule-cbe-rule-amount@1.0.0',
-        consumer: 'pub-rule-cbe-rule-amount@1.0.0',
+        destination,
+        consumer,
         message: natsMessage,
       };
 
