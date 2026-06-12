@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo } from "react";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import CloseIcon from "@mui/icons-material/Close";
@@ -487,39 +487,11 @@ const RunResultRow = ({
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-const WARMUP_SECONDS = 10;
-
 const SimulationResults = () => {
-    // Hardcoded suite ID for now
-    const suiteId = 11;
+    const suiteId = extractData("sim_suite_id", LocalStorage, false) as number | null;
 
-    // 10-second warmup before hitting the results API
-    const [warmupDone, setWarmupDone] = useState(false);
-    const [secondsLeft, setSecondsLeft] = useState(WARMUP_SECONDS);
-    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-    useEffect(() => {
-        setWarmupDone(false);
-        setSecondsLeft(WARMUP_SECONDS);
-
-        intervalRef.current = setInterval(() => {
-            setSecondsLeft((s) => {
-                if (s <= 1) {
-                    if (intervalRef.current) clearInterval(intervalRef.current);
-                    setWarmupDone(true);
-                    return 0;
-                }
-                return s - 1;
-            });
-        }, 1000);
-
-        return () => {
-            if (intervalRef.current) clearInterval(intervalRef.current);
-        };
-    }, [suiteId]);
-
-    const { data, isLoading, isError } = useGetSuiteResultQuery(suiteId, {
-        skip: !warmupDone,
+    const { data, isLoading, isError } = useGetSuiteResultQuery(Number(suiteId), {
+        skip: !suiteId,
     });
 
     const results = data?.data?.results ?? [];
@@ -558,25 +530,16 @@ const SimulationResults = () => {
     const failedCount = results.filter((r) => r.outcome.toUpperCase() !== "SUCCESS").length;
     const totalTriggers = results.reduce((acc, r) => acc + r.trigger_count, 0);
 
-    if (!warmupDone) {
+    if (isLoading) {
         return (
             <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" py={12} gap={2}>
                 <CircularProgress size={48} thickness={3} sx={{ color: "#4789f6" }} />
                 <Typography sx={{ fontSize: 14, fontWeight: 600, color: "#374151" }}>
-                    Running simulation…
+                    Loading simulation results…
                 </Typography>
                 <Typography sx={{ fontSize: 12, color: "#9ca3af" }}>
                     Please wait while we fetch your results
                 </Typography>
-            </Box>
-        );
-    }
-
-    if (isLoading) {
-        return (
-            <Box display="flex" justifyContent="center" alignItems="center" py={12}>
-                <CircularProgress size={32} />
-                <Typography sx={{ ml: 2, fontSize: 13, color: "#6b7280" }}>Loading simulation results…</Typography>
             </Box>
         );
     }
