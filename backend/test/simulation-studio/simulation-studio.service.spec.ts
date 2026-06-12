@@ -85,8 +85,7 @@ describe('SimulationStudioService', () => {
     success: true,
     data: {
       total_suites: 10,
-      total_draft_suites: 4,
-      total_completed_suites: 3,
+      total_run: 7,
       latest_run_at: '2026-06-08T10:15:00.000Z',
     },
   };
