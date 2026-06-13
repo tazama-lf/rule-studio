@@ -42,7 +42,7 @@ export class RunSimulationService {
     private readonly adminServiceClient: AdminServiceClient,
     private readonly ephemeralEnvService: EphemeralEnvService,
     private readonly httpService: HttpService,
-  ) {}
+  ) { }
 
   async runSimulation(token: string, body: RunSimulationDto): Promise<RunSimulationResponseDto> {
     const { suiteId, generationId } = body;
@@ -75,6 +75,7 @@ export class RunSimulationService {
 
       // Intentionally hardcoded endpoint and routing for now, per current local testing flow.
       const natsUtilsBase = 'http://10.10.80.37:4000';
+      this.logger.log('the nats util url is: ', natsUtilsBase)
       const results = await this.publishTriggerMessages(natsUtilsBase, triggerMessages, token, generationId, ruleName, version);
 
       return { success: true, results };
@@ -128,8 +129,8 @@ export class RunSimulationService {
       let error: string | undefined;
 
       // Build dynamic NATS routing parameters based on ruleName and version
-      const destination = `sub-${ruleName}@${version}`;
-      const consumer = `pub-${ruleName}@${version}`;
+      const destination = `sub-rule-${ruleName}@${version}`;
+      const consumer = `pub-rule-${ruleName}@${version}`;
       const functionName = ruleName;
 
       const natsMessage = {
