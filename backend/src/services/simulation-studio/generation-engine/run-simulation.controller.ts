@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards, Param, ParseIntPipe } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { RequireAnyClaims, TazamaClaims } from 'src/decorators/auth.decorator';
 import { ApiSwagger, mergeResponses, CommonResponses } from 'src/decorators/swagger.decorator';
@@ -46,12 +46,8 @@ export class RunSimulationController {
     description: 'Reruns a generation and replicates suite context, triggers, enrichment tables and field strategies in the admin DB.',
     responses: mergeResponses(CommonResponses.CREATED_201(SuiteGenerationResponseDto, 'Generation rerun successfully')),
   })
-  async rerunGeneration(
-    @Param('generationId', ParseIntPipe) generationId: number,
-    @Body() body: RunSimulationDto,
-    @User() user: AuthenticatedUser,
-  ): Promise<RunSimulationResponseDto> {
-    await this.generationsService.cloneGeneration(user.token.tokenString, generationId);
+  async rerunGeneration(@Body() body: RunSimulationDto, @User() user: AuthenticatedUser): Promise<RunSimulationResponseDto> {
+    await this.generationsService.cloneGeneration(user.token.tokenString, body.generationId);
     return await this.runSimulationService.runSimulation(user.token.tokenString, body);
   }
 }
