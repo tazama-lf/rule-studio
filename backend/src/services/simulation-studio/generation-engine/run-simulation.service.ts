@@ -12,27 +12,79 @@ import {
   SampleTriggerMessagesResponse,
 } from './dto/run-simulation.dto';
 
-const STATIC_NETWORK_MAP = {
-  cfg: '1.0.0',
-  name: 'Public 701 Network Map',
-  active: true,
-  messages: [
-    {
-      id: '619@1.0.0',
-      cfg: '1.0.0',
-      txTp: 'amounttransaction',
-      typologies: [
-        {
-          id: 'amount-typology-processor@1.0.0',
-          cfg: 'atp@1.0.0',
-          rules: [{ id: 'cbe-rule-amount@1.0.0', cfg: '1.0.0' }],
-          tenantId: 'cbe',
-        },
-      ],
+interface RuleConfigBand {
+  subRuleRef: string;
+  reason?: string;
+  upperLimit?: number;
+  lowerLimit?: number;
+}
+
+interface RuleConfig {
+  id: string;
+  cfg: string;
+  tenantId: string;
+  config?: {
+    bands?: RuleConfigBand[];
+  };
+}
+
+function buildTypology(ruleConfig: RuleConfig, ruleName: string, ruleVersion: string) {
+  const typologyId = `${ruleName}-typology-processor@${ruleVersion}`;
+  const typologyCfg = `atp@${ruleVersion}`;
+  const termId = `v${ruleName}at100at100`;
+
+  const bands: RuleConfigBand[] = ruleConfig.config?.bands ?? [];
+  const wghts = [
+    { ref: '.err', wght: '0' },
+    ...bands.map((band) => ({ ref: band.subRuleRef, wght: '100' })),
+  ];
+
+  return {
+    id: typologyId,
+    cfg: typologyCfg,
+    rules: [
+      {
+        id: ruleConfig.id,
+        cfg: ruleConfig.cfg,
+        wghts,
+        termId,
+      },
+    ],
+    tenantId: ruleConfig.tenantId,
+    workflow: {
+      alertThreshold: 100,
+      interdictionThreshold: 400,
     },
-  ],
-  tenantId: 'cbe',
-};
+    expression: ['Add', termId],
+    typology_name: `${ruleName}-typology-processor`,
+  };
+}
+
+function buildNetworkMap(ruleConfig: RuleConfig, ruleName: string, ruleVersion: string, txTp: string) {
+  const typology = buildTypology(ruleConfig, ruleName, ruleVersion);
+
+  return {
+    cfg: '1.0.0',
+    name: `Public ${ruleName} Network Map`,
+    active: true,
+    messages: [
+      {
+        id: '619@1.0.0',
+        cfg: '1.0.0',
+        txTp,
+        typologies: [
+          {
+            id: typology.id,
+            cfg: typology.cfg,
+            rules: typology.rules.map((r) => ({ id: r.id, cfg: r.cfg })),
+            tenantId: typology.tenantId,
+          },
+        ],
+      },
+    ],
+    tenantId: ruleConfig.tenantId,
+  };
+}
 
 @Injectable()
 export class RunSimulationService {
@@ -76,7 +128,7 @@ export class RunSimulationService {
       // Intentionally hardcoded endpoint and routing for now, per current local testing flow.
       const natsUtilsBase = 'http://10.10.80.37:4000';
       this.logger.log('the nats util url is: ', natsUtilsBase)
-      const results = await this.publishTriggerMessages(natsUtilsBase, triggerMessages, token, generationId, ruleName, version);
+      const results = await this.publishTriggerMessages(natsUtilsBase, triggerMessages, token, generationId, ruleName, version, ruleConfig as unknown as RuleConfig);
 
       return { success: true, results };
     } finally {
@@ -111,6 +163,7 @@ export class RunSimulationService {
     generationId: number,
     ruleName: string,
     version: string,
+    ruleConfig: RuleConfig,
   ): Promise<RuleResult[]> {
     this.logger.log(JSON.stringify(triggerMessages));
     const publishTasks = triggerMessages.map(async (msg): Promise<RuleResult> => {
@@ -136,7 +189,7 @@ export class RunSimulationService {
       const natsMessage = {
         transaction: mappedPayload,
         DataCache: {},
-        networkMap: STATIC_NETWORK_MAP,
+        networkMap: buildNetworkMap(ruleConfig, ruleName, version, msg.txtp),
       };
 
       const requestBody = {
