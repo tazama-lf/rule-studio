@@ -27,4 +27,7 @@ export class GenerateSampleMessagesResponseDto {
 
   @ApiProperty({ description: 'List of generated sample messages per context config', type: [SampleMessageItemDto] })
   data!: SampleMessageItemDto[];
+
+  // @ApiProperty({ description: 'Generated database script with DDL and DML', required: false })
+  // dbScript?: string;
 }

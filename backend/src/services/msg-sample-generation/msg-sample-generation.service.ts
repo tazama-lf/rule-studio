@@ -2,13 +2,74 @@
 import { Injectable } from '@nestjs/common';
 import { GenerateSampleMessagesResponseDto } from './dto/msg-sample-generation.dto';
 import { AdminServiceClient } from '../admin-service-client';
+import { processMappings } from 'src/utils/process-mappings.util';
 
 @Injectable()
 export class MsgSampleGenerationService {
   constructor(private readonly adminServiceClient: AdminServiceClient) {}
 
   async getSampleMessages(generationId: number, token: string): Promise<GenerateSampleMessagesResponseDto> {
-    const dummyToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbGllbnRJZCI6IjFiN2Y1OWRkLTg3NTQtNDhlYi05NTczLTY1ZDEwNjk1MTYzNSIsImlzcyI6Imh0dHA6Ly8xMC4xMC44MC4zMzo4MDgwL3JlYWxtcy90Y3MiLCJzaWQiOiI5OGE5ZjFmMS00NjA4LTRmZjQtYjFlNy0yMzAxZjEzNmM3MDUiLCJleHAiOjE3ODExMDI1NjUsInRva2VuU3RyaW5nIjoiZXlKaGJHY2lPaUpTVXpJMU5pSXNJblI1Y0NJZ09pQWlTbGRVSWl3aWEybGtJaUE2SUNKT05GRlBWa0kyVUMxT1VtTjBaa3htTUd0V04zVmxaemQwWlU1UFVHOTBVbkJzWm5wUk1YUllZWFZSSW4wLmV5SmxlSEFpT2pFM09ERXhNREkxTmpVc0ltbGhkQ0k2TVRjNE1UQTJOalUyTlN3aWFuUnBJam9pT0dOak1qSmxNall0Tnprek9TMDBZV00xTFRneFpqa3ROREprWXpFMVlXWTNZVEExSWl3aWFYTnpJam9pYUhSMGNEb3ZMekV3TGpFd0xqZ3dMak16T2pnd09EQXZjbVZoYkcxekwzUmpjeUlzSW1GMVpDSTZXeUp5WldGc2JTMXRZVzVoWjJWdFpXNTBJaXdpWVdOamIzVnVkQ0pkTENKemRXSWlPaUl4WWpkbU5UbGtaQzA0TnpVMExUUTRaV0l0T1RVM015MDJOV1F4TURZNU5URTJNelVpTENKMGVYQWlPaUpDWldGeVpYSWlMQ0poZW5BaU9pSjBZM010WTJ4cFpXNTBJaXdpYzJWemMybHZibDl6ZEdGMFpTSTZJams0WVRsbU1XWXhMVFEyTURndE5HWm1OQzFpTVdVM0xUSXpNREZtTVRNMll6Y3dOU0lzSW1GamNpSTZJakVpTENKaGJHeHZkMlZrTFc5eWFXZHBibk1pT2xzaUx5b2lYU3dpY21WaGJHMWZZV05qWlhOeklqcDdJbkp2YkdWeklqcGJJbVZrYVhSdmNpSXNJbVJsWm1GMWJIUXRjbTlzWlhNdGRHTnpJaXdpZEhKelgyVmthWFJ2Y2lJc0ltUmxiWE02ZDNKcGRHVWlMQ0p2Wm1ac2FXNWxYMkZqWTJWemN5SXNJblZ0WVY5aGRYUm9iM0pwZW1GMGFXOXVJaXdpVEVsVFZGOVdNVjlCUkUxSlRsOURUMDVHU1VkVlVrRlVTVTlPWDA1RlZGZFBVa3RmVFVGUUlsMTlMQ0p5WlhOdmRYSmpaVjloWTJObGMzTWlPbnNpY21WaGJHMHRiV0Z1WVdkbGJXVnVkQ0k2ZXlKeWIyeGxjeUk2V3lKMmFXVjNMWFZ6WlhKeklpd2ljWFZsY25rdFozSnZkWEJ6SWl3aWNYVmxjbmt0ZFhObGNuTWlYWDBzSW1GalkyOTFiblFpT25zaWNtOXNaWE1pT2xzaWJXRnVZV2RsTFdGalkyOTFiblFpTENKdFlXNWhaMlV0WVdOamIzVnVkQzFzYVc1cmN5SXNJblpwWlhjdGNISnZabWxzWlNKZGZYMHNJbk5qYjNCbElqb2laVzFoYVd3Z2NISnZabWxzWlNJc0luTnBaQ0k2SWprNFlUbG1NV1l4TFRRMk1EZ3ROR1ptTkMxaU1XVTNMVEl6TURGbU1UTTJZemN3TlNJc0luUmxibUZ1ZEY5cFpDSTZJbU5pWlNJc0ltVnRZV2xzWDNabGNtbG1hV1ZrSWpwMGNuVmxMQ0owWlc1aGJuUmZaR1YwWVdsc2N5STZXeUl2UTI5dGJXVnlZMmxoYkNCQ1lXNXJJRzltSUVWMGFHbHZjR2xoSWl3aUwwTnZiVzFsY21OcFlXd2dRbUZ1YXlCdlppQkZkR2hwYjNCcFlTOWxaR2wwYjNJaVhTd2ljSEpsWm1WeWNtVmtYM1Z6WlhKdVlXMWxJam9pWTJKbExtMTFhR0Z0YldGa0xtRnNhVUJuYldGcGJDNWpiMjBpTENKemRHRjBkWE1pT2lKVFZFRlVWVk5mTURGZlNVNWZVRkpQUjFKRlUxTXNVMVJCVkZWVFh6QXlYMDlPWDBoUFRFUXNVMVJCVkZWVFh6QXpYMVZPUkVWU1gxSkZWa2xGVnl4VFZFRlVWVk5mTURSZlFWQlFVazlXUlVRc1UxUkJWRlZUWHpBMVgxSkZTa1ZEVkVWRUxGTlVRVlJWVTE4d05sOUZXRkJQVWxSRlJDeFRWRUZVVlZOZk1EZGZVa1ZCUkZsZlJrOVNYMFJGVUV4UFdVMUZUbFFzVTFSQlZGVlRYekE0WDBSRlVFeFBXVVZFSW4wLmh3Sm1VRk5jYmJvSVVYXzR6bFZ3dWlpYUp0TjZrbG1pVVBFOXNmTUhiejg4TkxsaHZRODJ6TGdvYVc3RmVid1dKVE9KU2RWMGxjS0VnRy1xTWxtRFQ1MUxRU3NramZGclJQYlhBZmFySDFyYTNxcDI1S0V5SE0yVXhNVEQwd0pYb3AwbHI2UHNWMThXZEVHMV9jYnZMcGRrYlVSNXVmeFNLeUhZbkNueEdfekhxOUx5QUxSZXBlZjVxYXc2UmJJQzh1eFpaOGFWN01TNjk0WkJJS3BTanJmVWg4Y2loVFZUOEdjSUpvSm82N0M2b1RhVGpWTDNFRnJObkM3d0R6aXo4bnhCQm1qbkxCSk52d1Y3c1JVaXQ2cjhrM2lCTElnYWlaZk9IVW5iRmdWME8xMk1LZkN3S0JnSGZZV1kwdEZKOVBZU0FncnFzSUJyREptbEs2TXhxUSIsImNsYWltcyI6WyJ2aWV3LXVzZXJzIiwicXVlcnktZ3JvdXBzIiwicXVlcnktdXNlcnMiLCJtYW5hZ2UtYWNjb3VudCIsIm1hbmFnZS1hY2NvdW50LWxpbmtzIiwidmlldy1wcm9maWxlIiwiZWRpdG9yIiwiZGVmYXVsdC1yb2xlcy10Y3MiLCJ0cnNfZWRpdG9yIiwiZGVtczp3cml0ZSIsIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iLCJMSVNUX1YxX0FETUlOX0NPTkZJR1VSQVRJT05fTkVUV09SS19NQVAiXSwidGVuYW50SWQiOiJjYmUiLCJpYXQiOjE3ODEwNjY2NTd9.LgMUqowgiegPCGycTLEJhb4jD37ahyRk_42T5TwBcbEnwKR_s7hhHJdeNsD-ltmzSnoPfaM1ntUQWsjd48DvXle-sWy31QcimCHdelFkUW4AE2u5up0vCSN0xMJcHdau1etZHJBPm7H5uK4e0cmN95gbOlSM-l52Rb5rBY868PDdH-EmJL_T7oDswaiO8yUfTKuOp2e36jGGFiAS9Xgr7ulUPqFuX6fCKt4s5ArqgO3w53vhF1QHuIVZ-faOMeQnNyzYktYFfYArPGPnMLG8sX7w620zwkg1hw2UBzEBXqka2LLH4HZdRgeEGo98bY8reh53tklIO1Ff-NmRk1jtEw'
     return await this.adminServiceClient.getSampleMessages(token, generationId);
+  }
+
+  /**
+   * Generates a database script with DDL and DML from sample message generation response
+   * @param response The sample messages response containing transaction type patterns and payloads
+   * @returns DbScript containing CREATE TABLE statements and INSERT statements
+   */
+  async generateDbScript(response: GenerateSampleMessagesResponseDto, token:string): Promise<string> {
+    let dbScript = '';
+
+    for (const item of response.data) {
+      const tableName = item.txtp;
+
+      const ddl = `
+        CREATE TABLE IF NOT EXISTS public."${tableName}"
+        (
+            document jsonb NOT NULL,
+            credttm text COLLATE pg_catalog."default",
+            messageid text COLLATE pg_catalog."default",
+            endtoendid text COLLATE pg_catalog."default",
+            debtoraccountid text COLLATE pg_catalog."default",
+            creditoraccountid text COLLATE pg_catalog."default",
+            tenantid text COLLATE pg_catalog."default"
+        );`;
+
+      dbScript += ddl;
+
+      const configRow = await this.adminServiceClient.getConfigRowByTxTp(item.txtp, item.txtp_version, token);
+      
+      if (item.payloads && Array.isArray(item.payloads) && item.payloads.length > 0) {
+        const trackedFieldsResponse = await Promise.all(
+          item.payloads.map(async (payload) => await processMappings(payload, configRow.config.mapping, false)),
+        );
+
+        const escapeSql = (value: string): string => value.replace(/'/g, "''");
+
+        const valuesList = trackedFieldsResponse
+          .map(({ trackedFields }, index) => {  
+            const payload = item.payloads[index];
+            const documentValue = `'${escapeSql(JSON.stringify(payload))}'::jsonb`;
+            const credttmValue = trackedFields.CreDtTm;
+            const messageIdValue = trackedFields.MsgId;
+            const endToEndIdValue = trackedFields.EndToEndId;
+            const debtorAccountIdValue = trackedFields.dbtrAcctId ? `'${escapeSql(trackedFields.dbtrAcctId)}'` : 'NULL';
+            const creditorAccountIdValue = trackedFields.cdtrAcctId ? `'${escapeSql(trackedFields.cdtrAcctId)}'` : 'NULL';
+            const tenantIdValue = trackedFields.TenantId ;
+
+            return `(${documentValue}, ${credttmValue}, ${messageIdValue}, ${endToEndIdValue}, ${debtorAccountIdValue}, ${creditorAccountIdValue}, ${tenantIdValue}${index})`;
+          })
+          .join(',\n    ');
+
+        const dml = `
+          INSERT INTO public."${tableName}" (document, credttm, messageid, endtoendid, debtoraccountid, creditoraccountid, tenantid)
+          VALUES
+              ${valuesList};`;
+
+        dbScript += dml;
+      }
+    };
+
+    return dbScript;
   }
 }

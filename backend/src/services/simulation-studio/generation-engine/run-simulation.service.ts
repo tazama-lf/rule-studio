@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { Client as PgClient } from 'pg';
 import { AdminServiceClient } from '../../admin-service-client';
 import { EphemeralEnvService } from '../ephemeral-env/ephemeral-env.service';
+import { MsgSampleGenerationService } from '../../msg-sample-generation/msg-sample-generation.service';
 import {
   RunSimulationDto,
   RunSimulationResponseDto,
@@ -93,6 +94,7 @@ export class RunSimulationService {
   constructor(
     private readonly adminServiceClient: AdminServiceClient,
     private readonly ephemeralEnvService: EphemeralEnvService,
+    private readonly msgSampleGenerationService: MsgSampleGenerationService,
     private readonly httpService: HttpService,
   ) { }
 
@@ -100,9 +102,10 @@ export class RunSimulationService {
     const { suiteId, generationId } = body;
     const simName = `run-sim-${suiteId}-gen-${generationId}-${Date.now()}`;
 
-    const [suiteResp, triggerResp] = await Promise.all([
+    const [suiteResp, triggerResp, sampleResp] = await Promise.all([
       this.adminServiceClient.getSimulationSuiteById(token, suiteId),
       this.adminServiceClient.getSampleTriggerMessages<SampleTriggerMessagesResponse>(token, generationId),
+      this.adminServiceClient.getSampleMessages(token, generationId),
     ]);
 
     const { suite } = suiteResp;
@@ -124,6 +127,10 @@ export class RunSimulationService {
 
     try {
       await this.applyRuleConfig(ports.pg, ruleConfig);
+      
+      // Generate and seed the database with sample data
+      const dbScript = await this.msgSampleGenerationService.generateDbScript(sampleResp, token);
+      await this.seedDatabaseWithScript(ports.pg, dbScript);
 
       // Intentionally hardcoded endpoint and routing for now, per current local testing flow.
       const natsUtilsBase = 'http://10.10.80.37:4000';
@@ -151,6 +158,33 @@ export class RunSimulationService {
     } catch (error) {
       const err = error as Error;
       this.logger.warn(`Failed to apply rule config to ephemeral postgres: ${err.message}`);
+    } finally {
+      await client.end().catch(() => undefined);
+    }
+  }
+
+  private async seedDatabaseWithScript(pgPort: number, dbScript: string): Promise<void> {
+    if (!dbScript || dbScript.trim() === '') {
+      this.logger.warn('No database script provided, skipping seed');
+      return;
+    }
+
+    const client = new PgClient({
+      host: 'localhost',
+      port: pgPort,
+      user: 'postgres',
+      password: 'unused',
+      database: 'raw_history',
+    });
+
+    try {
+      await client.connect();
+      await client.query(dbScript);
+      this.logger.log('Successfully seeded database with generated script');
+    } catch (error) {
+      const err = error as Error;
+      this.logger.error(`Failed to seed database with generated script: ${err.message}`);
+      throw error;
     } finally {
       await client.end().catch(() => undefined);
     }
