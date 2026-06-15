@@ -1,4 +1,4 @@
-import { useCallback, useState, type MutableRefObject } from "react";
+import { useCallback, useEffect, useState, type MutableRefObject } from "react";
 import toast from "react-hot-toast";
 import { LocalStorage } from "../../utils/Common/enums";
 import { extractData } from "../../utils/Common/storage";
@@ -164,9 +164,17 @@ const useEnrichmentDataController = (
         return true;
     }, []);
 
-    if (onSaveRef) {
+    useEffect(() => {
+        if (!onSaveRef) {
+            return;
+        }
+
         onSaveRef.current = saveEnrichmentRecords;
-    }
+
+        return () => {
+            onSaveRef.current = null;
+        };
+    }, [onSaveRef, saveEnrichmentRecords]);
 
     return {
         values: { tableName, numberOfRows, sampleJson, jsonError, schemaFields, savedRecords, isSaving, isDeleting },
