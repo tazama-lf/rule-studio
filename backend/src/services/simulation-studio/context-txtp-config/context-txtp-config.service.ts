@@ -2,6 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { AdminServiceClient } from '../../admin-service-client';
 import type {
   AddContextTxtpConfigDto,
+  CreateContextMappingDto,
+  ContextMappingResponseDto,
+  ContextMappingsResponseDto,
   ContextConfigWithStrategiesResponseDto,
   ContextConfigsWithStrategiesListDto,
   BulkConfigItemDto,
@@ -58,6 +61,36 @@ export class ContextTxtpConfigService {
     } catch (err) {
       const error = err as Error;
       this.logger.error(`Error deleting context txtp config ${configId} for generation ${generationId}`, error.stack);
+      throw err;
+    }
+  }
+
+  async createContextMapping(token: string, dto: CreateContextMappingDto): Promise<ContextMappingResponseDto> {
+    try {
+      return await this.adminServiceClient.createContextMapping(token, dto);
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error('Error creating context mapping', error.stack);
+      throw err;
+    }
+  }
+
+  async getContextMappings(token: string, primaryTxtpId: number, relatedTxtpId: number): Promise<ContextMappingsResponseDto> {
+    try {
+      return await this.adminServiceClient.getContextMappings(token, primaryTxtpId, relatedTxtpId);
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(`Error fetching context mappings for ${primaryTxtpId}/${relatedTxtpId}`, error.stack);
+      throw err;
+    }
+  }
+
+  async deleteContextMapping(token: string, primaryTxtpId: number, relatedTxtpId: number): Promise<{ success: boolean; message: string }> {
+    try {
+      return await this.adminServiceClient.deleteContextMapping(token, primaryTxtpId, relatedTxtpId);
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(`Error deleting context mappings for ${primaryTxtpId}/${relatedTxtpId}`, error.stack);
       throw err;
     }
   }

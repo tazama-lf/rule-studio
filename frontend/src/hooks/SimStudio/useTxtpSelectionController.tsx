@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, startTransition } from "react";
 import toast from "react-hot-toast";
 import type { DropdownOption } from "../../components/DropDown";
 import {
@@ -16,7 +16,7 @@ import {
 import { LocalStorage } from "../../utils/Common/enums";
 import { extractData } from "../../utils/Common/storage";
 
-export type FieldAction = "sample" | "static" | "range" | "skip";
+export type FieldAction = "sample" | "static" | "range" | "skip" | "random";
 
 export interface FieldConfig {
     action: FieldAction;
@@ -38,10 +38,11 @@ export interface TxtpEntry {
     schemaLoaded: boolean;
     sampleAvailable: boolean;
     contextConfigId?: number;
+    relatedTxtpConfigId?: number | null;
 }
 
 export interface SimFieldConfig {
-    action: "sample" | "static" | "range" | "skip";
+    action: "sample" | "static" | "range" | "skip" | "random";
     static_value: string | null;
     range_start: string | null;
     range_end: string | null;
@@ -80,7 +81,18 @@ const strategyToFieldAction = (code: string): FieldAction => {
     if (code === "static") return "static";
     if (code === "range") return "range";
     if (code === "skip") return "skip";
+    if (code === "generated") return "random";
     return "sample";
+};
+
+const parseRelatedTransaction = (url: string): { txtp: string; version: string } | null => {
+    if (!url || url.length === 0) return null;
+    const parts = url.split("/");
+    // e.g. ["", "cbe", "1.0.0", "e2etestfriday", "pacs.008.001.10"]
+    const version = parts[2];
+    const txtp = parts[4];
+    if (!txtp || !version) return null;
+    return { txtp, version };
 };
 
 const buildEntryFromContextConfig = (cfg: {
@@ -91,6 +103,7 @@ const buildEntryFromContextConfig = (cfg: {
     message_count: number;
     sample_payload_snapshot?: Record<string, unknown> | null;
     field_strategies?: FieldStrategy[];
+    related_txtp_config_id?: number | null;
 }): TxtpEntry => {
     const payload = cfg.sample_payload_snapshot ?? null;
     const fieldPaths = payload ? flattenPaths(payload) : [];
@@ -116,6 +129,7 @@ const buildEntryFromContextConfig = (cfg: {
         schemaLoaded: true,
         sampleAvailable: fieldPaths.length > 0,
         contextConfigId: Number(cfg.context_txtp_config_id ?? cfg.id ?? 0) || undefined,
+        relatedTxtpConfigId: cfg.related_txtp_config_id ?? null,
     };
 };
 
@@ -128,6 +142,7 @@ const useTxtpSelectionController = () => {
     const [addVersion, setAddVersion] = useState<DropdownOption | null>(null);
     const [numMessages, setNumMessages] = useState<number>(100);
     const [isSaving, setIsSaving] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     const { data: txTypesData } = useGetTypesQuery({});
     const [fetchVersionsForAdd, { data: addVersionsData, isFetching: addVersionsLoading }] =
@@ -176,18 +191,51 @@ const useTxtpSelectionController = () => {
         if (!genId) return;
 
         void (async () => {
+            setIsLoading(true);
             try {
                 const cfgRes = await fetchContextConfigs(Number(genId)).unwrap();
                 const configs = cfgRes.data ?? [];
                 if (configs.length === 0) return;
 
-                const newEntries = configs.map((cfg) => buildEntryFromContextConfig(cfg));
-                setEntries(newEntries);
+                const primariesNeedingRelated = configs.filter(
+                    (c) =>
+                        !c.related_txtp_config_id &&
+                        c.related_transaction &&
+                        c.related_transaction.length > 0 &&
+                        !configs.some((other) => other.related_txtp_config_id === Number(c.context_txtp_config_id ?? c.id))
+                );
+
+                if (primariesNeedingRelated.length > 0) {
+                    for (const primaryCfg of primariesNeedingRelated) {
+                        const parsed = parseRelatedTransaction(primaryCfg.related_transaction!);
+                        if (!parsed) continue;
+                        const primaryContextId = Number(primaryCfg.context_txtp_config_id ?? primaryCfg.id ?? 0);
+                        try {
+                            await createContextConfig({
+                                generationId: Number(genId),
+                                txtp: parsed.txtp,
+                                txtp_version: parsed.version,
+                                message_count: primaryCfg.message_count ?? 100,
+                                related_context_txtp_id: primaryContextId || undefined,
+                            }).unwrap();
+                        } catch {
+                            // non-blocking — proceed to re-fetch even on partial failure
+                        }
+                    }
+
+                    const refreshed = await fetchContextConfigs(Number(genId)).unwrap();
+                    const refreshedConfigs = refreshed.data ?? [];
+                    setEntries(refreshedConfigs.map((cfg) => buildEntryFromContextConfig(cfg)));
+                } else {
+                    setEntries(configs.map((cfg) => buildEntryFromContextConfig(cfg)));
+                }
             } catch {
                 // non-blocking — UI still works without DB sync
+            } finally {
+                setIsLoading(false);
             }
         })();
-    }, [fetchContextConfigs]);
+    }, [fetchContextConfigs, createContextConfig]);
 
     const saveStep2ToDb = useCallback(async (): Promise<boolean> => {
         const genId = extractData("sim_gen_id", LocalStorage, false) as string | number | null;
@@ -255,7 +303,33 @@ const useTxtpSelectionController = () => {
                 }).unwrap();
 
                 const newEntry = buildEntryFromContextConfig(res.data);
-                setEntries((prev) => [...prev, newEntry]);
+                const primaryContextId = Number(res.data.context_txtp_config_id ?? res.data.id ?? 0);
+
+                // Check if the added TXTP has a related transaction
+                const relatedUrl: string = (res.data as { related_transaction?: string }).related_transaction ?? "";
+                const parsed = relatedUrl.length > 0 ? parseRelatedTransaction(relatedUrl) : null;
+
+                if (parsed) {
+                    try {
+                        const relRes = await createContextConfig({
+                            generationId: Number(genId),
+                            txtp: parsed.txtp,
+                            txtp_version: parsed.version,
+                            message_count: numMessages || 100,
+                            related_context_txtp_id: primaryContextId || undefined,
+                        }).unwrap();
+
+                        const refreshed = await fetchContextConfigs(Number(genId)).unwrap();
+                        setEntries((refreshed.data ?? []).map((cfg) => buildEntryFromContextConfig(cfg)));
+
+                        void relRes;
+                    } catch {
+                        setEntries((prev) => [...prev, newEntry]);
+                    }
+                } else {
+                    setEntries((prev) => [...prev, newEntry]);
+                }
+
                 setAddTxtp(null);
                 setAddVersion(null);
                 setNumMessages(100);
@@ -265,7 +339,7 @@ const useTxtpSelectionController = () => {
                 setAdding(false);
             }
         })();
-    }, [addTxtp, addVersion, numMessages, entries.length, createContextConfig]);
+    }, [addTxtp, addVersion, numMessages, entries.length, createContextConfig, fetchContextConfigs]);
 
     const handleRemove = useCallback((id: string) => {
         const entry = entries.find((e) => e.id === id);
@@ -278,10 +352,23 @@ const useTxtpSelectionController = () => {
         setEntries((prev) => prev.filter((e) => e.id !== id));
     }, [entries, deleteContextConfig]);
 
+    const handleRemovePair = useCallback((primaryId: string, relatedId: string) => {
+        const genId = extractData("sim_gen_id", LocalStorage, false) as string | number | null;
+        const primaryEntry = entries.find((e) => e.id === primaryId);
+        if (genId && primaryEntry?.contextConfigId) {
+            void deleteContextConfig({ generationId: Number(genId), configId: primaryEntry.contextConfigId })
+                .unwrap()
+                .catch(() => toast.error("Failed to remove TXTP config."));
+        }
+        setEntries((prev) => prev.filter((e) => e.id !== primaryId && e.id !== relatedId));
+    }, [entries, deleteContextConfig]);
+
     const handleToggleExpand = useCallback((id: string) => {
-        setEntries((prev) =>
-            prev.map((e) => (e.id === id ? { ...e, expanded: !e.expanded } : e))
-        );
+        startTransition(() => {
+            setEntries((prev) =>
+                prev.map((e) => (e.id === id ? { ...e, expanded: !e.expanded } : e))
+            );
+        });
     }, []);
 
     const handleFieldConfigChange = useCallback(
@@ -312,6 +399,7 @@ const useTxtpSelectionController = () => {
             numMessages,
             adding,
             isSaving,
+            isLoading,
         },
         functions: {
             handleTxtpChange,
@@ -319,6 +407,7 @@ const useTxtpSelectionController = () => {
             setNumMessages,
             handleAdd,
             handleRemove,
+            handleRemovePair,
             handleToggleExpand,
             handleNumMessagesChange,
             handleFieldConfigChange,

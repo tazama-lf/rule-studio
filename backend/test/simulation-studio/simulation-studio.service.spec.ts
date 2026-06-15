@@ -5,6 +5,7 @@ import { AdminServiceClient } from '../../src/services/admin-service-client';
 import type {
   PatchSimulationSuitesDto,
   RequestSimulationSuitesDto,
+  SimulationSuitesCountsResponseDto,
   SimulationSuiteResponseDto,
   SimulationSuitesDto,
   SimulationSuitesListDto,
@@ -80,6 +81,15 @@ describe('SimulationStudioService', () => {
     suite: mockSuite,
   };
 
+  const mockCounts: SimulationSuitesCountsResponseDto = {
+    success: true,
+    data: {
+      total_suites: 10,
+      total_run: 7,
+      latest_run_at: '2026-06-08T10:15:00.000Z',
+    },
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -88,6 +98,7 @@ describe('SimulationStudioService', () => {
           provide: AdminServiceClient,
           useValue: {
             getSimulationSuites: jest.fn(),
+            getSimulationSuitesCounts: jest.fn(),
             getSimulationSuiteById: jest.fn(),
             createSimulationSuite: jest.fn(),
             patchSimulationSuite: jest.fn(),
@@ -116,6 +127,15 @@ describe('SimulationStudioService', () => {
 
     expect(result).toEqual(mockList);
     expect(adminServiceClient.getSimulationSuites).toHaveBeenCalledWith('test-token', query);
+  });
+
+  it('getSimulationSuitesCounts forwards token', async () => {
+    adminServiceClient.getSimulationSuitesCounts.mockResolvedValue(mockCounts);
+
+    const result = await service.getSimulationSuitesCounts('test-token');
+
+    expect(result).toEqual(mockCounts);
+    expect(adminServiceClient.getSimulationSuitesCounts).toHaveBeenCalledWith('test-token');
   });
 
   it('getSimulationSuiteById forwards token and id', async () => {

@@ -9,6 +9,7 @@ import {
     AccordionSummary,
     Box,
     Chip,
+    CircularProgress,
     IconButton,
     MenuItem,
     Select,
@@ -32,7 +33,7 @@ import useEnrichmentDataController, {
 import { useGetFakerSemanticDataQuery } from "../../../redux/Api/SimStudio";
 
 const FIELD_TYPES: SchemaFieldType[] = ["String", "Number", "Boolean", "Date", "UUID"];
-const GENERATION_STRATEGIES: GenerationStrategy[] = ["Sample Value", "Static", "Range", "Auto-generate"];
+const GENERATION_STRATEGIES: GenerationStrategy[] = ["Sample Value", "Static", "Range", "Skip Field", "Random"];
 
 interface SchemaRowProps {
     field: SchemaField;
@@ -69,6 +70,7 @@ const SchemaRow = ({ field, onChange, semanticOptions }: SchemaRowProps) => (
                         staticValue: "",
                         rangeMin: "",
                         rangeMax: "",
+                        semanticId: "",
                     })
                 }
                 sx={{ minWidth: 155, fontSize: 13 }}
@@ -119,6 +121,7 @@ const SchemaRow = ({ field, onChange, semanticOptions }: SchemaRowProps) => (
                 size="small"
                 value={field.semanticId ?? ""}
                 displayEmpty
+                disabled={field.strategy !== "Random"}
                 onChange={(e) => onChange(field.id, { semanticId: e.target.value })}
                 sx={{ minWidth: 140, fontSize: 13 }}
             >
@@ -139,7 +142,7 @@ const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
     const { values, functions } = useEnrichmentDataController(onSaveRef);
     const { data: semanticData } = useGetFakerSemanticDataQuery();
     const semanticOptions = semanticData?.data ?? [];
-    const { tableName, numberOfRows, sampleJson, jsonError, schemaFields, savedRecords, isSaving, isDeleting } = values;
+    const { tableName, numberOfRows, sampleJson, jsonError, schemaFields, savedRecords, isSaving, isDeleting, isLoading } = values;
     const {
         setTableName,
         setNumberOfRows,
@@ -158,7 +161,7 @@ const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
         : "#e5e7eb";
 
     return (
-        <Box width="100%" maxWidth="960px">
+        <Box width="100%">
             <S.InfoBanner>
                 <InfoOutlinedIcon sx={{ fontSize: 18, color: "#2563eb", mt: "1px", flexShrink: 0 }} />
                 <Typography sx={{ fontSize: 13, color: "#1e40af", lineHeight: 1.6 }}>
@@ -173,7 +176,12 @@ const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
                 <S.SchemaTableHeader>
                     <Text size="body" weight="semibold">Enrichment Records</Text>
                 </S.SchemaTableHeader>
-                {savedRecords.length === 0 ? (
+                {isLoading ? (
+                    <Box sx={{ py: 6, display: "flex", justifyContent: "center", alignItems: "center", gap: 2 }}>
+                        <CircularProgress size={22} />
+                        <Typography sx={{ fontSize: 13, color: "#6b7280" }}>Loading enrichment records…</Typography>
+                    </Box>
+                ) : savedRecords.length === 0 ? (
                     <Typography sx={{ py: 4, textAlign: "center", color: "#9ca3af", fontSize: 13 }}>
                         No records to display. Add an enrichment record below.
                     </Typography>
@@ -184,6 +192,7 @@ const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
                                 key={record.id}
                                 disableGutters
                                 elevation={0}
+                                TransitionProps={{ timeout: 150 }}
                                 sx={{
                                     border: "1px solid #e5e7eb",
                                     borderRadius: "6px !important",
@@ -348,7 +357,7 @@ const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
                         <TableRow>
                             <TableCell><S.ColumnHeader>Field Name</S.ColumnHeader></TableCell>
                             <TableCell><S.ColumnHeader>Type</S.ColumnHeader></TableCell>
-                            <TableCell><S.ColumnHeader>Generation Strategy</S.ColumnHeader></TableCell>
+                            <TableCell><S.ColumnHeader>Action</S.ColumnHeader></TableCell>
                             <TableCell><S.ColumnHeader>Static Value</S.ColumnHeader></TableCell>
                             <TableCell><S.ColumnHeader>Range</S.ColumnHeader></TableCell>
                             <TableCell><S.ColumnHeader>Semantics</S.ColumnHeader></TableCell>

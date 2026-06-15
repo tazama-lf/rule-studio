@@ -74,9 +74,8 @@ export const StepConnector = styled(Box)(() => ({
 
 export const ContentArea = styled(Box)(({ theme }) => ({
     flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
+    width: "100%",
+    boxSizing: "border-box",
     padding: theme.spacing(4, 3),
 }));
 
@@ -86,7 +85,7 @@ export const FormCard = styled(Box)(({ theme }) => ({
     borderRadius: "8px",
     padding: theme.spacing(3),
     width: "100%",
-    maxWidth: "700px",
+    boxSizing: "border-box",
 }));
 
 export const InfoBanner = styled(Box)(({ theme }) => ({
@@ -99,7 +98,7 @@ export const InfoBanner = styled(Box)(({ theme }) => ({
     borderRadius: "6px",
     marginBottom: theme.spacing(2.5),
     width: "100%",
-    maxWidth: "700px",
+    boxSizing: "border-box",
 }));
 
 export const BottomBar = styled(Box)(({ theme }) => ({

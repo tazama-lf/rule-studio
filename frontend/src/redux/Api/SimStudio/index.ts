@@ -42,6 +42,8 @@ export interface ContextTxtpConfig {
     sample_payload_snapshot?: Record<string, unknown>;
     generator_profile?: Record<string, unknown>;
     field_strategies?: FieldStrategy[];
+    related_transaction?: string | null;
+    related_txtp_config_id?: number | null;
 }
 
 export interface FieldStrategy {
@@ -92,6 +94,34 @@ export interface TriggerFieldOverride {
     created_at: string;
 }
 
+export interface TriggerFieldStrategy {
+    id: string;
+    trigger_txtp_config_id: string;
+    field_path: string;
+    strategy_code: string;
+    range_min: number | null;
+    range_max: number | null;
+    faker_semantic_type: string | null;
+    generator_options: Record<string, unknown>;
+    created_at: string;
+    static_value?: unknown;
+}
+
+export interface TriggerTxtpConfigDetail {
+    trigger_txtp_config_id: string | number;
+    txtp: string;
+    txtp_version: string;
+    message_count: number;
+    display_order: number;
+    payload_template_json: Record<string, unknown>;
+    link_to_context_pairs: boolean;
+    expected_result_band?: string | null;
+    notes?: string | null;
+    related_txtp_config_id?: number | null;
+    related_transaction?: string | null;
+    field_strategies: TriggerFieldStrategy[];
+}
+
 export interface TriggerTxtpConfig {
     trigger_txtp_config_id: string | number;
     txtp: string;
@@ -103,6 +133,8 @@ export interface TriggerTxtpConfig {
     expected_result_band?: string;
     notes?: string;
     field_overrides: TriggerFieldOverride[];
+    related_transaction?: string | null;
+    related_txtp_config_id?: number | null;
 }
 
 export interface BulkTriggerConfigItem {
@@ -169,6 +201,18 @@ export interface SuitesListQuery {
     limit?: number;
 }
 
+export interface SuitesCountData {
+    total_suites: number;
+    total_draft_suites: number;
+    total_completed_suites: number;
+    latest_run_at: string | number | null;
+}
+
+export interface SuitesCountResponse {
+    success: boolean;
+    data: SuitesCountData;
+}
+
 export interface ContextTxtpSummary {
     txtp: string;
     txtp_version: string;
@@ -193,6 +237,50 @@ export interface GenerationSummaryData {
 export interface GenerationSummaryResponse {
     success: boolean;
     data: GenerationSummaryData;
+}
+
+export interface SuiteTriggerResult {
+    id: string;
+    trigger_id: string;
+    rule_result: Record<string, unknown>;
+    independent_variable: string;
+    sub_rule_ref: string;
+}
+
+export interface SuiteRunResult {
+    run_id: string;
+    generation_id: string;
+    rule_name: string;
+    rule_version: string;
+    trigger_count: number;
+    outcome: string;
+    triggers: SuiteTriggerResult[];
+}
+
+export interface SuiteResultResponse {
+    success: boolean;
+    message: string;
+    data: {
+        suite_id: number;
+        results: SuiteRunResult[];
+    };
+}
+
+export interface MappingItem {
+    primary: string;
+    related: string;
+}
+
+export interface MappingData {
+    id: string;
+    primary_tx_id: string;
+    related_tx_id: string;
+    mapping: MappingItem[];
+}
+
+export interface MappingResponse {
+    success: boolean;
+    data: MappingData[];
 }
 
 export interface EnrichmentSchemaProperty {
@@ -250,6 +338,10 @@ export const simStudioApi = createApi({
             },
         }),
 
+        getSuitesCount: builder.query<SuitesCountResponse, void>({
+            query: () => "suites/counts",
+        }),
+
         createSuite: builder.mutation<{ success: boolean; data: {
             generation_id(generation_id: any, arg1: string, LocalStorage: string, arg3: boolean): unknown; id: number; wizard_progress: Record<string, unknown> 
 } }, CreateSuitePayload>({
@@ -270,7 +362,7 @@ export const simStudioApi = createApi({
 
         createContextConfig: builder.mutation<
             { success: boolean; data: ContextTxtpConfig },
-            { generationId: number; txtp: string; txtp_version: string; message_count?: number; display_order?: number }
+            { generationId: number; txtp: string; txtp_version: string; message_count?: number; display_order?: number; related_context_txtp_id?: number }
         >({
             query: ({ generationId, ...body }) => ({
                 url: `generations/${generationId}/context-configs`,
@@ -318,7 +410,7 @@ export const simStudioApi = createApi({
 
         createTriggerConfig: builder.mutation<
             { success: boolean; data: TriggerTxtpConfig },
-            { generationId: number; txtp: string; txtp_version: string; message_count?: number }
+            { generationId: number; txtp: string; txtp_version: string; message_count?: number; related_trigger_txtp_id?: number }
         >({
             query: ({ generationId, ...body }) => ({
                 url: `generations/${generationId}/trigger-configs`,
@@ -390,8 +482,32 @@ export const simStudioApi = createApi({
         }),
 
         getFakerSemanticData: builder.query<{ success: boolean; data: FakerSemanticItem[] }, void>({
-            query: () => `${BASE_URL}/faker-semantic-data`,
+            query: () => `faker-semantic-data`,
             transformResponse: (response: { success: boolean; message?: string; data: FakerSemanticItem[] }) => ({ success: response.success, data: response.data }),
+        }),
+
+        getContextMapping: builder.query<MappingResponse, { primaryId: number; relatedId: number }>({
+            query: ({ primaryId, relatedId }) => `context-mappings/${primaryId}/${relatedId}`,
+        }),
+
+        saveContextMapping: builder.mutation<{ success: boolean }, { primary_txtp_id: number; related_txtp_id: number; mapping: MappingItem[] }>({
+            query: (body) => ({
+                url: `context-mappings`,
+                method: "POST",
+                body,
+            }),
+        }),
+
+        getTriggerMapping: builder.query<MappingResponse, { primaryId: number; relatedId: number }>({
+            query: ({ primaryId, relatedId }) => `trigger-mappings/${primaryId}/${relatedId}`,
+        }),
+
+        saveTriggerMapping: builder.mutation<{ success: boolean }, { primary_txtp_id: number; related_txtp_id: number; mapping: MappingItem[] }>({
+            query: (body) => ({
+                url: `trigger-mappings`,
+                method: "POST",
+                body,
+            }),
         }),
 
         updateWizardProgress: builder.mutation<{ success: boolean }, { generationId: number; current_step_num: number; completed_step_num: number }>({
@@ -402,11 +518,28 @@ export const simStudioApi = createApi({
             }),
             transformResponse: (response: { success: boolean; message?: string }) => ({ success: response.success }),
         }),
+
+        getSuiteResult: builder.query<SuiteResultResponse, number>({
+            query: (suiteId) => `suites/${suiteId}/result`,
+        }),
+
+        getTriggerConfigById: builder.query<{ success: boolean; data: TriggerTxtpConfigDetail }, number>({
+            query: (configId) => `trigger-configs/${configId}`,
+        }),
+
+        runSimulation: builder.mutation<{ success: boolean; message: string }, { suiteId: number; generationId: number }>({
+            query: (body) => ({
+                url: "run-simulation",
+                method: "POST",
+                body,
+            }),
+        }),
     }),
 });
 
 export const {
     useGetSuitesQuery,
+    useGetSuitesCountQuery,
     useCreateSuiteMutation,
     useGetLatestGenerationQuery,
     useLazyGetLatestGenerationQuery,
@@ -427,6 +560,14 @@ export const {
     useGetGenerationSummaryQuery,
     useLazyResumeGenerationQuery,
     useLazyGetSuiteByIdQuery,
+    useGetSuiteByIdQuery,
     useGetFakerSemanticDataQuery,
     useUpdateWizardProgressMutation,
+    useLazyGetContextMappingQuery,
+    useSaveContextMappingMutation,
+    useLazyGetTriggerMappingQuery,
+    useSaveTriggerMappingMutation,
+    useGetSuiteResultQuery,
+    useLazyGetTriggerConfigByIdQuery,
+    useRunSimulationMutation,
 } = simStudioApi;

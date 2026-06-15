@@ -4,6 +4,9 @@ import { ContextTxtpConfigService } from '../../src/services/simulation-studio/c
 import { AdminServiceClient } from '../../src/services/admin-service-client';
 import type {
   AddContextTxtpConfigDto,
+  CreateContextMappingDto,
+  ContextMappingResponseDto,
+  ContextMappingsResponseDto,
   ContextConfigWithStrategiesResponseDto,
   ContextConfigsWithStrategiesListDto,
   BulkConfigItemDto,
@@ -49,6 +52,37 @@ describe('ContextTxtpConfigService', () => {
     data: [mockConfigWithStrategies],
   };
 
+  const mockContextMappingCreateDto: CreateContextMappingDto = {
+    primary_txtp_id: 123,
+    related_txtp_id: 456,
+    mapping: [{ primary: 'FITOFI.amount', related: 'msgId' }],
+  };
+
+  const mockContextMappingRow = {
+    id: 99,
+    primary_tx_id: 123,
+    related_tx_id: 456,
+    mapping: [{ primary: 'FITOFI.amount', related: 'msgId' }],
+  };
+
+  const mockContextMappingCreateResponse: ContextMappingResponseDto = {
+    success: true,
+    data: mockContextMappingRow,
+  };
+
+  const mockContextMappingsResponse: ContextMappingsResponseDto = {
+    success: true,
+    data: [
+      mockContextMappingRow,
+      {
+        id: 100,
+        primary_tx_id: 123,
+        related_tx_id: 456,
+        mapping: [{ primary: 'FITOFI.currency', related: 'ccy' }],
+      },
+    ],
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -59,6 +93,9 @@ describe('ContextTxtpConfigService', () => {
             getContextConfigs: jest.fn(),
             addContextTxtpConfig: jest.fn(),
             bulkUpdateContextConfigs: jest.fn(),
+            createContextMapping: jest.fn(),
+            getContextMappings: jest.fn(),
+            deleteContextMapping: jest.fn(),
           },
         },
       ],
@@ -161,6 +198,68 @@ describe('ContextTxtpConfigService', () => {
 
       await expect(service.bulkUpdateContextConfigs('test-token', 1, [])).rejects.toThrow('Bulk update failed');
       expect(loggerSpy).toHaveBeenCalledWith('Error bulk updating context configs for generation 1', expect.any(String));
+    });
+  });
+
+  describe('createContextMapping', () => {
+    it('forwards token and dto, returns created mapping row', async () => {
+      adminServiceClient.createContextMapping.mockResolvedValue(mockContextMappingCreateResponse);
+
+      const result = await service.createContextMapping('test-token', mockContextMappingCreateDto);
+
+      expect(result).toEqual(mockContextMappingCreateResponse);
+      expect(adminServiceClient.createContextMapping).toHaveBeenCalledWith('test-token', mockContextMappingCreateDto);
+    });
+
+    it('logs and rethrows on error', async () => {
+      const error = new Error('Create mapping failed');
+      adminServiceClient.createContextMapping.mockRejectedValue(error);
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+      await expect(service.createContextMapping('test-token', mockContextMappingCreateDto)).rejects.toThrow('Create mapping failed');
+      expect(loggerSpy).toHaveBeenCalledWith('Error creating context mapping', expect.any(String));
+    });
+  });
+
+  describe('getContextMappings', () => {
+    it('forwards token and ids, returns all mapping rows for pair', async () => {
+      adminServiceClient.getContextMappings.mockResolvedValue(mockContextMappingsResponse);
+
+      const result = await service.getContextMappings('test-token', 123, 456);
+
+      expect(result).toEqual(mockContextMappingsResponse);
+      expect(result.data).toHaveLength(2);
+      expect(adminServiceClient.getContextMappings).toHaveBeenCalledWith('test-token', 123, 456);
+    });
+
+    it('logs and rethrows on error', async () => {
+      const error = new Error('Get mappings failed');
+      adminServiceClient.getContextMappings.mockRejectedValue(error);
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+      await expect(service.getContextMappings('test-token', 123, 456)).rejects.toThrow('Get mappings failed');
+      expect(loggerSpy).toHaveBeenCalledWith('Error fetching context mappings for 123/456', expect.any(String));
+    });
+  });
+
+  describe('deleteContextMapping', () => {
+    it('forwards token and ids, returns delete response', async () => {
+      const deleteResponse = { success: true, message: 'Context mapping deleted' };
+      adminServiceClient.deleteContextMapping.mockResolvedValue(deleteResponse);
+
+      const result = await service.deleteContextMapping('test-token', 123, 456);
+
+      expect(result).toEqual(deleteResponse);
+      expect(adminServiceClient.deleteContextMapping).toHaveBeenCalledWith('test-token', 123, 456);
+    });
+
+    it('logs and rethrows on error', async () => {
+      const error = new Error('Delete mappings failed');
+      adminServiceClient.deleteContextMapping.mockRejectedValue(error);
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+      await expect(service.deleteContextMapping('test-token', 123, 456)).rejects.toThrow('Delete mappings failed');
+      expect(loggerSpy).toHaveBeenCalledWith('Error deleting context mappings for 123/456', expect.any(String));
     });
   });
 });

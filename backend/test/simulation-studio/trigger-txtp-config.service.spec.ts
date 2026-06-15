@@ -4,11 +4,14 @@ import { TriggerTxtpConfigService } from '../../src/services/simulation-studio/t
 import { AdminServiceClient } from '../../src/services/admin-service-client';
 import type {
   AddTriggerTxtpConfigDto,
+  CreateTriggerMappingDto,
+  TriggerMappingResponseDto,
+  TriggerMappingsResponseDto,
   TriggerConfigsListDto,
-  TriggerConfigWithOverridesResponseDto,
+  TriggerConfigWithStrategiesResponseDto,
   BulkTriggerConfigItemDto,
   BulkUpdateTriggerConfigsResponseDto,
-  TriggerTxtpConfigWithOverridesDto,
+  TriggerTxtpConfigWithStrategiesDto,
 } from '../../src/services/simulation-studio/trigger-txtp-config/dto/trigger-txtp-config.dto';
 
 describe('TriggerTxtpConfigService', () => {
@@ -19,12 +22,12 @@ describe('TriggerTxtpConfigService', () => {
     id: 1,
     trigger_txtp_config_id: 20,
     field_path: 'amount',
-    override_type: 'null',
+    strategy_code: 'null',
     generator_options: {},
     created_at: '2026-05-01T00:00:00.000Z',
   };
 
-  const mockConfigWithOverrides: TriggerTxtpConfigWithOverridesDto = {
+  const mockConfigWithStrategies: TriggerTxtpConfigWithStrategiesDto = {
     trigger_txtp_config_id: 20,
     txtp: 'pacs.008',
     txtp_version: '001.08',
@@ -32,22 +35,53 @@ describe('TriggerTxtpConfigService', () => {
     display_order: 1,
     payload_template_json: { amount: 100 },
     link_to_context_pairs: false,
-    field_overrides: [mockOverride],
+    field_strategies: [mockOverride],
   };
 
   const mockGetResponse: TriggerConfigsListDto = {
     success: true,
-    data: [mockConfigWithOverrides],
+    data: [mockConfigWithStrategies],
   };
 
-  const mockAddResponse: TriggerConfigWithOverridesResponseDto = {
+  const mockAddResponse: TriggerConfigWithStrategiesResponseDto = {
     success: true,
-    data: mockConfigWithOverrides,
+    data: mockConfigWithStrategies,
   };
 
   const mockBulkResponse: BulkUpdateTriggerConfigsResponseDto = {
     success: true,
-    data: [mockConfigWithOverrides],
+    data: [mockConfigWithStrategies],
+  };
+
+  const mockTriggerMappingCreateDto: CreateTriggerMappingDto = {
+    primary_txtp_id: 123,
+    related_txtp_id: 456,
+    mapping: [{ primary: 'FITOFI.amount', related: 'msgId' }],
+  };
+
+  const mockTriggerMappingRow = {
+    id: 201,
+    primary_tx_id: 123,
+    related_tx_id: 456,
+    mapping: [{ primary: 'FITOFI.amount', related: 'msgId' }],
+  };
+
+  const mockTriggerMappingCreateResponse: TriggerMappingResponseDto = {
+    success: true,
+    data: mockTriggerMappingRow,
+  };
+
+  const mockTriggerMappingsResponse: TriggerMappingsResponseDto = {
+    success: true,
+    data: [
+      mockTriggerMappingRow,
+      {
+        id: 202,
+        primary_tx_id: 123,
+        related_tx_id: 456,
+        mapping: [{ primary: 'FITOFI.currency', related: 'ccy' }],
+      },
+    ],
   };
 
   beforeEach(async () => {
@@ -58,8 +92,12 @@ describe('TriggerTxtpConfigService', () => {
           provide: AdminServiceClient,
           useValue: {
             getTriggerConfigs: jest.fn(),
+            getTriggerConfigById: jest.fn(),
             addTriggerTxtpConfig: jest.fn(),
             bulkUpdateTriggerConfigs: jest.fn(),
+            createTriggerMapping: jest.fn(),
+            getTriggerMappings: jest.fn(),
+            deleteTriggerMapping: jest.fn(),
           },
         },
       ],
@@ -133,7 +171,7 @@ describe('TriggerTxtpConfigService', () => {
 
       const result = await service.addTriggerConfig('test-token', 1, dto);
 
-      expect(result.data.field_overrides[0].override_type).toBe('null');
+      expect(result.data.field_strategies[0].strategy_code).toBe('null');
     });
 
     it('logs and rethrows on error', async () => {
@@ -155,7 +193,7 @@ describe('TriggerTxtpConfigService', () => {
         {
           trigger_txtp_config_id: 20,
           message_count: 2,
-          field_overrides: [{ field_path: 'amount', override_type: 'static', static_value: '999' }],
+          field_strategies: [{ field_path: 'amount', strategy_code: 'static', static_value: '999' }],
         },
       ];
       adminServiceClient.bulkUpdateTriggerConfigs.mockResolvedValue(mockBulkResponse);
@@ -170,12 +208,12 @@ describe('TriggerTxtpConfigService', () => {
       const items: BulkTriggerConfigItemDto[] = [
         {
           trigger_txtp_config_id: 20,
-          field_overrides: [
-            { field_path: 'field.a', override_type: 'static', static_value: 'x', faker_semantic_type: 'iso20022.bic' },
-            { field_path: 'field.b', override_type: 'range', range_min: 1, range_max: 100, faker_semantic_type: 'iso20022.amount' },
-            { field_path: 'field.c', override_type: 'generated', faker_semantic_type: 'iso20022.bic' },
-            { field_path: 'field.d', override_type: 'remove', faker_semantic_type: 'iso20022.bic' },
-            { field_path: 'field.e', override_type: 'null', faker_semantic_type: 'iso20022.bic' },
+          field_strategies: [
+            { field_path: 'field.a', strategy_code: 'static', static_value: 'x', faker_semantic_type: 'iso20022.bic' },
+            { field_path: 'field.b', strategy_code: 'range', range_min: 1, range_max: 100, faker_semantic_type: 'iso20022.amount' },
+            { field_path: 'field.c', strategy_code: 'generated', faker_semantic_type: 'iso20022.bic' },
+            { field_path: 'field.d', strategy_code: 'remove', faker_semantic_type: 'iso20022.bic' },
+            { field_path: 'field.e', strategy_code: 'null', faker_semantic_type: 'iso20022.bic' },
           ],
         },
       ];
@@ -216,6 +254,99 @@ describe('TriggerTxtpConfigService', () => {
 
       await expect(service.bulkUpdateTriggerConfigs('test-token', 1, [])).rejects.toThrow('Bulk update failed');
       expect(loggerSpy).toHaveBeenCalledWith('Error bulk updating trigger configs for generation 1', expect.any(String));
+    });
+  });
+
+  describe('createTriggerMapping', () => {
+    it('forwards token and dto, returns created mapping row', async () => {
+      adminServiceClient.createTriggerMapping.mockResolvedValue(mockTriggerMappingCreateResponse);
+
+      const result = await service.createTriggerMapping('test-token', mockTriggerMappingCreateDto);
+
+      expect(result).toEqual(mockTriggerMappingCreateResponse);
+      expect(adminServiceClient.createTriggerMapping).toHaveBeenCalledWith('test-token', mockTriggerMappingCreateDto);
+    });
+
+    it('logs and rethrows on error', async () => {
+      const error = new Error('Create mapping failed');
+      adminServiceClient.createTriggerMapping.mockRejectedValue(error);
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+      await expect(service.createTriggerMapping('test-token', mockTriggerMappingCreateDto)).rejects.toThrow('Create mapping failed');
+      expect(loggerSpy).toHaveBeenCalledWith('Error creating trigger mapping', expect.any(String));
+    });
+  });
+
+  describe('getTriggerMappings', () => {
+    it('forwards token and ids, returns all mapping rows for pair', async () => {
+      adminServiceClient.getTriggerMappings.mockResolvedValue(mockTriggerMappingsResponse);
+
+      const result = await service.getTriggerMappings('test-token', 123, 456);
+
+      expect(result).toEqual(mockTriggerMappingsResponse);
+      expect(result.data).toHaveLength(2);
+      expect(adminServiceClient.getTriggerMappings).toHaveBeenCalledWith('test-token', 123, 456);
+    });
+
+    it('logs and rethrows on error', async () => {
+      const error = new Error('Get mappings failed');
+      adminServiceClient.getTriggerMappings.mockRejectedValue(error);
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+      await expect(service.getTriggerMappings('test-token', 123, 456)).rejects.toThrow('Get mappings failed');
+      expect(loggerSpy).toHaveBeenCalledWith('Error fetching trigger mappings for 123/456', expect.any(String));
+    });
+  });
+
+  // ── getTriggerConfigById ───────────────────────────────────────────────────
+
+  describe('getTriggerConfigById', () => {
+    it('forwards token and configId, returns config with strategies', async () => {
+      adminServiceClient.getTriggerConfigById.mockResolvedValue(mockAddResponse);
+
+      const result = await service.getTriggerConfigById('test-token', 20);
+
+      expect(result).toEqual(mockAddResponse);
+      expect(adminServiceClient.getTriggerConfigById).toHaveBeenCalledWith('test-token', 20);
+    });
+
+    it('returns config data with field strategies', async () => {
+      adminServiceClient.getTriggerConfigById.mockResolvedValue(mockAddResponse);
+
+      const result = await service.getTriggerConfigById('test-token', 20);
+
+      expect(result.data.trigger_txtp_config_id).toBe(20);
+      expect(result.data.field_strategies).toHaveLength(1);
+    });
+
+    it('logs and rethrows on error', async () => {
+      const error = new Error('Config not found');
+      adminServiceClient.getTriggerConfigById.mockRejectedValue(error);
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+      await expect(service.getTriggerConfigById('test-token', 20)).rejects.toThrow('Config not found');
+      expect(loggerSpy).toHaveBeenCalledWith('Error fetching trigger config 20', expect.any(String));
+    });
+  });
+
+  describe('deleteTriggerMapping', () => {
+    it('forwards token and ids, returns delete response', async () => {
+      const deleteResponse = { success: true, message: 'Trigger mapping deleted' };
+      adminServiceClient.deleteTriggerMapping.mockResolvedValue(deleteResponse);
+
+      const result = await service.deleteTriggerMapping('test-token', 123, 456);
+
+      expect(result).toEqual(deleteResponse);
+      expect(adminServiceClient.deleteTriggerMapping).toHaveBeenCalledWith('test-token', 123, 456);
+    });
+
+    it('logs and rethrows on error', async () => {
+      const error = new Error('Delete mappings failed');
+      adminServiceClient.deleteTriggerMapping.mockRejectedValue(error);
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+      await expect(service.deleteTriggerMapping('test-token', 123, 456)).rejects.toThrow('Delete mappings failed');
+      expect(loggerSpy).toHaveBeenCalledWith('Error deleting trigger mappings for 123/456', expect.any(String));
     });
   });
 });
