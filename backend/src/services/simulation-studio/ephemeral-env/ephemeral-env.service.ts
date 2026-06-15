@@ -85,12 +85,14 @@ export class EphemeralEnvService implements OnModuleDestroy {
     this.logger.log('Fetching SQL migration files from GitHub...');
 
     const baseSqlEntries = await listGithubDir('core/postgres/migration/base');
+    this.logger.log(`[${name}] Fetched ${baseSqlEntries.length} base SQL entries from GitHub`);
     const baseSqlContents = await Promise.all(
       baseSqlEntries.map(async (entry) => ({
         content: await fetchText(entry.download_url),
         target: `/docker-entrypoint-initdb.d/${entry.name}`,
       })),
     );
+    this.logger.log(`[${name}] Downloaded ${baseSqlContents.length} base SQL files`);
 
     const [publicBaseSql, dockerhubSql] = await Promise.all([
       fetchText(
@@ -100,8 +102,11 @@ export class EphemeralEnvService implements OnModuleDestroy {
         `https://raw.githubusercontent.com/${GITHUB_REPO}/${REPO_BRANCH}/core/postgres/migration/config/02-public-dockerhub.sql`,
       ),
     ]);
+    this.logger.log(`[${name}] Downloaded config SQL files (public-base: ${publicBaseSql.length} chars, dockerhub: ${dockerhubSql.length} chars)`);
 
+    this.logger.log(`[${name}] Starting Docker network...`);
     const network = await new Network().start();
+    this.logger.log(`[${name}] Docker network started`);
 
     try {
       this.logger.log(`[${name}] Starting postgres...`);
@@ -202,6 +207,8 @@ export class EphemeralEnvService implements OnModuleDestroy {
           stream.on('data', (line: string) => { this.logger.log(`[${name}][rule-processor] ${line.trim()}`); });
           stream.on('err', (line: string) => { this.logger.warn(`[${name}][rule-processor] ${line.trim()}`); });
         })
+        .withWaitStrategy(Wait.forLogMessage('Connected to nats'))
+        .withStartupTimeout(60_000)
         .start();
 
       this.logger.log(`[${name}] Starting nats-utilities...`);
