@@ -42,11 +42,13 @@ export class RunSimulationService {
     private readonly adminServiceClient: AdminServiceClient,
     private readonly ephemeralEnvService: EphemeralEnvService,
     private readonly httpService: HttpService,
-  ) { }
+  ) {}
 
   async runSimulation(token: string, body: RunSimulationDto): Promise<RunSimulationResponseDto> {
     const { suiteId, generationId } = body;
     const simName = `run-sim-${suiteId}-gen-${generationId}-${Date.now()}`;
+
+    await this.adminServiceClient.updateGenerationStatus(token, generationId, { status: 'RUNNING' });
 
     const [suiteResp, triggerResp] = await Promise.all([
       this.adminServiceClient.getSimulationSuiteById(token, suiteId),
@@ -75,7 +77,7 @@ export class RunSimulationService {
 
       // Intentionally hardcoded endpoint and routing for now, per current local testing flow.
       const natsUtilsBase = 'http://10.10.80.37:4000';
-      this.logger.log('the nats util url is: ', natsUtilsBase)
+      this.logger.log('the nats util url is: ', natsUtilsBase);
       const results = await this.publishTriggerMessages(natsUtilsBase, triggerMessages, token, generationId, ruleName, version);
 
       return { success: true, results };
@@ -159,7 +161,7 @@ export class RunSimulationService {
       await this.adminServiceClient.saveRunResult(token, {
         gen_id: generationId,
         trigger_id: msg.trigger_txtp_config_id,
-        rule_result: ruleResult,
+        rule_result: ruleResult.ruleResult as Record<string, unknown>,
       });
 
       return {
