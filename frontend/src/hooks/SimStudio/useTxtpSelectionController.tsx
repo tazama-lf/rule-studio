@@ -64,19 +64,6 @@ export interface SimCreationPayload {
     txtp_list: SimTxtpPayload[];
 }
 
-const flattenPaths = (obj: unknown, prefix = ""): string[] => {
-    if (typeof obj !== "object" || obj === null || Array.isArray(obj)) {
-        return prefix ? [prefix] : [];
-    }
-    return Object.entries(obj as Record<string, unknown>).flatMap(([key, val]) => {
-        const path = prefix ? `${prefix}.${key}` : key;
-        if (typeof val === "object" && val !== null && !Array.isArray(val)) {
-            return flattenPaths(val, path);
-        }
-        return [path];
-    });
-};
-
 const strategyToFieldAction = (code: string): FieldAction => {
     if (code === "static") return "static";
     if (code === "range") return "range";
@@ -106,7 +93,13 @@ const buildEntryFromContextConfig = (cfg: {
     related_txtp_config_id?: number | null;
 }): TxtpEntry => {
     const payload = cfg.sample_payload_snapshot ?? null;
-    const fieldPaths = payload ? flattenPaths(payload) : [];
+    const fieldPaths = Array.from(
+        new Set(
+            (cfg.field_strategies ?? [])
+                .map((strategy) => strategy.field_path)
+                .filter((path): path is string => path.trim().length > 0)
+        )
+    );
     const fieldConfigs: Record<string, FieldConfig> = {};
     for (const s of cfg.field_strategies ?? []) {
         fieldConfigs[s.field_path] = {
@@ -339,7 +332,7 @@ const useTxtpSelectionController = () => {
                 setAdding(false);
             }
         })();
-    }, [addTxtp, addVersion, numMessages, entries.length, createContextConfig, fetchContextConfigs]);
+    }, [addTxtp, addVersion, numMessages, createContextConfig, fetchContextConfigs]);
 
     const handleRemove = useCallback((id: string) => {
         const entry = entries.find((e) => e.id === id);

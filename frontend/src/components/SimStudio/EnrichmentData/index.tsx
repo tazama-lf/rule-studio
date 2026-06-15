@@ -30,10 +30,65 @@ import useEnrichmentDataController, {
     type SchemaFieldType,
     type GenerationStrategy,
 } from "../../../hooks/SimStudio/useEnrichmentDataController";
-import { useGetFakerSemanticDataQuery } from "../../../redux/Api/SimStudio";
+import {
+    useGetFakerSemanticDataQuery,
+    type EnrichmentFieldStrategy,
+    type EnrichmentSchemaProperty,
+} from "../../../redux/Api/SimStudio";
 
 const FIELD_TYPES: SchemaFieldType[] = ["String", "Number", "Boolean", "Date", "UUID"];
 const GENERATION_STRATEGIES: GenerationStrategy[] = ["Sample Value", "Static", "Range", "Skip Field", "Random"];
+
+interface SavedRecordField {
+    key: string;
+    fieldName: string;
+    type: string;
+    strategy: string;
+    staticValue: string;
+    rangeMin: string;
+    rangeMax: string;
+    semanticId: string;
+}
+
+const formatStrategyCode = (code?: string): string => {
+    if (code === "keep_sample") return "Sample Value";
+    if (code === "static") return "Static";
+    if (code === "range") return "Range";
+    if (code === "skip") return "Skip Field";
+    if (code === "generated") return "Random";
+    return code ?? "Sample Value";
+};
+
+const buildFieldsFromStrategies = (strategies: EnrichmentFieldStrategy[] = []): SavedRecordField[] => {
+    const fieldsByPath = new Map<string, SavedRecordField>();
+    for (const strategy of strategies) {
+        const path = strategy.field_path.trim();
+        if (!path) continue;
+        fieldsByPath.set(path, {
+            key: String(strategy.id ?? path),
+            fieldName: path,
+            type: "-",
+            strategy: formatStrategyCode(strategy.strategy_code),
+            staticValue: strategy.static_value != null ? String(strategy.static_value) : "",
+            rangeMin: strategy.range_min != null ? String(strategy.range_min) : "",
+            rangeMax: strategy.range_max != null ? String(strategy.range_max) : "",
+            semanticId: strategy.faker_semantic_type ?? "",
+        });
+    }
+    return Array.from(fieldsByPath.values());
+};
+
+const buildFieldsFromSchema = (properties: EnrichmentSchemaProperty[] = []): SavedRecordField[] =>
+    properties.map((prop) => ({
+        key: prop.id,
+        fieldName: prop.fieldName,
+        type: prop.type,
+        strategy: prop.strategy,
+        staticValue: prop.staticValue,
+        rangeMin: prop.rangeMin,
+        rangeMax: prop.rangeMax,
+        semanticId: prop.semanticId ?? "",
+    }));
 
 interface SchemaRowProps {
     field: SchemaField;
@@ -187,19 +242,24 @@ const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
                     </Typography>
                 ) : (
                     <Box display="flex" flexDirection="column" gap={1}>
-                        {savedRecords.map((record) => (
-                            <Accordion
-                                key={record.id}
-                                disableGutters
-                                elevation={0}
-                                TransitionProps={{ timeout: 150 }}
-                                sx={{
-                                    border: "1px solid #e5e7eb",
-                                    borderRadius: "6px !important",
-                                    "&:before": { display: "none" },
-                                    "&.Mui-expanded": { borderColor: "#bfdbfe" },
-                                }}
-                            >
+                        {savedRecords.map((record) => {
+                            const recordFields = record.field_strategies?.length
+                                ? buildFieldsFromStrategies(record.field_strategies)
+                                : buildFieldsFromSchema(record.schema_template_json.properties);
+
+                            return (
+                                <Accordion
+                                    key={record.id}
+                                    disableGutters
+                                    elevation={0}
+                                    TransitionProps={{ timeout: 150 }}
+                                    sx={{
+                                        border: "1px solid #e5e7eb",
+                                        borderRadius: "6px !important",
+                                        "&:before": { display: "none" },
+                                        "&.Mui-expanded": { borderColor: "#bfdbfe" },
+                                    }}
+                                >
                                 <AccordionSummary
                                     expandIcon={<ExpandMoreIcon sx={{ fontSize: 18, color: "#6b7280" }} />}
                                     sx={{
@@ -245,8 +305,8 @@ const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
-                                            {(record.schema_template_json.properties ?? []).map((prop) => (
-                                                <TableRow key={prop.id}>
+                                            {recordFields.map((prop) => (
+                                                <TableRow key={prop.key}>
                                                     <TableCell sx={{ borderBottom: "1px solid #f3f4f6" }}>
                                                         <Typography sx={{ fontSize: 12, fontWeight: 500, color: "#2563eb", fontFamily: "monospace" }}>
                                                             {prop.fieldName}
@@ -280,8 +340,9 @@ const EnrichmentData = ({ onSaveRef }: EnrichmentDataProps) => {
                                         </TableBody>
                                     </MuiTable>
                                 </AccordionDetails>
-                            </Accordion>
-                        ))}
+                                </Accordion>
+                            );
+                        })}
                     </Box>
                 )}
             </S.SchemaTableContainer>

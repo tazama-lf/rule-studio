@@ -4,7 +4,13 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { Box, TextField, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { useState } from "react";
-import { Controller, type Control, type FieldErrors } from "react-hook-form";
+import {
+    Controller,
+    type Control,
+    type ControllerRenderProps,
+    type FieldError,
+    type FieldErrors,
+} from "react-hook-form";
 import DropDown, { type DropdownOption } from "../../DropDown";
 import Input from "../../Input";
 import Loader from "../../Loader";
@@ -24,6 +30,96 @@ interface Step1Props {
     existingSuite?: SuiteDetail | null;
     isSuiteLoading?: boolean;
 }
+
+interface RuleConfigFieldProps {
+    field: ControllerRenderProps<Step1Values, "rule_config">;
+    schemaError?: FieldError;
+    isDisabled: boolean;
+}
+
+const RuleConfigField = ({ field, schemaError, isDisabled }: RuleConfigFieldProps) => {
+    const [jsonError, setJsonError] = useState<string | null>(null);
+    const [isValid, setIsValid] = useState<boolean | null>(null);
+
+    const handleChange = (raw: string) => {
+        field.onChange(raw);
+        if (raw.trim() === "" || raw.trim() === "{}") {
+            setJsonError(null);
+            setIsValid(null);
+            return;
+        }
+        try {
+            JSON.parse(raw);
+            setJsonError(null);
+            setIsValid(true);
+        } catch (e) {
+            setJsonError((e as SyntaxError).message);
+            setIsValid(false);
+        }
+    };
+
+    const displayError = schemaError?.message ?? jsonError;
+    const hasError = !!displayError;
+
+    const borderColor = hasError
+        ? "#ef4444"
+        : isValid === true
+            ? "#22c55e"
+            : "#e5e7eb";
+
+    return (
+        <Box>
+            <Box display="flex" alignItems="center" justifyContent="space-between" mb={0.75}>
+                <Typography fontSize={13} fontWeight={500} color="text.primary">
+                    Rule Config
+                    <Typography component="span" fontSize={11} color="#ef4444" ml={0.25}>*</Typography>
+                    <Typography component="span" fontSize={11} color="text.secondary" ml={0.75}>
+                        (JSON)
+                    </Typography>
+                </Typography>
+                {isValid === true && !hasError && (
+                    <Box display="flex" alignItems="center" gap={0.5}>
+                        <CheckCircleOutlineIcon sx={{ fontSize: 14, color: "#22c55e" }} />
+                        <Typography fontSize={12} color="#22c55e">Valid JSON</Typography>
+                    </Box>
+                )}
+                {hasError && (
+                    <Box display="flex" alignItems="center" gap={0.5}>
+                        <ErrorOutlineIcon sx={{ fontSize: 14, color: "#ef4444" }} />
+                        <Typography fontSize={12} color="#ef4444">Invalid JSON</Typography>
+                    </Box>
+                )}
+            </Box>
+            <TextField
+                fullWidth
+                multiline
+                minRows={8}
+                maxRows={20}
+                disabled={isDisabled}
+                value={field.value === "{}" ? "" : (field.value ?? "")}
+                onChange={(e) => handleChange(e.target.value)}
+                placeholder={'Enter Rule Config here...\n{\n  "key": "value"\n}'}
+                spellCheck={false}
+                sx={{
+                    "& .MuiOutlinedInput-root": {
+                        fontFamily: "monospace",
+                        fontSize: 13,
+                        lineHeight: 1.6,
+                        bgcolor: "#fafafa",
+                        "& fieldset": { borderColor },
+                        "&:hover fieldset": { borderColor },
+                        "&.Mui-focused fieldset": { borderColor },
+                    },
+                }}
+            />
+            {displayError && (
+                <Typography fontSize={12} color="#ef4444" mt={0.5}>
+                    {displayError}
+                </Typography>
+            )}
+        </Box>
+    );
+};
 
 const Step1RuleDetails = ({
     control,
@@ -160,90 +256,13 @@ const Step1RuleDetails = ({
                         <Controller
                             control={control}
                             name="rule_config"
-                            render={({ field, fieldState: { error: schemaError } }) => {
-                                const [jsonError, setJsonError] = useState<string | null>(null);
-                                const [isValid, setIsValid] = useState<boolean | null>(null);
-
-                                const handleChange = (raw: string) => {
-                                    field.onChange(raw);
-                                    if (raw.trim() === "" || raw.trim() === "{}") {
-                                        setJsonError(null);
-                                        setIsValid(null);
-                                        return;
-                                    }
-                                    try {
-                                        JSON.parse(raw);
-                                        setJsonError(null);
-                                        setIsValid(true);
-                                    } catch (e) {
-                                        setJsonError((e as SyntaxError).message);
-                                        setIsValid(false);
-                                    }
-                                };
-
-                                // schemaError takes priority (empty/missing), jsonError for syntax
-                                const displayError = schemaError?.message ?? jsonError;
-                                const hasError = !!displayError;
-
-                                const borderColor = hasError
-                                    ? "#ef4444"
-                                    : isValid === true
-                                        ? "#22c55e"
-                                        : "#e5e7eb";
-
-                                return (
-                                    <Box>
-                                        <Box display="flex" alignItems="center" justifyContent="space-between" mb={0.75}>
-                                            <Typography fontSize={13} fontWeight={500} color="text.primary">
-                                                Rule Config
-                                                <Typography component="span" fontSize={11} color="#ef4444" ml={0.25}>*</Typography>
-                                                <Typography component="span" fontSize={11} color="text.secondary" ml={0.75}>
-                                                    (JSON)
-                                                </Typography>
-                                            </Typography>
-                                            {isValid === true && !hasError && (
-                                                <Box display="flex" alignItems="center" gap={0.5}>
-                                                    <CheckCircleOutlineIcon sx={{ fontSize: 14, color: "#22c55e" }} />
-                                                    <Typography fontSize={12} color="#22c55e">Valid JSON</Typography>
-                                                </Box>
-                                            )}
-                                            {hasError && (
-                                                <Box display="flex" alignItems="center" gap={0.5}>
-                                                    <ErrorOutlineIcon sx={{ fontSize: 14, color: "#ef4444" }} />
-                                                    <Typography fontSize={12} color="#ef4444">Invalid JSON</Typography>
-                                                </Box>
-                                            )}
-                                        </Box>
-                                        <TextField
-                                            fullWidth
-                                            multiline
-                                            minRows={8}
-                                            maxRows={20}
-                                            disabled={isDisabled}
-                                            value={field.value === "{}" ? "" : (field.value ?? "")}
-                                            onChange={(e) => handleChange(e.target.value)}
-                                            placeholder={'Enter Rule Config here...\n{\n  "key": "value"\n}'}
-                                            spellCheck={false}
-                                            sx={{
-                                                "& .MuiOutlinedInput-root": {
-                                                    fontFamily: "monospace",
-                                                    fontSize: 13,
-                                                    lineHeight: 1.6,
-                                                    bgcolor: "#fafafa",
-                                                    "& fieldset": { borderColor },
-                                                    "&:hover fieldset": { borderColor },
-                                                    "&.Mui-focused fieldset": { borderColor },
-                                                },
-                                            }}
-                                        />
-                                        {displayError && (
-                                            <Typography fontSize={12} color="#ef4444" mt={0.5}>
-                                                {displayError}
-                                            </Typography>
-                                        )}
-                                    </Box>
-                                );
-                            }}
+                            render={({ field, fieldState: { error: schemaError } }) => (
+                                <RuleConfigField
+                                    field={field}
+                                    schemaError={schemaError}
+                                    isDisabled={isDisabled}
+                                />
+                            )}
                         />
                     </Grid>
                 </Grid>

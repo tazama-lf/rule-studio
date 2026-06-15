@@ -46,24 +46,35 @@ const overrideTypeFromApi = (type: string): TriggerOverrideType => {
     if (type === "static") return "static";
     if (type === "range") return "range";
     if (type === "generated") return "random";
-    if (type === "remove") return "remove";
+    if (type === "remove" || type === "skip") return "remove";
     return "null";
 };
 
-const flattenKeys = (obj: Record<string, unknown>, prefix = ""): string[] =>
-    Object.entries(obj).flatMap(([key, val]) => {
-        const path = prefix ? `${prefix}.${key}` : key;
-        if (typeof val === "object" && val !== null && !Array.isArray(val))
-            return flattenKeys(val as Record<string, unknown>, path);
-        return [path];
-    });
+const getUniqueFieldPaths = (items: { field_path: string }[] = []): string[] =>
+    Array.from(
+        new Set(
+            items
+                .map((item) => item.field_path)
+                .filter((path) => path.trim().length > 0)
+        )
+    );
 
 const buildTriggerEntry = (cfg: TriggerTxtpConfig): TriggerEntry => {
-    const payloadFields = cfg.payload_template_json
-        ? flattenKeys(cfg.payload_template_json)
-        : [];
+    const strategyFields = cfg.field_strategies ?? [];
+    const payloadFields = strategyFields.length > 0
+        ? getUniqueFieldPaths(strategyFields)
+        : getUniqueFieldPaths(cfg.field_overrides ?? []);
 
     const fieldOverrides: Record<string, TriggerOverride> = {};
+    for (const s of strategyFields) {
+        fieldOverrides[s.field_path] = {
+            overrideType: overrideTypeFromApi(s.strategy_code),
+            staticValue: s.static_value != null ? String(s.static_value) : "",
+            rangeMin: s.range_min != null ? String(s.range_min) : "",
+            rangeMax: s.range_max != null ? String(s.range_max) : "",
+            semanticId: s.faker_semantic_type ?? "",
+        };
+    }
     for (const o of cfg.field_overrides ?? []) {
         fieldOverrides[o.field_path] = {
             overrideType: overrideTypeFromApi(o.override_type),
