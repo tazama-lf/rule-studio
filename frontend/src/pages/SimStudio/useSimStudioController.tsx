@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import StatusCard from "../../components/Cards/StatusCard";
 import type { TableColumn } from "../../components/Table";
 import useDebouncedSearch from "../../hooks/useDebouncedSearch";
 import { useGetSuitesQuery, useGetSuitesCountQuery, useLazyResumeGenerationQuery, type SuiteListItem } from "../../redux/Api/SimStudio";
@@ -34,6 +33,14 @@ const formatLatestIteration = (latestRunAt?: string | number | null): string => 
     return latestDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
 };
 
+const STEP_TAB_MAP: Record<number, string> = {
+    1: "create_generation",
+    2: "txtp_selection",
+    3: "trigger_data",
+    4: "enrichment_data",
+    5: "preview_save",
+};
+
 const useSimStudioController = () => {
     const navigate = useNavigate();
     const [searchInput, debouncedSearch, handleSearch] = useDebouncedSearch("", 300);
@@ -44,14 +51,6 @@ const useSimStudioController = () => {
     const [lastUpdatedTo, setLastUpdatedTo] = useState<string>("");
     const [page, setPage] = useState(0);
     const [resumingId, setResumingId] = useState<number | null>(null);
-
-    const STEP_TAB_MAP: Record<number, string> = {
-        1: "create_generation",
-        2: "txtp_selection",
-        3: "trigger_data",
-        4: "enrichment_data",
-        5: "preview_save",
-    };
 
     const LIMIT = 10;
 
@@ -74,7 +73,7 @@ const useSimStudioController = () => {
     const [triggerResume] = useLazyResumeGenerationQuery();
     const { data: suitesCountData } = useGetSuitesCountQuery();
 
-    const suites: SuiteListItem[] = data?.suites ?? [];
+    const suites = useMemo<SuiteListItem[]>(() => data?.suites ?? [], [data?.suites]);
 
     const availableRules = useMemo(
         () => rulesData?.rules.map((r) => r.name) ?? [],
@@ -162,7 +161,7 @@ const useSimStudioController = () => {
         } finally {
             setResumingId(null);
         }
-    }, [triggerResume, navigate, STEP_TAB_MAP]);
+    }, [triggerResume, navigate]);
 
     const columns: TableColumn[] = useMemo(() => [
         {
@@ -176,13 +175,6 @@ const useSimStudioController = () => {
             key: "txtp",
             render: (row: Record<string, unknown>) => (
                 <S.TxtpBadge>{row.txtp as string}</S.TxtpBadge>
-            ),
-        },
-        {
-            label: "Status",
-            key: "status",
-            render: (row: Record<string, unknown>) => (
-                <StatusCard status={row.status as string} bullet={false} />
             ),
         },
         { label: "Iterations", key: "iterations" },
