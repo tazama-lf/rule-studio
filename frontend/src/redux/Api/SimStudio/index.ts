@@ -251,8 +251,10 @@ export const simStudioApi = createApi({
         }),
 
         createSuite: builder.mutation<{ success: boolean; data: {
-            generation_id(generation_id: any, arg1: string, LocalStorage: string, arg3: boolean): unknown; id: number; wizard_progress: Record<string, unknown> 
-} }, CreateSuitePayload>({
+            id: number;
+            generation_id: number;
+            wizard_progress: Record<string, unknown>;
+        } }, CreateSuitePayload>({
             query: (body) => ({
                 url: "suites",
                 method: "POST",
