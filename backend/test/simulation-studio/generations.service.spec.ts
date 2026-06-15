@@ -159,7 +159,7 @@ describe('GenerationsService', () => {
         context_count: 100,
         trigger_count: 10,
         enrichment_table_count: 1,
-        iteration_number: 0,
+        iteration_number: 1,
       },
     };
 
@@ -191,6 +191,7 @@ describe('GenerationsService', () => {
       expect(result.data.context_count).toBe(100);
       expect(result.data.trigger_count).toBe(10);
       expect(result.data.enrichment_table_count).toBe(1);
+      expect(result.data.iteration_number).toBe(1);
     });
 
     it('logs and rethrows on error', async () => {
