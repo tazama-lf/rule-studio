@@ -50,14 +50,14 @@ export class MsgSampleGenerationService {
           .map(({ trackedFields }, index) => {  
             const payload = item.payloads[index];
             const documentValue = `'${escapeSql(JSON.stringify(payload))}'::jsonb`;
-            const credttmValue = trackedFields.CreDtTm;
-            const messageIdValue = trackedFields.MsgId;
-            const endToEndIdValue = trackedFields.EndToEndId;
+            const credttmValue = trackedFields.CreDtTm ? `'${escapeSql(trackedFields.CreDtTm)}'` : 'NULL';
+            const messageIdValue = trackedFields.MsgId ? `'${escapeSql(trackedFields.MsgId)}'` : 'NULL';
+            const endToEndIdValue = trackedFields.EndToEndId ? `'${escapeSql(trackedFields.EndToEndId)}'` : 'NULL';
             const debtorAccountIdValue = trackedFields.dbtrAcctId ? `'${escapeSql(trackedFields.dbtrAcctId)}'` : 'NULL';
             const creditorAccountIdValue = trackedFields.cdtrAcctId ? `'${escapeSql(trackedFields.cdtrAcctId)}'` : 'NULL';
-            const tenantIdValue = trackedFields.TenantId ;
+            const tenantIdValue = trackedFields.TenantId ? `'${escapeSql(trackedFields.TenantId)}'` : 'NULL';
 
-            return `(${documentValue}, ${credttmValue}, ${messageIdValue}, ${endToEndIdValue}, ${debtorAccountIdValue}, ${creditorAccountIdValue}, ${tenantIdValue}${index})`;
+            return `(${documentValue}, ${credttmValue}, ${messageIdValue}, ${endToEndIdValue}, ${debtorAccountIdValue}, ${creditorAccountIdValue}, ${tenantIdValue})`;
           })
           .join(',\n    ');
 
