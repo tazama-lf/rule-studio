@@ -241,19 +241,19 @@ export interface GenerationSummaryResponse {
 }
 
 export interface SuiteTriggerResult {
-    id: string;
-    trigger_id: string;
+    id: string | number;
+    trigger_id: string | number | null;
     rule_result: Record<string, unknown>;
-    independent_variable: string;
+    independent_variable: string | null;
     sub_rule_ref: string;
 }
 
 export interface SuiteRunResult {
-    run_id: string;
-    generation_id: string;
+    run_id: string | number;
+    generation_id: string | number;
     rule_name: string;
     rule_version: string;
-    trigger_count: number;
+    trigger_count: number | null;
     outcome: string;
     triggers: SuiteTriggerResult[];
 }
