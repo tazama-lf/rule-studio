@@ -47,17 +47,17 @@ export interface ContextTxtpConfig {
 }
 
 export interface FieldStrategy {
-    id: number;
-    context_txtp_config_id: number;
+    id: string | number;
+    context_txtp_config_id: string | number;
     field_path: string;
     strategy_code: string;
     static_value?: unknown;
-    range_min?: number;
-    range_max?: number;
-    faker_semantic_type?: string;
-    generator_type?: string;
+    range_min?: number | null;
+    range_max?: number | null;
+    faker_semantic_type?: string | null;
+    generator_type?: string | null;
     generator_options?: Record<string, unknown>;
-    is_required_override?: boolean;
+    is_required_override?: boolean | null;
 }
 
 export interface UpsertFieldStrategyItem {
@@ -86,17 +86,17 @@ export interface TriggerFieldOverride {
     field_path: string;
     override_type: string;
     static_value?: unknown;
-    range_min?: number;
-    range_max?: number;
-    faker_semantic_type?: string;
-    generator_type?: string;
+    range_min?: number | null;
+    range_max?: number | null;
+    faker_semantic_type?: string | null;
+    generator_type?: string | null;
     generator_options?: Record<string, unknown>;
     created_at: string;
 }
 
 export interface TriggerFieldStrategy {
-    id: string;
-    trigger_txtp_config_id: string;
+    id: string | number;
+    trigger_txtp_config_id: string | number;
     field_path: string;
     strategy_code: string;
     range_min: number | null;
@@ -133,6 +133,7 @@ export interface TriggerTxtpConfig {
     expected_result_band?: string;
     notes?: string;
     field_overrides: TriggerFieldOverride[];
+    field_strategies?: TriggerFieldStrategy[];
     related_transaction?: string | null;
     related_txtp_config_id?: number | null;
 }
@@ -240,19 +241,19 @@ export interface GenerationSummaryResponse {
 }
 
 export interface SuiteTriggerResult {
-    id: string;
-    trigger_id: string;
+    id: string | number;
+    trigger_id: string | number | null;
     rule_result: Record<string, unknown>;
-    independent_variable: string;
+    independent_variable: string | null;
     sub_rule_ref: string;
 }
 
 export interface SuiteRunResult {
-    run_id: string;
-    generation_id: string;
+    run_id: string | number;
+    generation_id: string | number;
     rule_name: string;
     rule_version: string;
-    trigger_count: number;
+    trigger_count: number | null;
     outcome: string;
     triggers: SuiteTriggerResult[];
 }
@@ -294,6 +295,17 @@ export interface EnrichmentSchemaProperty {
     semanticId?: string;
 }
 
+export interface EnrichmentFieldStrategy {
+    id?: string | number;
+    field_path: string;
+    strategy_code?: string;
+    static_value?: unknown;
+    range_min?: number | null;
+    range_max?: number | null;
+    faker_semantic_type?: string | null;
+    generator_options?: Record<string, unknown>;
+}
+
 export interface EnrichmentTableDto {
     id: number;
     table_name: string;
@@ -301,6 +313,7 @@ export interface EnrichmentTableDto {
     row_count: number;
     payload_template_json: Record<string, unknown>;
     schema_template_json: { properties: EnrichmentSchemaProperty[] };
+    field_strategies?: EnrichmentFieldStrategy[];
 }
 
 export interface CreateEnrichmentTablePayload {
@@ -313,7 +326,7 @@ export interface CreateEnrichmentTablePayload {
 
 export const simStudioApi = createApi({
     reducerPath: "simStudioApi",
-    tagTypes: ["EnrichmentTables"] as const,
+    tagTypes: ["EnrichmentTables", "GenerationSummary"] as const,
     baseQuery: fetchBaseQuery({
         baseUrl: `${BASE_URL}/simulation-studio/`,
         prepareHeaders: (headers) => {
@@ -343,8 +356,10 @@ export const simStudioApi = createApi({
         }),
 
         createSuite: builder.mutation<{ success: boolean; data: {
-            generation_id(generation_id: any, arg1: string, LocalStorage: string, arg3: boolean): unknown; id: number; wizard_progress: Record<string, unknown> 
-} }, CreateSuitePayload>({
+            id: number;
+            generation_id: number;
+            wizard_progress: Record<string, unknown>;
+        } }, CreateSuitePayload>({
             query: (body) => ({
                 url: "suites",
                 method: "POST",
@@ -455,7 +470,10 @@ export const simStudioApi = createApi({
                 method: "POST",
                 body,
             }),
-            invalidatesTags: ["EnrichmentTables"],
+            invalidatesTags: (_result, _error, { generationId }) => [
+                "EnrichmentTables",
+                { type: "GenerationSummary", id: generationId },
+            ],
         }),
 
         deleteEnrichmentTable: builder.mutation<{ success: boolean; message: string }, { generationId: number; tableId: number }>({
@@ -463,11 +481,15 @@ export const simStudioApi = createApi({
                 url: `generations/${generationId}/enrichment-tables/${tableId}`,
                 method: "DELETE",
             }),
-            invalidatesTags: ["EnrichmentTables"],
+            invalidatesTags: (_result, _error, { generationId }) => [
+                "EnrichmentTables",
+                { type: "GenerationSummary", id: generationId },
+            ],
         }),
 
         getGenerationSummary: builder.query<GenerationSummaryResponse, number>({
             query: (generationId) => `generations/${generationId}/summary`,
+            providesTags: (_result, _error, generationId) => [{ type: "GenerationSummary", id: generationId }],
         }),
 
         resumeGeneration: builder.query<{

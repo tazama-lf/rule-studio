@@ -48,6 +48,8 @@ export class RunSimulationService {
     const { suiteId, generationId } = body;
     const simName = `run-sim-${suiteId}-gen-${generationId}-${Date.now()}`;
 
+    await this.adminServiceClient.updateGenerationStatus(token, generationId, { status: 'RUNNING' });
+
     const [suiteResp, triggerResp] = await Promise.all([
       this.adminServiceClient.getSimulationSuiteById(token, suiteId),
       this.adminServiceClient.getSampleTriggerMessages<SampleTriggerMessagesResponse>(token, generationId),
@@ -159,7 +161,7 @@ export class RunSimulationService {
       await this.adminServiceClient.saveRunResult(token, {
         gen_id: generationId,
         trigger_id: msg.trigger_txtp_config_id,
-        rule_result: ruleResult,
+        rule_result: ruleResult.ruleResult as Record<string, unknown>,
       });
 
       return {
