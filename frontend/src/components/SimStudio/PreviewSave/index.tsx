@@ -14,8 +14,9 @@ const PreviewSave = () => {
     const { enableNextTab } = useSimStudioTab();
     const [runSimulation, { isLoading: isRunning }] = useRunSimulationMutation();
 
-    const { data, isLoading } = useGetGenerationSummaryQuery(generationId!, {
+    const { data, isLoading, isFetching } = useGetGenerationSummaryQuery(generationId!, {
         skip: !generationId,
+        refetchOnMountOrArgChange: true,
     });
 
     const handleRunSimulation = async () => {
@@ -33,7 +34,7 @@ const PreviewSave = () => {
 
     const summary = data?.data;
 
-    if (isLoading || !summary) {
+    if (isLoading || isFetching || !summary) {
         return (
             <Box display="flex" justifyContent="center" py={10}>
                 <CircularProgress size={32} />
