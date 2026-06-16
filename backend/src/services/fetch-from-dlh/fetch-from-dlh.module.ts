@@ -12,4 +12,4 @@ import { FetchFromDlhService } from './fetch-from-dlh.service';
   providers: [FetchFromDlhService, AdminServiceClient, SimulationService],
   exports: [FetchFromDlhService],
 })
-export class FetchFromDlhModule { }
+export class FetchFromDlhModule {}

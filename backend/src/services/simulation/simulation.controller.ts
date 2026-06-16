@@ -1,11 +1,29 @@
-import { Controller, Get, Post, Body, Query, ParseIntPipe, UseGuards, DefaultValuePipe, HttpCode, HttpStatus, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Query,
+  ParseIntPipe,
+  UseGuards,
+  DefaultValuePipe,
+  HttpCode,
+  HttpStatus,
+  BadRequestException,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { TazamaAuthGuard } from '../../guards/tazama-auth.guard';
 import { RequireAnyClaims, TazamaClaims } from '../../decorators/auth.decorator';
 import { User } from '../../decorators/user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { SimulationService } from './simulation.service';
-import { type SimulationListResponseDto, type CreateSimulationResponseDto, ExcludedTypeProps, type SimulationStatsDto, type SimulationResultsResponseDto } from './dto/simulation.dto';
+import {
+  type SimulationListResponseDto,
+  type CreateSimulationResponseDto,
+  ExcludedTypeProps,
+  type SimulationStatsDto,
+  type SimulationResultsResponseDto,
+} from './dto/simulation.dto';
 import { CreateSimulationDto } from './dto/simulation.dto';
 import { ApiSwagger, CommonResponses } from 'src/decorators/swagger.decorator';
 
@@ -14,7 +32,7 @@ import { ApiSwagger, CommonResponses } from 'src/decorators/swagger.decorator';
 @Controller('simulation')
 @UseGuards(TazamaAuthGuard)
 export class SimulationController {
-  constructor(private readonly simulationService: SimulationService) { }
+  constructor(private readonly simulationService: SimulationService) {}
 
   @Get('/api/all')
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
@@ -32,10 +50,7 @@ export class SimulationController {
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
   @HttpCode(HttpStatus.CREATED)
   @ApiBody({ type: CreateSimulationDto, description: 'Simulation data to create' })
-  async createSimulation(
-    @Body() body: CreateSimulationDto,
-    @User() user: AuthenticatedUser,
-  ): Promise<CreateSimulationResponseDto> {
+  async createSimulation(@Body() body: CreateSimulationDto, @User() user: AuthenticatedUser): Promise<CreateSimulationResponseDto> {
     return await this.simulationService.createSimulation(body, user);
   }
 

@@ -34,10 +34,7 @@ export class RerunSimulationService {
       // DEMS only accepts the inner transaction document — same as `item.document` in the original DLH flow,
       // which is stored under the `doc` key after staging.
       const rawPayload = row.payload;
-      const data =
-        typeof rawPayload.doc === 'object' && rawPayload.doc !== null
-          ? (rawPayload.doc as Record<string, unknown>)
-          : rawPayload;
+      const data = typeof rawPayload.doc === 'object' && rawPayload.doc !== null ? (rawPayload.doc as Record<string, unknown>) : rawPayload;
 
       return {
         messageId: row.msgid ?? randomUUID(),
@@ -60,13 +57,7 @@ export class RerunSimulationService {
       token,
     );
 
-    const { jobId } = await this.sendToDemsService.enqueueDlhSimulation(
-      messages,
-      token,
-      tableName,
-      tenantId,
-      messages.length,
-    );
+    const { jobId } = await this.sendToDemsService.enqueueDlhSimulation(messages, token, tableName, tenantId, messages.length);
 
     this.logger.log(`Re-run job ${jobId} enqueued for table ${tableName} (${messages.length} messages)`);
 

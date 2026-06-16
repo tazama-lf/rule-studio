@@ -1,19 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AdminServiceClient } from '../admin-service-client';
 import type { AuthenticatedUser } from '../auth/auth.types';
-import type { SimulationListResponseDto, CreateSimulationDto, CreateSimulationResponseDto, ExcludedTypeProps, SimulationStatsDto, SimulationResultsResponseDto } from './dto/simulation.dto';
+import type {
+  SimulationListResponseDto,
+  CreateSimulationDto,
+  CreateSimulationResponseDto,
+  ExcludedTypeProps,
+  SimulationStatsDto,
+  SimulationResultsResponseDto,
+} from './dto/simulation.dto';
 
 @Injectable()
 export class SimulationService {
   private readonly logger = new Logger(SimulationService.name);
 
-  constructor(private readonly adminServiceClient: AdminServiceClient) { }
+  constructor(private readonly adminServiceClient: AdminServiceClient) {}
 
-  async getAllSimulations(
-    offset: number,
-    limit: number,
-    user: AuthenticatedUser,
-  ): Promise<SimulationListResponseDto> {
+  async getAllSimulations(offset: number, limit: number, user: AuthenticatedUser): Promise<SimulationListResponseDto> {
     try {
       return await this.adminServiceClient.getAllSimulations(offset, limit, user.token.tokenString);
     } catch (error) {
@@ -22,10 +25,7 @@ export class SimulationService {
     }
   }
 
-  async createSimulation(
-    body: CreateSimulationDto,
-    user: AuthenticatedUser,
-  ): Promise<CreateSimulationResponseDto> {
+  async createSimulation(body: CreateSimulationDto, user: AuthenticatedUser): Promise<CreateSimulationResponseDto> {
     try {
       return await this.adminServiceClient.createSimulation(body, user.token.tokenString);
     } catch (error) {
@@ -37,7 +37,7 @@ export class SimulationService {
   async excludedTypes(token: string): Promise<ExcludedTypeProps> {
     try {
       const response = await this.adminServiceClient.getExcludedTypes(token);
-      return response
+      return response;
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Error fetching excluded types: ${err.message}`);
@@ -45,11 +45,7 @@ export class SimulationService {
     }
   }
 
-  async getSimulationStats(
-    sim: string,
-    iterationNo: string,
-    user: AuthenticatedUser,
-  ): Promise<SimulationStatsDto> {
+  async getSimulationStats(sim: string, iterationNo: string, user: AuthenticatedUser): Promise<SimulationStatsDto> {
     try {
       return await this.adminServiceClient.getSimulationStats(sim, iterationNo, user.token.tokenString);
     } catch (error) {

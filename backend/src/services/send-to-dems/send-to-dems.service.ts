@@ -33,7 +33,13 @@ export class SendToDemsService {
    * Messages are sent one by one to their respective endpoints.
    * Track progress via WebSocket namespace `/simulation` with `joinJob { jobId }`.
    */
-  async enqueueDlhSimulation(messages: DirectSimulationMessage[], token: string, tableName: string | undefined, tenantId?: string, totalMessages?: number): Promise<StartSimulationResponseDto> {
+  async enqueueDlhSimulation(
+    messages: DirectSimulationMessage[],
+    token: string,
+    tableName: string | undefined,
+    tenantId?: string,
+    totalMessages?: number,
+  ): Promise<StartSimulationResponseDto> {
     const jobId = randomUUID();
 
     await this.simulationQueue.add(SIMULATION_JOB, { jobId, token, messages, tableName, tenantId, totalMessages });
