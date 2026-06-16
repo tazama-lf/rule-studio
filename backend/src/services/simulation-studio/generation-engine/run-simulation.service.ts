@@ -184,9 +184,10 @@ export class RunSimulationService {
         // Phase 2 of the spawn: NATS, Valkey, rule processor, nats-utilities join the network.
         await this.ephemeralEnvService.spawnRuntime(simName);
 
-        // Intentionally hardcoded endpoint and routing for now, per current local testing flow.
-        const natsUtilsBase = 'http://10.10.80.37:4000';
-        this.logger.log('the nats util url is: ', natsUtilsBase);
+        // Resolved from the live ephemeral env. testcontainers assigns the nats-utilities
+        // host port dynamically at spawn time; this method reads it back off the map entry.
+        const natsUtilsBase = this.ephemeralEnvService.getNatsUtilsUrl(simName);
+        this.logger.log(`nats-utilities URL for ${simName}: ${natsUtilsBase}`);
         const results = await this.publishTriggerMessages(
           natsUtilsBase,
           triggerMessages,

@@ -365,6 +365,13 @@ export class EphemeralEnvService implements OnModuleDestroy {
   getNatsUtilsUrl(name: string): string {
     const sim = this.simulations.get(name);
     if (!sim) throw new NotFoundException(`Simulation '${name}' not found`);
+    if (sim.info.ports.natsUtils === undefined) {
+      // Partial-state guard: the simulation exists but the runtime stack hasn't been
+      // spawned yet, so there is no nats-utilities port to point at.
+      throw new BadRequestException(
+        `Simulation '${name}' is in status ${sim.info.status}; nats-utilities is not running yet.`,
+      );
+    }
     return `http://localhost:${sim.info.ports.natsUtils}`;
   }
 }

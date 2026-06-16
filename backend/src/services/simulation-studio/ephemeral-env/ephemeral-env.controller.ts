@@ -152,9 +152,25 @@ export class EphemeralEnvController {
   }
 
   private toDto(info: NonNullable<ReturnType<EphemeralEnvService['get']>>): SimulationInfoDto {
-    return {
-      ...info,
-      natsUtilsUrl: `http://localhost:${info.ports.natsUtils}`,
+    // Enumerate fields explicitly — no spread — so we don't leak any internal-only
+    // properties through the API as SimulationInfo gains them over time.
+    const dto: SimulationInfoDto = {
+      name: info.name,
+      ruleName: info.ruleName,
+      version: info.version,
+      functionName: info.functionName,
+      natsSubject: info.natsSubject,
+      natsConsumer: info.natsConsumer,
+      ports: info.ports,
+      startedAt: info.startedAt,
+      status: info.status,
     };
+    // natsUtilsUrl is only meaningful once the nats-utilities container is up.
+    // Partial-state (POSTGRES_UP) entries omit it rather than emitting
+    // "http://localhost:undefined".
+    if (info.ports.natsUtils !== undefined) {
+      dto.natsUtilsUrl = `http://localhost:${info.ports.natsUtils}`;
+    }
+    return dto;
   }
 }

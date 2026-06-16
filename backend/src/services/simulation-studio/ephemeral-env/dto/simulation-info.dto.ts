@@ -3,20 +3,23 @@ import { ApiProperty } from '@nestjs/swagger';
 import { SimulationStatus } from '../interfaces/ephemeral-env.interfaces';
 
 class SimulationPortsDto {
+  // `pg` is populated as soon as POST /postgres returns. The other ports
+  // only become available after POST /:name/runtime completes — they are
+  // absent while the simulation is in the POSTGRES_UP intermediate state.
   @ApiProperty({ example: 54321 })
   pg: number;
 
-  @ApiProperty({ example: 54322 })
-  nats: number;
+  @ApiProperty({ example: 54322, required: false })
+  nats?: number;
 
-  @ApiProperty({ example: 54323 })
-  natsMonitor: number;
+  @ApiProperty({ example: 54323, required: false })
+  natsMonitor?: number;
 
-  @ApiProperty({ example: 54324 })
-  valkey: number;
+  @ApiProperty({ example: 54324, required: false })
+  valkey?: number;
 
-  @ApiProperty({ example: 54325 })
-  natsUtils: number;
+  @ApiProperty({ example: 54325, required: false })
+  natsUtils?: number;
 }
 
 export class SimulationInfoDto {
@@ -48,8 +51,9 @@ export class SimulationInfoDto {
   status: SimulationStatus;
 
   @ApiProperty({
-    description: 'Convenience URL for the REST-to-NATS bridge',
+    description: 'Convenience URL for the REST-to-NATS bridge. Absent while the simulation is in POSTGRES_UP — nats-utilities is not running yet.',
     example: 'http://localhost:54325',
+    required: false,
   })
-  natsUtilsUrl: string;
+  natsUtilsUrl?: string;
 }
