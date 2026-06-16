@@ -86,7 +86,7 @@ export class GenerationsService {
   async resumeGeneration(token: string, suiteId: number): Promise<SuiteGenerationResponseDto> {
     try {
       const response = await this.adminServiceClient.resumeGeneration(token, suiteId);
-      if (!response) {
+      if (!response?.data) {
         throw new NotFoundException(`No DRAFT generation found for suite ${suiteId}`);
       }
       return response as SuiteGenerationResponseDto;
