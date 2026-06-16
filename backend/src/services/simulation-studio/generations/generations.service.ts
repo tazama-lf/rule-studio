@@ -1,6 +1,11 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { AdminServiceClient } from '../../admin-service-client';
-import type { SuiteGenerationsListDto, SuiteGenerationResponseDto, GenerationSummaryResponseDto } from './dto/generations.dto';
+import type {
+  SuiteGenerationsListDto,
+  SuiteGenerationResponseDto,
+  GenerationSummaryResponseDto,
+  SuiteGenerationDto,
+} from './dto/generations.dto';
 import type { ContextConfigsListDto } from '../context-txtp-config/dto/context-txtp-config.dto';
 
 @Injectable()
@@ -83,13 +88,13 @@ export class GenerationsService {
     }
   }
 
-  async resumeGeneration(token: string, suiteId: number): Promise<SuiteGenerationResponseDto> {
+  async resumeGeneration(token: string, suiteId: number, generationId: number): Promise<SuiteGenerationResponseDto> {
     try {
-      const response = await this.adminServiceClient.resumeGeneration(token, suiteId);
-      if (!response?.data) {
+      const response = await this.adminServiceClient.resumeGeneration<SuiteGenerationResponseDto>(token, suiteId, generationId);
+      if (!(response.data as SuiteGenerationDto | null)) {
         throw new NotFoundException(`No DRAFT generation found for suite ${suiteId}`);
       }
-      return response as SuiteGenerationResponseDto;
+      return response;
     } catch (err) {
       const error = err as Error;
       this.logger.error(`Error resuming generation for suite ${suiteId}`, error.stack);

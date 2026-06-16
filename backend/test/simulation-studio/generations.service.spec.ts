@@ -309,13 +309,13 @@ describe('GenerationsService', () => {
   });
 
   describe('resumeGeneration', () => {
-    it('forwards token and suiteId, returns wrapped generation response', async () => {
+    it('forwards token, suiteId and generationId, returns wrapped generation response', async () => {
       adminServiceClient.resumeGeneration.mockResolvedValue(mockGenerationResponse);
 
-      const result = await service.resumeGeneration('test-token', 42);
+      const result = await service.resumeGeneration('test-token', 42, 7);
 
       expect(result).toEqual(mockGenerationResponse);
-      expect(adminServiceClient.resumeGeneration).toHaveBeenCalledWith('test-token', 42);
+      expect(adminServiceClient.resumeGeneration).toHaveBeenCalledWith('test-token', 42, 7);
     });
 
     it('returns a generation with DRAFT status and wizard snapshot', async () => {
@@ -325,7 +325,7 @@ describe('GenerationsService', () => {
       };
       adminServiceClient.resumeGeneration.mockResolvedValue(draftGenerationResponse);
 
-      const result = await service.resumeGeneration('test-token', 42);
+      const result = await service.resumeGeneration('test-token', 42, 7);
 
       expect(result.data.status).toBe('DRAFT');
       expect(result.data.wizard_snapshot).toEqual({ current_step_num: 2, completed_step_num: 1 });
@@ -335,7 +335,7 @@ describe('GenerationsService', () => {
       adminServiceClient.resumeGeneration.mockResolvedValue({ success: true, data: null as unknown as SuiteGenerationDto });
       const loggerSpy = jest.spyOn(service['logger'], 'error');
 
-      await expect(service.resumeGeneration('test-token', 42)).rejects.toThrow('No DRAFT generation found for suite 42');
+      await expect(service.resumeGeneration('test-token', 42, 7)).rejects.toThrow('No DRAFT generation found for suite 42');
       expect(loggerSpy).toHaveBeenCalledWith('Error resuming generation for suite 42', expect.any(String));
     });
 
@@ -344,7 +344,7 @@ describe('GenerationsService', () => {
       adminServiceClient.resumeGeneration.mockRejectedValue(error);
       const loggerSpy = jest.spyOn(service['logger'], 'error');
 
-      await expect(service.resumeGeneration('test-token', 42)).rejects.toThrow('Admin service unavailable');
+      await expect(service.resumeGeneration('test-token', 42, 7)).rejects.toThrow('Admin service unavailable');
       expect(loggerSpy).toHaveBeenCalledWith('Error resuming generation for suite 42', expect.any(String));
     });
   });

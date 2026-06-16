@@ -713,8 +713,8 @@ export class AdminServiceClient {
     return await this.executeHttpRequest<T>('DELETE', GENERATION_TRIGGER_CONFIG(generationId, configId), token);
   }
 
-  async resumeGeneration<T>(token: string, suiteId: number): Promise<T> {
-    return await this.executeHttpRequest<T>('GET', RESUME_GENERATION(suiteId), token);
+  async resumeGeneration<T>(token: string, suiteId: number, generationId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('GET', RESUME_GENERATION(suiteId, generationId), token);
   }
 
   async cloneGeneration<T>(token: string, generationId: number): Promise<T> {

@@ -90,7 +90,8 @@ export const CONTEXT_MAPPING_BY_IDS = (primaryTxtpId: number, relatedTxtpId: num
 export const TRIGGER_MAPPINGS = `${SIMULATION_STUDIO_BASE_URL}/trigger-mappings`;
 export const TRIGGER_MAPPING_BY_IDS = (primaryTxtpId: number, relatedTxtpId: number): string =>
   `${TRIGGER_MAPPINGS}/${primaryTxtpId}/${relatedTxtpId}`;
-export const RESUME_GENERATION = (suiteId: number): string => `${SIMULATION_STUDIO_BASE_URL}/suites/${suiteId}/generation/resume`;
+export const RESUME_GENERATION = (suiteId: number, generationId: number): string =>
+  `${SIMULATION_STUDIO_BASE_URL}/suites/${suiteId}/generations/${generationId}/resume`;
 export const CLONE_GENERATION = `${SIMULATION_STUDIO_BASE_URL}/generation/clone`;
 export const CLONE_SUITE = `${SIMULATION_SUITES}/clone`;
 export const FAKER_SEMANTIC_DATA = `${SIMULATION_STUDIO_BASE_URL}/faker-semantic-data`;

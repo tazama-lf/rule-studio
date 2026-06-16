@@ -122,9 +122,10 @@ export class GenerationsController {
     return await this.generationsService.updateWizardProgress(user.token.tokenString, generationId, body);
   }
 
-  @Get('suites/:id/generations/resume')
+  @Get('suites/:suiteId/generations/:generationId/resume')
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
-  @ApiParam({ name: 'id', description: 'Simulation suite id', example: 1 })
+  @ApiParam({ name: 'suiteId', description: 'Simulation suite id', example: 1 })
+  @ApiParam({ name: 'generationId', description: 'Generation id', example: 1 })
   @ApiSwagger({
     summary: 'Resume generation for a suite',
     description:
@@ -135,10 +136,11 @@ export class GenerationsController {
     ),
   })
   async resumeGenerationForSuite(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('suiteId', ParseIntPipe) suiteId: number,
+    @Param('generationId', ParseIntPipe) generationId: number,
     @User() user: AuthenticatedUser,
   ): Promise<SuiteGenerationResponseDto> {
-    return await this.generationsService.resumeGeneration(user.token.tokenString, id);
+    return await this.generationsService.resumeGeneration(user.token.tokenString, suiteId, generationId);
   }
 
   @Post('generation/clone')
