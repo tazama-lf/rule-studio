@@ -14,6 +14,8 @@ jest.mock('../../src/pages/Simulation', () => ({ default: () => null }));
 jest.mock('../../src/pages/SimulationList', () => ({ default: () => null }));
 jest.mock('../../src/pages/SimulationView', () => ({ default: () => null }));
 jest.mock('../../src/pages/SimulationError', () => ({ default: () => null }));
+jest.mock('../../src/pages/SimStudio', () => ({ default: () => null }));
+jest.mock('../../src/pages/SimStudio/CreateSimSuite', () => ({ default: () => null }));
 
 // Mock React.lazy to immediately invoke the factory — covers the lazy callback functions.
 jest.mock('react', () => {
@@ -43,8 +45,8 @@ describe('ROUTES (routes/index)', () => {
             expect(Array.isArray(ROUTES)).toBe(true);
         });
 
-        it('should export exactly 20 routes', () => {
-            expect(ROUTES).toHaveLength(20);
+        it('should export exactly 22 routes', () => {
+            expect(ROUTES).toHaveLength(22);
         });
 
         it('every route should have a "path" string', () => {
@@ -166,6 +168,20 @@ describe('ROUTES (routes/index)', () => {
             expect(r.private).toBe(true);
             expect(r.layout).toBe(true);
         });
+
+        it('"/sim-studio" route should be private and use layout', () => {
+            const r = byPath('/sim-studio');
+            expect(r).toBeDefined();
+            expect(r.private).toBe(true);
+            expect(r.layout).toBe(true);
+        });
+
+        it('"/sim-studio/create" route should be private with no layout', () => {
+            const r = byPath('/sim-studio/create');
+            expect(r).toBeDefined();
+            expect(r.private).toBe(true);
+            expect(r.layout).toBe(false);
+        });
     });
 
     describe('Public vs private route counts', () => {
@@ -174,19 +190,19 @@ describe('ROUTES (routes/index)', () => {
             expect(publicRoutes).toHaveLength(2);
         });
 
-        it('should have exactly 18 private routes (private: true)', () => {
+        it('should have exactly 20 private routes (private: true)', () => {
             const privateRoutes = ROUTES.filter((r) => r.private);
-            expect(privateRoutes).toHaveLength(18);
+            expect(privateRoutes).toHaveLength(20);
         });
 
-        it('should have exactly 13 routes with layout: true', () => {
+        it('should have exactly 14 routes with layout: true', () => {
             const layoutRoutes = ROUTES.filter((r) => r.layout);
-            expect(layoutRoutes).toHaveLength(13);
+            expect(layoutRoutes).toHaveLength(14);
         });
 
-        it('should have exactly 7 routes with layout: false', () => {
+        it('should have exactly 8 routes with layout: false', () => {
             const noLayoutRoutes = ROUTES.filter((r) => !r.layout);
-            expect(noLayoutRoutes).toHaveLength(7);
+            expect(noLayoutRoutes).toHaveLength(8);
         });
     });
 
