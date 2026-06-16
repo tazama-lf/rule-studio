@@ -17,6 +17,12 @@ import { FetchFromDlhModule } from './services/fetch-from-dlh/fetch-from-dlh.mod
 import { FetchCountModule } from './services/fetch-count/fetch-count.module';
 import { SimulationModule } from './services/simulation/simulation.module';
 import { FetchEvaluationModule } from './services/fetch-evaluation/fetch-evaluation.module';
+import { SimulationStudioModule } from './services/simulation-studio/suites/simulation-studio.module';
+import { GenerationsModule } from './services/simulation-studio/generations/generations.module';
+import { ContextTxtpConfigModule } from './services/simulation-studio/context-txtp-config/context-txtp-config.module';
+import { TriggerTxtpConfigModule } from './services/simulation-studio/trigger-txtp-config/trigger-txtp-config.module';
+import { EnrichmentTableModule } from './services/simulation-studio/enrichment-table/enrichment-table.module';
+import { FakerSemanticDataModule } from './services/simulation-studio/faker-semantic-data/faker_semantic_data.module';
 
 @Module({
   imports: [
@@ -38,8 +44,14 @@ import { FetchEvaluationModule } from './services/fetch-evaluation/fetch-evaluat
     FetchFromDlhModule,
     FetchCountModule,
     FetchEvaluationModule,
+    SimulationStudioModule,
+    GenerationsModule,
+    ContextTxtpConfigModule,
+    TriggerTxtpConfigModule,
+    EnrichmentTableModule,
+    FakerSemanticDataModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

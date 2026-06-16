@@ -62,3 +62,26 @@ export const STAGE_SIMULATION_ITEMS = '/v1/dlh/stage';
 // Evaluations
 export const GET_ALL_EVALUATIONS = '/v1/admin/reports/evaluations';
 export const FETCH_COUNT_DLH = '/v1/admin/dlh/fetch/count';
+
+// Simulation Studio
+export const SIMULATION_STUDIO_BASE_URL = '/v1/admin/trs/simulation-studio';
+export const SIMULATION_SUITES = `${SIMULATION_STUDIO_BASE_URL}/suites`;
+export const SUITE_GENERATIONS = (suiteId: number): string => `${SIMULATION_SUITES}/${suiteId}/generations`;
+export const SUITE_LATEST_GENERATION = (suiteId: number): string => `${SIMULATION_SUITES}/${suiteId}/generations/latest`;
+export const GENERATION_CONTEXT_CONFIGS = (generationId: number): string =>
+  `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/context-configs`;
+export const GENERATION_TRIGGER_CONFIGS = (generationId: number): string =>
+  `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/trigger-configs`;
+export const GENERATION_ENRICHMENT_TABLES = (generationId: number): string =>
+  `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/enrichment-tables`;
+export const GENERATION_SUMMARY = (generationId: number): string => `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/summary`;
+export const ENRICHMENT_TABLE = (generationId: number, tableId: number): string =>
+  `${GENERATION_ENRICHMENT_TABLES(generationId)}/${tableId}`;
+export const GENERATION_WIZARD_PROGRESS = (generationId: number): string =>
+  `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/wizard-progress`;
+export const GENERATION_CONTEXT_CONFIG = (generationId: number, configId: number): string =>
+  `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/context-configs/${configId}`;
+export const GENERATION_TRIGGER_CONFIG = (generationId: number, configId: number): string =>
+  `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/trigger-configs/${configId}`;
+export const RESUME_GENERATION = (suiteId: number): string => `${SIMULATION_STUDIO_BASE_URL}/suites/${suiteId}/generation/resume`;
+export const FAKER_SEMANTIC_DATA = `${SIMULATION_STUDIO_BASE_URL}/faker-semantic-data`;
