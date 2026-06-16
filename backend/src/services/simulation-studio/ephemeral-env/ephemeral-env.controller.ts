@@ -30,11 +30,13 @@ export class EphemeralEnvController {
   @HttpCode(HttpStatus.CREATED)
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
   @ApiSwagger({
-    summary: 'Spawn a simulation environment',
+    summary: 'Spawn a full simulation environment in one call',
     description:
       'Starts an isolated set of containers (PostgreSQL, NATS, Valkey, rule-processor, nats-utilities) ' +
-      'for a single rule. SQL migrations are fetched from GitHub; all wiring is done via the testcontainers API — ' +
-      'no docker-compose or env files are used. Returns immediately with port info once all containers are healthy.',
+      'for a single rule. Thin wrapper over POST /postgres + POST /:name/runtime — use this when you do not ' +
+      'need a seeding gap between Postgres and the runtime stack. SQL migrations are fetched from GitHub; ' +
+      'all wiring is done via the testcontainers API — no docker-compose or env files are used. Returns ' +
+      'immediately with port info once all containers are healthy.',
     responses: mergeResponses(
       CommonResponses.CREATED_201(SimulationInfoDto, 'Simulation spawned and ready'),
       CommonResponses.BAD_REQUEST_400('Name already in use or invalid options'),
@@ -45,6 +47,50 @@ export class EphemeralEnvController {
       ruleName: body.ruleName,
       version: body.version,
     });
+    return this.toDto(info);
+  }
+
+  @Post('postgres')
+  @HttpCode(HttpStatus.CREATED)
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @ApiSwagger({
+    summary: 'Phase 1 — create the network and bring Postgres up alone',
+    description:
+      'Creates the per-simulation Docker network and starts the PostgreSQL container with all migrations applied. ' +
+      'Returns once Postgres is healthy, leaving room for callers to seed config artifacts and reference data ' +
+      'before the runtime stack joins. Follow up with POST /:name/runtime. The simulation is registered with ' +
+      'status POSTGRES_UP and only ports.pg is populated.',
+    responses: mergeResponses(
+      CommonResponses.CREATED_201(SimulationInfoDto, 'Postgres up; simulation in POSTGRES_UP state'),
+      CommonResponses.BAD_REQUEST_400('Name already in use or invalid options'),
+    ),
+  })
+  async spawnPostgres(@Body() body: SpawnSimulationDto): Promise<SimulationInfoDto> {
+    const info = await this.ephemeralEnvService.spawnPostgres(body.name, {
+      ruleName: body.ruleName,
+      version: body.version,
+    });
+    return this.toDto(info);
+  }
+
+  @Post(':name/runtime')
+  @HttpCode(HttpStatus.CREATED)
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @ApiParam({ name: 'name', description: 'Simulation name (must already exist in POSTGRES_UP state)', example: 'sim-001' })
+  @ApiSwagger({
+    summary: 'Phase 2 — spawn the runtime stack into an existing simulation',
+    description:
+      'Brings NATS, Valkey, the rule processor and nats-utilities up into the network created by POST /postgres. ' +
+      'Promotes the simulation from POSTGRES_UP to UP and fills in the remaining ports. Returns 400 if the ' +
+      'simulation is not in POSTGRES_UP, 404 if it does not exist.',
+    responses: mergeResponses(
+      CommonResponses.CREATED_201(SimulationInfoDto, 'Runtime up; simulation fully ready'),
+      CommonResponses.BAD_REQUEST_400('Simulation not in POSTGRES_UP state'),
+      CommonResponses.NOT_FOUND_404('Simulation not found'),
+    ),
+  })
+  async spawnRuntime(@Param('name') name: string): Promise<SimulationInfoDto> {
+    const info = await this.ephemeralEnvService.spawnRuntime(name);
     return this.toDto(info);
   }
 

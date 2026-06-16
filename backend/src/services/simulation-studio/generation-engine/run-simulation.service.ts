@@ -158,15 +158,25 @@ export class RunSimulationService {
       // One correlationId per run, shared by every trigger publish in this simulation.
       const correlationId = faker.string.uuid();
 
-      const simInfo = await this.ephemeralEnvService.spawn(simName, { ruleName, version });
-      const { ports } = simInfo;
+      // Phase 1 of the spawn: Postgres + network only. Seeding happens in the gap
+      // before the runtime stack joins so the rule processor never sees an unseeded DB.
+      const pgInfo = await this.ephemeralEnvService.spawnPostgres(simName, { ruleName, version });
+      const pgPort = pgInfo.ports.pg;
 
       try {
-        await this.applyRuleConfig(ports.pg, ruleConfig as unknown as Record<string, unknown>);
+        await this.applyRuleConfig(pgPort, ruleConfig as unknown as Record<string, unknown>);
 
         // Generate and seed the database with sample data
         const dbScript = await this.msgSampleGenerationService.generateDbScript(sampleResp, token);
-        await this.seedDatabaseWithScript(ports.pg, dbScript);
+        await this.seedDatabaseWithScript(pgPort, dbScript);
+
+        // TODO(Phase 3.1): seedConfigArtifacts(pgPort, { ruleConfig, typology, networkMap }) — persist typology + network_map alongside rule_config.
+        // TODO(Phase 3.2): table-count + row-count validation gate. Fail-fast here means we tear down Postgres without ever spawning the runtime stack.
+
+        // Phase 2 of the spawn: NATS, Valkey, rule processor, nats-utilities join the network.
+        const simInfo = await this.ephemeralEnvService.spawnRuntime(simName);
+        // Use the runtime ports going forward; pgInfo is now stale (partial).
+        void simInfo;
 
         // Intentionally hardcoded endpoint and routing for now, per current local testing flow.
         const natsUtilsBase = 'http://10.10.80.37:4000';

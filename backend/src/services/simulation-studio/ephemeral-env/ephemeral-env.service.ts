@@ -6,10 +6,13 @@ interface SimulationInstance {
   info: SimulationInfo;
   network: StartedNetwork;
   postgres: StartedTestContainer;
-  nats: StartedTestContainer;
-  valkey: StartedTestContainer;
-  ruleProcessor: StartedTestContainer;
-  natsUtilities: StartedTestContainer;
+  // Runtime containers are present only after spawnRuntime() has completed.
+  // Between spawnPostgres() and spawnRuntime() these are undefined; destroy()
+  // tolerates partial state and stops only what actually exists.
+  nats?: StartedTestContainer;
+  valkey?: StartedTestContainer;
+  ruleProcessor?: StartedTestContainer;
+  natsUtilities?: StartedTestContainer;
 }
 
 const GITHUB_REPO = 'tazama-lf/Full-Stack-Docker-Tazama';
@@ -63,7 +66,23 @@ export class EphemeralEnvService implements OnModuleDestroy {
     }
   }
 
+  /**
+   * All-in-one spawn: brings up Postgres and the full runtime stack in one call.
+   * Thin wrapper over spawnPostgres() + spawnRuntime() — preserves the original
+   * contract for callers that don't need a seeding gap between the two phases.
+   */
   async spawn(name: string, options: SpawnOptions = {}): Promise<SimulationInfo> {
+    await this.spawnPostgres(name, options);
+    return await this.spawnRuntime(name);
+  }
+
+  /**
+   * Phase 1 of the split spawn: creates the Docker network and brings Postgres
+   * up alone, with all SQL migrations applied. Registers a partial entry in the
+   * in-memory map with status POSTGRES_UP. Caller is expected to follow up with
+   * spawnRuntime(name) — or destroy(name) to roll back.
+   */
+  async spawnPostgres(name: string, options: SpawnOptions = {}): Promise<SimulationInfo> {
     if (this.simulations.has(name)) {
       throw new BadRequestException(`Simulation '${name}' already exists. Destroy it first.`);
     }
@@ -76,13 +95,10 @@ export class EphemeralEnvService implements OnModuleDestroy {
     const functionName = `${ruleName}-rel-${version}`;
     const natsSubject = `sub-rule-${ruleBaseName}@${version}`;
     const natsConsumer = `pub-rule-${ruleBaseName}@${version}`;
-    const ruleImage = `${DOCKERHUB_NAMESPACE}/${ruleName}:${version}`;
 
-    this.logger.log(`Spawning '${name}': ${ruleImage}`);
+    this.logger.log(`[${name}] spawnPostgres: ruleName=${ruleName} version=${version}`);
 
-    await this.assertImageExists(ruleImage);
-
-    this.logger.log('Fetching SQL migration files from GitHub...');
+    this.logger.log(`[${name}] Fetching SQL migration files from GitHub...`);
 
     const baseSqlEntries = await listGithubDir('core/postgres/migration/base');
     this.logger.log(`[${name}] Fetched ${baseSqlEntries.length} base SQL entries from GitHub`);
@@ -134,6 +150,56 @@ export class EphemeralEnvService implements OnModuleDestroy {
         .withStartupTimeout(180_000)
         .start();
 
+      const ports: SimulationPorts = {
+        pg: postgres.getMappedPort(5432),
+      };
+
+      const info: SimulationInfo = {
+        name,
+        ruleName,
+        version,
+        functionName,
+        natsSubject,
+        natsConsumer,
+        ports,
+        startedAt: new Date(),
+        status: SimulationStatus.POSTGRES_UP,
+      };
+
+      this.simulations.set(name, { info, network, postgres });
+      this.logger.log(`[${name}] spawnPostgres complete — postgres: localhost:${ports.pg}`);
+
+      return info;
+    } catch (err) {
+      await network.stop().catch((_e: unknown) => undefined);
+      throw err;
+    }
+  }
+
+  /**
+   * Phase 2 of the split spawn: brings up NATS, Valkey, the rule processor and
+   * nats-utilities into the network created by spawnPostgres(). Promotes the
+   * map entry's status from POSTGRES_UP to UP and fills in the remaining ports.
+   * Throws if no POSTGRES_UP entry exists for the given name.
+   */
+  async spawnRuntime(name: string): Promise<SimulationInfo> {
+    const sim = this.simulations.get(name);
+    if (!sim) {
+      throw new NotFoundException(`Simulation '${name}' not found. Call spawnPostgres() first.`);
+    }
+    if (sim.info.status !== SimulationStatus.POSTGRES_UP) {
+      throw new BadRequestException(`Simulation '${name}' is in status ${sim.info.status}; spawnRuntime() expects POSTGRES_UP.`);
+    }
+
+    const { network, info } = sim;
+    const { ruleName, version, functionName } = info;
+    const ruleBaseName = ruleName.replace(/^rule-/, '');
+    const ruleImage = `${DOCKERHUB_NAMESPACE}/${ruleName}:${version}`;
+
+    this.logger.log(`[${name}] spawnRuntime: ${ruleImage}`);
+    await this.assertImageExists(ruleImage);
+
+    try {
       this.logger.log(`[${name}] Starting NATS...`);
       const nats = await new GenericContainer('nats:2')
         .withNetwork(network)
@@ -142,6 +208,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
         .withExposedPorts(4222, 8222)
         .withWaitStrategy(Wait.forLogMessage(/Server is ready/))
         .start();
+      sim.nats = nats;
 
       this.logger.log(`[${name}] Starting Valkey...`);
       const valkey = await new GenericContainer('valkey/valkey:7.2.5')
@@ -157,6 +224,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
         })
         .withWaitStrategy(Wait.forHealthCheck())
         .start();
+      sim.valkey = valkey;
 
       this.logger.log(`[${name}] Starting rule-processor (${ruleImage})...`);
       const ruleProcessor = await new GenericContainer(ruleImage)
@@ -210,6 +278,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
         .withWaitStrategy(Wait.forLogMessage('Connected to nats'))
         .withStartupTimeout(60_000)
         .start();
+      sim.ruleProcessor = ruleProcessor;
 
       this.logger.log(`[${name}] Starting nats-utilities...`);
       const natsUtilities = await new GenericContainer('tazamaorg/nats-utilities:latest')
@@ -237,37 +306,23 @@ export class EphemeralEnvService implements OnModuleDestroy {
           stream.on('err', (line: string) => { this.logger.warn(`[${name}][nats-utilities] ${line.trim()}`); });
         })
         .start();
+      sim.natsUtilities = natsUtilities;
 
-      const ports: SimulationPorts = {
-        pg: postgres.getMappedPort(5432),
-        nats: nats.getMappedPort(4222),
-        natsMonitor: nats.getMappedPort(8222),
-        valkey: valkey.getMappedPort(6379),
-        natsUtils: natsUtilities.getMappedPort(4000),
-      };
-
-      const info: SimulationInfo = {
-        name,
-        ruleName,
-        version,
-        functionName,
-        natsSubject,
-        natsConsumer,
-        ports,
-        startedAt: new Date(),
-        status: SimulationStatus.UP,
-      };
-
-      this.simulations.set(name, { info, network, postgres, nats, valkey, ruleProcessor, natsUtilities });
+      info.ports.nats = nats.getMappedPort(4222);
+      info.ports.natsMonitor = nats.getMappedPort(8222);
+      info.ports.valkey = valkey.getMappedPort(6379);
+      info.ports.natsUtils = natsUtilities.getMappedPort(4000);
+      info.status = SimulationStatus.UP;
 
       this.logger.log(
-        `[${name}] Ready — nats-utilities: http://localhost:${ports.natsUtils}, ` +
-        `postgres: localhost:${ports.pg}, nats: localhost:${ports.nats}`,
+        `[${name}] Ready — nats-utilities: http://localhost:${info.ports.natsUtils}, ` +
+        `postgres: localhost:${info.ports.pg}, nats: localhost:${info.ports.nats}`,
       );
 
       return info;
     } catch (err) {
-      await network.stop().catch((_e: unknown) => undefined);
+      // Leave the partial entry in place — caller is expected to destroy(name)
+      // for cleanup. We don't roll back here because spawnRuntime can be retried.
       throw err;
     }
   }
@@ -276,15 +331,16 @@ export class EphemeralEnvService implements OnModuleDestroy {
     const sim = this.simulations.get(name);
     if (!sim) throw new NotFoundException(`Simulation '${name}' not found`);
 
-    this.logger.log(`Destroying simulation '${name}'...`);
+    this.logger.log(`Destroying simulation '${name}' (status=${sim.info.status})...`);
 
-    await Promise.allSettled([
-      sim.natsUtilities.stop(),
-      sim.ruleProcessor.stop(),
-      sim.valkey.stop(),
-      sim.nats.stop(),
-      sim.postgres.stop(),
-    ]);
+    // Stop only the containers that were actually brought up. Partial-state
+    // entries (POSTGRES_UP but no runtime) will have undefined slots.
+    const stops: Promise<unknown>[] = [sim.postgres.stop()];
+    if (sim.nats) stops.push(sim.nats.stop());
+    if (sim.valkey) stops.push(sim.valkey.stop());
+    if (sim.ruleProcessor) stops.push(sim.ruleProcessor.stop());
+    if (sim.natsUtilities) stops.push(sim.natsUtilities.stop());
+    await Promise.allSettled(stops);
     await sim.network.stop().catch((_e: unknown) => undefined);
 
     this.simulations.delete(name);
