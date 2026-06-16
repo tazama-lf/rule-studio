@@ -44,6 +44,7 @@ interface RuleConfig {
 }
 
 type Typology = ReturnType<typeof buildTypology>;
+type NetworkMap = ReturnType<typeof buildNetworkMap>;
 
 function extractSubRuleRefs(ruleConfig: RuleConfig): string[] {
   // Cases take precedence over bands. Order matters: alternative first, then expressions in their declared order.
@@ -140,9 +141,16 @@ export class RunSimulationService {
       // TODO(client-input): version is taken from the suite's rule_version for now; the user-provided rule_config may have its own version we should honour. Confirm with client before changing.
       const version = suite.rule_version ?? 'rc';
       const ruleConfig = suite.rule_config as unknown as RuleConfig;
+      // suite.primary_txtp is the contract source for the run-level network map's txTp.
+      // The DTO currently marks it optional ([suites/dto/index.ts:209-212]) — that is a defect
+      // to tighten later; for now we enforce the invariant at runtime.
+      const primaryTxTp = suite.primary_txtp;
 
       if (!ruleName) {
         throw new Error(`Suite ${suiteId} has no rule_name set`);
+      }
+      if (!primaryTxTp) {
+        throw new Error(`Suite ${suiteId} has no primary_txtp set`);
       }
 
       const { data: triggerMessages } = triggerResp;
@@ -152,9 +160,10 @@ export class RunSimulationService {
         return { success: true, results: [] };
       }
 
-      // Build artifacts once for the whole run. Typology has no per-trigger dependency; the
-      // per-trigger network map reuses it and only swaps in the current message's txTp.
+      // Build artifacts once for the whole run. Both typology and network map are
+      // shared by the DB seed AND every NATS publish — there is one shape per run.
       const typology = buildTypology(ruleConfig, ruleName, version);
+      const networkMap = buildNetworkMap(typology, ruleName, tenantId, primaryTxTp);
       // One correlationId per run, shared by every trigger publish in this simulation.
       const correlationId = faker.string.uuid();
 
@@ -164,19 +173,16 @@ export class RunSimulationService {
       const pgPort = pgInfo.ports.pg;
 
       try {
-        await this.applyRuleConfig(pgPort, ruleConfig as unknown as Record<string, unknown>);
+        await this.seedConfigArtifacts(pgPort, { ruleConfig, typology, networkMap });
 
         // Generate and seed the database with sample data
         const dbScript = await this.msgSampleGenerationService.generateDbScript(sampleResp, token);
         await this.seedDatabaseWithScript(pgPort, dbScript);
 
-        // TODO(Phase 3.1): seedConfigArtifacts(pgPort, { ruleConfig, typology, networkMap }) — persist typology + network_map alongside rule_config.
         // TODO(Phase 3.2): table-count + row-count validation gate. Fail-fast here means we tear down Postgres without ever spawning the runtime stack.
 
         // Phase 2 of the spawn: NATS, Valkey, rule processor, nats-utilities join the network.
-        const simInfo = await this.ephemeralEnvService.spawnRuntime(simName);
-        // Use the runtime ports going forward; pgInfo is now stale (partial).
-        void simInfo;
+        await this.ephemeralEnvService.spawnRuntime(simName);
 
         // Intentionally hardcoded endpoint and routing for now, per current local testing flow.
         const natsUtilsBase = 'http://10.10.80.37:4000';
@@ -188,7 +194,8 @@ export class RunSimulationService {
           generationId,
           ruleName,
           version,
-          typology,
+          networkMap,
+          primaryTxTp,
           tenantId,
           correlationId,
         );
@@ -213,7 +220,13 @@ export class RunSimulationService {
     }
   }
 
-  private async applyRuleConfig(pgPort: number, ruleConfig: Record<string, unknown>): Promise<void> {
+  private async seedConfigArtifacts(
+    pgPort: number,
+    artifacts: { ruleConfig: RuleConfig; typology: Typology; networkMap: NetworkMap },
+  ): Promise<void> {
+    // The core migrations seed default rows into rule/typology/network_map. We truncate
+    // first so our rows are the only ones present, then insert. Everything is wrapped in
+    // a single transaction so the ephemeral DB is never half-seeded.
     const client = new PgClient({
       host: 'localhost',
       port: pgPort,
@@ -224,10 +237,38 @@ export class RunSimulationService {
 
     try {
       await client.connect();
-      await client.query('INSERT INTO "rule" ("configuration") VALUES($1)', [JSON.stringify(ruleConfig)]);
+      await client.query('BEGIN');
+      await client.query('TRUNCATE TABLE public.rule, public.typology, public.network_map');
+      await client.query('INSERT INTO public.rule (configuration) VALUES ($1::jsonb)', [JSON.stringify(artifacts.ruleConfig)]);
+      await client.query('INSERT INTO public.typology (configuration) VALUES ($1::jsonb)', [JSON.stringify(artifacts.typology)]);
+      await client.query('INSERT INTO public.network_map (configuration) VALUES ($1::jsonb)', [JSON.stringify(artifacts.networkMap)]);
+      await client.query('COMMIT');
+
+      // Phase 3.2 — verification gate: every config table should hold exactly one row.
+      // Warn-only by design — a mismatch may hint at upstream data issues but should not
+      // abort a run that may still produce useful results.
+      const counts = await client.query<{ table: string; n: string }>(
+        `SELECT 'rule' AS table, COUNT(*)::text AS n FROM public.rule
+         UNION ALL SELECT 'typology', COUNT(*)::text FROM public.typology
+         UNION ALL SELECT 'network_map', COUNT(*)::text FROM public.network_map`,
+      );
+      const actual = Object.fromEntries(counts.rows.map((r) => [r.table, Number(r.n)]));
+      const expected = { rule: 1, typology: 1, network_map: 1 };
+      const mismatch = (Object.keys(expected) as (keyof typeof expected)[]).some((k) => actual[k] !== expected[k]);
+      if (mismatch) {
+        this.logger.warn(
+          `[seedConfigArtifacts] expected rule=${expected.rule} typology=${expected.typology} network_map=${expected.network_map}; ` +
+          `actual rule=${actual.rule ?? 0} typology=${actual.typology ?? 0} network_map=${actual.network_map ?? 0}`,
+        );
+        this.logger.warn('[seedConfigArtifacts] count mismatch — see warning above');
+      }
+
+      this.logger.log('Seeded config artifacts (rule, typology, network_map)');
     } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
       const err = error as Error;
-      this.logger.warn(`Failed to apply rule config to ephemeral postgres: ${err.message}`);
+      this.logger.error(`Failed to seed config artifacts: ${err.message}`);
+      throw error;
     } finally {
       await client.end().catch(() => undefined);
     }
@@ -267,7 +308,8 @@ export class RunSimulationService {
     generationId: number,
     ruleName: string,
     version: string,
-    typology: Typology,
+    networkMap: NetworkMap,
+    primaryTxTp: string,
     tenantId: string,
     correlationId: string,
   ): Promise<RuleResult[]> {
@@ -276,6 +318,14 @@ export class RunSimulationService {
       const { payload } = msg;
       this.logger.log('the payload is ', JSON.stringify(payload));
       const msgId = typeof payload.msgId === 'string' ? payload.msgId : '';
+
+      // Surface mismatches between the trigger's txtp and the suite's primary_txtp.
+      // Triggers are expected to be primary txtp payloads; a mismatch means either a
+      // malformed trigger or a related-txtp accidentally promoted into the trigger list.
+      // Warn-only by design — see plan Q4 for Phase 3.1.
+      if (msg.txtp !== primaryTxTp) {
+        this.logger.warn(`Trigger ${msg.trigger_txtp_config_id} txtp '${msg.txtp}' does not match suite primary_txtp '${primaryTxTp}'`);
+      }
 
       const mappedPayload = {
         TxTp: msg.txtp,
@@ -300,7 +350,7 @@ export class RunSimulationService {
           transactionType: msg.txtp,
         },
         DataCache: {},
-        networkMap: buildNetworkMap(typology, ruleName, tenantId, msg.txtp),
+        networkMap,
         transaction: mappedPayload,
       };
 
