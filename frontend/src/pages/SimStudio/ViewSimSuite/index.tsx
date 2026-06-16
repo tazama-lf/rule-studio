@@ -3,6 +3,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import HistoryIcon from "@mui/icons-material/History";
 import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
 import ReplayIcon from "@mui/icons-material/Replay";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import {
     Box,
     Chip,
@@ -18,17 +19,19 @@ import {
     Tooltip,
     Typography,
 } from "@mui/material";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
 import {
+    useCloneGenerationMutation,
     useGetSuiteByIdQuery,
-    useGetSuiteResultQuery,
+    useGetSuiteGenerationsQuery,
     useLazyResumeGenerationQuery,
-    type SuiteRunResult,
+    useRerunSimulationMutation,
+    type SuiteGeneration,
 } from "../../../redux/Api/SimStudio";
 import { LocalStorage } from "../../../utils/Common/enums";
-import { insertData } from "../../../utils/Common/storage";
+import { insertData, removeData } from "../../../utils/Common/storage";
 
 const statusStyles: Record<string, { bg: string; color: string; dot: string }> = {
     DRAFT:     { bg: "#fffbeb", color: "#b45309", dot: "#f59e0b" },
@@ -38,9 +41,13 @@ const statusStyles: Record<string, { bg: string; color: string; dot: string }> =
 };
 
 const outcomeStyles: Record<string, { bg: string; color: string; border: string }> = {
-    SUCCESS: { bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" },
-    FAILED:  { bg: "#fef2f2", color: "#b91c1c", border: "#fecaca" },
-    ERROR:   { bg: "#fff7ed", color: "#c2410c", border: "#fed7aa" },
+    SUCCESS:      { bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" },
+    COMPLETED:    { bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" },
+    FAILED:       { bg: "#fef2f2", color: "#b91c1c", border: "#fecaca" },
+    ERROR:        { bg: "#fff7ed", color: "#c2410c", border: "#fed7aa" },
+    RUNNING:      { bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe" },
+    DRAFT:        { bg: "#fffbeb", color: "#b45309", border: "#fde68a" },
+    "NOT-SIMULATE": { bg: "#f9fafb", color: "#6b7280", border: "#e5e7eb" },
 };
 
 const fallbackStatusStyle = { bg: "#f9fafb", color: "#374151", dot: "#9ca3af" };
@@ -74,7 +81,6 @@ const OutcomeChip = ({ outcome }: { outcome?: string | null }) => {
                 borderRadius: "6px",
                 fontSize: 11,
                 fontWeight: 700,
-                textTransform: "uppercase",
             }}
         />
     );
@@ -100,26 +106,30 @@ const ViewSimSuite = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [resumingRunId, setResumingRunId] = useState<string | number | null>(null);
+    const [cloningRunId, setCloningRunId] = useState<string | number | null>(null);
+    const [rerunningRunId, setRerunningRunId] = useState<string | number | null>(null);
     const [triggerResume] = useLazyResumeGenerationQuery();
+    const [cloneGeneration] = useCloneGenerationMutation();
+    const [rerunSimulation] = useRerunSimulationMutation();
 
     const suiteId = id ? Number(id) : null;
     const { data, isLoading, isError } = useGetSuiteByIdQuery(suiteId!, { skip: !suiteId });
     const {
-        data: resultData,
-        isLoading: isResultsLoading,
-        isError: isResultsError,
-    } = useGetSuiteResultQuery(suiteId!, { skip: !suiteId });
+        data: generationsData,
+        isLoading: isGenerationsLoading,
+        isError: isGenerationsError,
+    } = useGetSuiteGenerationsQuery(suiteId!, { skip: !suiteId });
     const suite = data?.suite;
-    const results = resultData?.data?.results ?? [];
+    const generations = useMemo(() => generationsData?.data ?? [], [generationsData?.data]);
 
     const styles = suite ? (statusStyles[suite.status] ?? fallbackStatusStyle) : null;
 
-    const handleResume = useCallback(async (run: SuiteRunResult) => {
+    const handleResume = useCallback(async (generation: SuiteGeneration) => {
         if (!suiteId) return;
 
-        setResumingRunId(run.run_id);
+        setResumingRunId(generation.id);
         try {
-            const result = await triggerResume(suiteId).unwrap();
+            const result = await triggerResume({ suiteId, generationId: generation.id }).unwrap();
             const genId = result.data.id;
             const resumeSuiteId = result.data.suite_id;
             const currentStep = (result.data.wizard_snapshot?.currentStep as number) ?? 1;
@@ -127,6 +137,8 @@ const ViewSimSuite = () => {
 
             insertData(genId, "sim_gen_id", LocalStorage, false);
             insertData(resumeSuiteId, "sim_suite_id", LocalStorage, false);
+            removeData("sim_clone_mode", LocalStorage);
+            removeData("sim_results_locked", LocalStorage);
             navigate(`/sim-studio/create?simStudioTab=${tabValue}`);
         } catch {
             toast.error("Failed to resume simulation suite. Please try again.");
@@ -135,13 +147,63 @@ const ViewSimSuite = () => {
         }
     }, [navigate, suiteId, triggerResume]);
 
-    const handleClone = useCallback((run: SuiteRunResult) => {
-        toast(`Clone action for run #${run.run_id} will be available soon.`);
-    }, []);
+    const handleClone = useCallback(async (generation: SuiteGeneration) => {
+        if (!suiteId) return;
 
-    const handleRerun = useCallback((run: SuiteRunResult) => {
-        toast(`Rerun action for run #${run.run_id} will be available soon.`);
-    }, []);
+        const generationId = Number(generation.id);
+        if (Number.isNaN(generationId)) {
+            toast.error("Generation ID is missing for this run.");
+            return;
+        }
+
+        setCloningRunId(generation.id);
+        try {
+            const result = await cloneGeneration({ suite_id: suiteId, generation_id: generationId }).unwrap();
+            insertData(result.data.id, "sim_gen_id", LocalStorage, false);
+            insertData(result.data.suite_id, "sim_suite_id", LocalStorage, false);
+            insertData(true, "sim_clone_mode", LocalStorage, false);
+            removeData("sim_results_locked", LocalStorage);
+            navigate("/sim-studio/create?simStudioTab=create_generation");
+        } catch {
+            toast.error("Failed to clone simulation generation. Please try again.");
+        } finally {
+            setCloningRunId(null);
+        }
+    }, [cloneGeneration, navigate, suiteId]);
+
+    const handleRerun = useCallback(async (generation: SuiteGeneration) => {
+        if (!suiteId) return;
+
+        const generationId = Number(generation.id);
+        if (Number.isNaN(generationId)) {
+            toast.error("Generation ID is missing for this run.");
+            return;
+        }
+
+        setRerunningRunId(generation.id);
+        try {
+            await rerunSimulation({ suiteId, generationId }).unwrap();
+            insertData(generationId, "sim_gen_id", LocalStorage, false);
+            insertData(suiteId, "sim_suite_id", LocalStorage, false);
+            insertData(true, "sim_results_locked", LocalStorage, false);
+            removeData("sim_clone_mode", LocalStorage);
+            navigate("/sim-studio/create?simStudioTab=simulation_results");
+        } catch {
+            toast.error("Failed to rerun simulation. Please try again.");
+        } finally {
+            setRerunningRunId(null);
+        }
+    }, [navigate, rerunSimulation, suiteId]);
+
+    const handleViewResults = useCallback((generation: SuiteGeneration) => {
+        if (!suiteId) return;
+
+        insertData(generation.id, "sim_gen_id", LocalStorage, false);
+        insertData(suiteId, "sim_suite_id", LocalStorage, false);
+        removeData("sim_clone_mode", LocalStorage);
+        removeData("sim_results_locked", LocalStorage);
+        navigate("/sim-studio/create?simStudioTab=simulation_results");
+    }, [navigate, suiteId]);
 
     if (isLoading) {
         return (
@@ -353,8 +415,7 @@ const ViewSimSuite = () => {
                                         },
                                     }}
                                 >
-                                    <TableCell>Run</TableCell>
-                                    <TableCell>Generation</TableCell>
+                                    <TableCell>Status</TableCell>
                                     <TableCell>Rule</TableCell>
                                     <TableCell>Version</TableCell>
                                     <TableCell>Triggers</TableCell>
@@ -364,106 +425,138 @@ const ViewSimSuite = () => {
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                {isResultsLoading ? (
+                                {isGenerationsLoading ? (
                                     <TableRow>
-                                        <TableCell colSpan={8} align="center" sx={{ py: 8, borderBottom: "none" }}>
+                                        <TableCell colSpan={7} align="center" sx={{ py: 8, borderBottom: "none" }}>
                                             <CircularProgress size={24} thickness={4} sx={{ color: "#2b7fff", mb: 1 }} />
                                             <Typography fontSize={13} color="#9ca3af" fontWeight={500}>
                                                 Loading iteration history...
                                             </Typography>
                                         </TableCell>
                                     </TableRow>
-                                ) : isResultsError ? (
+                                ) : isGenerationsError ? (
                                     <TableRow>
-                                        <TableCell colSpan={8} align="center" sx={{ py: 8, borderBottom: "none" }}>
+                                        <TableCell colSpan={7} align="center" sx={{ py: 8, borderBottom: "none" }}>
                                             <HistoryIcon sx={{ fontSize: 32, color: "#e5e7eb", mb: 1 }} />
                                             <Typography fontSize={13} color="#9ca3af" fontWeight={500}>
                                                 Could not load iteration history
                                             </Typography>
                                         </TableCell>
                                     </TableRow>
-                                ) : results.length === 0 ? (
+                                ) : generations.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={8} align="center" sx={{ py: 8, borderBottom: "none" }}>
+                                        <TableCell colSpan={7} align="center" sx={{ py: 8, borderBottom: "none" }}>
                                             <HistoryIcon sx={{ fontSize: 32, color: "#e5e7eb", mb: 1 }} />
                                             <Typography fontSize={13} color="#9ca3af" fontWeight={500}>
-                                                No iterations yet
+                                                No generations yet
                                             </Typography>
                                             <Typography fontSize={12} color="#d1d5db" mt={0.5}>
-                                                Run the simulation to generate iteration history
+                                                Create or clone a generation to populate this suite history
                                             </Typography>
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    results.map((run) => {
-                                        const normalizedOutcome = run.outcome?.toUpperCase();
-                                        const canClone = normalizedOutcome === "SUCCESS";
-                                        const isResuming = resumingRunId === run.run_id;
+                                    generations.map((generation) => {
+                                        const generationStatus = generation.status?.toUpperCase();
+                                        const isDraft = generationStatus === "DRAFT";
+                                        const canClone = generationStatus === "COMPLETED" || generationStatus === "FAILED";
+                                        const isResuming = resumingRunId === generation.id;
+                                        const isCloning = cloningRunId === generation.id;
+                                        const isRerunning = rerunningRunId === generation.id;
+                                        const ruleLabel = generation.rule_name || suite.rule_name || generation.rule_repo || "-";
+                                        const versionLabel = generation.rule_version || suite.rule_version || "-";
+                                        const triggerCount = isDraft ? "not-simulate" : (generation.trigger_count ?? "-");
+                                        const resultEntries = isDraft
+                                            ? "not-simulate"
+                                            : (generation.result_entries ?? generation.result_entry_count ?? "-");
+                                        const outcome = isDraft ? "not-simulate" : (generation.outcome ?? generation.status);
 
                                         return (
-                                            <TableRow key={run.run_id} hover sx={{ "& td": { py: 1.5, px: 2, borderBottom: "1px solid #f3f4f6" } }}>
+                                            <TableRow key={generation.id} hover sx={{ "& td": { py: 1.5, px: 2, borderBottom: "1px solid #f3f4f6" } }}>
                                                 <TableCell>
-                                                    <Typography fontSize={13} fontWeight={700} color="#111827">
-                                                        #{run.run_id}
+                                                    <OutcomeChip outcome={generation.status} />
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Typography fontSize={13} color="#374151">
+                                                        {ruleLabel}
                                                     </Typography>
                                                 </TableCell>
                                                 <TableCell>
                                                     <Typography fontSize={13} color="#374151">
-                                                        {run.generation_id}
+                                                        {versionLabel}
                                                     </Typography>
                                                 </TableCell>
                                                 <TableCell>
                                                     <Typography fontSize={13} color="#374151">
-                                                        {run.rule_name || "-"}
+                                                        {triggerCount}
                                                     </Typography>
                                                 </TableCell>
                                                 <TableCell>
                                                     <Typography fontSize={13} color="#374151">
-                                                        {run.rule_version || "-"}
-                                                    </Typography>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Typography fontSize={13} color="#374151">
-                                                        {run.trigger_count ?? (run.triggers?.length ?? 0)}
-                                                    </Typography>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Typography fontSize={13} color="#374151">
-                                                        {run.triggers?.length ?? 0}
+                                                        {resultEntries}
                                                     </Typography>
                                                 </TableCell>
                                                 <TableCell align="right">
-                                                    <OutcomeChip outcome={run.outcome} />
+                                                    <OutcomeChip outcome={outcome} />
                                                 </TableCell>
                                                 <TableCell align="right">
                                                     <Box display="flex" justifyContent="flex-end" alignItems="center" gap={0.5}>
-                                                        <Tooltip title="Resume">
-                                                            <span>
-                                                                <IconButton
-                                                                    size="small"
-                                                                    sx={{ color: "#f59e0b" }}
-                                                                    onClick={() => void handleResume(run)}
-                                                                    disabled={isResuming}
-                                                                >
-                                                                    {isResuming ? (
-                                                                        <CircularProgress size={16} sx={{ color: "#f59e0b" }} />
-                                                                    ) : (
-                                                                        <PlayCircleOutlineIcon fontSize="small" />
-                                                                    )}
-                                                                </IconButton>
-                                                            </span>
+                                                        {isDraft && (
+                                                            <Tooltip title="Resume">
+                                                                <span>
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        sx={{ color: "#f59e0b" }}
+                                                                        onClick={() => void handleResume(generation)}
+                                                                        disabled={isResuming}
+                                                                    >
+                                                                        {isResuming ? (
+                                                                            <CircularProgress size={16} sx={{ color: "#f59e0b" }} />
+                                                                        ) : (
+                                                                            <PlayCircleOutlineIcon fontSize="small" />
+                                                                        )}
+                                                                    </IconButton>
+                                                                </span>
+                                                            </Tooltip>
+                                                        )}
+                                                        <Tooltip title="View Results">
+                                                            <IconButton size="small" sx={{ color: "#64748b" }} onClick={() => handleViewResults(generation)}>
+                                                                <VisibilityOutlinedIcon fontSize="small" />
+                                                            </IconButton>
                                                         </Tooltip>
                                                         {canClone && (
                                                             <Tooltip title="Clone">
-                                                                <IconButton size="small" sx={{ color: "#21a0c1" }} onClick={() => handleClone(run)}>
-                                                                    <ContentCopyIcon fontSize="small" />
-                                                                </IconButton>
+                                                                <span>
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        sx={{ color: "#21a0c1" }}
+                                                                        onClick={() => void handleClone(generation)}
+                                                                        disabled={isCloning}
+                                                                    >
+                                                                        {isCloning ? (
+                                                                            <CircularProgress size={16} sx={{ color: "#21a0c1" }} />
+                                                                        ) : (
+                                                                            <ContentCopyIcon fontSize="small" />
+                                                                        )}
+                                                                    </IconButton>
+                                                                </span>
                                                             </Tooltip>
                                                         )}
                                                         <Tooltip title="Rerun">
-                                                            <IconButton size="small" sx={{ color: "#4789f6" }} onClick={() => handleRerun(run)}>
-                                                                <ReplayIcon fontSize="small" />
-                                                            </IconButton>
+                                                            <span>
+                                                                <IconButton
+                                                                    size="small"
+                                                                    sx={{ color: "#4789f6" }}
+                                                                    onClick={() => void handleRerun(generation)}
+                                                                    disabled={isRerunning}
+                                                                >
+                                                                    {isRerunning ? (
+                                                                        <CircularProgress size={16} sx={{ color: "#4789f6" }} />
+                                                                    ) : (
+                                                                        <ReplayIcon fontSize="small" />
+                                                                    )}
+                                                                </IconButton>
+                                                            </span>
                                                         </Tooltip>
                                                     </Box>
                                                 </TableCell>

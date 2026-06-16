@@ -43,8 +43,8 @@ describe('ROUTES (routes/index)', () => {
             expect(Array.isArray(ROUTES)).toBe(true);
         });
 
-        it('should export exactly 20 routes', () => {
-            expect(ROUTES).toHaveLength(20);
+        it('should export exactly 22 routes', () => {
+            expect(ROUTES).toHaveLength(22);
         });
 
         it('every route should have a "path" string', () => {
@@ -174,9 +174,9 @@ describe('ROUTES (routes/index)', () => {
             expect(publicRoutes).toHaveLength(2);
         });
 
-        it('should have exactly 18 private routes (private: true)', () => {
+        it('should have exactly 20 private routes (private: true)', () => {
             const privateRoutes = ROUTES.filter((r) => r.private);
-            expect(privateRoutes).toHaveLength(18);
+            expect(privateRoutes).toHaveLength(20);
         });
 
         it('should have exactly 13 routes with layout: true', () => {
@@ -184,9 +184,9 @@ describe('ROUTES (routes/index)', () => {
             expect(layoutRoutes).toHaveLength(13);
         });
 
-        it('should have exactly 7 routes with layout: false', () => {
+        it('should have exactly 9 routes with layout: false', () => {
             const noLayoutRoutes = ROUTES.filter((r) => !r.layout);
-            expect(noLayoutRoutes).toHaveLength(7);
+            expect(noLayoutRoutes).toHaveLength(9);
         });
     });
 

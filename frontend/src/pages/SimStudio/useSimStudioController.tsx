@@ -191,6 +191,8 @@ const useSimStudioController = () => {
     const handleCreate = () => {
         removeData("sim_gen_id", LocalStorage);
         removeData("sim_suite_id", LocalStorage);
+        removeData("sim_clone_mode", LocalStorage);
+        removeData("sim_results_locked", LocalStorage);
         navigate("/sim-studio/create?simStudioTab=create_generation");
     };
 

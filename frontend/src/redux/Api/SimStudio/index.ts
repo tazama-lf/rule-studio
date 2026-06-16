@@ -27,6 +27,17 @@ export interface SuiteGeneration {
     generation_number: number;
     status: string;
     simulation_type: string;
+    rule_repo?: string;
+    rule_name?: string;
+    rule_version?: string;
+    wizard_snapshot?: { currentStep?: number; completedSteps?: number[] };
+    generation_metadata?: Record<string, unknown>;
+    trigger_count?: number | null;
+    result_entries?: number | null;
+    result_entry_count?: number | null;
+    outcome?: string | null;
+    created_at?: string;
+    updated_at?: string;
 }
 
 export interface ContextTxtpConfig {
@@ -326,7 +337,7 @@ export interface CreateEnrichmentTablePayload {
 
 export const simStudioApi = createApi({
     reducerPath: "simStudioApi",
-    tagTypes: ["EnrichmentTables", "GenerationSummary"] as const,
+    tagTypes: ["EnrichmentTables", "GenerationSummary", "SuiteGenerations", "SuiteResult"] as const,
     baseQuery: fetchBaseQuery({
         baseUrl: `${BASE_URL}/simulation-studio/`,
         prepareHeaders: (headers) => {
@@ -367,8 +378,21 @@ export const simStudioApi = createApi({
             }),
         }),
 
+        patchSuite: builder.mutation<{ success: boolean; suite: SuiteDetail }, { suiteId: number; body: Partial<CreateSuitePayload> }>({
+            query: ({ suiteId, body }) => ({
+                url: `suites/${suiteId}`,
+                method: "PATCH",
+                body,
+            }),
+        }),
+
         getLatestGeneration: builder.query<{ success: boolean; data: SuiteGeneration }, number>({
             query: (suiteId) => `suites/${suiteId}/generations/latest`,
+        }),
+
+        getSuiteGenerations: builder.query<{ success: boolean; data: SuiteGeneration[] }, number>({
+            query: (suiteId) => `suites/${suiteId}/generations`,
+            providesTags: (_result, _error, suiteId) => [{ type: "SuiteGenerations", id: suiteId }],
         }),
 
         getContextConfigs: builder.query<{ success: boolean; data: ContextTxtpConfig[] }, number>({
@@ -495,8 +519,17 @@ export const simStudioApi = createApi({
         resumeGeneration: builder.query<{
             success: boolean;
             data: { id: number; suite_id: number; wizard_snapshot: { currentStep?: number; completedSteps?: number[] } };
-        }, number>({
-            query: (suiteId) => `suites/${suiteId}/generations/resume`,
+        }, { suiteId: number; generationId: number }>({
+            query: ({ suiteId, generationId }) => `suites/${suiteId}/generations/${generationId}/resume`,
+        }),
+
+        cloneGeneration: builder.mutation<{ success: boolean; data: SuiteGeneration }, { suite_id: number; generation_id: number }>({
+            query: (body) => ({
+                url: "generation/clone",
+                method: "POST",
+                body,
+            }),
+            invalidatesTags: (_result, _error, { suite_id }) => [{ type: "SuiteGenerations", id: suite_id }],
         }),
 
         getSuiteById: builder.query<{ success: boolean; suite: SuiteDetail }, number>({
@@ -543,6 +576,7 @@ export const simStudioApi = createApi({
 
         getSuiteResult: builder.query<SuiteResultResponse, number>({
             query: (suiteId) => `suites/${suiteId}/result`,
+            providesTags: (_result, _error, suiteId) => [{ type: "SuiteResult", id: suiteId }],
         }),
 
         getTriggerConfigById: builder.query<{ success: boolean; data: TriggerTxtpConfigDetail }, number>({
@@ -555,6 +589,19 @@ export const simStudioApi = createApi({
                 method: "POST",
                 body,
             }),
+            invalidatesTags: (_result, _error, { suiteId }) => [{ type: "SuiteResult", id: suiteId }],
+        }),
+
+        rerunSimulation: builder.mutation<{ success?: boolean }, { suiteId: number; generationId: number }>({
+            query: (body) => ({
+                url: "rerun-simulation",
+                method: "POST",
+                body,
+            }),
+            invalidatesTags: (_result, _error, { suiteId }) => [
+                { type: "SuiteGenerations", id: suiteId },
+                { type: "SuiteResult", id: suiteId },
+            ],
         }),
     }),
 });
@@ -563,8 +610,10 @@ export const {
     useGetSuitesQuery,
     useGetSuitesCountQuery,
     useCreateSuiteMutation,
+    usePatchSuiteMutation,
     useGetLatestGenerationQuery,
     useLazyGetLatestGenerationQuery,
+    useGetSuiteGenerationsQuery,
     useGetContextConfigsQuery,
     useLazyGetContextConfigsQuery,
     useCreateContextConfigMutation,
@@ -581,6 +630,7 @@ export const {
     useDeleteEnrichmentTableMutation,
     useGetGenerationSummaryQuery,
     useLazyResumeGenerationQuery,
+    useCloneGenerationMutation,
     useLazyGetSuiteByIdQuery,
     useGetSuiteByIdQuery,
     useGetFakerSemanticDataQuery,
@@ -592,4 +642,5 @@ export const {
     useGetSuiteResultQuery,
     useLazyGetTriggerConfigByIdQuery,
     useRunSimulationMutation,
+    useRerunSimulationMutation,
 } = simStudioApi;
