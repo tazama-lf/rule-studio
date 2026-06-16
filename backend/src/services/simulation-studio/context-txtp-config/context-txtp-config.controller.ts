@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseArrayPipe, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiParam, ApiBody } from '@nestjs/swagger';
 import { RequireAnyClaims, TazamaClaims } from 'src/decorators/auth.decorator';
 import { ApiSwagger, mergeResponses, CommonResponses } from 'src/decorators/swagger.decorator';
@@ -78,7 +78,7 @@ export class ContextTxtpConfigController {
   })
   async bulkUpdateContextConfigs(
     @Param('generationId', ParseIntPipe) generationId: number,
-    @Body() items: BulkConfigItemDto[],
+    @Body(new ParseArrayPipe({ items: BulkConfigItemDto })) items: BulkConfigItemDto[],
     @User() user: AuthenticatedUser,
   ): Promise<BulkUpdateContextConfigsResponseDto> {
     return await this.contextTxtpConfigService.bulkUpdateContextConfigs(user.token.tokenString, generationId, items);

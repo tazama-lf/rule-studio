@@ -1,6 +1,18 @@
 import { ApiProperty } from '@nestjs/swagger';
 import type { ContextFieldStrategy } from '../../interface/common.types';
-import { IsString, IsInt, IsOptional, IsEnum, Min, IsNumber, IsObject, IsArray, ValidateNested, ArrayMinSize } from 'class-validator';
+import {
+  IsString,
+  IsInt,
+  IsOptional,
+  IsEnum,
+  Min,
+  IsNumber,
+  IsObject,
+  IsArray,
+  ValidateNested,
+  ArrayMinSize,
+  IsBoolean,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class SuiteContextTxtpConfigDto {
@@ -219,6 +231,7 @@ export class UpsertFieldStrategyDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
+  @IsBoolean()
   is_required_override?: boolean;
 }
 

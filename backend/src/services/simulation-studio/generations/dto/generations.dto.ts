@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsInt, IsPositive } from 'class-validator';
 
 export type SuiteGenerationStatus = 'DRAFT' | 'READY' | 'RUNNING' | 'COMPLETED' | 'FAILED';
 export class SuiteGenerationDto {
@@ -58,6 +59,20 @@ export class SuiteGenerationResponseDto {
   data: SuiteGenerationDto;
 }
 
+// ── Wizard Progress ───────────────────────────────────────────────────────────
+
+export class UpdateWizardProgressDto {
+  @ApiProperty({ example: 2, description: 'Active wizard step number' })
+  @IsInt()
+  @IsPositive()
+  current_step_num!: number;
+
+  @ApiProperty({ example: 2, description: 'Highest completed step (steps 1..N marked complete)' })
+  @IsInt()
+  @IsPositive()
+  completed_step_num!: number;
+}
+
 // ── Generation Summary ────────────────────────────────────────────────────────
 
 export class ContextTxtpSummaryDto {
@@ -84,10 +99,10 @@ export class GenerationSummaryDto {
   @ApiProperty({ example: 'Q3 Edge Cases' })
   suite_name: string;
 
-  @ApiProperty({ required: false, example: 'Rule 001' })
+  @ApiProperty({ required: false, nullable: true, example: 'Rule 001' })
   associated_rule: string | null;
 
-  @ApiProperty({ required: false, example: 'pacs.008' })
+  @ApiProperty({ required: false, nullable: true, example: 'pacs.008' })
   primary_txtp: string | null;
 
   @ApiProperty({ type: [ContextTxtpSummaryDto] })

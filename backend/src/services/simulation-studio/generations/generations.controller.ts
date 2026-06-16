@@ -12,6 +12,7 @@ import {
   SuiteGenerationResponseDto,
   GenerationSummaryResponseDto,
   SuiteGenerationDto,
+  UpdateWizardProgressDto,
 } from './dto/generations.dto';
 import { ContextConfigsListDto } from '../context-txtp-config/dto/context-txtp-config.dto';
 
@@ -95,16 +96,7 @@ export class GenerationsController {
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
   @Audit()
   @ApiParam({ name: 'generationId', description: 'Generation id', example: 1 })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        current_step_num: { type: 'number', example: 2, description: 'Active wizard step number' },
-        completed_step_num: { type: 'number', example: 2, description: 'Highest completed step (steps 1..N marked complete)' },
-      },
-      required: ['current_step_num', 'completed_step_num'],
-    },
-  })
+  @ApiBody({ type: UpdateWizardProgressDto })
   @ApiSwagger({
     summary: 'Update wizard progress',
     description: 'Saves current_step_num + completedSteps=[1..completed_step_num] into generation wizard_snapshot.',
@@ -115,7 +107,7 @@ export class GenerationsController {
   })
   async updateWizardProgress(
     @Param('generationId', ParseIntPipe) generationId: number,
-    @Body() body: { current_step_num: number; completed_step_num: number },
+    @Body() body: UpdateWizardProgressDto,
     @User() user: AuthenticatedUser,
   ): Promise<{ success: boolean; message: string }> {
     return await this.generationsService.updateWizardProgress(user.token.tokenString, generationId, body);
