@@ -12,6 +12,7 @@ import {
   SuiteGenerationResponseDto,
   GenerationSummaryResponseDto,
   SuiteGenerationDto,
+  CloneGenerationDto,
 } from './dto/generations.dto';
 import { ContextConfigsListDto } from '../context-txtp-config/dto/context-txtp-config.dto';
 
@@ -133,14 +134,20 @@ export class GenerationsController {
       CommonResponses.NOT_FOUND_404('Suite not found'),
     ),
   })
-  async resumeGenerationForSuite(@Param('id', ParseIntPipe) id: number, @User() user: AuthenticatedUser): Promise<SuiteGenerationDto> {
+  async resumeGenerationForSuite(
+    @Param('id', ParseIntPipe) id: number,
+    @User() user: AuthenticatedUser,
+  ): Promise<SuiteGenerationResponseDto> {
     return await this.generationsService.resumeGeneration(user.token.tokenString, id);
   }
 
-  @Post('generations/:generationId/clone')
+  @Post('generation/clone')
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
   @Audit()
-  @ApiParam({ name: 'generationId', description: 'Source generation id to clone', example: 1 })
+  @ApiBody({
+    type: CloneGenerationDto,
+    description: 'Payload containing source generation id to clone',
+  })
   @ApiSwagger({
     summary: 'Clone generation',
     description:
@@ -150,11 +157,8 @@ export class GenerationsController {
       CommonResponses.NOT_FOUND_404('Source generation not found'),
     ),
   })
-  async cloneGeneration(
-    @Param('generationId', ParseIntPipe) generationId: number,
-    @User() user: AuthenticatedUser,
-  ): Promise<SuiteGenerationResponseDto> {
-    return await this.generationsService.cloneGeneration(user.token.tokenString, generationId);
+  async cloneGeneration(@Body() body: CloneGenerationDto, @User() user: AuthenticatedUser): Promise<SuiteGenerationResponseDto> {
+    return await this.generationsService.cloneGeneration(user.token.tokenString, body.generation_id);
   }
 
   @Patch('generations/:generationId/status')

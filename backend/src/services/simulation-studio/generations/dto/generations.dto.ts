@@ -1,4 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { IsInt, IsPositive } from 'class-validator';
 
 export type SuiteGenerationStatus = 'DRAFT' | 'READY' | 'RUNNING' | 'COMPLETED' | 'FAILED';
 export class SuiteGenerationDto {
@@ -115,4 +117,18 @@ export class GenerationSummaryResponseDto {
 
   @ApiProperty({ type: GenerationSummaryDto })
   data: GenerationSummaryDto;
+}
+
+export class CloneGenerationDto {
+  @ApiProperty({ description: 'Source generation id to clone', example: 1 })
+  @Type(() => Number)
+  @IsInt()
+  @IsPositive()
+  suite_id!: number;
+
+  @ApiProperty({ description: 'Source generation id to clone', example: 1 })
+  @Type(() => Number)
+  @IsInt()
+  @IsPositive()
+  generation_id!: number;
 }

@@ -15,6 +15,7 @@ import {
   SimulationSuitesDto,
   SimulationSuitesListDto,
   SimulationSuitesQueryDto,
+  CloneSuiteDto,
 } from './dto';
 
 @ApiTags('simulation-studio')
@@ -118,10 +119,13 @@ export class SimulationStudioController {
     return await this.simulationStudioService.patchSimulationSuite(user.token.tokenString, id, payload);
   }
 
-  @Post('suites/:id/clone')
+  @Post('suites/clone')
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
   @Audit()
-  @ApiParam({ name: 'id', description: 'Source suite id to clone', example: 1 })
+  @ApiBody({
+    type: CloneSuiteDto,
+    description: 'Payload containing source suite id to clone',
+  })
   @ApiSwagger({
     summary: 'Clone simulation suite',
     description:
@@ -132,9 +136,9 @@ export class SimulationStudioController {
     ),
   })
   async cloneSuite(
-    @Param('id', ParseIntPipe) id: number,
+    @Body() body: CloneSuiteDto,
     @User() user: AuthenticatedUser,
   ): Promise<{ success: boolean; data: SimulationSuitesDto & { generation_id: number | null } }> {
-    return await this.simulationStudioService.cloneSuite(user.token.tokenString, id);
+    return await this.simulationStudioService.cloneSuite(user.token.tokenString, body.suite_id);
   }
 }

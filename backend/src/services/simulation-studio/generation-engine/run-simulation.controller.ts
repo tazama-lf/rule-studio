@@ -7,7 +7,6 @@ import { User } from 'src/decorators/user.decorator';
 import type { AuthenticatedUser } from '../../auth/auth.types';
 import { RunSimulationService } from './run-simulation.service';
 import { RunSimulationDto, RunSimulationResponseDto } from './dto/run-simulation.dto';
-import { SuiteGenerationResponseDto } from '../generations/dto/generations.dto';
 import { GenerationsService } from '../generations/generations.service';
 
 @ApiTags('simulation-studio')
@@ -44,10 +43,13 @@ export class RunSimulationController {
   @ApiSwagger({
     summary: 'Rerun generation with new id',
     description: 'Reruns a generation and replicates suite context, triggers, enrichment tables and field strategies in the admin DB.',
-    responses: mergeResponses(CommonResponses.CREATED_201(SuiteGenerationResponseDto, 'Generation rerun successfully')),
+    responses: mergeResponses(CommonResponses.CREATED_201(RunSimulationResponseDto, 'Generation rerun successfully')),
   })
   async rerunGeneration(@Body() body: RunSimulationDto, @User() user: AuthenticatedUser): Promise<RunSimulationResponseDto> {
-    await this.generationsService.cloneGeneration(user.token.tokenString, body.generationId);
-    return await this.runSimulationService.runSimulation(user.token.tokenString, body);
+    const cloned = await this.generationsService.cloneGeneration(user.token.tokenString, body.generationId);
+    return await this.runSimulationService.runSimulation(user.token.tokenString, {
+      suiteId: body.suiteId,
+      generationId: cloned.data.id,
+    });
   }
 }

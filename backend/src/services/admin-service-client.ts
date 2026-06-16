@@ -718,11 +718,11 @@ export class AdminServiceClient {
   }
 
   async cloneGeneration<T>(token: string, generationId: number): Promise<T> {
-    return await this.executeHttpRequest<T>('POST', CLONE_GENERATION(generationId), token);
+    return await this.executeHttpRequest<T>('POST', CLONE_GENERATION, token, { sourceGenerationId: generationId });
   }
 
   async cloneSuite<T>(token: string, suiteId: number): Promise<T> {
-    return await this.executeHttpRequest<T>('POST', CLONE_SUITE(suiteId), token);
+    return await this.executeHttpRequest<T>('POST', CLONE_SUITE, token, { sourceSuiteId: suiteId });
   }
 
   async generateFakerSemanticData<T>(token: string): Promise<T> {
