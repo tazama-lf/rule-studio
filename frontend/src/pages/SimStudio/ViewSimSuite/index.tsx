@@ -1,5 +1,8 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import HistoryIcon from "@mui/icons-material/History";
+import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
+import ReplayIcon from "@mui/icons-material/Replay";
 import {
     Box,
     Chip,
@@ -12,10 +15,20 @@ import {
     TableContainer,
     TableHead,
     TableRow,
+    Tooltip,
     Typography,
 } from "@mui/material";
+import { useCallback, useState } from "react";
+import toast from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
-import { useGetSuiteByIdQuery, useGetSuiteResultQuery } from "../../../redux/Api/SimStudio";
+import {
+    useGetSuiteByIdQuery,
+    useGetSuiteResultQuery,
+    useLazyResumeGenerationQuery,
+    type SuiteRunResult,
+} from "../../../redux/Api/SimStudio";
+import { LocalStorage } from "../../../utils/Common/enums";
+import { insertData } from "../../../utils/Common/storage";
 
 const statusStyles: Record<string, { bg: string; color: string; dot: string }> = {
     DRAFT:     { bg: "#fffbeb", color: "#b45309", dot: "#f59e0b" },
@@ -31,6 +44,14 @@ const outcomeStyles: Record<string, { bg: string; color: string; border: string 
 };
 
 const fallbackStatusStyle = { bg: "#f9fafb", color: "#374151", dot: "#9ca3af" };
+
+const STEP_TAB_MAP: Record<number, string> = {
+    1: "create_generation",
+    2: "txtp_selection",
+    3: "trigger_data",
+    4: "enrichment_data",
+    5: "preview_save",
+};
 
 const formatStatusLabel = (status?: string | null): string => {
     if (!status) return "Unknown";
@@ -78,6 +99,8 @@ const MetaRow = ({ label, children }: { label: string; children: React.ReactNode
 const ViewSimSuite = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const [resumingRunId, setResumingRunId] = useState<string | number | null>(null);
+    const [triggerResume] = useLazyResumeGenerationQuery();
 
     const suiteId = id ? Number(id) : null;
     const { data, isLoading, isError } = useGetSuiteByIdQuery(suiteId!, { skip: !suiteId });
@@ -90,6 +113,35 @@ const ViewSimSuite = () => {
     const results = resultData?.data?.results ?? [];
 
     const styles = suite ? (statusStyles[suite.status] ?? fallbackStatusStyle) : null;
+
+    const handleResume = useCallback(async (run: SuiteRunResult) => {
+        if (!suiteId) return;
+
+        setResumingRunId(run.run_id);
+        try {
+            const result = await triggerResume(suiteId).unwrap();
+            const genId = result.data.id;
+            const resumeSuiteId = result.data.suite_id;
+            const currentStep = (result.data.wizard_snapshot?.currentStep as number) ?? 1;
+            const tabValue = STEP_TAB_MAP[currentStep] ?? "create_generation";
+
+            insertData(genId, "sim_gen_id", LocalStorage, false);
+            insertData(resumeSuiteId, "sim_suite_id", LocalStorage, false);
+            navigate(`/sim-studio/create?simStudioTab=${tabValue}`);
+        } catch {
+            toast.error("Failed to resume simulation suite. Please try again.");
+        } finally {
+            setResumingRunId(null);
+        }
+    }, [navigate, suiteId, triggerResume]);
+
+    const handleClone = useCallback((run: SuiteRunResult) => {
+        toast(`Clone action for run #${run.run_id} will be available soon.`);
+    }, []);
+
+    const handleRerun = useCallback((run: SuiteRunResult) => {
+        toast(`Rerun action for run #${run.run_id} will be available soon.`);
+    }, []);
 
     if (isLoading) {
         return (
@@ -308,12 +360,13 @@ const ViewSimSuite = () => {
                                     <TableCell>Triggers</TableCell>
                                     <TableCell>Result Entries</TableCell>
                                     <TableCell align="right">Outcome</TableCell>
+                                    <TableCell align="right">Action</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
                                 {isResultsLoading ? (
                                     <TableRow>
-                                        <TableCell colSpan={7} align="center" sx={{ py: 8, borderBottom: "none" }}>
+                                        <TableCell colSpan={8} align="center" sx={{ py: 8, borderBottom: "none" }}>
                                             <CircularProgress size={24} thickness={4} sx={{ color: "#2b7fff", mb: 1 }} />
                                             <Typography fontSize={13} color="#9ca3af" fontWeight={500}>
                                                 Loading iteration history...
@@ -322,7 +375,7 @@ const ViewSimSuite = () => {
                                     </TableRow>
                                 ) : isResultsError ? (
                                     <TableRow>
-                                        <TableCell colSpan={7} align="center" sx={{ py: 8, borderBottom: "none" }}>
+                                        <TableCell colSpan={8} align="center" sx={{ py: 8, borderBottom: "none" }}>
                                             <HistoryIcon sx={{ fontSize: 32, color: "#e5e7eb", mb: 1 }} />
                                             <Typography fontSize={13} color="#9ca3af" fontWeight={500}>
                                                 Could not load iteration history
@@ -331,7 +384,7 @@ const ViewSimSuite = () => {
                                     </TableRow>
                                 ) : results.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={7} align="center" sx={{ py: 8, borderBottom: "none" }}>
+                                        <TableCell colSpan={8} align="center" sx={{ py: 8, borderBottom: "none" }}>
                                             <HistoryIcon sx={{ fontSize: 32, color: "#e5e7eb", mb: 1 }} />
                                             <Typography fontSize={13} color="#9ca3af" fontWeight={500}>
                                                 No iterations yet
@@ -342,43 +395,81 @@ const ViewSimSuite = () => {
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    results.map((run) => (
-                                        <TableRow key={run.run_id} hover sx={{ "& td": { py: 1.5, px: 2, borderBottom: "1px solid #f3f4f6" } }}>
-                                            <TableCell>
-                                                <Typography fontSize={13} fontWeight={700} color="#111827">
-                                                    #{run.run_id}
-                                                </Typography>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Typography fontSize={13} color="#374151">
-                                                    {run.generation_id}
-                                                </Typography>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Typography fontSize={13} color="#374151">
-                                                    {run.rule_name || "-"}
-                                                </Typography>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Typography fontSize={13} color="#374151">
-                                                    {run.rule_version || "-"}
-                                                </Typography>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Typography fontSize={13} color="#374151">
-                                                    {run.trigger_count ?? (run.triggers?.length ?? 0)}
-                                                </Typography>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Typography fontSize={13} color="#374151">
-                                                    {run.triggers?.length ?? 0}
-                                                </Typography>
-                                            </TableCell>
-                                            <TableCell align="right">
-                                                <OutcomeChip outcome={run.outcome} />
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
+                                    results.map((run) => {
+                                        const normalizedOutcome = run.outcome?.toUpperCase();
+                                        const canClone = normalizedOutcome === "SUCCESS";
+                                        const isResuming = resumingRunId === run.run_id;
+
+                                        return (
+                                            <TableRow key={run.run_id} hover sx={{ "& td": { py: 1.5, px: 2, borderBottom: "1px solid #f3f4f6" } }}>
+                                                <TableCell>
+                                                    <Typography fontSize={13} fontWeight={700} color="#111827">
+                                                        #{run.run_id}
+                                                    </Typography>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Typography fontSize={13} color="#374151">
+                                                        {run.generation_id}
+                                                    </Typography>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Typography fontSize={13} color="#374151">
+                                                        {run.rule_name || "-"}
+                                                    </Typography>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Typography fontSize={13} color="#374151">
+                                                        {run.rule_version || "-"}
+                                                    </Typography>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Typography fontSize={13} color="#374151">
+                                                        {run.trigger_count ?? (run.triggers?.length ?? 0)}
+                                                    </Typography>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Typography fontSize={13} color="#374151">
+                                                        {run.triggers?.length ?? 0}
+                                                    </Typography>
+                                                </TableCell>
+                                                <TableCell align="right">
+                                                    <OutcomeChip outcome={run.outcome} />
+                                                </TableCell>
+                                                <TableCell align="right">
+                                                    <Box display="flex" justifyContent="flex-end" alignItems="center" gap={0.5}>
+                                                        <Tooltip title="Resume">
+                                                            <span>
+                                                                <IconButton
+                                                                    size="small"
+                                                                    sx={{ color: "#f59e0b" }}
+                                                                    onClick={() => void handleResume(run)}
+                                                                    disabled={isResuming}
+                                                                >
+                                                                    {isResuming ? (
+                                                                        <CircularProgress size={16} sx={{ color: "#f59e0b" }} />
+                                                                    ) : (
+                                                                        <PlayCircleOutlineIcon fontSize="small" />
+                                                                    )}
+                                                                </IconButton>
+                                                            </span>
+                                                        </Tooltip>
+                                                        {canClone && (
+                                                            <Tooltip title="Clone">
+                                                                <IconButton size="small" sx={{ color: "#21a0c1" }} onClick={() => handleClone(run)}>
+                                                                    <ContentCopyIcon fontSize="small" />
+                                                                </IconButton>
+                                                            </Tooltip>
+                                                        )}
+                                                        <Tooltip title="Rerun">
+                                                            <IconButton size="small" sx={{ color: "#4789f6" }} onClick={() => handleRerun(run)}>
+                                                                <ReplayIcon fontSize="small" />
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                    </Box>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })
                                 )}
                             </TableBody>
                         </Table>
