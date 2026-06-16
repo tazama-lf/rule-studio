@@ -17,16 +17,14 @@ export class MsgSampleGenerationController {
     async applyTransformation(
         @Param('generationId', ParseIntPipe) generationId: number,
         @User() user: AuthenticatedUser,
-    ): Promise<{ dbScript: string }> {
+    ): Promise<{ dbScript: string; functionResultScript: string }> {
         const response = await this.msgSampleGenerationService.getSampleMessages(generationId, user.token.tokenString);
         
-        // Generate the database script from the response
-        const dbScript = await this.msgSampleGenerationService.generateDbScript(response, user.token.tokenString);
-        console.log('Generated DB Script:', dbScript); 
-        
-        
+        const { dbScript, functionResultScript } = await this.msgSampleGenerationService.generateDbScript(response, user.token.tokenString);
+
         return {
-            dbScript
+            dbScript,
+            functionResultScript
         };
     }
 

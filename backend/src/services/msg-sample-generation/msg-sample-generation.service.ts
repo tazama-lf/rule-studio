@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { GenerateSampleMessagesResponseDto } from './dto/msg-sample-generation.dto';
 import { AdminServiceClient } from '../admin-service-client';
 import { processMappings } from 'src/utils/process-mappings.util';
+import { executeConfiguredFunctions } from 'src/utils/execute-functions.util';
 
 @Injectable()
 export class MsgSampleGenerationService {
@@ -17,8 +18,9 @@ export class MsgSampleGenerationService {
    * @param response The sample messages response containing transaction type patterns and payloads
    * @returns DbScript containing CREATE TABLE statements and INSERT statements
    */
-  async generateDbScript(response: GenerateSampleMessagesResponseDto, token:string): Promise<string> {
+  async generateDbScript(response: GenerateSampleMessagesResponseDto, token:string): Promise<{ dbScript: string; functionResultScript: string }> {
     let dbScript = '';
+    let functionResultScript = '';
 
     for (const item of response.data) {
       const tableName = item.txtp;
@@ -37,12 +39,28 @@ export class MsgSampleGenerationService {
 
       dbScript += ddl;
 
-      const configRow = await this.adminServiceClient.getConfigRowByTxTp(item.txtp, item.txtp_version, token);
+      const configRow = await this.adminServiceClient.getConfigRowByTxTpw3(item.txtp, item.txtp_version, token);
       
       if (item.payloads && Array.isArray(item.payloads) && item.payloads.length > 0) {
-        const trackedFieldsResponse = await Promise.all(
-          item.payloads.map(async (payload) => await processMappings(payload, configRow.config.mapping, false)),
-        );
+        const trackedFieldsResponse = [] as Array<{
+          dataCache: any;
+          transactionRelationship: any;
+          endToEndId: string;
+          dynamicMapping?: any;
+          trackedFields: any;
+        }>;
+
+        for (const payload of item.payloads) {
+          const mappingResult = await processMappings(payload, configRow.config.mapping, false);
+          functionResultScript += await executeConfiguredFunctions(
+            payload,
+            configRow.config.mapping,
+            configRow.config.functions,
+            mappingResult.transactionRelationship,
+          );
+          trackedFieldsResponse.push(mappingResult);
+        }
+        console.log(`Generated function result script for payload with EndToEndId ${functionResultScript}`);
 
         const escapeSql = (value: string): string => value.replace(/'/g, "''");
 
@@ -70,6 +88,6 @@ export class MsgSampleGenerationService {
       }
     };
 
-    return dbScript;
+    return { dbScript, functionResultScript };
   }
 }
