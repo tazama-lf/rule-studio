@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
+import { faker } from '@faker-js/faker';
 import { firstValueFrom } from 'rxjs';
 import { Client as PgClient } from 'pg';
 import { AdminServiceClient } from '../../admin-service-client';
@@ -20,13 +21,37 @@ interface RuleConfigBand {
   lowerLimit?: number;
 }
 
+interface RuleConfigCaseExpression {
+  value: unknown;
+  reason?: string;
+  subRuleRef: string;
+}
+
+interface RuleConfigCases {
+  alternative: { subRuleRef: string; reason?: string };
+  expressions: RuleConfigCaseExpression[];
+}
+
 interface RuleConfig {
   id: string;
   cfg: string;
   tenantId: string;
+  // Bands and cases are mutually exclusive on a rule config.
   config?: {
     bands?: RuleConfigBand[];
+    cases?: RuleConfigCases;
   };
+}
+
+type Typology = ReturnType<typeof buildTypology>;
+
+function extractSubRuleRefs(ruleConfig: RuleConfig): string[] {
+  // Cases take precedence over bands. Order matters: alternative first, then expressions in their declared order.
+  const cases = ruleConfig.config?.cases;
+  if (cases) {
+    return [cases.alternative.subRuleRef, ...cases.expressions.map((e) => e.subRuleRef)];
+  }
+  return (ruleConfig.config?.bands ?? []).map((band) => band.subRuleRef);
 }
 
 function buildTypology(ruleConfig: RuleConfig, ruleName: string, ruleVersion: string) {
@@ -34,10 +59,11 @@ function buildTypology(ruleConfig: RuleConfig, ruleName: string, ruleVersion: st
   const typologyCfg = `atp@${ruleVersion}`;
   const termId = `v${ruleName}at100at100`;
 
-  const bands: RuleConfigBand[] = ruleConfig.config?.bands ?? [];
-  const wghts = [
-    { ref: '.err', wght: '0' },
-    ...bands.map((band) => ({ ref: band.subRuleRef, wght: '100' })),
+  // Ordinal weights: each subRuleRef gets index*100. `.err` is always 0 and is not part of the ordinal sequence.
+  const subRuleRefs = extractSubRuleRefs(ruleConfig);
+  const wghts: { ref: string; wght: number }[] = [
+    { ref: '.err', wght: 0 },
+    ...subRuleRefs.map((ref, i) => ({ ref, wght: i * 100 })),
   ];
 
   return {
@@ -54,16 +80,14 @@ function buildTypology(ruleConfig: RuleConfig, ruleName: string, ruleVersion: st
     tenantId: ruleConfig.tenantId,
     workflow: {
       alertThreshold: 100,
-      interdictionThreshold: 400,
+      interdictionThreshold: 100,
     },
     expression: ['Add', termId],
     typology_name: `${ruleName}-typology-processor`,
   };
 }
 
-function buildNetworkMap(ruleConfig: RuleConfig, ruleName: string, ruleVersion: string, txTp: string) {
-  const typology = buildTypology(ruleConfig, ruleName, ruleVersion);
-
+function buildNetworkMap(typology: Typology, ruleName: string, tenantId: string, txTp: string) {
   return {
     cfg: '1.0.0',
     name: `Public ${ruleName} Network Map`,
@@ -83,7 +107,7 @@ function buildNetworkMap(ruleConfig: RuleConfig, ruleName: string, ruleVersion: 
         ],
       },
     ],
-    tenantId: ruleConfig.tenantId,
+    tenantId,
   };
 }
 
@@ -98,50 +122,84 @@ export class RunSimulationService {
     private readonly httpService: HttpService,
   ) {}
 
-  async runSimulation(token: string, body: RunSimulationDto): Promise<RunSimulationResponseDto> {
+  async runSimulation(token: string, tenantId: string, body: RunSimulationDto): Promise<RunSimulationResponseDto> {
     const { suiteId, generationId } = body;
     const simName = `run-sim-${suiteId}-gen-${generationId}-${Date.now()}`;
 
     await this.adminServiceClient.updateGenerationStatus(token, generationId, { status: 'RUNNING' });
 
-    const [suiteResp, triggerResp, sampleResp] = await Promise.all([
-      this.adminServiceClient.getSimulationSuiteById(token, suiteId),
-      this.adminServiceClient.getSampleTriggerMessages<SampleTriggerMessagesResponse>(token, generationId),
-      this.adminServiceClient.getSampleMessages(token, generationId),
-    ]);
-
-    const { suite } = suiteResp;
-    const ruleName = suite.rule_name;
-    const version = suite.rule_version ?? 'rc';
-    const ruleConfig = suite.rule_config;
-
-    if (!ruleName) {
-      throw new Error(`Suite ${suiteId} has no rule_name set`);
-    }
-
-    const { data: triggerMessages } = triggerResp;
-    if (triggerMessages.length === 0) {
-      return { success: true, results: [] };
-    }
-
-    const simInfo = await this.ephemeralEnvService.spawn(simName, { ruleName, version });
-    const { ports } = simInfo;
-
     try {
-      await this.applyRuleConfig(ports.pg, ruleConfig);
-      
-      // Generate and seed the database with sample data
-      const dbScript = await this.msgSampleGenerationService.generateDbScript(sampleResp, token);
-      await this.seedDatabaseWithScript(ports.pg, dbScript);
+      const [suiteResp, triggerResp, sampleResp] = await Promise.all([
+        this.adminServiceClient.getSimulationSuiteById(token, suiteId),
+        this.adminServiceClient.getSampleTriggerMessages<SampleTriggerMessagesResponse>(token, generationId),
+        this.adminServiceClient.getSampleMessages(token, generationId),
+      ]);
 
-      // Intentionally hardcoded endpoint and routing for now, per current local testing flow.
-      const natsUtilsBase = 'http://10.10.80.37:4000';
-      this.logger.log('the nats util url is: ', natsUtilsBase);
-      const results = await this.publishTriggerMessages(natsUtilsBase, triggerMessages, token, generationId, ruleName, version, ruleConfig as unknown as RuleConfig);
+      const { suite } = suiteResp;
+      const ruleName = suite.rule_name;
+      // TODO(client-input): version is taken from the suite's rule_version for now; the user-provided rule_config may have its own version we should honour. Confirm with client before changing.
+      const version = suite.rule_version ?? 'rc';
+      const ruleConfig = suite.rule_config as unknown as RuleConfig;
 
-      return { success: true, results };
-    } finally {
-      await this.ephemeralEnvService.destroy(simName).catch(() => undefined);
+      if (!ruleName) {
+        throw new Error(`Suite ${suiteId} has no rule_name set`);
+      }
+
+      const { data: triggerMessages } = triggerResp;
+      if (triggerMessages.length === 0) {
+        // No triggers to publish — run is vacuously complete.
+        await this.markGenerationStatus(token, generationId, 'COMPLETED');
+        return { success: true, results: [] };
+      }
+
+      // Build artifacts once for the whole run. Typology has no per-trigger dependency; the
+      // per-trigger network map reuses it and only swaps in the current message's txTp.
+      const typology = buildTypology(ruleConfig, ruleName, version);
+      // One correlationId per run, shared by every trigger publish in this simulation.
+      const correlationId = faker.string.uuid();
+
+      const simInfo = await this.ephemeralEnvService.spawn(simName, { ruleName, version });
+      const { ports } = simInfo;
+
+      try {
+        await this.applyRuleConfig(ports.pg, ruleConfig as unknown as Record<string, unknown>);
+
+        // Generate and seed the database with sample data
+        const dbScript = await this.msgSampleGenerationService.generateDbScript(sampleResp, token);
+        await this.seedDatabaseWithScript(ports.pg, dbScript);
+
+        // Intentionally hardcoded endpoint and routing for now, per current local testing flow.
+        const natsUtilsBase = 'http://10.10.80.37:4000';
+        this.logger.log('the nats util url is: ', natsUtilsBase);
+        const results = await this.publishTriggerMessages(
+          natsUtilsBase,
+          triggerMessages,
+          token,
+          generationId,
+          ruleName,
+          version,
+          typology,
+          tenantId,
+          correlationId,
+        );
+
+        await this.markGenerationStatus(token, generationId, 'COMPLETED');
+        return { success: true, results };
+      } finally {
+        await this.ephemeralEnvService.destroy(simName).catch(() => undefined);
+      }
+    } catch (err) {
+      await this.markGenerationStatus(token, generationId, 'FAILED');
+      throw err;
+    }
+  }
+
+  private async markGenerationStatus(token: string, generationId: number, status: 'COMPLETED' | 'FAILED'): Promise<void> {
+    // Status update failures shouldn't shadow the run's real outcome — log and swallow.
+    try {
+      await this.adminServiceClient.updateGenerationStatus(token, generationId, { status });
+    } catch (err) {
+      this.logger.warn(`Failed to update generation ${generationId} status to ${status}: ${(err as Error).message}`);
     }
   }
 
@@ -199,7 +257,9 @@ export class RunSimulationService {
     generationId: number,
     ruleName: string,
     version: string,
-    ruleConfig: RuleConfig,
+    typology: Typology,
+    tenantId: string,
+    correlationId: string,
   ): Promise<RuleResult[]> {
     this.logger.log(JSON.stringify(triggerMessages));
     const publishTasks = triggerMessages.map(async (msg): Promise<RuleResult> => {
@@ -211,7 +271,7 @@ export class RunSimulationService {
         TxTp: msg.txtp,
         MsgId: msgId,
         Payload: payload,
-        TenantId: 'cbe', // extract from JWT and keep it here
+        TenantId: tenantId,
       };
 
       let result: unknown = null;
@@ -223,9 +283,15 @@ export class RunSimulationService {
       const functionName = ruleName;
 
       const natsMessage = {
-        transaction: mappedPayload,
+        metaData: {
+          tenantId,
+          timestamp: new Date().toISOString(),
+          correlationId,
+          transactionType: msg.txtp,
+        },
         DataCache: {},
-        networkMap: buildNetworkMap(ruleConfig, ruleName, version, msg.txtp),
+        networkMap: buildNetworkMap(typology, ruleName, tenantId, msg.txtp),
+        transaction: mappedPayload,
       };
 
       const requestBody = {

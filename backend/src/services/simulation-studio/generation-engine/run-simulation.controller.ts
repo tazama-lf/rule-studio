@@ -33,6 +33,6 @@ export class RunSimulationController {
     @Body() body: RunSimulationDto,
     @User() user: AuthenticatedUser,
   ): Promise<RunSimulationResponseDto> {
-    return this.runSimulationService.runSimulation(user.token.tokenString, body);
+    return this.runSimulationService.runSimulation(user.token.tokenString, user.tenantId, body);
   }
 }
