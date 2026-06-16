@@ -96,6 +96,7 @@ describe('ContextTxtpConfigService', () => {
             createContextMapping: jest.fn(),
             getContextMappings: jest.fn(),
             deleteContextMapping: jest.fn(),
+            deleteContextTxtpConfig: jest.fn(),
           },
         },
       ],
@@ -239,6 +240,27 @@ describe('ContextTxtpConfigService', () => {
 
       await expect(service.getContextMappings('test-token', 123, 456)).rejects.toThrow('Get mappings failed');
       expect(loggerSpy).toHaveBeenCalledWith('Error fetching context mappings for 123/456', expect.any(String));
+    });
+  });
+
+  describe('deleteContextTxtpConfig', () => {
+    it('forwards token, generationId and configId, returns success', async () => {
+      const response = { success: true, message: 'Context config deleted' };
+      (adminServiceClient.deleteContextTxtpConfig as jest.Mock).mockResolvedValue(response);
+
+      const result = await service.deleteContextTxtpConfig('test-token', 1, 10);
+
+      expect(result).toEqual(response);
+      expect(adminServiceClient.deleteContextTxtpConfig).toHaveBeenCalledWith('test-token', 1, 10);
+    });
+
+    it('logs and rethrows on error', async () => {
+      const error = new Error('Delete config failed');
+      (adminServiceClient.deleteContextTxtpConfig as jest.Mock).mockRejectedValue(error);
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+      await expect(service.deleteContextTxtpConfig('test-token', 1, 10)).rejects.toThrow('Delete config failed');
+      expect(loggerSpy).toHaveBeenCalledWith('Error deleting context txtp config 10 for generation 1', expect.any(String));
     });
   });
 

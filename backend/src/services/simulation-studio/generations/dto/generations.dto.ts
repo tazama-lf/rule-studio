@@ -20,7 +20,7 @@ export class SuiteGenerationDto {
   simulation_type: string;
 
   @ApiProperty({ required: false })
-  rule_repo?: string;
+  rule_name?: string;
 
   @ApiProperty({ required: false })
   rule_version?: string;
@@ -42,6 +42,15 @@ export class SuiteGenerationDto {
 
   @ApiProperty()
   updated_at: string;
+
+  @ApiProperty({ example: 3, description: 'Number of simulation runs for this generation' })
+  run_count!: number;
+
+  @ApiProperty({ example: 12, description: 'Total number of trigger results across all runs' })
+  run_result_count!: number;
+
+  @ApiProperty({ example: 'SUCCESS', required: false, nullable: true, description: 'Outcome of the most recent run' })
+  outcome?: string | null;
 }
 
 export class SuiteGenerationsListDto {
