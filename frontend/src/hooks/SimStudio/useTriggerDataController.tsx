@@ -45,7 +45,7 @@ const parseRelatedTransaction = (url: string): { txtp: string; version: string }
 const overrideTypeFromApi = (type: string): TriggerOverrideType => {
     if (type === "static") return "static";
     if (type === "range") return "range";
-    if (type === "generated") return "random";
+    if (type === "random") return "random";
     if (type === "remove" || type === "skip") return "remove";
     return "null";
 };
@@ -292,14 +292,22 @@ const useTriggerDataController = () => {
         const genId = extractData("sim_gen_id", LocalStorage, false) as string | number | null;
         if (!genId) return true;
 
+        const toStrategyCode = (t: TriggerOverrideType): string => {
+            if (t === "static") return "static";
+            if (t === "range") return "range";
+            if (t === "random") return "random";
+            if (t === "remove") return "skip";
+            return "keep_sample";
+        };
+
         const items = entries
             .filter((e) => e.triggerId)
             .map((entry) => ({
                 trigger_txtp_config_id: entry.triggerId!,
                 message_count: entry.numMessages || 1,
-                field_overrides: Object.entries(entry.fieldOverrides).map(([fieldPath, o]) => ({
+                field_strategies: Object.entries(entry.fieldOverrides).map(([fieldPath, o]) => ({
                     field_path: fieldPath,
-                    override_type: o.overrideType,
+                    strategy_code: toStrategyCode(o.overrideType),
                     static_value: o.overrideType === "static" ? o.staticValue : undefined,
                     range_min: o.overrideType === "range" && o.rangeMin ? Number(o.rangeMin) : undefined,
                     range_max: o.overrideType === "range" && o.rangeMax ? Number(o.rangeMax) : undefined,

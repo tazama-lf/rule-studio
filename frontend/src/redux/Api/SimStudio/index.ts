@@ -142,14 +142,13 @@ export interface BulkTriggerConfigItem {
     trigger_txtp_config_id: number;
     message_count?: number;
     payload_template_json?: Record<string, unknown>;
-    field_overrides?: {
+    field_strategies?: {
         field_path: string;
-        override_type: string;
+        strategy_code: string;
         static_value?: unknown;
         range_min?: number;
         range_max?: number;
         faker_semantic_type?: string;
-        generator_type?: string;
         generator_options?: Record<string, unknown>;
     }[];
 }
@@ -179,8 +178,8 @@ export interface SuiteDetail {
     rule_config?: Record<string, unknown>;
     primary_txtp?: string;
     primary_txtp_version?: string;
-    status: string;
-    wizard_progress: Record<string, unknown>;
+    status?: string;
+    wizard_progress?: Record<string, unknown>;
     generation_id?: number;
 }
 

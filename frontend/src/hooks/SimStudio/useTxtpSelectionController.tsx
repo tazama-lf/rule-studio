@@ -68,7 +68,7 @@ const strategyToFieldAction = (code: string): FieldAction => {
     if (code === "static") return "static";
     if (code === "range") return "range";
     if (code === "skip") return "skip";
-    if (code === "generated") return "random";
+    if (code === "random") return "random";
     return "sample";
 };
 
@@ -253,6 +253,8 @@ const useTxtpSelectionController = () => {
                             };
                         case "skip":
                             return { field_path: fieldPath, strategy_code: "skip" as const, faker_semantic_type: cfg.semanticId || undefined };
+                        case "random":
+                            return { field_path: fieldPath, strategy_code: "random" as const, faker_semantic_type: cfg.semanticId || undefined };
                         default:
                             return { field_path: fieldPath, strategy_code: "keep_sample" as const, faker_semantic_type: cfg.semanticId || undefined };
                     }
