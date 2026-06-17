@@ -130,10 +130,11 @@ export class RunSimulationService {
     await this.adminServiceClient.updateGenerationStatus(token, generationId, { status: 'RUNNING' });
 
     try {
-      const [suiteResp, triggerResp, sampleResp] = await Promise.all([
+      const [suiteResp, triggerResp, sampleResp, enrichmentResp] = await Promise.all([
         this.adminServiceClient.getSimulationSuiteById(token, suiteId),
         this.adminServiceClient.getSampleTriggerMessages<SampleTriggerMessagesResponse>(token, generationId),
         this.adminServiceClient.getSampleMessages(token, generationId),
+        this.adminServiceClient.getEnrichmentMessages(token, generationId),
       ]);
 
       const { suite } = suiteResp;
@@ -177,8 +178,14 @@ export class RunSimulationService {
 
         // Generate and seed the database with sample data
         const { dbScript, functionResultScript } = await this.msgSampleGenerationService.generateDbScript(sampleResp, token);
+        const enrichmentDbScript = await this.msgSampleGenerationService.generateEnrichmentDbScript(enrichmentResp, token);
+        
         await this.seedDatabaseWithRawHistoryScript(pgPort, dbScript);
         await this.seedDatabaseWithEventHistoryScript(pgPort, functionResultScript);
+        await this.seedDatabaseWithEnrichmentHistoryScript(pgPort, enrichmentDbScript);
+
+      
+
 
         // TODO(Phase 3.2): table-count + row-count validation gate. Fail-fast here means we tear down Postgres without ever spawning the runtime stack.
 
@@ -205,7 +212,7 @@ export class RunSimulationService {
         await this.markGenerationStatus(token, generationId, 'COMPLETED');
         return { success: true, results };
       } finally {
-        await this.ephemeralEnvService.destroy(simName).catch(() => undefined);
+        // await this.ephemeralEnvService.destroy(simName).catch(() => undefined);
       }
     } catch (err) {
       await this.markGenerationStatus(token, generationId, 'FAILED');
@@ -303,7 +310,34 @@ export class RunSimulationService {
     }
   }
 
-  private async seedDatabaseWithEventHistoryScript(pgPort: number, dbScript: string): Promise<void> {
+  private async seedDatabaseWithEnrichmentHistoryScript(pgPort: number, dbScript: string): Promise<void> {
+    if (!dbScript || dbScript.trim() === '') {
+      this.logger.warn('No database script provided, skipping seed');
+      return;
+    }
+
+    const client = new PgClient({
+      host: 'localhost',
+      port: pgPort,
+      user: 'postgres',
+      password: 'unused',
+      database: 'enrichment',
+    });
+
+    try {
+      await client.connect();
+      await client.query(dbScript);
+      this.logger.log('Successfully seeded database with enrichment generated script');
+    } catch (error) {
+      const err = error as Error;
+      this.logger.error(`Failed to seed database with enrichment generated script: ${err.message}`);
+      throw error;
+    } finally {
+      await client.end().catch(() => undefined);
+    }
+  }
+
+   private async seedDatabaseWithEventHistoryScript(pgPort: number, dbScript: string): Promise<void> {
     if (!dbScript || dbScript.trim() === '') {
       this.logger.warn('No database script provided, skipping seed');
       return;

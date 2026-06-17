@@ -105,7 +105,7 @@ import {
   SimulationSuitesQueryDto,
 } from './simulation-studio/suites/dto';
 import type { ISimulationSuiteCreatePayload } from './simulation-studio/interface/simulation-studio.interface';
-import { GenerateSampleMessagesResponseDto } from './msg-sample-generation/dto/msg-sample-generation.dto';
+import { GenerateEnrichmentResponseDto, GenerateSampleMessagesResponseDto } from './msg-sample-generation/dto/msg-sample-generation.dto';
 
 export interface SimulationMessage {
   messageId: string;
@@ -626,6 +626,16 @@ export class AdminServiceClient {
     const response = await this.executeHttpRequest<GenerateSampleMessagesResponseDto>(
       'GET',
       `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/sample-messages`,
+      token,
+    );
+    return response;
+  }
+  
+//include the type here
+   async getEnrichmentMessages(token: string, generationId: number): Promise<any> {
+    const response = await this.executeHttpRequest<GenerateEnrichmentResponseDto>(
+      'GET',
+      `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/sample-enrichment-rows`,
       token,
     );
     return response;

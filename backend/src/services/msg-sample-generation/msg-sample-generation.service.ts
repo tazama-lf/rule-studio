@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { GenerateSampleMessagesResponseDto } from './dto/msg-sample-generation.dto';
+import { GenerateEnrichmentResponseDto, GenerateSampleMessagesResponseDto } from './dto/msg-sample-generation.dto';
 import { AdminServiceClient } from '../admin-service-client';
 import { processMappings } from 'src/utils/process-mappings.util';
 import { executeConfiguredFunctions } from 'src/utils/execute-functions.util';
@@ -59,7 +59,6 @@ export class MsgSampleGenerationService {
           );
           trackedFieldsResponse.push(mappingResult);
         }
-        console.log(`Generated function result script for payload with EndToEndId ${functionResultScript}`);
 
         const escapeSql = (value: string): string => value.replace(/'/g, "''");
 
@@ -88,5 +87,48 @@ export class MsgSampleGenerationService {
     };
 
     return { dbScript, functionResultScript };
+  }
+
+  async generateEnrichmentDbScript(response: GenerateEnrichmentResponseDto, token:string): Promise<string> {
+    let dbScript = '';
+
+    const escapeSql = (value: string): string => value.replace(/'/g, "''");
+
+    for (const item of response.data) {
+      const tableName = item.table_name;
+
+      const ddl = `
+        CREATE TABLE IF NOT EXISTS public."${tableName}"
+        (
+            id uuid NOT NULL DEFAULT gen_random_uuid(),
+            data jsonb NOT NULL,
+            job_id text COLLATE pg_catalog."default" NOT NULL,
+            checksum text COLLATE pg_catalog."default" NOT NULL,
+            created_at timestamp without time zone NOT NULL DEFAULT now(),
+            CONSTRAINT "${tableName}_pkey" PRIMARY KEY (id)
+        );`;
+
+      dbScript += ddl;
+
+      if (item.rows && Array.isArray(item.rows) && item.rows.length > 0) {
+        const valuesList = item.rows
+          .map((row) => {
+            const dataValue = `'${escapeSql(JSON.stringify(row))}'::jsonb`;
+            const jobIdValue = `'${escapeSql(item.enrichment_table_id)}'`;
+            const checksumValue = `'${escapeSql(JSON.stringify(row))}'`; // Simple checksum using row data hash
+            return `(${dataValue}, ${jobIdValue}, ${checksumValue})`;
+          })
+          .join(',\n    ');
+
+        const dml = `
+          INSERT INTO public."${tableName}" (data, job_id, checksum)
+          VALUES
+              ${valuesList};`;
+
+        dbScript += dml;
+      }
+    }
+
+    return dbScript;
   }
 }

@@ -18,7 +18,6 @@ export async function executeConfiguredFunctions(
       for (const row of configuredFunctions) {
         // prepare params (getPayloadByPath) --> and call each function one by one
         const functionToCall = row.functionName;
-        loggerService.log(`function to call is : ${functionToCall}`);
         let sources = row.params ?? [];
 
         const ALLOWED_DB_FUNCTIONS = [
