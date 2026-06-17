@@ -1,8 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsInt, IsPositive } from 'class-validator';
 
-export class
-  RunSimulationDto {
+export class RunSimulationDto {
   @ApiProperty({ description: 'Simulation suite ID — rule_name, rule_version and rule_config are read from the suite', example: 1 })
   @IsInt()
   @IsPositive()

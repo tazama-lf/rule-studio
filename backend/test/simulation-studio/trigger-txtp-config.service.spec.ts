@@ -98,6 +98,7 @@ describe('TriggerTxtpConfigService', () => {
             createTriggerMapping: jest.fn(),
             getTriggerMappings: jest.fn(),
             deleteTriggerMapping: jest.fn(),
+            deleteTriggerTxtpConfig: jest.fn(),
           },
         },
       ],
@@ -326,6 +327,27 @@ describe('TriggerTxtpConfigService', () => {
 
       await expect(service.getTriggerConfigById('test-token', 20)).rejects.toThrow('Config not found');
       expect(loggerSpy).toHaveBeenCalledWith('Error fetching trigger config 20', expect.any(String));
+    });
+  });
+
+  describe('deleteTriggerTxtpConfig', () => {
+    it('forwards token, generationId and configId, returns success', async () => {
+      const response = { success: true, message: 'Trigger config deleted' };
+      (adminServiceClient.deleteTriggerTxtpConfig as jest.Mock).mockResolvedValue(response);
+
+      const result = await service.deleteTriggerTxtpConfig('test-token', 1, 20);
+
+      expect(result).toEqual(response);
+      expect(adminServiceClient.deleteTriggerTxtpConfig).toHaveBeenCalledWith('test-token', 1, 20);
+    });
+
+    it('logs and rethrows on error', async () => {
+      const error = new Error('Delete trigger config failed');
+      (adminServiceClient.deleteTriggerTxtpConfig as jest.Mock).mockRejectedValue(error);
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+      await expect(service.deleteTriggerTxtpConfig('test-token', 1, 20)).rejects.toThrow('Delete trigger config failed');
+      expect(loggerSpy).toHaveBeenCalledWith('Error deleting trigger txtp config 20 for generation 1', expect.any(String));
     });
   });
 

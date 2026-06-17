@@ -29,6 +29,7 @@ interface Step1Props {
     versionLoading: boolean;
     existingSuite?: SuiteDetail | null;
     isSuiteLoading?: boolean;
+    isCloneMode?: boolean;
 }
 
 interface RuleConfigFieldProps {
@@ -132,10 +133,15 @@ const Step1RuleDetails = ({
     versionLoading,
     existingSuite,
     isSuiteLoading,
+    isCloneMode = false,
 }: Step1Props) => {
     if (txLoading || isSuiteLoading) return <Loader center />;
 
     const isDisabled = !!existingSuite;
+    const isCloneEditable = !!existingSuite && isCloneMode;
+    const isSuiteNameDisabled = isDisabled && !isCloneEditable;
+    const isDescriptionDisabled = isDisabled && !isCloneEditable;
+    const isRuleVersionDisabled = (!!existingSuite && !isCloneMode) || ruleVersionOptions.length === 0;
 
     return (
         <Box width="100%" display="flex" flexDirection="column">
@@ -158,7 +164,7 @@ const Step1RuleDetails = ({
                                     label="Simulation Suite Name"
                                     placeholder="e.g., Q3 Edge Cases"
                                     {...field}
-                                    disabled={isDisabled}
+                                    disabled={isSuiteNameDisabled}
                                     error={errors.suite_name?.message}
                                 />
                             )}
@@ -176,7 +182,7 @@ const Step1RuleDetails = ({
                                     label="Description"
                                     placeholder="Describe the purpose of this simulation suite..."
                                     {...field}
-                                    disabled={isDisabled}
+                                    disabled={isDescriptionDisabled}
                                 />
                             )}
                         />
@@ -209,7 +215,7 @@ const Step1RuleDetails = ({
                                     options={ruleVersionOptions}
                                     value={field.value ?? null}
                                     onChange={(val) => field.onChange(val)}
-                                    disabled={isDisabled || ruleVersionOptions.length === 0}
+                                    disabled={isRuleVersionDisabled}
                                     error={error?.message}
                                 />
                             )}

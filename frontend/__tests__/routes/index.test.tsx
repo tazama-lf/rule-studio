@@ -200,9 +200,9 @@ describe('ROUTES (routes/index)', () => {
             expect(layoutRoutes).toHaveLength(14);
         });
 
-        it('should have exactly 8 routes with layout: false', () => {
+        it('should have exactly 9 routes with layout: false', () => {
             const noLayoutRoutes = ROUTES.filter((r) => !r.layout);
-            expect(noLayoutRoutes).toHaveLength(8);
+            expect(noLayoutRoutes).toHaveLength(9);
         });
     });
 

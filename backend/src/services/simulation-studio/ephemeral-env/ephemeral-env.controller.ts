@@ -1,16 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpCode,
-  HttpStatus,
-  NotFoundException,
-  Param,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, NotFoundException, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiParam, ApiTags } from '@nestjs/swagger';
 import { RequireAnyClaims, TazamaClaims } from 'src/decorators/auth.decorator';
 import { ApiSwagger, CommonResponses, mergeResponses } from 'src/decorators/swagger.decorator';
@@ -24,7 +13,7 @@ import { SimulationInfoDto } from './dto/simulation-info.dto';
 @Controller('simulation-studio/ephemeral')
 @UseGuards(TazamaAuthGuard)
 export class EphemeralEnvController {
-  constructor(private readonly ephemeralEnvService: EphemeralEnvService) { }
+  constructor(private readonly ephemeralEnvService: EphemeralEnvService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -129,10 +118,7 @@ export class EphemeralEnvController {
   @ApiSwagger({
     summary: 'Destroy a simulation environment',
     description: 'Stops all containers for the named simulation and removes the network.',
-    responses: mergeResponses(
-      { 204: { description: 'Simulation destroyed' } },
-      CommonResponses.NOT_FOUND_404('Simulation not found'),
-    ),
+    responses: mergeResponses({ 204: { description: 'Simulation destroyed' } }, CommonResponses.NOT_FOUND_404('Simulation not found')),
   })
   async destroy(@Param('name') name: string): Promise<void> {
     if (!this.ephemeralEnvService.get(name)) throw new NotFoundException(`Simulation '${name}' not found`);

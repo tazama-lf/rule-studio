@@ -11,18 +11,22 @@ import useCreateSimSuiteController from "../../../hooks/SimStudio/useCreateSimSu
 const CreateSimSuiteContent = () => {
     const { values, functions } = useCreateSimSuiteController();
     const { tabs } = useSimStudioTab();
+    const showFooter = !values.isResultsLocked;
+    const showNextStep = values.selectedTab !== "preview_save" && values.selectedTab !== "simulation_results";
 
     return (
         <S.PageContainer>
             <S.TopBar>
                 <Box display="flex" alignItems="center" gap={1}>
-                    <IconButton
-                        size="small"
-                        onClick={functions.handleBack}
-                        sx={{ color: "text.primary" }}
-                    >
-                        <ArrowBackIcon fontSize="small" />
-                    </IconButton>
+                    {!values.isResultsLocked && (
+                        <IconButton
+                            size="small"
+                            onClick={functions.handleBack}
+                            sx={{ color: "text.primary" }}
+                        >
+                            <ArrowBackIcon fontSize="small" />
+                        </IconButton>
+                    )}
                     <Text weight="bold" color="black" size="header">
                         Create Simulation Suite
                     </Text>
@@ -35,7 +39,8 @@ const CreateSimSuiteContent = () => {
                 <Tabs variant="sim-studio" />
             </Box>
             <S.ContentArea>{functions.renderStep()}</S.ContentArea>
-            <S.BottomBar>
+            {showFooter && (
+                <S.BottomBar>
                 <Button
                     variant="outlined"
                     onClick={functions.handleBack}
@@ -51,7 +56,7 @@ const CreateSimSuiteContent = () => {
                 >
                     Back
                 </Button>
-                {values.selectedTab !== "preview_save" && (
+                {showNextStep && (
                 <Button
                     variant="contained"
                     endIcon={<ChevronRightIcon />}
@@ -71,7 +76,8 @@ const CreateSimSuiteContent = () => {
                     {values.isCreatingSuite ? "Creating..." : "Next Step"}
                 </Button>
                 )}
-            </S.BottomBar>
+                </S.BottomBar>
+            )}
         </S.PageContainer>
     );
 };

@@ -7,13 +7,17 @@ import { User } from 'src/decorators/user.decorator';
 import type { AuthenticatedUser } from '../../auth/auth.types';
 import { RunSimulationService } from './run-simulation.service';
 import { RunSimulationDto, RunSimulationResponseDto } from './dto/run-simulation.dto';
+import { GenerationsService } from '../generations/generations.service';
 
 @ApiTags('simulation-studio')
 @ApiBearerAuth('JWT-auth')
 @Controller('simulation-studio')
 @UseGuards(TazamaAuthGuard)
 export class RunSimulationController {
-  constructor(private readonly runSimulationService: RunSimulationService) { }
+  constructor(
+    private readonly runSimulationService: RunSimulationService,
+    private readonly generationsService: GenerationsService,
+  ) {}
 
   @Post('run-simulation')
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
@@ -33,6 +37,22 @@ export class RunSimulationController {
     @Body() body: RunSimulationDto,
     @User() user: AuthenticatedUser,
   ): Promise<RunSimulationResponseDto> {
-    return this.runSimulationService.runSimulation(user.token.tokenString, user.tenantId, body);
+    return await this.runSimulationService.runSimulation(user.token.tokenString, body);
+  }
+
+  @Post('rerun-simulation')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @ApiBody({ type: RunSimulationDto })
+  @ApiSwagger({
+    summary: 'Rerun generation with new id',
+    description: 'Reruns a generation and replicates suite context, triggers, enrichment tables and field strategies in the admin DB.',
+    responses: mergeResponses(CommonResponses.CREATED_201(RunSimulationResponseDto, 'Generation rerun successfully')),
+  })
+  async rerunGeneration(@Body() body: RunSimulationDto, @User() user: AuthenticatedUser): Promise<RunSimulationResponseDto> {
+    const cloned = await this.generationsService.cloneGeneration(user.token.tokenString, body.generationId);
+    return await this.runSimulationService.runSimulation(user.token.tokenString, {
+      suiteId: body.suiteId,
+      generationId: cloned.data.id,
+    });
   }
 }

@@ -102,6 +102,7 @@ describe('SimulationStudioService', () => {
             getSimulationSuiteById: jest.fn(),
             createSimulationSuite: jest.fn(),
             patchSimulationSuite: jest.fn(),
+            cloneSuite: jest.fn(),
           },
         },
       ],
@@ -242,5 +243,63 @@ describe('SimulationStudioService', () => {
 
     await expect(service.createSimulationSuites('test-token', createDto)).rejects.toThrow('Create failed');
     expect(loggerSpy).toHaveBeenCalledWith('Error creating simulation suite', expect.any(String));
+  });
+
+  it('getSimulationSuites logs and rethrows on error', async () => {
+    const query = { search: 'Q3', limit: 10, offset: 0 } as any;
+    const error = new Error('Fetch failed');
+    adminServiceClient.getSimulationSuites.mockRejectedValue(error);
+    const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+    await expect(service.getSimulationSuites('test-token', query)).rejects.toThrow('Fetch failed');
+    expect(loggerSpy).toHaveBeenCalledWith('Error fetching simulation suites', expect.any(String));
+  });
+
+  it('getSimulationSuitesCounts logs and rethrows on error', async () => {
+    const error = new Error('Counts failed');
+    adminServiceClient.getSimulationSuitesCounts.mockRejectedValue(error);
+    const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+    await expect(service.getSimulationSuitesCounts('test-token')).rejects.toThrow('Counts failed');
+    expect(loggerSpy).toHaveBeenCalledWith('Error fetching simulation suites counts', expect.any(String));
+  });
+
+  it('getSimulationSuiteById logs and rethrows on error', async () => {
+    const error = new Error('Not found');
+    adminServiceClient.getSimulationSuiteById.mockRejectedValue(error);
+    const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+    await expect(service.getSimulationSuiteById('test-token', 101)).rejects.toThrow('Not found');
+    expect(loggerSpy).toHaveBeenCalledWith('Error fetching simulation suite by id: 101', expect.any(String));
+  });
+
+  it('patchSimulationSuite logs and rethrows on error', async () => {
+    const error = new Error('Patch failed');
+    adminServiceClient.patchSimulationSuite.mockRejectedValue(error);
+    const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+    await expect(service.patchSimulationSuite('test-token', 101, {} as any)).rejects.toThrow('Patch failed');
+    expect(loggerSpy).toHaveBeenCalledWith('Error patching simulation suite with id: 101', expect.any(String));
+  });
+
+  describe('cloneSuite', () => {
+    it('forwards token and suiteId, returns cloned suite with generation_id', async () => {
+      const cloneResponse = { success: true, data: { ...mockSuite, generation_id: 5 } };
+      (adminServiceClient.cloneSuite as jest.Mock).mockResolvedValue(cloneResponse);
+
+      const result = await service.cloneSuite('test-token', 101);
+
+      expect(result).toEqual(cloneResponse);
+      expect(adminServiceClient.cloneSuite).toHaveBeenCalledWith('test-token', 101);
+    });
+
+    it('logs and rethrows on error', async () => {
+      const error = new Error('Clone failed');
+      (adminServiceClient.cloneSuite as jest.Mock).mockRejectedValue(error);
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+      await expect(service.cloneSuite('test-token', 101)).rejects.toThrow('Clone failed');
+      expect(loggerSpy).toHaveBeenCalledWith('Error cloning suite 101', expect.any(String));
+    });
   });
 });

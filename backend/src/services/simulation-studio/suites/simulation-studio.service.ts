@@ -109,4 +109,17 @@ export class SimulationStudioService {
       throw error;
     }
   }
+
+  async cloneSuite(
+    token: string,
+    suiteId: number,
+  ): Promise<{ success: boolean; data: SimulationSuitesDto & { generation_id: number | null } }> {
+    try {
+      return await this.adminServiceClient.cloneSuite(token, suiteId);
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(`Error cloning suite ${suiteId}`, error.stack);
+      throw err;
+    }
+  }
 }

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsDateString, IsObject, IsEnum, IsOptional, IsInt, Min } from 'class-validator';
+import { IsString, IsNotEmpty, IsDateString, IsObject, IsEnum, IsOptional, IsInt, Min, IsPositive } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SimulationSuiteType, SimulationSuiteStatus } from 'src/utils/enums/simulation.enum';
 
@@ -399,4 +399,12 @@ export class SimulationSuitesQueryDto {
   @IsInt()
   @Min(1)
   limit?: number;
+}
+
+export class CloneSuiteDto {
+  @ApiProperty({ description: 'Source suite id to clone', example: 1 })
+  @Type(() => Number)
+  @IsInt()
+  @IsPositive()
+  suite_id!: number;
 }

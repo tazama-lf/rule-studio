@@ -20,7 +20,7 @@ const mockNavigate = jest.fn();
 const mockResetData = resetData as jest.Mock;
 const mockExtractData = extractData as jest.Mock;
 
-// TRS user (claims: 'editor') → shows Home + Sandbox
+// TRS user (claims: 'editor') → shows Home + Sim Studio
 const trsUser = { claims: 'editor' };
 
 describe('Sidebar Component', () => {
@@ -45,7 +45,7 @@ describe('Sidebar Component', () => {
       render(<Sidebar expanded={true} />);
       
       expect(screen.getByText('Home')).toBeInTheDocument();
-      expect(screen.getByText('Sandbox')).toBeInTheDocument();
+      expect(screen.getByText('Sim Studio')).toBeInTheDocument();
     });
 
     it('should render logout button', () => {
@@ -64,7 +64,7 @@ describe('Sidebar Component', () => {
       render(<Sidebar expanded={true} />);
       
       expect(screen.getByText('Home')).toBeInTheDocument();
-      expect(screen.getByText('Sandbox')).toBeInTheDocument();
+      expect(screen.getByText('Sim Studio')).toBeInTheDocument();
       expect(screen.getByText('Logout')).toBeInTheDocument();
     });
 
@@ -72,7 +72,7 @@ describe('Sidebar Component', () => {
       render(<Sidebar expanded={false} />);
       
       expect(screen.queryByText('Home')).not.toBeInTheDocument();
-      expect(screen.queryByText('Sandbox')).not.toBeInTheDocument();
+      expect(screen.queryByText('Sim Studio')).not.toBeInTheDocument();
       expect(screen.queryByText('Logout')).not.toBeInTheDocument();
     });
 
@@ -96,24 +96,24 @@ describe('Sidebar Component', () => {
       expect(mockNavigate).toHaveBeenCalledTimes(1);
     });
 
-    it('should navigate to sandbox on clicking Sandbox', () => {
+    it('should navigate to Sim Studio on clicking Sim Studio', () => {
       render(<Sidebar expanded={true} />);
       
-      const sandboxButton = screen.getByText('Sandbox');
-      fireEvent.click(sandboxButton);
+      const simStudioButton = screen.getByText('Sim Studio');
+      fireEvent.click(simStudioButton);
       
-      expect(mockNavigate).toHaveBeenCalledWith('sandbox');
+      expect(mockNavigate).toHaveBeenCalledWith('sim-studio');
     });
 
     it('should handle multiple navigation clicks', () => {
       render(<Sidebar expanded={true} />);
       
       fireEvent.click(screen.getByText('Home'));
-      fireEvent.click(screen.getByText('Sandbox'));
+      fireEvent.click(screen.getByText('Sim Studio'));
       
       expect(mockNavigate).toHaveBeenCalledTimes(2);
       expect(mockNavigate).toHaveBeenNthCalledWith(1, 'home');
-      expect(mockNavigate).toHaveBeenNthCalledWith(2, 'sandbox');
+      expect(mockNavigate).toHaveBeenNthCalledWith(2, 'sim-studio');
     });
   });
 
@@ -128,20 +128,20 @@ describe('Sidebar Component', () => {
     it('should update active state on menu click', () => {
       render(<Sidebar expanded={true} />);
       
-      const sandboxButton = screen.getByText('Sandbox');
-      fireEvent.click(sandboxButton);
+      const simStudioButton = screen.getByText('Sim Studio');
+      fireEvent.click(simStudioButton);
       
-      expect(mockNavigate).toHaveBeenCalledWith('sandbox');
+      expect(mockNavigate).toHaveBeenCalledWith('sim-studio');
     });
 
     it('should handle rapid successive clicks', () => {
       render(<Sidebar expanded={true} />);
       
       const homeButton = screen.getByText('Home');
-      const sandboxButton = screen.getByText('Sandbox');
+      const simStudioButton = screen.getByText('Sim Studio');
       
       fireEvent.click(homeButton);
-      fireEvent.click(sandboxButton);
+      fireEvent.click(simStudioButton);
       fireEvent.click(homeButton);
       
       expect(mockNavigate).toHaveBeenCalledTimes(3);
@@ -211,20 +211,20 @@ describe('Sidebar Component', () => {
 
     it('should update when expanded prop changes', () => {
       const { rerender } = render(<Sidebar expanded={false} />);
-      expect(screen.queryByText('Sandbox')).not.toBeInTheDocument();
+      expect(screen.queryByText('Sim Studio')).not.toBeInTheDocument();
       
       rerender(<Sidebar expanded={true} />);
-      expect(screen.getByText('Sandbox')).toBeInTheDocument();
+      expect(screen.getByText('Sim Studio')).toBeInTheDocument();
       
       rerender(<Sidebar expanded={false} />);
-      expect(screen.queryByText('Sandbox')).not.toBeInTheDocument();
+      expect(screen.queryByText('Sim Studio')).not.toBeInTheDocument();
     });
 
     it('should maintain navigation functionality when toggling expanded state', () => {
       const { rerender } = render(<Sidebar expanded={true} />);
       
-      fireEvent.click(screen.getByText('Sandbox'));
-      expect(mockNavigate).toHaveBeenCalledWith('sandbox');
+      fireEvent.click(screen.getByText('Sim Studio'));
+      expect(mockNavigate).toHaveBeenCalledWith('sim-studio');
       
       rerender(<Sidebar expanded={false} />);
       expect(mockNavigate).toHaveBeenCalledTimes(1);
@@ -236,7 +236,7 @@ describe('Sidebar Component', () => {
       render(<Sidebar expanded={true} />);
       
       expect(screen.getByText('Home')).toBeInTheDocument();
-      expect(screen.getByText('Sandbox')).toBeInTheDocument();
+      expect(screen.getByText('Sim Studio')).toBeInTheDocument();
     });
 
     it('should have logout as separate item', () => {
@@ -248,7 +248,7 @@ describe('Sidebar Component', () => {
     it('should render all menu items in correct order', () => {
       render(<Sidebar expanded={true} />);
       
-      const labels = ['Home', 'Sandbox'];
+      const labels = ['Home', 'Sim Studio'];
       labels.forEach(label => {
         expect(screen.getByText(label)).toBeInTheDocument();
       });
@@ -283,11 +283,11 @@ describe('Sidebar Component', () => {
     it('should maintain state through rerender', () => {
       const { rerender } = render(<Sidebar expanded={true} />);
       
-      fireEvent.click(screen.getByText('Sandbox'));
+      fireEvent.click(screen.getByText('Sim Studio'));
       
       rerender(<Sidebar expanded={true} />);
       
-      expect(mockNavigate).toHaveBeenCalledWith('sandbox');
+      expect(mockNavigate).toHaveBeenCalledWith('sim-studio');
     });
   });
 
@@ -295,7 +295,7 @@ describe('Sidebar Component', () => {
     it('should not affect other instances', () => {
       const { unmount } = render(<Sidebar expanded={true} />);
       
-      fireEvent.click(screen.getByText('Sandbox'));
+      fireEvent.click(screen.getByText('Sim Studio'));
       unmount();
       
       render(<Sidebar expanded={true} />);
@@ -304,7 +304,7 @@ describe('Sidebar Component', () => {
 
     it('should start fresh on each mount', () => {
       const { unmount: unmount1 } = render(<Sidebar expanded={true} />);
-      fireEvent.click(screen.getByText('Sandbox'));
+      fireEvent.click(screen.getByText('Sim Studio'));
       unmount1();
       
       const { unmount: unmount2 } = render(<Sidebar expanded={true} />);
@@ -317,8 +317,8 @@ describe('Sidebar Component', () => {
     it('should handle menu item clicks in expanded state', () => {
       render(<Sidebar expanded={true} />);
       
-      const menuItems = ['Home', 'Sandbox'];
-      const routes = ['home', 'sandbox'];
+      const menuItems = ['Home', 'Sim Studio'];
+      const routes = ['home', 'sim-studio'];
       
       menuItems.forEach((item, index) => {
         jest.clearAllMocks();
@@ -354,7 +354,7 @@ describe('Sidebar Component', () => {
       render(<Sidebar expanded={true} />);
       
       expect(screen.getByText('Home')).toBeInTheDocument();
-      expect(screen.getByText('Sandbox')).toBeInTheDocument();
+      expect(screen.getByText('Sim Studio')).toBeInTheDocument();
       expect(screen.getByText('Logout')).toBeInTheDocument();
     });
 
@@ -371,8 +371,8 @@ describe('Sidebar Component', () => {
       fireEvent.click(screen.getByText('Home'));
       expect(mockNavigate).toHaveBeenCalledWith('home');
       
-      fireEvent.click(screen.getByText('Sandbox'));
-      expect(mockNavigate).toHaveBeenCalledWith('sandbox');
+      fireEvent.click(screen.getByText('Sim Studio'));
+      expect(mockNavigate).toHaveBeenCalledWith('sim-studio');
       
       expect(mockNavigate).toHaveBeenCalledTimes(2);
     });
@@ -381,7 +381,7 @@ describe('Sidebar Component', () => {
       render(<Sidebar expanded={true} />);
       
       fireEvent.click(screen.getByText('Home'));
-      fireEvent.click(screen.getByText('Sandbox'));
+      fireEvent.click(screen.getByText('Sim Studio'));
       fireEvent.click(screen.getByText('Logout'));
       
       expect(mockNavigate).toHaveBeenCalledTimes(3);
@@ -396,7 +396,7 @@ describe('Sidebar Component', () => {
 
       expect(screen.getByText('Masking Configuration')).toBeInTheDocument();
       expect(screen.queryByText('Home')).not.toBeInTheDocument();
-      expect(screen.queryByText('Sandbox')).not.toBeInTheDocument();
+      expect(screen.queryByText('Sim Studio')).not.toBeInTheDocument();
     });
 
     it('should navigate to masking-config for data engineer', () => {

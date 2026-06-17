@@ -1,13 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
 import type { TableColumn } from "../../components/Table";
 import useDebouncedSearch from "../../hooks/useDebouncedSearch";
-import { useGetSuitesQuery, useGetSuitesCountQuery, useLazyResumeGenerationQuery, type SuiteListItem } from "../../redux/Api/SimStudio";
+import { useGetSuitesQuery, useGetSuitesCountQuery, type SuiteListItem } from "../../redux/Api/SimStudio";
 import { useGetRulesQuery } from "../../redux/Api/DockerHub";
 import { useGetTypesQuery } from "../../redux/Api/Config";
 import { LocalStorage } from "../../utils/Common/enums";
-import { insertData, removeData } from "../../utils/Common/storage";
+import { removeData } from "../../utils/Common/storage";
 import * as S from "./SimStudio.styles";
 import SimStudioActions from "./SimStudioActions";
 
@@ -33,29 +32,18 @@ const formatLatestIteration = (latestRunAt?: string | number | null): string => 
     return latestDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
 };
 
-const STEP_TAB_MAP: Record<number, string> = {
-    1: "create_generation",
-    2: "txtp_selection",
-    3: "trigger_data",
-    4: "enrichment_data",
-    5: "preview_save",
-};
-
 const useSimStudioController = () => {
     const navigate = useNavigate();
-    const [searchInput, debouncedSearch, handleSearch] = useDebouncedSearch("", 300);
+    const [searchInput, debouncedSearch, setSearchInput] = useDebouncedSearch("", 300);
     const [statusFilter, setStatusFilter] = useState<string>("");
     const [ruleFilter, setRuleFilter] = useState<string>("");
     const [txtpFilter, setTxtpFilter] = useState<string>("");
     const [lastUpdatedFrom, setLastUpdatedFrom] = useState<string>("");
     const [lastUpdatedTo, setLastUpdatedTo] = useState<string>("");
     const [page, setPage] = useState(0);
-    const [resumingId, setResumingId] = useState<number | null>(null);
 
     const LIMIT = 10;
 
-    // Reset to first page whenever a filter changes
-    useEffect(() => { setPage(0); }, [debouncedSearch, statusFilter, ruleFilter, txtpFilter, lastUpdatedFrom, lastUpdatedTo]);
     const queryParams = useMemo(() => ({
         search: debouncedSearch || undefined,
         status: statusFilter || undefined,
@@ -70,7 +58,6 @@ const useSimStudioController = () => {
     const { data, isLoading, isFetching } = useGetSuitesQuery(queryParams);
     const { data: rulesData } = useGetRulesQuery();
     const { data: txTypesData } = useGetTypesQuery({});
-    const [triggerResume] = useLazyResumeGenerationQuery();
     const { data: suitesCountData } = useGetSuitesCountQuery();
 
     const suites = useMemo<SuiteListItem[]>(() => data?.suites ?? [], [data?.suites]);
@@ -123,6 +110,36 @@ const useSimStudioController = () => {
         ruleFilter !== "" ||
         hasAdvancedFilters;
 
+    const handleSearch = useCallback((value: string) => {
+        setSearchInput(value);
+        setPage(0);
+    }, [setSearchInput]);
+
+    const handleStatusFilter = useCallback((value: string) => {
+        setStatusFilter(value);
+        setPage(0);
+    }, []);
+
+    const handleRuleFilter = useCallback((value: string) => {
+        setRuleFilter(value);
+        setPage(0);
+    }, []);
+
+    const handleTxtpFilter = useCallback((value: string) => {
+        setTxtpFilter(value);
+        setPage(0);
+    }, []);
+
+    const handleLastUpdatedFrom = useCallback((value: string) => {
+        setLastUpdatedFrom(value);
+        setPage(0);
+    }, []);
+
+    const handleLastUpdatedTo = useCallback((value: string) => {
+        setLastUpdatedTo(value);
+        setPage(0);
+    }, []);
+
     const handleResetAdvancedFilters = () => {
         setTxtpFilter("");
         setLastUpdatedFrom("");
@@ -143,25 +160,6 @@ const useSimStudioController = () => {
     const handleView = useCallback((row: Record<string, unknown>) => {
         navigate(`/sim-studio/view/${row.id}`);
     }, [navigate]);
-
-    const handleResume = useCallback(async (row: Record<string, unknown>) => {
-        const suiteId = row.id as number;
-        setResumingId(suiteId);
-        try {
-            const result = await triggerResume(suiteId).unwrap();
-            const genId = result.data.id;
-            const resumeSuiteId = result.data.suite_id;
-            const currentStep = (result.data.wizard_snapshot?.currentStep as number) ?? 1;
-            const tabValue = STEP_TAB_MAP[currentStep] ?? "create_generation";
-            insertData(genId, "sim_gen_id", LocalStorage, false);
-            insertData(resumeSuiteId, "sim_suite_id", LocalStorage, false);
-            navigate(`/sim-studio/create?simStudioTab=${tabValue}`);
-        } catch {
-            toast.error("Failed to resume simulation suite. Please try again.");
-        } finally {
-            setResumingId(null);
-        }
-    }, [triggerResume, navigate]);
 
     const columns: TableColumn[] = useMemo(() => [
         {
@@ -185,17 +183,16 @@ const useSimStudioController = () => {
             render: (row: Record<string, unknown>) => (
                 <SimStudioActions
                     onView={() => handleView(row)}
-                    onResume={() => void handleResume(row)}
-                    isDraft={(row.status as string) === "DRAFT"}
-                    isResuming={resumingId === (row.id as number)}
                 />
             ),
         },
-    ], [handleView, handleResume, resumingId]);
+    ], [handleView]);
 
     const handleCreate = () => {
         removeData("sim_gen_id", LocalStorage);
         removeData("sim_suite_id", LocalStorage);
+        removeData("sim_clone_mode", LocalStorage);
+        removeData("sim_results_locked", LocalStorage);
         navigate("/sim-studio/create?simStudioTab=create_generation");
     };
 
@@ -226,11 +223,11 @@ const useSimStudioController = () => {
         },
         functions: {
             handleSearch,
-            handleStatusFilter: setStatusFilter,
-            handleRuleFilter: setRuleFilter,
-            handleTxtpFilter: setTxtpFilter,
-            handleLastUpdatedFrom: setLastUpdatedFrom,
-            handleLastUpdatedTo: setLastUpdatedTo,
+            handleStatusFilter,
+            handleRuleFilter,
+            handleTxtpFilter,
+            handleLastUpdatedFrom,
+            handleLastUpdatedTo,
             handleResetAdvancedFilters,
             handleResetAllFilters,
             handleCreate,

@@ -57,8 +57,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
     const res = await fetch(registryUrl);
     if (res.status === 404) {
       throw new BadRequestException(
-        `Image '${image}' was not found on Docker Hub. ` +
-        `Check that '${nameTag}' exists and the tag '${tag}' is published.`,
+        `Image '${image}' was not found on Docker Hub. ` + `Check that '${nameTag}' exists and the tag '${tag}' is published.`,
       );
     }
     if (!res.ok) {
@@ -111,12 +110,8 @@ export class EphemeralEnvService implements OnModuleDestroy {
     this.logger.log(`[${name}] Downloaded ${baseSqlContents.length} base SQL files`);
 
     const [publicBaseSql, dockerhubSql] = await Promise.all([
-      fetchText(
-        `https://raw.githubusercontent.com/${GITHUB_REPO}/${REPO_BRANCH}/core/postgres/migration/config/00-public-base.sql`,
-      ),
-      fetchText(
-        `https://raw.githubusercontent.com/${GITHUB_REPO}/${REPO_BRANCH}/core/postgres/migration/config/02-public-dockerhub.sql`,
-      ),
+      fetchText(`https://raw.githubusercontent.com/${GITHUB_REPO}/${REPO_BRANCH}/core/postgres/migration/config/00-public-base.sql`),
+      fetchText(`https://raw.githubusercontent.com/${GITHUB_REPO}/${REPO_BRANCH}/core/postgres/migration/config/02-public-dockerhub.sql`),
     ]);
     this.logger.log(`[${name}] Downloaded config SQL files (public-base: ${publicBaseSql.length} chars, dockerhub: ${dockerhubSql.length} chars)`);
 
@@ -273,8 +268,12 @@ export class EphemeralEnvService implements OnModuleDestroy {
           RULE_NAME: ruleBaseName,
         })
         .withLogConsumer((stream) => {
-          stream.on('data', (line: string) => { this.logger.log(`[${name}][rule-processor] ${line.trim()}`); });
-          stream.on('err', (line: string) => { this.logger.warn(`[${name}][rule-processor] ${line.trim()}`); });
+          stream.on('data', (line: string) => {
+            this.logger.log(`[${name}][rule-processor] ${line.trim()}`);
+          });
+          stream.on('err', (line: string) => {
+            this.logger.warn(`[${name}][rule-processor] ${line.trim()}`);
+          });
         })
         .withWaitStrategy(Wait.forLogMessage('Connected to nats'))
         .withStartupTimeout(60_000)
@@ -308,8 +307,12 @@ export class EphemeralEnvService implements OnModuleDestroy {
             .withStartupTimeout(90_000),
         )
         .withLogConsumer((stream) => {
-          stream.on('data', (line: string) => { this.logger.log(`[${name}][nats-utilities] ${line.trim()}`); });
-          stream.on('err', (line: string) => { this.logger.warn(`[${name}][nats-utilities] ${line.trim()}`); });
+          stream.on('data', (line: string) => {
+            this.logger.log(`[${name}][nats-utilities] ${line.trim()}`);
+          });
+          stream.on('err', (line: string) => {
+            this.logger.warn(`[${name}][nats-utilities] ${line.trim()}`);
+          });
         })
         .start();
       sim.natsUtilities = natsUtilities;
@@ -339,15 +342,13 @@ export class EphemeralEnvService implements OnModuleDestroy {
 
     this.logger.log(`Destroying simulation '${name}' (status=${sim.info.status})...`);
 
-    // Stop only the containers that were actually brought up. Partial-state
-    // entries (POSTGRES_UP but no runtime) will have undefined slots.
-    // const stops: Promise<unknown>[] = [sim.postgres.stop()];
-    // if (sim.nats) stops.push(sim.nats.stop());
-    // if (sim.valkey) stops.push(sim.valkey.stop());
-    // if (sim.ruleProcessor) stops.push(sim.ruleProcessor.stop());
-    // if (sim.natsUtilities) stops.push(sim.natsUtilities.stop());
-    // await Promise.allSettled(stops);
-    // await sim.network.stop().catch((_e: unknown) => undefined);
+    const stops: Promise<unknown>[] = [sim.postgres.stop()];
+    if (sim.nats) stops.push(sim.nats.stop());
+    if (sim.valkey) stops.push(sim.valkey.stop());
+    if (sim.ruleProcessor) stops.push(sim.ruleProcessor.stop());
+    if (sim.natsUtilities) stops.push(sim.natsUtilities.stop());
+    await Promise.allSettled(stops);
+    await sim.network.stop().catch((_e: unknown) => undefined);
 
     this.simulations.delete(name);
     this.logger.log(`Simulation '${name}' destroyed`);
@@ -357,7 +358,11 @@ export class EphemeralEnvService implements OnModuleDestroy {
     const names = [...this.simulations.keys()];
     if (names.length === 0) return;
     this.logger.log(`Destroying all ${names.length} simulation(s)...`);
-    await Promise.allSettled(names.map(async (n) => { await this.destroy(n); }));
+    await Promise.allSettled(
+      names.map(async (n) => {
+        await this.destroy(n);
+      }),
+    );
   }
 
   list(): SimulationInfo[] {

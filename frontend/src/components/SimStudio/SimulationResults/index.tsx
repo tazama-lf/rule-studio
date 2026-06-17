@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import CloseIcon from "@mui/icons-material/Close";
@@ -34,9 +35,10 @@ import {
     Tooltip,
     Typography,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 import { useGetSuiteResultQuery, useLazyGetTriggerConfigByIdQuery, type SuiteRunResult } from "../../../redux/Api/SimStudio";
 import { LocalStorage } from "../../../utils/Common/enums";
-import { extractData } from "../../../utils/Common/storage";
+import { extractData, removeData } from "../../../utils/Common/storage";
 
 // ── Outcome chip ──────────────────────────────────────────────────────────────
 
@@ -489,24 +491,22 @@ const RunResultRow = ({
 
 const SimulationResults = () => {
     const suiteId = extractData("sim_suite_id", LocalStorage, false) as number | null;
+    const isResultsLocked = extractData("sim_results_locked", LocalStorage, false) === true;
+    const navigate = useNavigate();
 
     const { data, isLoading, isError } = useGetSuiteResultQuery(Number(suiteId), {
         skip: !suiteId,
     });
 
-    const results = data?.data?.results ?? [];
+    const results = useMemo(() => data?.data?.results ?? [], [data?.data?.results]);
 
-    const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+    const [expandedIds, setExpandedIds] = useState<Set<string> | null>(null);
     const [search, setSearch] = useState("");
     const [outcomeFilter, setOutcomeFilter] = useState("all");
 
-    // Expand last run by default once data arrives
-    useMemo(() => {
-        if (results.length > 0) {
-            setExpandedIds(new Set([results[results.length - 1].run_id]));
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [data]);
+    const activeExpandedIds = useMemo(() => {
+        return expandedIds ?? new Set(results.length > 0 ? [results[results.length - 1].run_id] : []);
+    }, [expandedIds, results]);
 
     const filteredResults = useMemo(() => {
         if (outcomeFilter === "all") return results;
@@ -515,7 +515,7 @@ const SimulationResults = () => {
 
     const handleToggle = (runId: string) => {
         setExpandedIds((prev) => {
-            const next = new Set(prev);
+            const next = new Set(prev ?? activeExpandedIds);
             if (next.has(runId)) next.delete(runId); else next.add(runId);
             return next;
         });
@@ -529,6 +529,14 @@ const SimulationResults = () => {
     const successCount = results.filter((r) => r.outcome.toUpperCase() === "SUCCESS").length;
     const failedCount = results.filter((r) => r.outcome.toUpperCase() !== "SUCCESS").length;
     const totalTriggers = results.reduce((acc, r) => acc + r.trigger_count, 0);
+
+    const handleBackToListing = () => {
+        removeData("sim_gen_id", LocalStorage);
+        removeData("sim_suite_id", LocalStorage);
+        removeData("sim_clone_mode", LocalStorage);
+        removeData("sim_results_locked", LocalStorage);
+        navigate("/sim-studio");
+    };
 
     if (isLoading) {
         return (
@@ -566,6 +574,28 @@ const SimulationResults = () => {
 
     return (
         <Box sx={{ p: 3, width: "100%", boxSizing: "border-box" }}>
+            {isResultsLocked && (
+                <Box display="flex" justifyContent="flex-end" mb={2}>
+                    <MuiButton
+                        variant="outlined"
+                        startIcon={<ArrowBackIcon sx={{ fontSize: 16 }} />}
+                        onClick={handleBackToListing}
+                        sx={{
+                            textTransform: "none",
+                            height: 38,
+                            px: 2,
+                            borderRadius: "6px",
+                            borderColor: "#d1d5db",
+                            color: "#374151",
+                            fontSize: 13,
+                            fontWeight: 600,
+                            "&:hover": { borderColor: "#2563eb", color: "#2563eb", bgcolor: "#eff6ff" },
+                        }}
+                    >
+                        Back to Listing
+                    </MuiButton>
+                </Box>
+            )}
 
             {/* ── Stat row ── */}
             <Box display="flex" gap={2} mb={3} flexWrap="wrap">
@@ -671,7 +701,7 @@ const SimulationResults = () => {
                         <RunResultRow
                             key={run.run_id}
                             run={run}
-                            expanded={expandedIds.has(run.run_id)}
+                            expanded={activeExpandedIds.has(run.run_id)}
                             onToggle={() => handleToggle(run.run_id)}
                             search={search}
                         />

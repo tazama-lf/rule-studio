@@ -8,10 +8,14 @@ import { NAV_HEIGHT } from "../../utils/Constants";
 const MainLayout = () => {
     const [expanded, setExpanded] = useState(false);
 
-    const SIDEBAR_WIDTH = expanded ? 260 : 60;
+    const SIDEBAR_WIDTH = expanded ? 260 : 65;
 
     return (
-        <Box display="flex" height="100vh" >
+        <Box
+            display="flex"
+            height="100vh"
+            sx={{ "--sidebar-width": `${SIDEBAR_WIDTH}px` }}
+        >
             <Sidebar expanded={expanded} />
 
             <Box flex={1} display="flex" flexDirection="column" overflow="hidden">

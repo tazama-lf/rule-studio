@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-
 export class SampleMessageItemDto {
   @ApiProperty({ description: 'Context TXTP config ID', example: 1 })
   context_txtp_config_id!: number;
@@ -27,7 +26,4 @@ export class GenerateSampleMessagesResponseDto {
 
   @ApiProperty({ description: 'List of generated sample messages per context config', type: [SampleMessageItemDto] })
   data!: SampleMessageItemDto[];
-
-  // @ApiProperty({ description: 'Generated database script with DDL and DML', required: false })
-  // dbScript?: string;
 }

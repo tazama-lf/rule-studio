@@ -3,7 +3,7 @@ import { Box, CircularProgress } from "@mui/material";
 import toast from "react-hot-toast";
 import Button from "../../Button";
 import { LocalStorage } from "../../../utils/Common/enums";
-import { extractData } from "../../../utils/Common/storage";
+import { extractData, insertData } from "../../../utils/Common/storage";
 import { useGetGenerationSummaryQuery, useRunSimulationMutation } from "../../../redux/Api/SimStudio";
 import { useSimStudioTab } from "../../../contexts/SimStudioTabContext";
 import * as S from "./PreviewSave.styles";
@@ -26,6 +26,7 @@ const PreviewSave = () => {
         }
         try {
             await runSimulation({ suiteId: Number(suiteId), generationId: Number(generationId) }).unwrap();
+            insertData(true, "sim_results_locked", LocalStorage, false);
             enableNextTab();
         } catch {
             toast.error("Failed to run simulation. Please try again.");

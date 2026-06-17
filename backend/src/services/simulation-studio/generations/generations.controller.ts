@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiBody, ApiParam } from '@nestjs/swagger';
 import { RequireAnyClaims, TazamaClaims } from 'src/decorators/auth.decorator';
 import { ApiSwagger, mergeResponses, CommonResponses } from 'src/decorators/swagger.decorator';
@@ -12,6 +12,7 @@ import {
   SuiteGenerationResponseDto,
   GenerationSummaryResponseDto,
   SuiteGenerationDto,
+  CloneGenerationDto,
 } from './dto/generations.dto';
 import { ContextConfigsListDto } from '../context-txtp-config/dto/context-txtp-config.dto';
 
@@ -121,9 +122,10 @@ export class GenerationsController {
     return await this.generationsService.updateWizardProgress(user.token.tokenString, generationId, body);
   }
 
-  @Get('suites/:id/generations/resume')
+  @Get('suites/:suiteId/generations/:generationId/resume')
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
-  @ApiParam({ name: 'id', description: 'Simulation suite id', example: 1 })
+  @ApiParam({ name: 'suiteId', description: 'Simulation suite id', example: 1 })
+  @ApiParam({ name: 'generationId', description: 'Generation id', example: 1 })
   @ApiSwagger({
     summary: 'Resume generation for a suite',
     description:
@@ -133,8 +135,32 @@ export class GenerationsController {
       CommonResponses.NOT_FOUND_404('Suite not found'),
     ),
   })
-  async resumeGenerationForSuite(@Param('id', ParseIntPipe) id: number, @User() user: AuthenticatedUser): Promise<SuiteGenerationDto> {
-    return await this.generationsService.resumeGeneration(user.token.tokenString, id);
+  async resumeGenerationForSuite(
+    @Param('suiteId', ParseIntPipe) suiteId: number,
+    @Param('generationId', ParseIntPipe) generationId: number,
+    @User() user: AuthenticatedUser,
+  ): Promise<SuiteGenerationResponseDto> {
+    return await this.generationsService.resumeGeneration(user.token.tokenString, suiteId, generationId);
+  }
+
+  @Post('generation/clone')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @Audit()
+  @ApiBody({
+    type: CloneGenerationDto,
+    description: 'Payload containing source generation id to clone',
+  })
+  @ApiSwagger({
+    summary: 'Clone generation',
+    description:
+      'Creates a new generation under the same suite, copying all context configs, field strategies, trigger configs, field overrides, and enrichment tables.',
+    responses: mergeResponses(
+      CommonResponses.CREATED_201(SuiteGenerationResponseDto, 'Generation cloned successfully'),
+      CommonResponses.NOT_FOUND_404('Source generation not found'),
+    ),
+  })
+  async cloneGeneration(@Body() body: CloneGenerationDto, @User() user: AuthenticatedUser): Promise<SuiteGenerationResponseDto> {
+    return await this.generationsService.cloneGeneration(user.token.tokenString, body.generation_id);
   }
 
   @Patch('generations/:generationId/status')

@@ -13,4 +13,4 @@ import { EphemeralEnvService } from '../ephemeral-env/ephemeral-env.service';
   providers: [SimulationStudioService, AdminServiceClient, EphemeralEnvService],
   exports: [SimulationStudioService],
 })
-export class SimulationStudioModule { }
+export class SimulationStudioModule {}

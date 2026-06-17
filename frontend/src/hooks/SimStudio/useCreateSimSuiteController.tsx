@@ -7,10 +7,10 @@ import * as yup from "yup";
 import type { DropdownOption } from "../../components/DropDown";
 import { useSimStudioTab } from "../../contexts/SimStudioTabContext";
 import { useGetTypesQuery, useLazyGetTxtpVersionsQuery } from "../../redux/Api/Config";
-import { useCreateSuiteMutation, useUpdateWizardProgressMutation, useLazyGetSuiteByIdQuery } from "../../redux/Api/SimStudio";
+import { useCreateSuiteMutation, usePatchSuiteMutation, useUpdateWizardProgressMutation, useLazyGetSuiteByIdQuery } from "../../redux/Api/SimStudio";
 import { useGetRulesQuery, useLazyGetRuleTagsQuery } from "../../redux/Api/DockerHub";
 import { LocalStorage } from "../../utils/Common/enums";
-import { insertData, extractData } from "../../utils/Common/storage";
+import { insertData, extractData, removeData } from "../../utils/Common/storage";
 import { SimStudioTabs } from "../../utils/Constants/data";
 import Step1RuleDetails from "../../components/SimStudio/RuleDetails";
 import TxtpSelection from "../../components/SimStudio/TxtpSelection";
@@ -69,7 +69,10 @@ const useCreateSimSuiteController = () => {
     const navigate = useNavigate();
     const { selectedTab, tabs, enableNextTab, enablePreviousTab } = useSimStudioTab();
     const [createSuite, { isLoading: isCreatingSuite }] = useCreateSuiteMutation();
+    const [patchSuite, { isLoading: isPatchingSuite }] = usePatchSuiteMutation();
     const [updateWizardProgress] = useUpdateWizardProgressMutation();
+    const isCloneMode = extractData("sim_clone_mode", LocalStorage, false) === true;
+    const isResultsLocked = selectedTab === "simulation_results" && extractData("sim_results_locked", LocalStorage, false) === true;
 
     const extractGenId = useCallback(() => {
         const genId = extractData("sim_gen_id", LocalStorage, false) as string | number | null;
@@ -128,6 +131,9 @@ const useCreateSimSuiteController = () => {
         watch,
         setValue,
         reset,
+        trigger,
+        getValues,
+        clearErrors,
         formState: { errors },
     } = useForm<Step1Values>({
         resolver: yupResolver(step1Schema) as never,
@@ -170,11 +176,13 @@ const useCreateSimSuiteController = () => {
     useEffect(() => {
         if (selectedTxtp?.value) {
             fetchVersions(String(selectedTxtp.value));
-            setValue("version", null);
+            if (existingSuite?.primary_txtp !== selectedTxtp.value) {
+                setValue("version", null);
+            }
         } else {
             setValue("version", null);
         }
-    }, [selectedTxtp, fetchVersions, setValue]);
+    }, [selectedTxtp, fetchVersions, setValue, existingSuite?.primary_txtp]);
 
     const versionOptions = useMemo<DropdownOption[]>(() => {
         if (!versionsData || !Array.isArray(versionsData)) return [];
@@ -189,8 +197,10 @@ const useCreateSimSuiteController = () => {
         if (selectedRule?.value) {
             void getRuleTags({ rule: String(selectedRule.value) });
         }
-        setValue("rule_version", null);
-    }, [selectedRule, setValue, getRuleTags]);
+        if (existingSuite?.rule_name !== selectedRule?.value) {
+            setValue("rule_version", null);
+        }
+    }, [selectedRule, setValue, getRuleTags, existingSuite?.rule_name]);
 
     const ruleVersionOptions = useMemo<DropdownOption[]>(() => {
         return ruleTagsData?.tags.map((t) => ({ label: t.name, value: t.name })) ?? [];
@@ -206,14 +216,47 @@ const useCreateSimSuiteController = () => {
 
     const handleNextStep = () => {
         if (selectedTab === SimStudioTabs[0].value) {
-            if (existingSuite) {
+            if (existingSuite && !isCloneMode) {
                 enableNextTab();
+                return;
+            }
+            if (isCloneMode && existingSuite) {
+                void (async () => {
+                    clearErrors(["associated_rule", "txtp", "version", "rule_config"]);
+                    const isCloneDetailsValid = await trigger(["suite_name", "description", "rule_version"]);
+                    if (!isCloneDetailsValid) return;
+
+                    const suiteId = extractSuiteId();
+                    const genId = extractGenId();
+                    if (!suiteId || !genId) {
+                        toast.error("Cloned generation details are missing. Please clone again.");
+                        return;
+                    }
+
+                    const data = getValues();
+                    try {
+                        await patchSuite({
+                            suiteId,
+                            body: {
+                                name: data.suite_name,
+                                description: data.description || undefined,
+                                rule_version: data.rule_version?.value ? String(data.rule_version.value) : undefined,
+                            },
+                        }).unwrap();
+                        void updateWizardProgress({ generationId: genId, current_step_num: 2, completed_step_num: 1 });
+                        removeData("sim_clone_mode", LocalStorage);
+                        enableNextTab();
+                    } catch {
+                        toast.error("Failed to update cloned simulation suite. Please try again.");
+                    }
+                })();
                 return;
             }
             void handleSubmit(async (data) => {
                 try {
                     let parsedRuleConfig: Record<string, unknown>;
                     try { parsedRuleConfig = JSON.parse(data.rule_config || '{}') as Record<string, unknown>; } catch { parsedRuleConfig = {}; }
+
                     const result = await createSuite({
                         name: data.suite_name,
                         description: data.description || undefined,
@@ -283,6 +326,7 @@ const useCreateSimSuiteController = () => {
                         versionLoading={versionLoading}
                         existingSuite={existingSuite}
                         isSuiteLoading={isSuiteLoading}
+                        isCloneMode={isCloneMode}
                     />
                 );
             case 'txtp_selection':      return <TxtpSelection onSaveRef={step2SaveRef} />;
@@ -295,10 +339,17 @@ const useCreateSimSuiteController = () => {
     };
 
     const currentStepIndex = tabs.findIndex(t => t.value === selectedTab);
-    const isStep1ReadOnly = selectedTab === SimStudioTabs[0].value && existingSuite !== null;
+    const isStep1ReadOnly = selectedTab === SimStudioTabs[0].value && existingSuite !== null && !isCloneMode;
 
     return {
-        values: { currentStepIndex, totalSteps: tabs.length, isCreatingSuite, selectedTab, isStep1ReadOnly },
+        values: {
+            currentStepIndex,
+            totalSteps: tabs.length,
+            isCreatingSuite: isCreatingSuite || isPatchingSuite,
+            selectedTab,
+            isStep1ReadOnly,
+            isResultsLocked,
+        },
         functions: { handleBack, handleNextStep, renderStep },
     };
 };

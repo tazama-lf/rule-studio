@@ -111,13 +111,6 @@ export const ROUTES = [
         roleGroup: 'trs' as const,
     },
     {
-        path: "/sandbox",
-        element: <ComingSoon />,
-        private: true,
-        layout: true,
-        roleGroup: 'trs' as const,
-    },
-    {
         path: "/masking-config",
         element: <MaskingConfig />,
         private: true,
@@ -170,7 +163,7 @@ export const ROUTES = [
         path: "/sim-studio/create",
         element: <CreateSimSuite />,
         private: true,
-        layout: false,
+        layout: true,
         roleGroup: 'trs' as const,
     },
     {

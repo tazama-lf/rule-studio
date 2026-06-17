@@ -15,6 +15,7 @@ import {
   SimulationSuitesDto,
   SimulationSuitesListDto,
   SimulationSuitesQueryDto,
+  CloneSuiteDto,
 } from './dto';
 
 @ApiTags('simulation-studio')
@@ -116,5 +117,28 @@ export class SimulationStudioController {
     @User() user: AuthenticatedUser,
   ): Promise<SimulationSuiteResponseDto> {
     return await this.simulationStudioService.patchSimulationSuite(user.token.tokenString, id, payload);
+  }
+
+  @Post('suites/clone')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @Audit()
+  @ApiBody({
+    type: CloneSuiteDto,
+    description: 'Payload containing source suite id to clone',
+  })
+  @ApiSwagger({
+    summary: 'Clone simulation suite',
+    description:
+      'Creates a new suite (Copy) and clones the latest generation with all its context configs, field strategies, trigger configs, field overrides, and enrichment tables.',
+    responses: mergeResponses(
+      CommonResponses.CREATED_201(SimulationSuitesDto, 'Suite cloned successfully'),
+      CommonResponses.NOT_FOUND_404('Source suite not found'),
+    ),
+  })
+  async cloneSuite(
+    @Body() body: CloneSuiteDto,
+    @User() user: AuthenticatedUser,
+  ): Promise<{ success: boolean; data: SimulationSuitesDto & { generation_id: number | null } }> {
+    return await this.simulationStudioService.cloneSuite(user.token.tokenString, body.suite_id);
   }
 }
