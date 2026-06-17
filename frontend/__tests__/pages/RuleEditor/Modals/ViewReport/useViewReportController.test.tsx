@@ -34,7 +34,7 @@ describe('useViewReportController', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockUnwrap = jest.fn().mockResolvedValue('<html>Default Report</html>');
+    mockUnwrap = jest.fn().mockReturnValue(new Promise(() => {}));
     mockGetReport = jest.fn().mockReturnValue({
       unwrap: mockUnwrap,
     });
@@ -107,7 +107,6 @@ describe('useViewReportController', () => {
 
     it('should use props data when localStorage data is null', () => {
       mockExtractData.mockReturnValue(null);
-      mockUnwrap.mockResolvedValue('<html>Report</html>');
 
       const propsData = { rule_config_id: 'rule_props', id: '456' };
       const props: IViewReport = {
@@ -122,7 +121,6 @@ describe('useViewReportController', () => {
     it('should prioritize localStorage data over props data', async () => {
       const storageData = { rule_config_id: 'rule_storage@v1', id: '123' };
       mockExtractData.mockReturnValue(storageData);
-      mockUnwrap.mockResolvedValue('<html>Report</html>');
 
       const props: IViewReport = {
         data: { rule_config_id: 'rule_props', id: '456' },
@@ -132,9 +130,7 @@ describe('useViewReportController', () => {
 
       await waitFor(() => {
         expect(mockGetReport).toHaveBeenCalledWith({
-          organization: 'psl-copilot',
           ruleId: 'rule_storage',
-          branchName: 'staging',
         });
       });
     });
@@ -154,7 +150,6 @@ describe('useViewReportController', () => {
     it('should call getReport on mount', async () => {
       const data = { rule_config_id: 'rule_001', id: '123' };
       mockExtractData.mockReturnValue(data);
-      mockUnwrap.mockResolvedValue('<html>Report Content</html>');
 
       const props: IViewReport = {};
 
@@ -162,9 +157,7 @@ describe('useViewReportController', () => {
 
       await waitFor(() => {
         expect(mockGetReport).toHaveBeenCalledWith({
-          organization: 'psl-copilot',
           ruleId: 'rule_001',
-          branchName: 'staging',
         });
       });
     });
@@ -172,7 +165,6 @@ describe('useViewReportController', () => {
     it('should extract ruleId by splitting rule_config_id at @', async () => {
       const data = { rule_config_id: 'complex_rule_123@version_2@branch', id: '456' };
       mockExtractData.mockReturnValue(data);
-      mockUnwrap.mockResolvedValue('<html>Report</html>');
 
       const props: IViewReport = {};
 
@@ -180,9 +172,7 @@ describe('useViewReportController', () => {
 
       await waitFor(() => {
         expect(mockGetReport).toHaveBeenCalledWith({
-          organization: 'psl-copilot',
           ruleId: 'complex_rule_123',
-          branchName: 'staging',
         });
       });
     });
@@ -310,7 +300,6 @@ describe('useViewReportController', () => {
     it('should call handleReport on mount', async () => {
       const data = { rule_config_id: 'rule_001', id: '123' };
       mockExtractData.mockReturnValue(data);
-      mockUnwrap.mockResolvedValue('<html>Report</html>');
 
       const props: IViewReport = {};
 
@@ -324,7 +313,6 @@ describe('useViewReportController', () => {
     it('should call handleReport again when dependencies change', async () => {
       const initialData = { rule_config_id: 'rule_001', id: '123' };
       mockExtractData.mockReturnValue(null); // Use props data instead
-      mockUnwrap.mockResolvedValue('<html>Report 1</html>');
 
       const initialProps: IViewReport = { data: initialData };
 
@@ -393,7 +381,6 @@ describe('useViewReportController', () => {
     it('should handle rule_config_id without @ symbol', async () => {
       const data = { rule_config_id: 'simple_rule', id: '123' };
       mockExtractData.mockReturnValue(data);
-      mockUnwrap.mockResolvedValue('<html>Report</html>');
 
       const props: IViewReport = {};
 
@@ -401,9 +388,7 @@ describe('useViewReportController', () => {
 
       await waitFor(() => {
         expect(mockGetReport).toHaveBeenCalledWith({
-          organization: 'psl-copilot',
           ruleId: 'simple_rule',
-          branchName: 'staging',
         });
       });
     });
@@ -411,7 +396,6 @@ describe('useViewReportController', () => {
     it('should handle numeric rule_config_id', async () => {
       const data = { rule_config_id: 12345, id: '123' };
       mockExtractData.mockReturnValue(data);
-      mockUnwrap.mockResolvedValue('<html>Report</html>');
 
       const props: IViewReport = {};
 
@@ -419,9 +403,7 @@ describe('useViewReportController', () => {
 
       await waitFor(() => {
         expect(mockGetReport).toHaveBeenCalledWith({
-          organization: 'psl-copilot',
           ruleId: '12345',
-          branchName: 'staging',
         });
       });
     });
@@ -429,7 +411,6 @@ describe('useViewReportController', () => {
     it('should handle missing rule_config_id', async () => {
       const data = { id: '123' };
       mockExtractData.mockReturnValue(data);
-      mockUnwrap.mockResolvedValue('<html>Report</html>');
 
       const props: IViewReport = {};
 
@@ -536,9 +517,7 @@ describe('useViewReportController', () => {
 
       await waitFor(() => {
         expect(mockGetReport).toHaveBeenCalledWith({
-          organization: 'psl-copilot',
           ruleId: 'fraud_detection_rule_v2',
-          branchName: 'staging',
         });
         expect(result.current.values.htmlContent).toBe(reportHtml);
       });
@@ -637,7 +616,6 @@ describe('useViewReportController', () => {
         data: { rule_config_id: 'rule_001', id: '123' },
       };
       mockExtractData.mockReturnValue(null);
-      mockUnwrap.mockResolvedValue('<html>Report 1</html>');
 
       const { rerender } = renderHook(
         ({ props }) => useViewReportController(props),

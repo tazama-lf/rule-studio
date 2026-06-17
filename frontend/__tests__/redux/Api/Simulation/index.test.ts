@@ -65,14 +65,14 @@ const testSimulationApi = createApi({
             }),
         }),
         getReport: builder.query({
-            query: ({ branchName, ruleId }: { branchName: string; ruleId: string }) => ({
-                url: `/api/v1/report?&ruleId=${ruleId}&branchName=${branchName}`,
+            query: ({ ruleId }: { ruleId: string }) => ({
+                url: `/api/v1/report?&ruleId=${ruleId}`,
                 method: 'GET',
             }),
         }),
         getReportStatus: builder.query({
-            query: ({ branchName, ruleId }: { branchName: string; ruleId: string }) => ({
-                url: `/api/v1/unit-tests/status?&ruleId=${ruleId}&branchName=${branchName}`,
+            query: ({ ruleId }: { ruleId: string }) => ({
+                url: `/api/v1/unit-tests/status?&ruleId=${ruleId}`,
                 method: 'GET',
             }),
         }),
@@ -330,7 +330,7 @@ describe('simulationApi (redux/Api/Simulation)', () => {
         });
 
         it('should handle a network error', async () => {
-            mockBaseQuery.mockRejectedValue(new Error('Network failure'));
+            mockBaseQuery.mockResolvedValue({ error: { status: 'FETCH_ERROR', error: 'Network failure' } });
             const result = await store.dispatch(testSimulationApi.endpoints.uploadCode.initiate({}));
             expect((result as { error?: unknown }).error).toBeDefined();
         });
@@ -416,25 +416,25 @@ describe('simulationApi (redux/Api/Simulation)', () => {
         });
 
         it('should use the GET method', async () => {
-            await store.dispatch(testSimulationApi.endpoints.getReport.initiate({ branchName: 'main', ruleId: '1' }));
+            await store.dispatch(testSimulationApi.endpoints.getReport.initiate({ ruleId: '1' }));
             const [arg] = mockBaseQuery.mock.calls[0] as [{ method: string }];
             expect(arg.method).toBe('GET');
         });
 
-        it('should build the URL with ruleId and branchName query params', async () => {
-            await store.dispatch(testSimulationApi.endpoints.getReport.initiate({ branchName: 'main', ruleId: '42' }));
+        it('should build the URL with ruleId query param', async () => {
+            await store.dispatch(testSimulationApi.endpoints.getReport.initiate({ ruleId: '42' }));
             const [arg] = mockBaseQuery.mock.calls[0] as [{ url: string }];
-            expect(arg.url).toBe('/api/v1/report?&ruleId=42&branchName=main');
+            expect(arg.url).toBe('/api/v1/report?&ruleId=42');
         });
 
-        it('should interpolate different branchName values', async () => {
-            await store.dispatch(testSimulationApi.endpoints.getReport.initiate({ branchName: 'feature/test', ruleId: '7' }));
+        it('should interpolate different ruleId values', async () => {
+            await store.dispatch(testSimulationApi.endpoints.getReport.initiate({ ruleId: '7' }));
             const [arg] = mockBaseQuery.mock.calls[0] as [{ url: string }];
-            expect(arg.url).toBe('/api/v1/report?&ruleId=7&branchName=feature/test');
+            expect(arg.url).toBe('/api/v1/report?&ruleId=7');
         });
 
         it('should call the base query exactly once', async () => {
-            await store.dispatch(testSimulationApi.endpoints.getReport.initiate({ branchName: 'main', ruleId: '1' }));
+            await store.dispatch(testSimulationApi.endpoints.getReport.initiate({ ruleId: '1' }));
             expect(mockBaseQuery).toHaveBeenCalledTimes(1);
         });
     });
@@ -452,19 +452,19 @@ describe('simulationApi (redux/Api/Simulation)', () => {
 
         it('should return HTML report data on a successful response', async () => {
             mockBaseQuery.mockResolvedValue({ data: '<html>report</html>' });
-            const result = await store.dispatch(testSimulationApi.endpoints.getReport.initiate({ branchName: 'main', ruleId: '1' }));
+            const result = await store.dispatch(testSimulationApi.endpoints.getReport.initiate({ ruleId: '1' }));
             expect((result as { data?: unknown }).data).toBe('<html>report</html>');
         });
 
         it('should return an error on a 404 response', async () => {
             mockBaseQuery.mockResolvedValue({ error: { status: 404, data: 'Not Found' } });
-            const result = await store.dispatch(testSimulationApi.endpoints.getReport.initiate({ branchName: 'missing', ruleId: '0' }));
+            const result = await store.dispatch(testSimulationApi.endpoints.getReport.initiate({ ruleId: '0' }));
             expect((result as { error?: unknown }).error).toBeDefined();
         });
 
         it('should handle a network error', async () => {
-            mockBaseQuery.mockRejectedValue(new Error('Network failure'));
-            const result = await store.dispatch(testSimulationApi.endpoints.getReport.initiate({ branchName: 'main', ruleId: '1' }));
+            mockBaseQuery.mockResolvedValue({ error: { status: 'FETCH_ERROR', error: 'Network failure' } });
+            const result = await store.dispatch(testSimulationApi.endpoints.getReport.initiate({ ruleId: '1' }));
             expect((result as { error?: unknown }).error).toBeDefined();
         });
     });
@@ -473,7 +473,7 @@ describe('simulationApi (redux/Api/Simulation)', () => {
         it('should pass responseHandler that calls response.text()', async () => {
             const store = makeRealEndpointStore();
             getRealInnerMock().mockResolvedValue({ data: '<html>report</html>' });
-            await store.dispatch(simulationApi.endpoints.getReport.initiate({ branchName: 'main', ruleId: '1' }));
+            await store.dispatch(simulationApi.endpoints.getReport.initiate({ ruleId: '1' }));
             const [queryArg] = getRealInnerMock().mock.calls[0] as [
                 { url: string; responseHandler: (r: { text: () => Promise<string> }) => Promise<string> }
             ];
@@ -499,25 +499,25 @@ describe('simulationApi (redux/Api/Simulation)', () => {
         });
 
         it('should use the GET method', async () => {
-            await store.dispatch(testSimulationApi.endpoints.getReportStatus.initiate({ branchName: 'main', ruleId: '1' }));
+            await store.dispatch(testSimulationApi.endpoints.getReportStatus.initiate({ ruleId: '1' }));
             const [arg] = mockBaseQuery.mock.calls[0] as [{ method: string }];
             expect(arg.method).toBe('GET');
         });
 
-        it('should build the URL with ruleId and branchName query params', async () => {
-            await store.dispatch(testSimulationApi.endpoints.getReportStatus.initiate({ branchName: 'main', ruleId: '5' }));
+        it('should build the URL with ruleId query param', async () => {
+            await store.dispatch(testSimulationApi.endpoints.getReportStatus.initiate({ ruleId: '5' }));
             const [arg] = mockBaseQuery.mock.calls[0] as [{ url: string }];
-            expect(arg.url).toBe('/api/v1/unit-tests/status?&ruleId=5&branchName=main');
+            expect(arg.url).toBe('/api/v1/unit-tests/status?&ruleId=5');
         });
 
         it('should interpolate different ruleId values', async () => {
-            await store.dispatch(testSimulationApi.endpoints.getReportStatus.initiate({ branchName: 'dev', ruleId: '99' }));
+            await store.dispatch(testSimulationApi.endpoints.getReportStatus.initiate({ ruleId: '99' }));
             const [arg] = mockBaseQuery.mock.calls[0] as [{ url: string }];
-            expect(arg.url).toBe('/api/v1/unit-tests/status?&ruleId=99&branchName=dev');
+            expect(arg.url).toBe('/api/v1/unit-tests/status?&ruleId=99');
         });
 
         it('should call the base query exactly once', async () => {
-            await store.dispatch(testSimulationApi.endpoints.getReportStatus.initiate({ branchName: 'main', ruleId: '1' }));
+            await store.dispatch(testSimulationApi.endpoints.getReportStatus.initiate({ ruleId: '1' }));
             expect(mockBaseQuery).toHaveBeenCalledTimes(1);
         });
     });
@@ -535,19 +535,19 @@ describe('simulationApi (redux/Api/Simulation)', () => {
 
         it('should return status data on a successful response', async () => {
             mockBaseQuery.mockResolvedValue({ data: { status: 'passed', total: 10, passed: 10 } });
-            const result = await store.dispatch(testSimulationApi.endpoints.getReportStatus.initiate({ branchName: 'main', ruleId: '1' }));
+            const result = await store.dispatch(testSimulationApi.endpoints.getReportStatus.initiate({ ruleId: '1' }));
             expect((result as { data?: unknown }).data).toEqual({ status: 'passed', total: 10, passed: 10 });
         });
 
         it('should return an error on a 404 response', async () => {
             mockBaseQuery.mockResolvedValue({ error: { status: 404, data: 'Not Found' } });
-            const result = await store.dispatch(testSimulationApi.endpoints.getReportStatus.initiate({ branchName: 'missing', ruleId: '0' }));
+            const result = await store.dispatch(testSimulationApi.endpoints.getReportStatus.initiate({ ruleId: '0' }));
             expect((result as { error?: unknown }).error).toBeDefined();
         });
 
         it('should handle a network error', async () => {
-            mockBaseQuery.mockRejectedValue(new Error('Network failure'));
-            const result = await store.dispatch(testSimulationApi.endpoints.getReportStatus.initiate({ branchName: 'main', ruleId: '1' }));
+            mockBaseQuery.mockResolvedValue({ error: { status: 'FETCH_ERROR', error: 'Network failure' } });
+            const result = await store.dispatch(testSimulationApi.endpoints.getReportStatus.initiate({ ruleId: '1' }));
             expect((result as { error?: unknown }).error).toBeDefined();
         });
     });
@@ -693,15 +693,14 @@ describe('simulationApi (redux/Api/Simulation)', () => {
         });
 
         it('getReport – query function builds the correct URL', async () => {
-            await store.dispatch(simulationApi.endpoints.getReport.initiate({ branchName: 'main', ruleId: '1' }));
+            await store.dispatch(simulationApi.endpoints.getReport.initiate({ ruleId: '1' }));
             const [arg] = getRealInnerMock().mock.calls[0] as [{ url: string }];
             expect(arg.url).toContain('/api/v1/report');
             expect(arg.url).toContain('ruleId=1');
-            expect(arg.url).toContain('branchName=main');
         });
 
         it('getReportStatus – query function builds the correct URL', async () => {
-            await store.dispatch(simulationApi.endpoints.getReportStatus.initiate({ branchName: 'main', ruleId: '1' }));
+            await store.dispatch(simulationApi.endpoints.getReportStatus.initiate({ ruleId: '1' }));
             const [arg] = getRealInnerMock().mock.calls[0] as [{ url: string }];
             expect(arg.url).toContain('/api/v1/unit-tests/status');
             expect(arg.url).toContain('ruleId=1');

@@ -1,12 +1,16 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import RuleBuilder from '../../../../src/pages/RuleEditor/RuleBuilder';
-import useRuleBuilderController from '../../../../src/pages/RuleEditor/RuleBuilder/useRuleBuilderController';
 
-jest.mock('../../../../src/pages/RuleEditor/RuleBuilder/useRuleBuilderController');
+jest.mock('../../../../src/pages/RuleEditor/RuleBuilder/useRuleBuilderController', () => ({
+    __esModule: true,
+    default: jest.fn(),
+}));
 jest.mock('../../../../src/utils/Common/storage', () => ({
     extractData: jest.fn(),
 }));
+
+const RuleBuilder = require('../../../../src/pages/RuleEditor/RuleBuilder').default as typeof import('../../../../src/pages/RuleEditor/RuleBuilder').default;
+const useRuleBuilderController = require('../../../../src/pages/RuleEditor/RuleBuilder/useRuleBuilderController').default as typeof import('../../../../src/pages/RuleEditor/RuleBuilder/useRuleBuilderController').default;
 
 const mockUseRuleBuilderController = useRuleBuilderController as jest.MockedFunction<typeof useRuleBuilderController>;
 

@@ -13,7 +13,7 @@ import { DlhCountDto, DlhCountResponse, FetchFromDlhQueryDto, FetchFromDlhRespon
 @Controller('fetch-from-dlh')
 @UseGuards(TazamaAuthGuard)
 export class FetchFromDlhController {
-  constructor(private readonly fetchFromDlhService: FetchFromDlhService) { }
+  constructor(private readonly fetchFromDlhService: FetchFromDlhService) {}
 
   @Post()
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
@@ -26,12 +26,9 @@ export class FetchFromDlhController {
       CommonResponses.NOT_FOUND_404('Data not found'),
     ),
   })
-  async fetchFromDlh(
-    @Body() queries: FetchFromDlhQueryDto[],
-    @User() user: AuthenticatedUser,
-  ): Promise<FetchFromDlhResponseDto> {
+  async fetchFromDlh(@Body() queries: FetchFromDlhQueryDto[], @User() user: AuthenticatedUser): Promise<FetchFromDlhResponseDto> {
     // const tenantId = getTenantId(user);
-    const tenantId = 'DEFAULT'
+    const tenantId = 'DEFAULT';
     return await this.fetchFromDlhService.fetchFromDlh(queries, tenantId, user.token.tokenString);
   }
 
@@ -46,11 +43,7 @@ export class FetchFromDlhController {
       CommonResponses.NOT_FOUND_404('Data not found'),
     ),
   })
-  async fetchCountFromDlh(
-    @Body() body: DlhCountDto,
-    @User() user: AuthenticatedUser,
-  ): Promise<DlhCountResponse> {
+  async fetchCountFromDlh(@Body() body: DlhCountDto, @User() user: AuthenticatedUser): Promise<DlhCountResponse> {
     return await this.fetchFromDlhService.getCount(body, user);
   }
 }
-

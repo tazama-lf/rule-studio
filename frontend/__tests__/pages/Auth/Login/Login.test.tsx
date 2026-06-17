@@ -219,7 +219,7 @@ describe('Login Component', () => {
 
       const currentYear = new Date().getFullYear();
       const footerText = screen.getByText(
-        new RegExp(`© ${currentYear} Tazama`)
+        new RegExp(`${currentYear} LF Charities, Inc. and contributors to the Tazama project`)
       );
       expect(footerText).toBeInTheDocument();
     });
@@ -231,11 +231,11 @@ describe('Login Component', () => {
       expect(screen.getByText(new RegExp(currentYear.toString()))).toBeInTheDocument();
     });
 
-    it('should render Paysys Labs branding', () => {
+    it('should render Apache license branding', () => {
       renderWithTheme(<Login />);
 
       expect(
-        screen.getByText(/Powered by Paysys Labs/i)
+        screen.getByText(/Apache-2\.0/i)
       ).toBeInTheDocument();
     });
   });

@@ -7,7 +7,11 @@ import { SendToDemsService } from '../send-to-dems/send-to-dems.service';
 import type { DlhCountDto, DlhCountResponse, FetchFromDlhQueryDto, FetchFromDlhResponseDto } from './dto/fetch-from-dlh.dto';
 import { SimulationService } from '../simulation/simulation.service';
 
-interface DlhItem { message_id: string; credttm_ts: string; document: Record<string, unknown> };
+interface DlhItem {
+  message_id: string;
+  credttm_ts: string;
+  document: Record<string, unknown>;
+}
 
 interface DlhPageResponse {
   items: DlhItem[];
@@ -25,8 +29,8 @@ export class FetchFromDlhService {
   constructor(
     private readonly adminServiceClient: AdminServiceClient,
     private readonly sendToDemsService: SendToDemsService,
-    private readonly simulationService: SimulationService
-  ) { }
+    private readonly simulationService: SimulationService,
+  ) {}
 
   private readonly PAGE_SIZE = 100;
   private readonly limit = 3;
@@ -38,12 +42,19 @@ export class FetchFromDlhService {
     // the total page count, then fetch all remaining pages concurrently as well.
     const results = await Promise.all(
       queries.map(async (query) => {
-        const body = { txtp: query.txtp, mask_fields: query.mask_fields, startDtTm: query.startDtTm, endDtTm: query.endDtTm, tenantId, limit: this.limit };
+        const body = {
+          txtp: query.txtp,
+          mask_fields: query.mask_fields,
+          startDtTm: query.startDtTm,
+          endDtTm: query.endDtTm,
+          tenantId,
+          limit: this.limit,
+        };
 
         // First call to page 1 to determine total number of pages
         const firstResponse = await fetch(`${this.DLH_ENDPOINT}?page=1&size=${this.PAGE_SIZE}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify(body),
         });
 
@@ -64,7 +75,7 @@ export class FetchFromDlhService {
             remainingPageNumbers.map(async (page) => {
               const pageResponse = await fetch(`${this.DLH_ENDPOINT}?page=${page}&size=${this.PAGE_SIZE}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(body),
               });
 
@@ -99,13 +110,16 @@ export class FetchFromDlhService {
       endpointByTxtp: new Map(
         queries.map((q) => [this.normalizeTxtp(q.txtp), q.endpoint_path ? `${this.DEMS_ENDPOINT}${q.endpoint_path}` : this.DEMS_ENDPOINT]),
       ),
-      rawEndpointPathByTxtp: new Map(
-        queries.map((q) => [this.normalizeTxtp(q.txtp), q.endpoint_path ?? null]),
-      ),
+      rawEndpointPathByTxtp: new Map(queries.map((q) => [this.normalizeTxtp(q.txtp), q.endpoint_path ?? null])),
     };
   }
 
-  private async stageItems(rawItems: DlhItem[], rawEndpointPathByTxtp: Map<string, string | null>, tenantId: string, token: string): Promise<{ tableName: string | null }> {
+  private async stageItems(
+    rawItems: DlhItem[],
+    rawEndpointPathByTxtp: Map<string, string | null>,
+    tenantId: string,
+    token: string,
+  ): Promise<{ tableName: string | null }> {
     const itemsWithEndpoint = rawItems.map((item) => {
       const normalizedDocTxtp = this.normalizeTxtp((item.document.TxTp as string | undefined) ?? '');
       const entry = [...rawEndpointPathByTxtp.entries()].find(([key]) => normalizedDocTxtp.startsWith(key));
@@ -116,7 +130,10 @@ export class FetchFromDlhService {
     return await this.adminServiceClient.stageSimulationItems(itemsWithEndpoint, token);
   }
 
-  private buildMessages(rawItems: DlhItem[], endpointByTxtp: Map<string, string>): Array<{ messageId: string; timestamp: string; endpoint: string; data: Record<string, unknown> }> {
+  private buildMessages(
+    rawItems: DlhItem[],
+    endpointByTxtp: Map<string, string>,
+  ): Array<{ messageId: string; timestamp: string; endpoint: string; data: Record<string, unknown> }> {
     return rawItems.map((item) => {
       const normalizedDocTxtp = this.normalizeTxtp((item.document.TxTp as string | undefined) ?? '');
       const entry = [...endpointByTxtp.entries()].find(([key]) => normalizedDocTxtp.startsWith(key));
@@ -137,13 +154,16 @@ export class FetchFromDlhService {
     token: string,
   ): Promise<{ jobId: string }> {
     await this.adminServiceClient.truncateEvaluationData(token);
-    await this.adminServiceClient.saveRecordInTrsSimulation({
-      simulationId: tableName ?? undefined,
-      totalRecord: messages.length,
-      recordProcessed: 0,
-      simStatus: 'RUNNING',
-      tenantId,
-    }, token);
+    await this.adminServiceClient.saveRecordInTrsSimulation(
+      {
+        simulationId: tableName ?? undefined,
+        totalRecord: messages.length,
+        recordProcessed: 0,
+        simStatus: 'RUNNING',
+        tenantId,
+      },
+      token,
+    );
 
     const { jobId } = await this.sendToDemsService.enqueueDlhSimulation(messages, token, tableName ?? undefined, tenantId, messages.length);
     this.logger.log(`Simulation job ${jobId} enqueued`);
@@ -179,7 +199,6 @@ export class FetchFromDlhService {
     }
   }
 
-
   async getCount(data: DlhCountDto, user: AuthenticatedUser): Promise<DlhCountResponse> {
     const normalizedRole = this.rbacService.getNormalizedRole(user);
     const tier2 = this.rbacService.getTier2({ role: normalizedRole, endpointKey: 'POST /fetch-from-dlh/api/count' });
@@ -193,10 +212,8 @@ export class FetchFromDlhService {
 
     const uniqueTxtps = Array.from(
       new Map(
-        existing
-          .filter((item): item is typeof item & { txtp: string } => !!item.txtp)
-          .map((item) => [item.txtp, item] as const)
-      ).values()
+        existing.filter((item): item is typeof item & { txtp: string } => !!item.txtp).map((item) => [item.txtp, item] as const),
+      ).values(),
     );
 
     return await this.adminServiceClient.fetchCountFromDlh(
@@ -205,12 +222,10 @@ export class FetchFromDlhService {
           txtp: eType.txtp,
           startDtTm: data.startDtTm,
           endDtTm: data.endDtTm,
-          tenantId: user.tenantId
-        }))
+          tenantId: user.tenantId,
+        })),
       },
-      user.token.tokenString
+      user.token.tokenString,
     );
   }
 }
-
-

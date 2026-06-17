@@ -57,7 +57,11 @@ export class SimulationProcessor extends WorkerHost {
 
     try {
       this.gateway.emitProgress(jobId, {
-        jobId, progress: 0, processed: 0, total: 0, status: 'running',
+        jobId,
+        progress: 0,
+        processed: 0,
+        total: 0,
+        status: 'running',
         log: this.makeLog('info', 'Initializing simulation environment...'),
       });
     } catch (gatewayErr) {
@@ -83,7 +87,11 @@ export class SimulationProcessor extends WorkerHost {
       // Edge case: no messages to process
       if (total === 0) {
         this.gateway.emitProgress(jobId, {
-          jobId, progress: 100, processed: 0, total: 0, status: 'completed',
+          jobId,
+          progress: 100,
+          processed: 0,
+          total: 0,
+          status: 'completed',
           log: this.makeLog('success', 'Simulation completed successfully.'),
         });
         this.logger.log(`Simulation job ${jobId} completed with 0 messages`);
@@ -91,14 +99,22 @@ export class SimulationProcessor extends WorkerHost {
       }
 
       this.gateway.emitProgress(jobId, {
-        jobId, progress: 0, processed: 0, total, status: 'running',
+        jobId,
+        progress: 0,
+        processed: 0,
+        total,
+        status: 'running',
         log: this.makeLog('success', 'Records loaded successfully.'),
       });
 
       const authHeader = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
 
       this.gateway.emitProgress(jobId, {
-        jobId, progress: 0, processed: 0, total, status: 'running',
+        jobId,
+        progress: 0,
+        processed: 0,
+        total,
+        status: 'running',
         log: this.makeLog('info', 'Replay started. Processing transactions in historical sequence...'),
       });
 
@@ -111,7 +127,9 @@ export class SimulationProcessor extends WorkerHost {
           const delay = Math.min(rawDelay, MAX_REPLAY_DELAY_MS);
           if (delay > 0) {
             if (rawDelay > MAX_REPLAY_DELAY_MS) {
-              this.logger.debug(`Job ${jobId}: original gap ${rawDelay}ms capped to ${MAX_REPLAY_DELAY_MS}ms before message ${message.messageId}`);
+              this.logger.debug(
+                `Job ${jobId}: original gap ${rawDelay}ms capped to ${MAX_REPLAY_DELAY_MS}ms before message ${message.messageId}`,
+              );
             } else {
               this.logger.debug(`Job ${jobId}: waiting ${delay}ms before message ${message.messageId}`);
             }
@@ -156,7 +174,6 @@ export class SimulationProcessor extends WorkerHost {
         lastEmittedPercent = this.emitIfThreshold(jobId, processed, total, lastEmittedPercent);
       }
 
-      
       if (tableName) {
         this.logger.log(`Simulation job ${jobId}: triggering evaluation cycle for table ${tableName}`);
         await this.fetchEvaluationService.fetchEvaluation(token, tableName, tenantId, totalMessages ?? total);
@@ -164,7 +181,11 @@ export class SimulationProcessor extends WorkerHost {
 
       // Always emit a final 100% completed event, regardless of where the last threshold fell
       this.gateway.emitProgress(jobId, {
-        jobId, progress: 100, processed: total, total, status: 'completed',
+        jobId,
+        progress: 100,
+        processed: total,
+        total,
+        status: 'completed',
         log: this.makeLog('success', 'Simulation completed successfully.'),
       });
       this.logger.log(`Simulation job ${jobId} completed (${total} messages processed)`);
@@ -199,7 +220,11 @@ export class SimulationProcessor extends WorkerHost {
 
     if (roundedPct > lastEmittedPercent && roundedPct < 100) {
       const update: ProgressUpdateDto = {
-        jobId, progress: roundedPct, processed, total, status: 'running',
+        jobId,
+        progress: roundedPct,
+        processed,
+        total,
+        status: 'running',
         log: this.makeLog('warning', 'Rule engine processing... Alerts triggered.'),
       };
       this.gateway.emitProgress(jobId, update);

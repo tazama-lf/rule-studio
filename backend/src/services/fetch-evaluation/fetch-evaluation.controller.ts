@@ -24,9 +24,7 @@ export class FetchEvaluationController {
   @ApiResponse({ status: 200, description: 'Evaluations fetched successfully.' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Insufficient claims' })
-  async fetchEvaluation(
-    @User() user: AuthenticatedUser,
-  ): Promise<FetchEvaluationResponseDto> {
+  async fetchEvaluation(@User() user: AuthenticatedUser): Promise<FetchEvaluationResponseDto> {
     return await this.fetchEvaluationService.fetchEvaluation(user.token.tokenString);
   }
 }

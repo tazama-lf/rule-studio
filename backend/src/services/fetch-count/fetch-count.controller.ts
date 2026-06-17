@@ -31,4 +31,4 @@ export class FetchCountController {
   ): Promise<FetchFromDlhResponseDto> {
     return await this.fetchCountService.fetchCount(body.startDtTm, body.endDtTm, user.token.tokenString);
   }
-}   
+}
