@@ -1,8 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { faker } from '@faker-js/faker';
 import { firstValueFrom } from 'rxjs';
+import type { Faker } from '@faker-js/faker';
 import { Client as PgClient } from 'pg';
+
+let _faker: Faker | undefined;
+async function getFaker(): Promise<Faker> {
+  if (!_faker) {
+    const mod = await import('@faker-js/faker');
+    _faker = mod.faker;
+  }
+  return _faker;
+}
 import { AdminServiceClient } from '../../admin-service-client';
 import { EphemeralEnvService } from '../ephemeral-env/ephemeral-env.service';
 import { MsgSampleGenerationService } from '../../msg-sample-generation/msg-sample-generation.service';
@@ -165,6 +174,7 @@ export class RunSimulationService {
       const typology = buildTypology(ruleConfig, ruleName, version);
       const networkMap = buildNetworkMap(typology, ruleName, tenantId, primaryTxTp);
       // One correlationId per run, shared by every trigger publish in this simulation.
+      const faker = await getFaker();
       const correlationId = faker.string.uuid();
 
       // Phase 1 of the spawn: Postgres + network only. Seeding happens in the gap
