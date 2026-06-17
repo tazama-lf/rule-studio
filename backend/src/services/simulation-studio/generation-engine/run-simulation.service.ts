@@ -176,8 +176,9 @@ export class RunSimulationService {
         await this.seedConfigArtifacts(pgPort, { ruleConfig, typology, networkMap });
 
         // Generate and seed the database with sample data
-        const dbScript = await this.msgSampleGenerationService.generateDbScript(sampleResp, token);
-        await this.seedDatabaseWithScript(pgPort, dbScript);
+        const { dbScript, functionResultScript } = await this.msgSampleGenerationService.generateDbScript(sampleResp, token);
+        await this.seedDatabaseWithRawHistoryScript(pgPort, dbScript);
+        await this.seedDatabaseWithEventHistoryScript(pgPort, functionResultScript);
 
         // TODO(Phase 3.2): table-count + row-count validation gate. Fail-fast here means we tear down Postgres without ever spawning the runtime stack.
 
@@ -275,7 +276,7 @@ export class RunSimulationService {
     }
   }
 
-  private async seedDatabaseWithScript(pgPort: number, dbScript: string): Promise<void> {
+  private async seedDatabaseWithRawHistoryScript(pgPort: number, dbScript: string): Promise<void> {
     if (!dbScript || dbScript.trim() === '') {
       this.logger.warn('No database script provided, skipping seed');
       return;
@@ -292,10 +293,37 @@ export class RunSimulationService {
     try {
       await client.connect();
       await client.query(dbScript);
-      this.logger.log('Successfully seeded database with generated script');
+      this.logger.log('Successfully seeded database with raw history generated script');
     } catch (error) {
       const err = error as Error;
-      this.logger.error(`Failed to seed database with generated script: ${err.message}`);
+      this.logger.error(`Failed to seed database with raw history generated script: ${err.message}`);
+      throw error;
+    } finally {
+      await client.end().catch(() => undefined);
+    }
+  }
+
+  private async seedDatabaseWithEventHistoryScript(pgPort: number, dbScript: string): Promise<void> {
+    if (!dbScript || dbScript.trim() === '') {
+      this.logger.warn('No database script provided, skipping seed');
+      return;
+    }
+
+    const client = new PgClient({
+      host: 'localhost',
+      port: pgPort,
+      user: 'postgres',
+      password: 'unused',
+      database: 'event_history',
+    });
+
+    try {
+      await client.connect();
+      await client.query(dbScript);
+      this.logger.log('Successfully seeded database with event history generated script');
+    } catch (error) {
+      const err = error as Error;
+      this.logger.error(`Failed to seed database with event history generated script: ${err.message}`);
       throw error;
     } finally {
       await client.end().catch(() => undefined);

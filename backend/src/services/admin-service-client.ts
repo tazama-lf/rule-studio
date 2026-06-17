@@ -334,6 +334,28 @@ export class AdminServiceClient {
     }>('GET', `${CONFIG}/${encodeURIComponent(transactionType)}/${encodeURIComponent(transactionVersion)}`, token);
   }
 
+  async getConfigRowByTxTpw3(
+    transactionType: string,
+    transactionVersion: string,
+    token: string,
+  ): Promise<{
+    config: {
+      schema: Record<string, unknown>;
+      mapping: FieldMapping[];
+      functions: Array<Record<string, unknown>>;
+    };
+  }> {
+    return await this.executeHttpRequest<{
+      config: {
+        schema: Record<string, unknown>;
+        mapping: FieldMapping[];
+        functions: Array<Record<string, unknown>>;
+      };
+    }>('GET', `${CONFIG}/w3/${encodeURIComponent(transactionType)}/${encodeURIComponent(transactionVersion)}`, token);
+  }
+
+  
+
   async cloneRule(
     ruleId: string,
     token: string,
