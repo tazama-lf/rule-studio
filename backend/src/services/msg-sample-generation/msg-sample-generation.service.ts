@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import { GenerateEnrichmentResponseDto, GenerateSampleMessagesResponseDto } from './dto/msg-sample-generation.dto';
 import { AdminServiceClient } from '../admin-service-client';
 import { processMappings } from 'src/utils/process-mappings.util';
@@ -115,7 +116,7 @@ export class MsgSampleGenerationService {
           .map((row) => {
             const dataValue = `'${escapeSql(JSON.stringify(row))}'::jsonb`;
             const jobIdValue = `'${escapeSql(item.enrichment_table_id)}'`;
-            const checksumValue = `'${escapeSql(JSON.stringify(row))}'`; // Simple checksum using row data hash
+            const checksumValue = `'${createHash('sha256').update(JSON.stringify(row)).digest('hex')}'`;
             return `(${dataValue}, ${jobIdValue}, ${checksumValue})`;
           })
           .join(',\n    ');
