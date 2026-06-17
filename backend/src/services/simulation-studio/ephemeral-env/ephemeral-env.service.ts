@@ -45,7 +45,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
   private readonly simulations = new Map<string, SimulationInstance>();
 
   async onModuleDestroy(): Promise<void> {
-    await this.destroyAll();
+    // await this.destroyAll();
   }
 
   private async assertImageExists(image: string): Promise<void> {
@@ -192,7 +192,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
     }
 
     const { network, info } = sim;
-    const { ruleName, version, functionName } = info;
+    const { ruleName, version } = info;
     const ruleBaseName = ruleName.replace(/^rule-/, '');
     const ruleImage = `${DOCKERHUB_NAMESPACE}/${ruleName}:${version}`;
 
@@ -231,7 +231,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
         .withNetwork(network)
         .withNetworkAliases('rule-processor')
         .withEnvironment({
-          NODE_ENV: 'dev',
+          NODE_ENV: 'production',
           MAX_CPU: '1',
           SUPPRESS_ALERTS: 'true',
           APM_ACTIVE: 'false',
@@ -245,7 +245,8 @@ export class EphemeralEnvService implements OnModuleDestroy {
           REDIS_DATABASE: '0',
           REDIS_IS_CLUSTER: 'false',
           REDIS_AUTH: '',
-          REDIS_SERVERS: JSON.stringify([{ host: 'valkey', port: 6379 }]),
+          REDIS_HOST: 'valkey',
+          REDIS_PORT: '6379',
           RAW_HISTORY_DATABASE: 'raw_history',
           RAW_HISTORY_DATABASE_HOST: 'postgres',
           RAW_HISTORY_DATABASE_PORT: '5432',
@@ -267,7 +268,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
           LOG_LEVEL: 'info',
           STARTUP_TYPE: 'nats',
           SERVER_URL: 'nats:4222',
-          FUNCTION_NAME: functionName,
+          FUNCTION_NAME: 'rule-executor',
           RULE_VERSION: version,
           RULE_NAME: ruleBaseName,
         })
@@ -281,7 +282,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
       sim.ruleProcessor = ruleProcessor;
 
       this.logger.log(`[${name}] Starting nats-utilities...`);
-      const natsUtilities = await new GenericContainer('tazamaorg/nats-utilities:latest')
+      const natsUtilities = await new GenericContainer('ndxf/nats-utilities:1.0.0')
         .withNetwork(network)
         .withNetworkAliases('nats-utilities')
         .withEnvironment({
@@ -290,10 +291,15 @@ export class EphemeralEnvService implements OnModuleDestroy {
           PORT: '4000',
           APM_ACTIVE: 'false',
           APM_SECRET_TOKEN: '',
-          APM_URL: 'http://apm:8200',
+          APM_URL: 'http://127.0.0.1:8200',
           APM_SERVICE_NAME: 'nats-utilities',
           STARTUP_TYPE: 'nats',
           SERVER_URL: 'nats:4222',
+          ORIGIN: '*',
+          ACK_POLICY: 'Explicit',
+          PRODUCER_STORAGE: 'File',
+          PRODUCER_RETENTION_POLICY: 'Workqueue',
+          prefix_logs: 'false',
         })
         .withExposedPorts(4000)
         .withWaitStrategy(
@@ -335,13 +341,13 @@ export class EphemeralEnvService implements OnModuleDestroy {
 
     // Stop only the containers that were actually brought up. Partial-state
     // entries (POSTGRES_UP but no runtime) will have undefined slots.
-    const stops: Promise<unknown>[] = [sim.postgres.stop()];
-    if (sim.nats) stops.push(sim.nats.stop());
-    if (sim.valkey) stops.push(sim.valkey.stop());
-    if (sim.ruleProcessor) stops.push(sim.ruleProcessor.stop());
-    if (sim.natsUtilities) stops.push(sim.natsUtilities.stop());
-    await Promise.allSettled(stops);
-    await sim.network.stop().catch((_e: unknown) => undefined);
+    // const stops: Promise<unknown>[] = [sim.postgres.stop()];
+    // if (sim.nats) stops.push(sim.nats.stop());
+    // if (sim.valkey) stops.push(sim.valkey.stop());
+    // if (sim.ruleProcessor) stops.push(sim.ruleProcessor.stop());
+    // if (sim.natsUtilities) stops.push(sim.natsUtilities.stop());
+    // await Promise.allSettled(stops);
+    // await sim.network.stop().catch((_e: unknown) => undefined);
 
     this.simulations.delete(name);
     this.logger.log(`Simulation '${name}' destroyed`);
