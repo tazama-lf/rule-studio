@@ -212,7 +212,7 @@ export class RunSimulationService {
         await this.markGenerationStatus(token, generationId, 'COMPLETED');
         return { success: true, results };
       } finally {
-        // await this.ephemeralEnvService.destroy(simName).catch(() => undefined);
+        await this.ephemeralEnvService.destroy(simName).catch(() => undefined);
       }
     } catch (err) {
       await this.markGenerationStatus(token, generationId, 'FAILED');
