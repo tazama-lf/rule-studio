@@ -37,7 +37,7 @@ export class RunSimulationController {
     @Body() body: RunSimulationDto,
     @User() user: AuthenticatedUser,
   ): Promise<RunSimulationResponseDto> {
-    return await this.runSimulationService.runSimulation(user.token.tokenString, body);
+    return await this.runSimulationService.runSimulation(user.token.tokenString, user.tenantId, body);
   }
 
   @Post('rerun-simulation')
@@ -50,7 +50,7 @@ export class RunSimulationController {
   })
   async rerunGeneration(@Body() body: RunSimulationDto, @User() user: AuthenticatedUser): Promise<RunSimulationResponseDto> {
     const cloned = await this.generationsService.cloneGeneration(user.token.tokenString, body.generationId);
-    return await this.runSimulationService.runSimulation(user.token.tokenString, {
+    return await this.runSimulationService.runSimulation(user.token.tokenString, user.tenantId, {
       suiteId: body.suiteId,
       generationId: cloned.data.id,
     });
