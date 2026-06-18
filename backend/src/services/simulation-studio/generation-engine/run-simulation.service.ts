@@ -422,7 +422,8 @@ export class RunSimulationService {
           .saveRunResult(token, {
             gen_id: generationId,
             trigger_id: msg.trigger_txtp_config_id,
-            rule_result: { error, timedOut: isTimeout },
+            rule_result: {},
+            outcome: 'TIME_OUT',
           })
           .catch(() => undefined);
 
