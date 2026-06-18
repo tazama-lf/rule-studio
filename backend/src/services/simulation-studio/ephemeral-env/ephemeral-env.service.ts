@@ -45,7 +45,11 @@ export class EphemeralEnvService implements OnModuleDestroy {
   private readonly simulations = new Map<string, SimulationInstance>();
 
   async onModuleDestroy(): Promise<void> {
-    // await this.destroyAll();
+    await this.destroyAll();
+  }
+
+  private get containerHost(): string {
+    return process.env.TESTCONTAINERS_HOST_OVERRIDE ?? 'localhost';
   }
 
   private async assertImageExists(image: string): Promise<void> {
@@ -147,6 +151,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
 
       const ports: SimulationPorts = {
         pg: postgres.getMappedPort(5432),
+        pgHost: this.containerHost,
       };
 
       const info: SimulationInfo = {
@@ -318,9 +323,11 @@ export class EphemeralEnvService implements OnModuleDestroy {
       sim.natsUtilities = natsUtilities;
 
       info.ports.nats = nats.getMappedPort(4222);
+      info.ports.natsHost = this.containerHost;
       info.ports.natsMonitor = nats.getMappedPort(8222);
       info.ports.valkey = valkey.getMappedPort(6379);
       info.ports.natsUtils = natsUtilities.getMappedPort(4000);
+      info.ports.natsUtilsHost = this.containerHost;
       info.status = SimulationStatus.UP;
 
       this.logger.log(
@@ -383,6 +390,6 @@ export class EphemeralEnvService implements OnModuleDestroy {
         `Simulation '${name}' is in status ${sim.info.status}; nats-utilities is not running yet.`,
       );
     }
-    return `http://localhost:${sim.info.ports.natsUtils}`;
+    return `http://${sim.info.ports.natsUtilsHost ?? this.containerHost}:${sim.info.ports.natsUtils}`;
   }
 }

@@ -9,15 +9,18 @@ export interface SpawnOptions {
   version?: string;
 }
 
-// `pg` is populated as soon as spawnPostgres returns. The other ports only
-// become available after spawnRuntime completes — they are undefined while
-// the simulation is in the POSTGRES_UP intermediate state.
+// `pg`/`pgHost` are populated as soon as spawnPostgres returns. The other
+// ports/hosts only become available after spawnRuntime completes — they are
+// undefined while the simulation is in the POSTGRES_UP intermediate state.
 export interface SimulationPorts {
   pg: number;
+  pgHost: string;
   nats?: number;
+  natsHost?: string;
   natsMonitor?: number;
   valkey?: number;
   natsUtils?: number;
+  natsUtilsHost?: string;
 }
 
 export interface SimulationInfo {

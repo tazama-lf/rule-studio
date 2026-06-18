@@ -182,17 +182,18 @@ export class RunSimulationService {
       // before the runtime stack joins so the rule processor never sees an unseeded DB.
       const pgInfo = await this.ephemeralEnvService.spawnPostgres(simName, { ruleName, version });
       const pgPort = pgInfo.ports.pg;
+      const pgHost = pgInfo.ports.pgHost;
 
       try {
-        await this.seedConfigArtifacts(pgPort, { ruleConfig, typology, networkMap });
+        await this.seedConfigArtifacts(pgHost, pgPort, { ruleConfig, typology, networkMap });
 
         // Generate and seed the database with sample data
         const { dbScript, functionResultScript } = await this.msgSampleGenerationService.generateDbScript(sampleResp, token);
         const enrichmentDbScript = await this.msgSampleGenerationService.generateEnrichmentDbScript(enrichmentResp, token);
-        
-        await this.seedDatabaseWithRawHistoryScript(pgPort, dbScript);
-        await this.seedDatabaseWithEventHistoryScript(pgPort, functionResultScript);
-        await this.seedDatabaseWithEnrichmentHistoryScript(pgPort, enrichmentDbScript);
+
+        await this.seedDatabaseWithRawHistoryScript(pgHost, pgPort, dbScript);
+        await this.seedDatabaseWithEventHistoryScript(pgHost, pgPort, functionResultScript);
+        await this.seedDatabaseWithEnrichmentHistoryScript(pgHost, pgPort, enrichmentDbScript);
 
       
 
@@ -240,6 +241,7 @@ export class RunSimulationService {
   }
 
   private async seedConfigArtifacts(
+    pgHost: string,
     pgPort: number,
     artifacts: { ruleConfig: RuleConfig; typology: Typology; networkMap: NetworkMap },
   ): Promise<void> {
@@ -247,7 +249,7 @@ export class RunSimulationService {
     // first so our rows are the only ones present, then insert. Everything is wrapped in
     // a single transaction so the ephemeral DB is never half-seeded.
     const client = new PgClient({
-      host: 'localhost',
+      host: pgHost,
       port: pgPort,
       user: 'postgres',
       password: 'unused',
@@ -293,14 +295,14 @@ export class RunSimulationService {
     }
   }
 
-  private async seedDatabaseWithRawHistoryScript(pgPort: number, dbScript: string): Promise<void> {
+  private async seedDatabaseWithRawHistoryScript(pgHost: string, pgPort: number, dbScript: string): Promise<void> {
     if (!dbScript || dbScript.trim() === '') {
       this.logger.warn('No database script provided, skipping seed');
       return;
     }
 
     const client = new PgClient({
-      host: 'localhost',
+      host: pgHost,
       port: pgPort,
       user: 'postgres',
       password: 'unused',
@@ -320,14 +322,14 @@ export class RunSimulationService {
     }
   }
 
-  private async seedDatabaseWithEnrichmentHistoryScript(pgPort: number, dbScript: string): Promise<void> {
+  private async seedDatabaseWithEnrichmentHistoryScript(pgHost: string, pgPort: number, dbScript: string): Promise<void> {
     if (!dbScript || dbScript.trim() === '') {
       this.logger.warn('No database script provided, skipping seed');
       return;
     }
 
     const client = new PgClient({
-      host: 'localhost',
+      host: pgHost,
       port: pgPort,
       user: 'postgres',
       password: 'unused',
@@ -347,14 +349,14 @@ export class RunSimulationService {
     }
   }
 
-   private async seedDatabaseWithEventHistoryScript(pgPort: number, dbScript: string): Promise<void> {
+  private async seedDatabaseWithEventHistoryScript(pgHost: string, pgPort: number, dbScript: string): Promise<void> {
     if (!dbScript || dbScript.trim() === '') {
       this.logger.warn('No database script provided, skipping seed');
       return;
     }
 
     const client = new PgClient({
-      host: 'localhost',
+      host: pgHost,
       port: pgPort,
       user: 'postgres',
       password: 'unused',
