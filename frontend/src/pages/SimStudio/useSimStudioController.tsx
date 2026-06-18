@@ -1,12 +1,13 @@
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import type { TableColumn } from "../../components/Table";
 import useDebouncedSearch from "../../hooks/useDebouncedSearch";
-import { useGetSuitesQuery, useGetSuitesCountQuery, type SuiteListItem } from "../../redux/Api/SimStudio";
+import { useCloneSuiteMutation, useGetSuitesQuery, useGetSuitesCountQuery, type SuiteListItem } from "../../redux/Api/SimStudio";
 import { useGetRulesQuery } from "../../redux/Api/DockerHub";
 import { useGetTypesQuery } from "../../redux/Api/Config";
 import { LocalStorage } from "../../utils/Common/enums";
-import { removeData } from "../../utils/Common/storage";
+import { insertData, removeData } from "../../utils/Common/storage";
 import * as S from "./SimStudio.styles";
 import SimStudioActions from "./SimStudioActions";
 
@@ -35,25 +36,25 @@ const formatLatestIteration = (latestRunAt?: string | number | null): string => 
 const useSimStudioController = () => {
     const navigate = useNavigate();
     const [searchInput, debouncedSearch, setSearchInput] = useDebouncedSearch("", 300);
-    const [statusFilter, setStatusFilter] = useState<string>("");
     const [ruleFilter, setRuleFilter] = useState<string>("");
     const [txtpFilter, setTxtpFilter] = useState<string>("");
     const [lastUpdatedFrom, setLastUpdatedFrom] = useState<string>("");
     const [lastUpdatedTo, setLastUpdatedTo] = useState<string>("");
     const [page, setPage] = useState(0);
+    const [cloningSuiteId, setCloningSuiteId] = useState<number | null>(null);
+    const [cloneSuite] = useCloneSuiteMutation();
 
     const LIMIT = 10;
 
     const queryParams = useMemo(() => ({
         search: debouncedSearch || undefined,
-        status: statusFilter || undefined,
         rule_name: ruleFilter || undefined,
         txtp: txtpFilter || undefined,
         updated_from: lastUpdatedFrom || undefined,
         updated_to: lastUpdatedTo || undefined,
         limit: LIMIT,
         offset: page * LIMIT,
-    }), [debouncedSearch, statusFilter, ruleFilter, txtpFilter, lastUpdatedFrom, lastUpdatedTo, page]);
+    }), [debouncedSearch, ruleFilter, txtpFilter, lastUpdatedFrom, lastUpdatedTo, page]);
 
     const { data, isLoading, isFetching } = useGetSuitesQuery(queryParams);
     const { data: rulesData } = useGetRulesQuery();
@@ -84,8 +85,7 @@ const useSimStudioController = () => {
 
         return {
             total: counts?.total_suites ?? data?.total ?? suites.length,
-            readyForSimulation: counts?.total_completed_suites ?? suites.filter((s) => s.status === "COMPLETED" || s.status === "RUNNING").length,
-            drafts: counts?.total_draft_suites ?? suites.filter((s) => s.status === "DRAFT").length,
+            readyForSimulation: counts?.total_run ?? suites.filter((s) => s.status === "COMPLETED" || s.status === "RUNNING").length,
             latestIteration: counts ? formatLatestIteration(counts.latest_run_at) : computeLatestIteration(suites),
         };
     }, [data?.total, suites, suitesCountData]);
@@ -97,7 +97,6 @@ const useSimStudioController = () => {
             associated_rule: s.rule_name ?? "—",
             txtp: s.primary_txtp ?? "—",
             status: s.status,
-            iterations: s.iteration_count,
             last_updated: s.updated_at ? s.updated_at.split("T")[0] : "—",
         })),
         [suites]
@@ -106,7 +105,6 @@ const useSimStudioController = () => {
     const hasAdvancedFilters = txtpFilter !== "" || lastUpdatedFrom !== "" || lastUpdatedTo !== "";
     const hasAnyFilter =
         searchInput.trim() !== "" ||
-        statusFilter !== "" ||
         ruleFilter !== "" ||
         hasAdvancedFilters;
 
@@ -114,11 +112,6 @@ const useSimStudioController = () => {
         setSearchInput(value);
         setPage(0);
     }, [setSearchInput]);
-
-    const handleStatusFilter = useCallback((value: string) => {
-        setStatusFilter(value);
-        setPage(0);
-    }, []);
 
     const handleRuleFilter = useCallback((value: string) => {
         setRuleFilter(value);
@@ -149,7 +142,6 @@ const useSimStudioController = () => {
 
     const handleResetAllFilters = () => {
         handleSearch("");
-        setStatusFilter("");
         setRuleFilter("");
         setTxtpFilter("");
         setLastUpdatedFrom("");
@@ -160,6 +152,36 @@ const useSimStudioController = () => {
     const handleView = useCallback((row: Record<string, unknown>) => {
         navigate(`/sim-studio/view/${row.id}`);
     }, [navigate]);
+
+    const handleCloneSuite = useCallback(async (row: Record<string, unknown>) => {
+        const suiteId = Number(row.id);
+        if (Number.isNaN(suiteId)) {
+            toast.error("Suite ID is missing for this suite.");
+            return;
+        }
+
+        setCloningSuiteId(suiteId);
+        try {
+            const result = await cloneSuite({ suite_id: suiteId }).unwrap();
+            const clonedSuiteId = result.data.suite.id;
+            const clonedGenerationId = result.data.generation_id ?? result.data.suite.generation_id;
+            if (!clonedSuiteId || !clonedGenerationId) {
+                toast.error("Cloned suite details are missing. Please try again.");
+                return;
+            }
+
+            insertData(clonedGenerationId, "sim_gen_id", LocalStorage, false);
+            insertData(clonedSuiteId, "sim_suite_id", LocalStorage, false);
+            insertData(true, "sim_clone_mode", LocalStorage, false);
+            insertData("suite", "sim_clone_type", LocalStorage, false);
+            removeData("sim_results_locked", LocalStorage);
+            navigate("/sim-studio/create?simStudioTab=create_generation");
+        } catch {
+            toast.error("Failed to clone simulation suite. Please try again.");
+        } finally {
+            setCloningSuiteId(null);
+        }
+    }, [cloneSuite, navigate]);
 
     const columns: TableColumn[] = useMemo(() => [
         {
@@ -175,7 +197,6 @@ const useSimStudioController = () => {
                 <S.TxtpBadge>{row.txtp as string}</S.TxtpBadge>
             ),
         },
-        { label: "Iterations", key: "iterations" },
         { label: "Last Updated", key: "last_updated" },
         {
             label: "Actions",
@@ -183,15 +204,18 @@ const useSimStudioController = () => {
             render: (row: Record<string, unknown>) => (
                 <SimStudioActions
                     onView={() => handleView(row)}
+                    onClone={() => void handleCloneSuite(row)}
+                    isCloning={cloningSuiteId === Number(row.id)}
                 />
             ),
         },
-    ], [handleView]);
+    ], [cloningSuiteId, handleCloneSuite, handleView]);
 
     const handleCreate = () => {
         removeData("sim_gen_id", LocalStorage);
         removeData("sim_suite_id", LocalStorage);
         removeData("sim_clone_mode", LocalStorage);
+        removeData("sim_clone_type", LocalStorage);
         removeData("sim_results_locked", LocalStorage);
         navigate("/sim-studio/create?simStudioTab=create_generation");
     };
@@ -207,7 +231,6 @@ const useSimStudioController = () => {
         values: {
             isLoading: isLoading || isFetching,
             searchInput,
-            statusFilter,
             ruleFilter,
             txtpFilter,
             lastUpdatedFrom,
@@ -223,7 +246,6 @@ const useSimStudioController = () => {
         },
         functions: {
             handleSearch,
-            handleStatusFilter,
             handleRuleFilter,
             handleTxtpFilter,
             handleLastUpdatedFrom,

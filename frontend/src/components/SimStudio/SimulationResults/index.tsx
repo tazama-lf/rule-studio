@@ -534,6 +534,7 @@ const SimulationResults = () => {
         removeData("sim_gen_id", LocalStorage);
         removeData("sim_suite_id", LocalStorage);
         removeData("sim_clone_mode", LocalStorage);
+        removeData("sim_clone_type", LocalStorage);
         removeData("sim_results_locked", LocalStorage);
         navigate("/sim-studio");
     };
