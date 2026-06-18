@@ -346,7 +346,7 @@ export class RunSimulationService {
       port: pgPort,
       user: 'postgres',
       password: 'unused',
-      database: 'raw_history',
+      database,
     });
 
     try {
