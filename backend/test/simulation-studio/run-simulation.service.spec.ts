@@ -225,25 +225,35 @@ describe('RunSimulationService', () => {
       );
     });
 
-    it('marks generation FAILED and rethrows when suite fetch throws', async () => {
+    it('marks generation FAILED and returns failure response when suite fetch throws', async () => {
       adminServiceClient.updateGenerationStatus.mockResolvedValue(undefined as any);
       adminServiceClient.getSimulationSuiteById.mockRejectedValue(new Error('Suite not found'));
       adminServiceClient.getSampleTriggerMessages.mockResolvedValue(mockTriggerResp as any);
       adminServiceClient.getSampleMessages.mockResolvedValue(mockSampleResp);
       adminServiceClient.getEnrichmentMessages.mockResolvedValue(mockEnrichmentResp as any);
 
-      await expect(service.runSimulation('test-token', 'cbe', mockRunBody)).rejects.toThrow('Suite not found');
+      await expect(service.runSimulation('test-token', 'cbe', mockRunBody)).resolves.toEqual({
+        success: false,
+        timedOut: false,
+        message: 'Simulation failed: Suite not found',
+        results: [],
+      });
 
       expect(adminServiceClient.updateGenerationStatus).toHaveBeenCalledWith(
         'test-token', 1, { status: 'FAILED' },
       );
     });
 
-    it('marks generation FAILED and rethrows when spawnPostgres throws', async () => {
+    it('marks generation FAILED and returns failure response when spawnPostgres throws', async () => {
       setupHappyPath();
       ephemeralEnvService.spawnPostgres.mockRejectedValue(new Error('Docker unavailable'));
 
-      await expect(service.runSimulation('test-token', 'cbe', mockRunBody)).rejects.toThrow('Docker unavailable');
+      await expect(service.runSimulation('test-token', 'cbe', mockRunBody)).resolves.toEqual({
+        success: false,
+        timedOut: false,
+        message: 'Simulation failed: Docker unavailable',
+        results: [],
+      });
 
       expect(adminServiceClient.updateGenerationStatus).toHaveBeenCalledWith(
         'test-token', 1, { status: 'FAILED' },
@@ -291,26 +301,32 @@ describe('RunSimulationService', () => {
   // ── runSimulation — validation ─────────────────────────────────────────────
 
   describe('runSimulation — validation', () => {
-    it('throws when suite has no rule_name', async () => {
+    it('returns failure response when suite has no rule_name', async () => {
       setupHappyPath();
       adminServiceClient.getSimulationSuiteById.mockResolvedValue({
         suite: { ...mockSuite, rule_name: undefined },
       } as any);
 
-      await expect(service.runSimulation('test-token', 'cbe', mockRunBody)).rejects.toThrow(
-        `Suite 10 has no rule_name set`,
-      );
+      await expect(service.runSimulation('test-token', 'cbe', mockRunBody)).resolves.toEqual({
+        success: false,
+        timedOut: false,
+        message: 'Simulation failed: Suite 10 has no rule_name set',
+        results: [],
+      });
     });
 
-    it('throws when suite has no primary_txtp', async () => {
+    it('returns failure response when suite has no primary_txtp', async () => {
       setupHappyPath();
       adminServiceClient.getSimulationSuiteById.mockResolvedValue({
         suite: { ...mockSuite, primary_txtp: undefined },
       } as any);
 
-      await expect(service.runSimulation('test-token', 'cbe', mockRunBody)).rejects.toThrow(
-        `Suite 10 has no primary_txtp set`,
-      );
+      await expect(service.runSimulation('test-token', 'cbe', mockRunBody)).resolves.toEqual({
+        success: false,
+        timedOut: false,
+        message: 'Simulation failed: Suite 10 has no primary_txtp set',
+        results: [],
+      });
     });
   });
 
@@ -413,7 +429,10 @@ describe('RunSimulationService', () => {
       setupHappyPath();
       ephemeralEnvService.spawnRuntime.mockRejectedValue(new Error('Runtime failed'));
 
-      await expect(service.runSimulation('test-token', 'cbe', mockRunBody)).rejects.toThrow('Runtime failed');
+      await expect(service.runSimulation('test-token', 'cbe', mockRunBody)).resolves.toMatchObject({
+        success: false,
+        message: 'Simulation failed: Runtime failed',
+      });
 
       expect(ephemeralEnvService.destroy).toHaveBeenCalled();
     });
@@ -422,17 +441,17 @@ describe('RunSimulationService', () => {
   // ── runSimulation — error recording per trigger ────────────────────────────
 
   describe('runSimulation — per-trigger error handling', () => {
-    it('records error field on result when nats publish fails', async () => {
+    it('records error field on result when nats publish fails without timing out', async () => {
       setupHappyPath();
       const { throwError } = require('rxjs') as typeof import('rxjs');
-      httpService.post.mockReturnValue(throwError(() => new Error('NATS timeout')) as any);
+      httpService.post.mockReturnValue(throwError(() => new Error('NATS unavailable')) as any);
 
       const result = await service.runSimulation('test-token', 'cbe', mockRunBody);
 
-      expect(result.results[0].error).toBe('NATS timeout');
+      expect(result.results[0].error).toBe('NATS unavailable');
     });
 
-    it('continues processing remaining trigger messages after one fails', async () => {
+    it('continues processing remaining trigger messages after one non-timeout publish failure', async () => {
       const twoTriggers: SampleTriggerMessagesResponse = {
         success: true,
         data: [
@@ -443,14 +462,27 @@ describe('RunSimulationService', () => {
       setupHappyPath(twoTriggers);
       const { throwError } = require('rxjs') as typeof import('rxjs');
       httpService.post
-        .mockReturnValueOnce(throwError(() => new Error('NATS timeout')) as any)
+        .mockReturnValueOnce(throwError(() => new Error('NATS unavailable')) as any)
         .mockReturnValue(of({ data: { data: { ruleResult: {} } } }) as any);
 
       const result = await service.runSimulation('test-token', 'cbe', mockRunBody);
 
       expect(result.results).toHaveLength(2);
-      expect(result.results[0].error).toBe('NATS timeout');
+      expect(result.results[0].error).toBe('NATS unavailable');
       expect(result.results[1].error).toBeUndefined();
+    });
+
+    it('returns failure response when nats publish times out', async () => {
+      setupHappyPath();
+      const { throwError } = require('rxjs') as typeof import('rxjs');
+      httpService.post.mockReturnValue(throwError(() => new Error('NATS timeout')) as any);
+
+      await expect(service.runSimulation('test-token', 'cbe', mockRunBody)).resolves.toEqual({
+        success: false,
+        timedOut: false,
+        message: 'Simulation failed: NATS publish timed out after 15 s for trigger 101',
+        results: [],
+      });
     });
   });
 
