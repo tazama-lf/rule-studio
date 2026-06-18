@@ -37,7 +37,7 @@ export class DlhResultFiltersDto {
 
 export class DlhCountResponse {
   @IsNumber()
-  rowCount!: number
+  rowCount!: number;
 }
 
 export class DlhCountDto {
@@ -52,7 +52,7 @@ export class DlhCountDto {
 
 export class DlhCountDataDto {
   @IsArray()
-  data!: Array<{ txtp: string, startDtTm: string, endDtTm: string, tenantId: string }>;
+  data!: Array<{ txtp: string; startDtTm: string; endDtTm: string; tenantId: string }>;
 }
 
 export class DlhDataItemDto {
@@ -131,7 +131,9 @@ export class FetchFromDlhResponseDto {
   @ApiProperty({ required: false, description: 'Name of the simulation table created in the DB (use with POST /send-to-dems/simulate)' })
   tableName?: string;
 
-  @ApiProperty({ required: false, description: 'Simulation job ID — connect to WebSocket /simulation namespace with this to track progress' })
+  @ApiProperty({
+    required: false,
+    description: 'Simulation job ID — connect to WebSocket /simulation namespace with this to track progress',
+  })
   jobId?: string;
 }
-

@@ -3,6 +3,7 @@ import { useTab } from "../../contexts/TabContext/useTab";
 import { useMaskingTab } from "../../contexts/MaskingTabContext/useMaskingTab";
 import * as S from './Tabs.styles';
 import { useSimulationTab } from "../../contexts/SimulationTabContext";
+import { useSimStudioTab } from "../../contexts/SimStudioTabContext";
 
 export type TabItem = {
     label: string;
@@ -11,7 +12,7 @@ export type TabItem = {
 };
 
 interface TabsProps {
-    variant?: 'default' | 'masking' | 'simulation';
+    variant?: 'default' | 'masking' | 'simulation' | 'sim-studio';
 }
 
 const TabList = ({ tabs, selected }: { tabs: TabItem[]; selected: string }) => (
@@ -45,11 +46,18 @@ const SimulationTabs = () => {
     return <TabList tabs={tabs} selected={selectedTab} />;
 };
 
+const SimStudioTabsView = () => {
+    const { tabs, selectedTab } = useSimStudioTab();
+    return <TabList tabs={tabs} selected={selectedTab} />;
+};
+
 const Tabs = ({ variant = 'default' }: TabsProps) => {
     if (variant === 'masking') {
         return <MaskingTabs />
     } else if (variant === 'simulation') {
         return <SimulationTabs />
+    } else if (variant === 'sim-studio') {
+        return <SimStudioTabsView />
     };
     return <DefaultTabs />;
 };

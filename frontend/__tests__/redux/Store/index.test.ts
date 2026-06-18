@@ -55,6 +55,14 @@ jest.mock('../../../src/redux/Api/FetchDromDlh', () => ({
     fetchFromDlhApi: makeApiMock('fetchFromDlhApi'),
 }));
 
+jest.mock('../../../src/redux/Api/SimStudio', () => ({
+    simStudioApi: makeApiMock('simStudioApi'),
+}));
+
+jest.mock('../../../src/redux/Api/DockerHub', () => ({
+    dockerHubApi: makeApiMock('dockerHubApi'),
+}));
+
 jest.mock('../../../src/middlerwares/apierror.middleware', () =>
     () => (next: (a: unknown) => unknown) => (action: unknown) => next(action)
 );
@@ -126,8 +134,16 @@ describe('Redux Store (redux/Store)', () => {
             expect(state['logsApi']).toBeDefined();
         });
 
-        it('should contain exactly 12 top-level slices', () => {
-            expect(Object.keys(state)).toHaveLength(12);
+        it('should contain the simStudioApi slice', () => {
+            expect(state['simStudioApi']).toBeDefined();
+        });
+
+        it('should contain the dockerHubApi slice', () => {
+            expect(state['dockerHubApi']).toBeDefined();
+        });
+
+        it('should contain exactly 14 top-level slices', () => {
+            expect(Object.keys(state)).toHaveLength(14);
         });
     });
 
@@ -172,6 +188,14 @@ describe('Redux Store (redux/Store)', () => {
 
         it('logsApi slice should start with empty queries', () => {
             expect(state['logsApi'].queries).toEqual({});
+        });
+
+        it('simStudioApi slice should start with empty queries', () => {
+            expect(state['simStudioApi'].queries).toEqual({});
+        });
+
+        it('dockerHubApi slice should start with empty queries', () => {
+            expect(state['dockerHubApi'].queries).toEqual({});
         });
     });
 

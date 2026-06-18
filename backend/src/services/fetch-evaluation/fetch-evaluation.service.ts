@@ -14,13 +14,16 @@ export class FetchEvaluationService {
 
     await this.adminServiceClient.saveEvaluationsInResultsTable(token, result.data, tableName);
 
-    await this.adminServiceClient.saveRecordInTrsSimulation({
-      simulationId: tableName,
-      totalRecord: totalRecords ?? result.data.length,
-      recordProcessed: result.data.length,
-      simStatus: 'COMPLETED',
-      tenantId: tenantId ?? '',
-    }, token);
+    await this.adminServiceClient.saveRecordInTrsSimulation(
+      {
+        simulationId: tableName,
+        totalRecord: totalRecords ?? result.data.length,
+        recordProcessed: result.data.length,
+        simStatus: 'COMPLETED',
+        tenantId: tenantId ?? '',
+      },
+      token,
+    );
 
     return { success: true, message: result.message, data: result.data };
   }
