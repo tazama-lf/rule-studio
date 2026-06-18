@@ -16,9 +16,10 @@ const config: Config.InitialOptions = {
   // Use spec or test convention
   testMatch: ['**/*.spec.ts', '**/*.test.ts'],
 
-  // Transform TS using ts-jest
+  // Transform TS using ts-jest with a jest-specific tsconfig so dynamic
+  // import() calls are compiled to require() (interceptable by jest.mock).
   transform: {
-    '^.+\\.ts$': 'ts-jest',
+    '^.+\\.ts$': ['ts-jest', { tsconfig: 'tsconfig.jest.json' }],
   },
 
   // Resolve bare `src/...` imports (enabled by baseUrl: "./" in tsconfig)
