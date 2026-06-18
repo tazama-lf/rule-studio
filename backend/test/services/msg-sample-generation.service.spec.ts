@@ -236,7 +236,7 @@ describe('MsgSampleGenerationService', () => {
       expect(adminServiceClient.getConfigRowByTxTpw3).toHaveBeenCalledWith('pain.001', '001.09', 'test-token');
     });
 
-    it('strips apostrophes from payload values to prevent SQL injection', async () => {
+    it("escapes apostrophes in payload values via Postgres '' doubling (not by stripping)", async () => {
       const payloadWithApostrophe = { MsgId: "it's-msg", TenantId: "customer's" };
       const responseWithApostrophe: GenerateSampleMessagesResponseDto = {
         success: true,
@@ -249,8 +249,10 @@ describe('MsgSampleGenerationService', () => {
 
       const { dbScript } = await service.generateDbScript(responseWithApostrophe, 'test-token');
 
-      expect(dbScript).not.toContain("it's time");
-      expect(dbScript).toContain('its time');
+      // CreDtTm value should appear as 'it''s time' (single quotes around the literal, double-quote inside).
+      expect(dbScript).toContain("'it''s time'");
+      // The data must not lose the apostrophe altogether.
+      expect(dbScript).not.toContain('its time');
     });
 
     it('uses NULL for missing tracked fields', async () => {
@@ -315,11 +317,13 @@ describe('MsgSampleGenerationService', () => {
       expect(result).toContain('checksum');
     });
 
-    it('strips apostrophes from row data', () => {
+    it("escapes apostrophes in row data via Postgres '' doubling (not by stripping)", () => {
       const result = service.generateEnrichmentDbScript(mockEnrichmentResponse, 'test-token');
 
-      expect(result).not.toContain("Bob's account");
-      expect(result).toContain('Bobs account');
+      // After standard Postgres escaping, "Bob's account" becomes "Bob''s account".
+      expect(result).toContain("Bob''s account");
+      // The data must not lose the apostrophe altogether.
+      expect(result).not.toContain('Bobs account');
     });
 
     it('generates separate DDL and DML blocks for multiple enrichment tables', () => {
