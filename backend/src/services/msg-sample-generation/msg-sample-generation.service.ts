@@ -62,7 +62,8 @@ export class MsgSampleGenerationService {
           trackedFieldsResponse.push(mappingResult);
         }
 
-        const escapeSql = (value: string): string => value.replace(/'/g, '');
+        // Standard Postgres single-quote escaping: '  →  '' (double the quote, do not strip it).
+        const escapeSql = (value: string): string => value.replace(/'/g, '\'\'');
 
         const valuesList = trackedFieldsResponse
           .map(({ trackedFields }, index) => {  
@@ -94,10 +95,23 @@ export class MsgSampleGenerationService {
   generateEnrichmentDbScript(response: GenerateEnrichmentResponseDto, token:string): string {
     let dbScript = '';
 
-    const escapeSql = (value: string): string => value.replace(/'/g, '');
+    // Standard Postgres single-quote escaping: '  →  '' (double the quote, do not strip it).
+    const escapeSql = (value: string): string => value.replace(/'/g, '\'\'');
+
+    // The table_name flows into a quoted SQL identifier (CREATE TABLE public."${name}").
+    // Reject anything that could break out of the quotes or smuggle in a different identifier.
+    const assertSafeIdentifier = (name: string): void => {
+      if (typeof name !== 'string' || name.length === 0 || name.length > 63) {
+        throw new Error(`Invalid enrichment table_name: must be a 1..63 char string (got ${JSON.stringify(name)})`);
+      }
+      if (/["\0]/.test(name)) {
+        throw new Error(`Invalid enrichment table_name: must not contain double-quotes or NUL (got ${JSON.stringify(name)})`);
+      }
+    };
 
     for (const item of response.data) {
       const tableName = item.table_name;
+      assertSafeIdentifier(tableName);
 
       const ddl = `
         CREATE TABLE IF NOT EXISTS public."${tableName}"
@@ -112,22 +126,23 @@ export class MsgSampleGenerationService {
 
       dbScript += ddl;
 
-     
-        const valuesList = item.rows
-          .map((row) => {
-            const dataValue = `'${escapeSql(JSON.stringify(row))}'::jsonb`;
-            const jobIdValue = `'${escapeSql(item.enrichment_table_id)}'`;
-            const checksumValue = `'${createHash('sha256').update(JSON.stringify(row)).digest('hex')}'`;
-            return `(${dataValue}, ${jobIdValue}, ${checksumValue})`;
-          })
-          .join(',\n    ');
+      if (item.rows.length === 0) continue;
 
-        const dml = `
-          INSERT INTO public."${tableName}" (data, job_id, checksum)
-          VALUES
-              ${valuesList};`;
+      const valuesList = item.rows
+        .map((row) => {
+          const dataValue = `'${escapeSql(JSON.stringify(row))}'::jsonb`;
+          const jobIdValue = `'${escapeSql(item.enrichment_table_id)}'`;
+          const checksumValue = `'${createHash('sha256').update(JSON.stringify(row)).digest('hex')}'`;
+          return `(${dataValue}, ${jobIdValue}, ${checksumValue})`;
+        })
+        .join(',\n    ');
 
-        dbScript += dml;
+      const dml = `
+        INSERT INTO public."${tableName}" (data, job_id, checksum)
+        VALUES
+            ${valuesList};`;
+
+      dbScript += dml;
       
     }
 
