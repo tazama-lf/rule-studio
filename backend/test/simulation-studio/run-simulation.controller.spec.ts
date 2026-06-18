@@ -9,6 +9,7 @@ import type { AuthenticatedUser } from '../../src/services/auth/auth.types';
 
 const mockUser = {
   token: { tokenString: 'test-token' },
+  tenantId: 'test-tenant',
 } as AuthenticatedUser;
 
 const mockBody: RunSimulationDto = { suiteId: 10, generationId: 1 };
@@ -69,7 +70,7 @@ describe('RunSimulationController', () => {
       const result = await controller.runSimulation(mockBody, mockUser);
 
       expect(result).toEqual(mockRunResponse);
-      expect(runSimulationService.runSimulation).toHaveBeenCalledWith('test-token', mockBody);
+      expect(runSimulationService.runSimulation).toHaveBeenCalledWith('test-token', 'test-tenant', mockBody);
     });
   });
 
@@ -82,7 +83,7 @@ describe('RunSimulationController', () => {
 
       expect(result).toEqual(mockRunResponse);
       expect(generationsService.cloneGeneration).toHaveBeenCalledWith('test-token', 1);
-      expect(runSimulationService.runSimulation).toHaveBeenCalledWith('test-token', {
+      expect(runSimulationService.runSimulation).toHaveBeenCalledWith('test-token', 'test-tenant', {
         suiteId: 10,
         generationId: 99,
       });
@@ -94,7 +95,7 @@ describe('RunSimulationController', () => {
 
       await controller.rerunGeneration(mockBody, mockUser);
 
-      const callArgs = runSimulationService.runSimulation.mock.calls[0][1] as RunSimulationDto;
+      const callArgs = runSimulationService.runSimulation.mock.calls[0][2] as RunSimulationDto;
       expect(callArgs.generationId).toBe(99);
       expect(callArgs.generationId).not.toBe(1);
     });
