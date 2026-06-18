@@ -1,13 +1,13 @@
-import {  TransactionDetails } from "@tazama-lf/frms-coe-lib";
-import {Logger} from "@nestjs/common";
-import { processSourceMapping } from "./transformation/mapping-sources.utils";
+import type {  TransactionDetails } from '@tazama-lf/frms-coe-lib';
+import {Logger} from '@nestjs/common';
+import { processSourceMapping } from './transformation/mapping-sources.utils';
 
-export async function executeConfiguredFunctions(
+export function executeConfiguredFunctions(
     payload: any,
     configuredMapping: any,
     configuredFunctions: any,
     transactionRelationship: TransactionDetails,
-  ): Promise<string> {
+  ): string {
     const loggerService = new Logger();
     let dbScript = '';
     loggerService.log(

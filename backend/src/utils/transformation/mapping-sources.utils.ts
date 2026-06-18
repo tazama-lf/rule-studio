@@ -9,7 +9,7 @@ export function processSourceMapping(sources: string[], configuredMapping: any[]
       isDestinationArray = false;
 
       if (typeof sch.destination !== 'string') {
-        for (let i = 0; i < sch.destination.length; i++) {
+        for (let i = 0; i < sch.destination.length; i += 1) {
           if (sch.destination[i] === source) {
             isDestinationArray = true;
             const result: string = getValueByPath(payload, sch.source[0]);

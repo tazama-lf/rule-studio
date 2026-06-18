@@ -10,7 +10,7 @@ export function handleConcatenation(
   let dataCacheValue = prefix;
   let transactionRelationshipValue = prefix;
 
-  for (let i = 0; i < sources.length; i++) {
+  for (let i = 0; i < sources.length; i += 1) {
     if (type === 'redis') {
       dataCacheValue += getValueByPath(payload, sources[i]);
 

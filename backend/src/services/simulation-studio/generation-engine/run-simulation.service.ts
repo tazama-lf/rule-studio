@@ -4,14 +4,6 @@ import { firstValueFrom } from 'rxjs';
 import type { Faker } from '@faker-js/faker';
 import { Client as PgClient } from 'pg';
 
-let _faker: Faker | undefined;
-async function getFaker(): Promise<Faker> {
-  if (!_faker) {
-    const mod = await import('@faker-js/faker');
-    _faker = mod.faker;
-  }
-  return _faker;
-}
 import { AdminServiceClient } from '../../admin-service-client';
 import { EphemeralEnvService } from '../ephemeral-env/ephemeral-env.service';
 import { MsgSampleGenerationService } from '../../msg-sample-generation/msg-sample-generation.service';
@@ -22,6 +14,15 @@ import {
   SampleTriggerMessage,
   SampleTriggerMessagesResponse,
 } from './dto/run-simulation.dto';
+
+let _faker: Faker | undefined;
+async function getFaker(): Promise<Faker> {
+  if (!_faker) {
+    const mod = await import('@faker-js/faker');
+    _faker = mod.faker;
+  }
+  return _faker;
+}
 
 interface RuleConfigBand {
   subRuleRef: string;
@@ -189,7 +190,7 @@ export class RunSimulationService {
 
         // Generate and seed the database with sample data
         const { dbScript, functionResultScript } = await this.msgSampleGenerationService.generateDbScript(sampleResp, token);
-        const enrichmentDbScript = await this.msgSampleGenerationService.generateEnrichmentDbScript(enrichmentResp, token);
+        const enrichmentDbScript = this.msgSampleGenerationService.generateEnrichmentDbScript(enrichmentResp, token);
 
         await this.seedDatabaseWithRawHistoryScript(pgHost, pgPort, dbScript);
         await this.seedDatabaseWithEventHistoryScript(pgHost, pgPort, functionResultScript);

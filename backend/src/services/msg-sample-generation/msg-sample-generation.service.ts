@@ -39,9 +39,10 @@ export class MsgSampleGenerationService {
 
       dbScript += ddl;
 
+      // eslint-disable-next-line no-await-in-loop -- We need to fetch the config for each item to process the payloads and generate function scripts
       const configRow = await this.adminServiceClient.getConfigRowByTxTpw3(item.txtp, item.txtp_version, token);
       
-      if (item.payloads && Array.isArray(item.payloads) && item.payloads.length > 0) {
+      
         const trackedFieldsResponse = [] as Array<{
           dataCache: any;
           transactionRelationship: any;
@@ -51,8 +52,8 @@ export class MsgSampleGenerationService {
         }>;
 
         for (const payload of item.payloads) {
-          const mappingResult = await processMappings(payload, configRow.config.mapping, false);
-          functionResultScript += await executeConfiguredFunctions(
+          const mappingResult = processMappings(payload, configRow.config.mapping, false);
+          functionResultScript += executeConfiguredFunctions(
             payload,
             configRow.config.mapping,
             configRow.config.functions,
@@ -61,7 +62,7 @@ export class MsgSampleGenerationService {
           trackedFieldsResponse.push(mappingResult);
         }
 
-        const escapeSql = (value: string): string => value.replace(/'/g, "''");
+        const escapeSql = (value: string): string => value.replace(/'/g, '');
 
         const valuesList = trackedFieldsResponse
           .map(({ trackedFields }, index) => {  
@@ -84,16 +85,16 @@ export class MsgSampleGenerationService {
               ${valuesList};`;
 
         dbScript += dml;
-      }
+      
     };
 
     return { dbScript, functionResultScript };
   }
 
-  async generateEnrichmentDbScript(response: GenerateEnrichmentResponseDto, token:string): Promise<string> {
+  generateEnrichmentDbScript(response: GenerateEnrichmentResponseDto, token:string): string {
     let dbScript = '';
 
-    const escapeSql = (value: string): string => value.replace(/'/g, "''");
+    const escapeSql = (value: string): string => value.replace(/'/g, '');
 
     for (const item of response.data) {
       const tableName = item.table_name;
@@ -111,7 +112,7 @@ export class MsgSampleGenerationService {
 
       dbScript += ddl;
 
-      if (item.rows && Array.isArray(item.rows) && item.rows.length > 0) {
+     
         const valuesList = item.rows
           .map((row) => {
             const dataValue = `'${escapeSql(JSON.stringify(row))}'::jsonb`;
@@ -127,7 +128,7 @@ export class MsgSampleGenerationService {
               ${valuesList};`;
 
         dbScript += dml;
-      }
+      
     }
 
     return dbScript;
