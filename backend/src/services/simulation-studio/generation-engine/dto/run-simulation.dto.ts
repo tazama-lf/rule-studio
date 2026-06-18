@@ -42,4 +42,10 @@ export class RunSimulationResponseDto {
 
   @ApiProperty({ description: 'Rule evaluation results for each trigger message' })
   results!: RuleResult[];
+
+  @ApiProperty({ required: false, example: true, description: 'True when the simulation exceeded the 60 s timeout' })
+  timedOut?: boolean;
+
+  @ApiProperty({ required: false, example: 'Simulation timed out after 60 s' })
+  message?: string;
 }

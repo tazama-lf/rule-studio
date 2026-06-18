@@ -2,7 +2,6 @@ import AddIcon from "@mui/icons-material/Add";
 import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseIcon from "@mui/icons-material/Close";
-import DraftsOutlinedIcon from "@mui/icons-material/DraftsOutlined";
 import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
@@ -39,12 +38,6 @@ const STAT_CONFIG = [
         label: "Ready for Re-run",
         Icon: CheckCircleOutlineIcon,
         iconColor: "#00a63e",
-    },
-    {
-        key: "drafts" as const,
-        label: "Draft Suites",
-        Icon: DraftsOutlinedIcon,
-        iconColor: "#f59e0b",
     },
     {
         key: "latestIteration" as const,
@@ -126,19 +119,6 @@ const SimStudio = () => {
                     }}
                 />
 
-                <Select
-                    size="small"
-                    value={values.statusFilter}
-                    onChange={(e) => functions.handleStatusFilter(e.target.value)}
-                    displayEmpty
-                    sx={S.selectSx}
-                >
-                    <MenuItem value="">All Statuses</MenuItem>
-                    <MenuItem value="DRAFT">Draft</MenuItem>
-                    <MenuItem value="RUNNING">Running</MenuItem>
-                    <MenuItem value="COMPLETED">Completed</MenuItem>
-                    <MenuItem value="FAILED">Failed</MenuItem>
-                </Select>
                 <Select
                     size="small"
                     value={values.ruleFilter}

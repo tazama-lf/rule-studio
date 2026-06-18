@@ -165,7 +165,7 @@ export interface BulkTriggerConfigItem {
 }
 
 export interface SuiteListItem {
-    id: number;
+    id: number | string;
     name: string;
     rule_name?: string;
     rule_config?: Record<string, unknown>;
@@ -177,11 +177,11 @@ export interface SuiteListItem {
     updated_at: string;
     created_by: string;
     wizard_progress: Record<string, unknown>;
-    generation_id?: number;
+    generation_id?: number | string;
 }
 
 export interface SuiteDetail {
-    id: number;
+    id: number | string;
     name: string;
     description?: string;
     rule_name?: string;
@@ -191,7 +191,21 @@ export interface SuiteDetail {
     primary_txtp_version?: string;
     status?: string;
     wizard_progress?: Record<string, unknown>;
-    generation_id?: number;
+    generation_id?: number | string | null;
+}
+
+export interface SuiteDetailResponse {
+    success: boolean;
+    message?: string;
+    suite: SuiteDetail;
+    data?: SuiteDetail;
+}
+
+interface RawSuiteDetailResponse {
+    success: boolean;
+    message?: string;
+    suite?: SuiteDetail;
+    data?: SuiteDetail | { suite?: SuiteDetail; data?: SuiteDetail };
 }
 
 export interface SuitesListResponse {
@@ -214,6 +228,7 @@ export interface SuitesListQuery {
 
 export interface SuitesCountData {
     total_suites: number;
+    total_run: number;
     total_draft_suites: number;
     total_completed_suites: number;
     latest_run_at: string | number | null;
@@ -222,6 +237,14 @@ export interface SuitesCountData {
 export interface SuitesCountResponse {
     success: boolean;
     data: SuitesCountData;
+}
+
+export interface CloneSuiteResponse {
+    success: boolean;
+    data: {
+        suite: SuiteDetail;
+        generation_id: number | string | null;
+    };
 }
 
 export interface ContextTxtpSummary {
@@ -531,8 +554,29 @@ export const simStudioApi = createApi({
             invalidatesTags: (_result, _error, { suite_id }) => [{ type: "SuiteGenerations", id: suite_id }],
         }),
 
-        getSuiteById: builder.query<{ success: boolean; suite: SuiteDetail }, number>({
+        cloneSuite: builder.mutation<CloneSuiteResponse, { suite_id: number }>({
+            query: (body) => ({
+                url: "suites/clone",
+                method: "POST",
+                body,
+            }),
+        }),
+
+        getSuiteById: builder.query<SuiteDetailResponse, number>({
             query: (suiteId) => `suites/${suiteId}`,
+            transformResponse: (response: RawSuiteDetailResponse) => {
+                const responseData = response.data;
+                const nestedSuite = responseData && "suite" in responseData ? responseData.suite : undefined;
+                const nestedData = responseData && "data" in responseData ? responseData.data : undefined;
+                const suite = response.suite ?? nestedSuite ?? nestedData ?? responseData;
+
+                return {
+                    success: response.success,
+                    message: response.message,
+                    suite: suite as SuiteDetail,
+                    data: suite as SuiteDetail,
+                };
+            },
         }),
 
         getFakerSemanticData: builder.query<{ success: boolean; data: FakerSemanticItem[] }, void>({
@@ -630,6 +674,7 @@ export const {
     useGetGenerationSummaryQuery,
     useLazyResumeGenerationQuery,
     useCloneGenerationMutation,
+    useCloneSuiteMutation,
     useLazyGetSuiteByIdQuery,
     useGetSuiteByIdQuery,
     useGetFakerSemanticDataQuery,

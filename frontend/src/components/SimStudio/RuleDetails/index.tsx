@@ -30,6 +30,8 @@ interface Step1Props {
     existingSuite?: SuiteDetail | null;
     isSuiteLoading?: boolean;
     isCloneMode?: boolean;
+    isSuiteCloneMode?: boolean;
+    isGenerationCloneMode?: boolean;
 }
 
 interface RuleConfigFieldProps {
@@ -134,13 +136,16 @@ const Step1RuleDetails = ({
     existingSuite,
     isSuiteLoading,
     isCloneMode = false,
+    isSuiteCloneMode = false,
+    isGenerationCloneMode = false,
 }: Step1Props) => {
     if (txLoading || isSuiteLoading) return <Loader center />;
 
     const isDisabled = !!existingSuite;
-    const isCloneEditable = !!existingSuite && isCloneMode;
-    const isSuiteNameDisabled = isDisabled && !isCloneEditable;
-    const isDescriptionDisabled = isDisabled && !isCloneEditable;
+    const canEditSuiteDetails = !!existingSuite && isCloneMode && isSuiteCloneMode;
+    const canEditRuleVersion = (!!existingSuite && isCloneMode && (isSuiteCloneMode || isGenerationCloneMode)) || !existingSuite;
+    const isSuiteNameDisabled = isDisabled && !canEditSuiteDetails;
+    const isDescriptionDisabled = isDisabled && !canEditSuiteDetails;
     const isRuleVersionDisabled = (!!existingSuite && !isCloneMode) || ruleVersionOptions.length === 0;
 
     return (
@@ -215,7 +220,7 @@ const Step1RuleDetails = ({
                                     options={ruleVersionOptions}
                                     value={field.value ?? null}
                                     onChange={(val) => field.onChange(val)}
-                                    disabled={isRuleVersionDisabled}
+                                    disabled={!canEditRuleVersion || isRuleVersionDisabled}
                                     error={error?.message}
                                 />
                             )}
