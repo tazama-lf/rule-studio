@@ -3,15 +3,6 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import type { Faker } from '@faker-js/faker';
 import { Client as PgClient } from 'pg';
-
-let _faker: Faker | undefined;
-async function getFaker(): Promise<Faker> {
-  if (!_faker) {
-    const mod = await import('@faker-js/faker');
-    _faker = mod.faker;
-  }
-  return _faker;
-}
 import { AdminServiceClient } from '../../admin-service-client';
 import { EphemeralEnvService } from '../ephemeral-env/ephemeral-env.service';
 import { MsgSampleGenerationService } from '../../msg-sample-generation/msg-sample-generation.service';
@@ -22,6 +13,15 @@ import {
   SampleTriggerMessage,
   SampleTriggerMessagesResponse,
 } from './dto/run-simulation.dto';
+
+let _faker: Faker | undefined;
+async function getFaker(): Promise<Faker> {
+  if (!_faker) {
+    const mod = await import('@faker-js/faker');
+    _faker = mod.faker;
+  }
+  return _faker;
+}
 
 interface RuleConfigBand {
   subRuleRef: string;
@@ -52,8 +52,44 @@ interface RuleConfig {
   };
 }
 
-type Typology = ReturnType<typeof buildTypology>;
-type NetworkMap = ReturnType<typeof buildNetworkMap>;
+interface TypologyRule {
+  id: string;
+  cfg: string;
+  wghts: Array<{ ref: string; wght: number }>;
+  termId: string;
+}
+
+interface Typology {
+  id: string;
+  cfg: string;
+  rules: TypologyRule[];
+  tenantId: string;
+  workflow: { alertThreshold: number; interdictionThreshold: number };
+  expression: string[];
+  typology_name: string;
+}
+
+interface NetworkMapTypology {
+  id: string;
+  cfg: string;
+  rules: Array<{ id: string; cfg: string }>;
+  tenantId: string;
+}
+
+interface NetworkMapMessage {
+  id: string;
+  cfg: string;
+  txTp: string;
+  typologies: NetworkMapTypology[];
+}
+
+interface NetworkMap {
+  cfg: string;
+  name: string;
+  active: boolean;
+  messages: NetworkMapMessage[];
+  tenantId: string;
+}
 
 function extractSubRuleRefs(ruleConfig: RuleConfig): string[] {
   // Cases take precedence over bands. Order matters: alternative first, then expressions in their declared order.
@@ -64,17 +100,14 @@ function extractSubRuleRefs(ruleConfig: RuleConfig): string[] {
   return (ruleConfig.config?.bands ?? []).map((band) => band.subRuleRef);
 }
 
-function buildTypology(ruleConfig: RuleConfig, ruleName: string, ruleVersion: string) {
+function buildTypology(ruleConfig: RuleConfig, ruleName: string, ruleVersion: string): Typology {
   const typologyId = `${ruleName}-typology-processor@${ruleVersion}`;
   const typologyCfg = `atp@${ruleVersion}`;
   const termId = `v${ruleName}at100at100`;
 
   // Ordinal weights: each subRuleRef gets index*100. `.err` is always 0 and is not part of the ordinal sequence.
   const subRuleRefs = extractSubRuleRefs(ruleConfig);
-  const wghts: { ref: string; wght: number }[] = [
-    { ref: '.err', wght: 0 },
-    ...subRuleRefs.map((ref, i) => ({ ref, wght: i * 100 })),
-  ];
+  const wghts: Array<{ ref: string; wght: number }> = [{ ref: '.err', wght: 0 }, ...subRuleRefs.map((ref, i) => ({ ref, wght: i * 100 }))];
 
   return {
     id: typologyId,
@@ -97,7 +130,7 @@ function buildTypology(ruleConfig: RuleConfig, ruleName: string, ruleVersion: st
   };
 }
 
-function buildNetworkMap(typology: Typology, ruleName: string, tenantId: string, txTp: string) {
+function buildNetworkMap(typology: Typology, ruleName: string, tenantId: string, txTp: string): NetworkMap {
   return {
     cfg: '1.0.0',
     name: `Public ${ruleName} Network Map`,
@@ -189,13 +222,10 @@ export class RunSimulationService {
         // Generate and seed the database with sample data
         const { dbScript, functionResultScript } = await this.msgSampleGenerationService.generateDbScript(sampleResp, token);
         const enrichmentDbScript = await this.msgSampleGenerationService.generateEnrichmentDbScript(enrichmentResp, token);
-        
-        await this.seedDatabaseWithRawHistoryScript(pgPort, dbScript);
-        await this.seedDatabaseWithEventHistoryScript(pgPort, functionResultScript);
-        await this.seedDatabaseWithEnrichmentHistoryScript(pgPort, enrichmentDbScript);
 
-      
-
+        await this.seedPgDatabase(pgPort, 'raw_history', dbScript);
+        await this.seedPgDatabase(pgPort, 'event_history', functionResultScript);
+        await this.seedPgDatabase(pgPort, 'enrichment', enrichmentDbScript);
 
         // TODO(Phase 3.2): table-count + row-count validation gate. Fail-fast here means we tear down Postgres without ever spawning the runtime stack.
 
@@ -225,8 +255,18 @@ export class RunSimulationService {
         await this.ephemeralEnvService.destroy(simName).catch(() => undefined);
       }
     } catch (err) {
+      const error = err as Error;
+      const isTimeout = /not received after \d+ms|timeout/i.test(error.message);
+      this.logger.error(`runSimulation failed for generation ${generationId}: ${error.message}`);
       await this.markGenerationStatus(token, generationId, 'FAILED');
-      throw err;
+      return {
+        success: false,
+        timedOut: isTimeout,
+        message: isTimeout
+          ? 'Simulation environment failed to start within the allowed time. Result saved as failed.'
+          : `Simulation failed: ${error.message}`,
+        results: [],
+      };
     }
   }
 
@@ -246,14 +286,7 @@ export class RunSimulationService {
     // The core migrations seed default rows into rule/typology/network_map. We truncate
     // first so our rows are the only ones present, then insert. Everything is wrapped in
     // a single transaction so the ephemeral DB is never half-seeded.
-    const client = new PgClient({
-      host: 'localhost',
-      port: pgPort,
-      user: 'postgres',
-      password: 'unused',
-      database: 'configuration',
-    });
-
+    const client = new PgClient({ host: 'localhost', port: pgPort, user: 'postgres', password: 'unused', database: 'configuration' });
     try {
       await client.connect();
       await client.query('BEGIN');
@@ -273,11 +306,11 @@ export class RunSimulationService {
       );
       const actual = Object.fromEntries(counts.rows.map((r) => [r.table, Number(r.n)]));
       const expected = { rule: 1, typology: 1, network_map: 1 };
-      const mismatch = (Object.keys(expected) as (keyof typeof expected)[]).some((k) => actual[k] !== expected[k]);
+      const mismatch = (Object.keys(expected) as Array<keyof typeof expected>).some((k) => actual[k] !== expected[k]);
       if (mismatch) {
         this.logger.warn(
           `[seedConfigArtifacts] expected rule=${expected.rule} typology=${expected.typology} network_map=${expected.network_map}; ` +
-          `actual rule=${actual.rule ?? 0} typology=${actual.typology ?? 0} network_map=${actual.network_map ?? 0}`,
+            `actual rule=${actual.rule} typology=${actual.typology} network_map=${actual.network_map}`,
         );
         this.logger.warn('[seedConfigArtifacts] count mismatch — see warning above');
       }
@@ -293,81 +326,19 @@ export class RunSimulationService {
     }
   }
 
-  private async seedDatabaseWithRawHistoryScript(pgPort: number, dbScript: string): Promise<void> {
+  private async seedPgDatabase(pgPort: number, database: string, dbScript: string): Promise<void> {
     if (!dbScript || dbScript.trim() === '') {
-      this.logger.warn('No database script provided, skipping seed');
+      this.logger.warn(`No script provided for ${database}, skipping seed`);
       return;
     }
-
-    const client = new PgClient({
-      host: 'localhost',
-      port: pgPort,
-      user: 'postgres',
-      password: 'unused',
-      database: 'raw_history',
-    });
-
+    const client = new PgClient({ host: 'localhost', port: pgPort, user: 'postgres', password: 'unused', database });
     try {
       await client.connect();
       await client.query(dbScript);
-      this.logger.log('Successfully seeded database with raw history generated script');
+      this.logger.log(`Successfully seeded ${database}`);
     } catch (error) {
       const err = error as Error;
-      this.logger.error(`Failed to seed database with raw history generated script: ${err.message}`);
-      throw error;
-    } finally {
-      await client.end().catch(() => undefined);
-    }
-  }
-
-  private async seedDatabaseWithEnrichmentHistoryScript(pgPort: number, dbScript: string): Promise<void> {
-    if (!dbScript || dbScript.trim() === '') {
-      this.logger.warn('No database script provided, skipping seed');
-      return;
-    }
-
-    const client = new PgClient({
-      host: 'localhost',
-      port: pgPort,
-      user: 'postgres',
-      password: 'unused',
-      database: 'enrichment',
-    });
-
-    try {
-      await client.connect();
-      await client.query(dbScript);
-      this.logger.log('Successfully seeded database with enrichment generated script');
-    } catch (error) {
-      const err = error as Error;
-      this.logger.error(`Failed to seed database with enrichment generated script: ${err.message}`);
-      throw error;
-    } finally {
-      await client.end().catch(() => undefined);
-    }
-  }
-
-   private async seedDatabaseWithEventHistoryScript(pgPort: number, dbScript: string): Promise<void> {
-    if (!dbScript || dbScript.trim() === '') {
-      this.logger.warn('No database script provided, skipping seed');
-      return;
-    }
-
-    const client = new PgClient({
-      host: 'localhost',
-      port: pgPort,
-      user: 'postgres',
-      password: 'unused',
-      database: 'event_history',
-    });
-
-    try {
-      await client.connect();
-      await client.query(dbScript);
-      this.logger.log('Successfully seeded database with event history generated script');
-    } catch (error) {
-      const err = error as Error;
-      this.logger.error(`Failed to seed database with event history generated script: ${err.message}`);
+      this.logger.error(`Failed to seed ${database}: ${err.message}`);
       throw error;
     } finally {
       await client.end().catch(() => undefined);
@@ -440,15 +411,32 @@ export class RunSimulationService {
         const responseBody = response.data as { message?: string; data?: unknown };
         result = responseBody.data ?? responseBody;
       } catch (err) {
-        error = (err as Error).message;
+        const axiosErr = err as { code?: string; message?: string };
+        const isTimeout = axiosErr.code === 'ECONNABORTED' || axiosErr.code === 'ETIMEDOUT' || /timeout/i.test(axiosErr.message ?? '');
+        error = isTimeout
+          ? `NATS publish timed out after 15 s for trigger ${msg.trigger_txtp_config_id}`
+          : (axiosErr.message ?? 'NATS publish failed');
+        this.logger.error(`[publishTriggerMessages] trigger ${msg.trigger_txtp_config_id}: ${error}`);
+
+        await this.adminServiceClient
+          .saveRunResult(token, {
+            gen_id: generationId,
+            trigger_id: msg.trigger_txtp_config_id,
+            rule_result: { error, timedOut: isTimeout },
+          })
+          .catch(() => undefined);
+
+        if (isTimeout) throw new Error(error, { cause: err });
       }
 
       const ruleResult = result !== null && typeof result === 'object' ? (result as Record<string, unknown>) : { value: result };
-      await this.adminServiceClient.saveRunResult(token, {
-        gen_id: generationId,
-        trigger_id: msg.trigger_txtp_config_id,
-        rule_result: ruleResult.ruleResult as Record<string, unknown>,
-      });
+      if (result !== null) {
+        await this.adminServiceClient.saveRunResult(token, {
+          gen_id: generationId,
+          trigger_id: msg.trigger_txtp_config_id,
+          rule_result: ruleResult.ruleResult as Record<string, unknown>,
+        });
+      }
 
       return {
         trigger_txtp_config_id: msg.trigger_txtp_config_id,
