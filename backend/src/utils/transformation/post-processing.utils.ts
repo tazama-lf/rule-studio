@@ -58,7 +58,7 @@ export function handlePostProcessing(
     if (relatedTransactionBoolean) {
       return '';
     }
-
+    // eslint-disable-next-line no-param-reassign -- reassignment needed because the aim is to modify the original value with the suffix for both dataCache and transactionRelationship
     dataCacheValue += mapping.suffix ?? '';
 
     const finalValue = convertToMappingType(dataCacheValue, mapping);
@@ -69,6 +69,7 @@ export function handlePostProcessing(
       dataCache[destination] = finalValue;
     }
   } else {
+    // eslint-disable-next-line no-param-reassign -- reassignment needed because the aim is to modify the original value with the suffix for both dataCache and transactionRelationship
     transactionRelationshipValue += mapping.suffix ?? '';
 
     const finalValue = convertToMappingType(transactionRelationshipValue, mapping);

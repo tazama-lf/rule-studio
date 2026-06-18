@@ -6,17 +6,17 @@ import { handleConcatenation } from './transformation/concatenation.utils';
 import { handlePostProcessing } from './transformation/post-processing.utils';
 import { Logger } from '@nestjs/common';
 
-export async function processMappings(
+export function processMappings(
   payload: any,
   configuredMapping: any,
   relatedTransactionBoolean: boolean,
-): Promise<{
+): {
   dataCache: any;
   transactionRelationship: TransactionDetails;
   endToEndId: string;
   dynamicMapping?: any;
   trackedFields: TrackedFields;
-}> {
+} {
   const dataCache: any = {};
   const loggerService = new Logger();
   const transactionRelationship: TransactionDetails = {

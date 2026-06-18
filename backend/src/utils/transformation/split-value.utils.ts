@@ -18,7 +18,7 @@ export function handleSplitValue(mapping: any, payload: any, dataCache: any, tra
     throw new Error('Invalid mapping: destination must be a non-empty array');
   }
 
-  for (let j = 0; j < mapping.destination.length; j++) {
+  for (let j = 0; j < mapping.destination.length; j += 1) {
     const destEntry = mapping.destination[j];
     if (typeof destEntry !== 'string' || !destEntry.includes('.')) {
       throw new Error(`Invalid destination format at index ${j}: ${destEntry}. Expected format: 'type.destination'`);

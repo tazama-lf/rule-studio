@@ -3,6 +3,7 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import type { Faker } from '@faker-js/faker';
 import { Client as PgClient } from 'pg';
+
 import { AdminServiceClient } from '../../admin-service-client';
 import { EphemeralEnvService } from '../ephemeral-env/ephemeral-env.service';
 import { MsgSampleGenerationService } from '../../msg-sample-generation/msg-sample-generation.service';
@@ -222,7 +223,7 @@ export class RunSimulationService {
 
         // Generate and seed the database with sample data
         const { dbScript, functionResultScript } = await this.msgSampleGenerationService.generateDbScript(sampleResp, token);
-        const enrichmentDbScript = await this.msgSampleGenerationService.generateEnrichmentDbScript(enrichmentResp, token);
+        const enrichmentDbScript = this.msgSampleGenerationService.generateEnrichmentDbScript(enrichmentResp, token);
 
         await this.seedPgDatabase(pgPort, 'raw_history', dbScript);
         await this.seedPgDatabase(pgPort, 'event_history', functionResultScript);

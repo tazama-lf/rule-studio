@@ -61,7 +61,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
     const res = await fetch(registryUrl);
     if (res.status === 404) {
       throw new BadRequestException(
-        `Image '${image}' was not found on Docker Hub. ` + `Check that '${nameTag}' exists and the tag '${tag}' is published.`,
+        `Image '${image}' was not found on Docker Hub. Check that '${nameTag}' exists and the tag '${tag}' is published.`,
       );
     }
     if (!res.ok) {
@@ -199,6 +199,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
     this.logger.log(`[${name}] spawnRuntime: ${ruleImage}`);
     await this.assertImageExists(ruleImage);
 
+    // eslint-disable-next-line no-useless-catch -- We want to log the original error before throwing, and we also want to ensure any error during logging doesn't prevent cleanup
     try {
       this.logger.log(`[${name}] Starting NATS...`);
       const nats = await new GenericContainer('nats:2')
@@ -349,7 +350,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
 
     this.logger.log(`Destroying simulation '${name}' (status=${sim.info.status})...`);
 
-    const stops: Promise<unknown>[] = [sim.postgres.stop()];
+    const stops: Array<Promise<unknown>> = [sim.postgres.stop()];
     if (sim.nats) stops.push(sim.nats.stop());
     if (sim.valkey) stops.push(sim.valkey.stop());
     if (sim.ruleProcessor) stops.push(sim.ruleProcessor.stop());
