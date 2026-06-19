@@ -16,6 +16,7 @@ jest.mock('../../src/pages/SimulationView', () => ({ default: () => null }));
 jest.mock('../../src/pages/SimulationError', () => ({ default: () => null }));
 jest.mock('../../src/pages/SimStudio', () => ({ default: () => null }));
 jest.mock('../../src/pages/SimStudio/CreateSimSuite', () => ({ default: () => null }));
+jest.mock('../../src/pages/SimStudio/ViewSimSuite', () => ({ default: () => null }));
 
 // Mock React.lazy to immediately invoke the factory — covers the lazy callback functions.
 jest.mock('react', () => {
@@ -176,11 +177,11 @@ describe('ROUTES (routes/index)', () => {
             expect(r.layout).toBe(true);
         });
 
-        it('"/sim-studio/create" route should be private with no layout', () => {
+        it('"/sim-studio/create" route should be private and use layout', () => {
             const r = byPath('/sim-studio/create');
             expect(r).toBeDefined();
             expect(r.private).toBe(true);
-            expect(r.layout).toBe(false);
+            expect(r.layout).toBe(true);
         });
     });
 
@@ -200,9 +201,9 @@ describe('ROUTES (routes/index)', () => {
             expect(layoutRoutes).toHaveLength(14);
         });
 
-        it('should have exactly 9 routes with layout: false', () => {
+        it('should have exactly 8 routes with layout: false', () => {
             const noLayoutRoutes = ROUTES.filter((r) => !r.layout);
-            expect(noLayoutRoutes).toHaveLength(9);
+            expect(noLayoutRoutes).toHaveLength(8);
         });
     });
 
