@@ -12,10 +12,11 @@ export class DockerHubService implements OnModuleInit {
   private namespace: string;
   private token: string;
   private username: string;
+  private jwt: string;
 
   constructor(private readonly configService: ConfigService) {}
 
-  onModuleInit(): void {
+  async onModuleInit(): Promise<void> {
     const token = this.configService.get<string>('DOCKERHUB_TOKEN');
     const username = this.configService.get<string>('DOCKERHUB_USERNAME');
     const namespace = this.configService.get<string>('DOCKERHUB_NAMESPACE');
@@ -28,7 +29,26 @@ export class DockerHubService implements OnModuleInit {
     this.username = username;
     this.namespace = namespace;
 
+    await this.login();
+
     this.logger.log(`Docker Hub configured for namespace "${this.namespace}"`);
+  }
+
+  private async login(): Promise<void> {
+    const response = await fetch(`${DOCKERHUB_API}/users/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: this.username, password: this.token }),
+      signal: AbortSignal.timeout(this.timeoutMs),
+    });
+
+    if (!response.ok) {
+      this.logger.error(`Docker Hub login failed: ${response.status} ${response.statusText}`);
+      throw new InternalServerErrorException('Docker Hub login failed');
+    }
+
+    const { token } = (await response.json()) as { token: string };
+    this.jwt = token;
   }
 
   private getTenantRulePrefix(tenantId: string): string {
@@ -44,10 +64,18 @@ export class DockerHubService implements OnModuleInit {
   }
 
   private async fetchDockerHub(url: string): Promise<Response> {
-    return await fetch(url, {
-      headers: { Authorization: `Bearer ${this.token}` },
-      signal: AbortSignal.timeout(this.timeoutMs),
-    });
+    const doFetch = async (): Promise<Response> =>
+      await fetch(url, {
+        headers: { Authorization: `Bearer ${this.jwt}` },
+        signal: AbortSignal.timeout(this.timeoutMs),
+      });
+
+    let response = await doFetch();
+    if (response.status === 401) {
+      await this.login();
+      response = await doFetch();
+    }
+    return response;
   }
 
   private async fetchRepoPage(url: string): Promise<DhRepository[]> {
