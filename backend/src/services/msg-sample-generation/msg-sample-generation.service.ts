@@ -22,6 +22,7 @@ export class MsgSampleGenerationService {
    * @returns The escaped string value ready for use in SQL
    */
   private escapeSqlString(value: string): string {
+    // eslint-disable-next-line @stylistic/quotes -- We need to use single quotes for SQL string literals, so we escape single quotes by doubling them
     return value.replace(/'/g, "''");
   }
 

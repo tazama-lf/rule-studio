@@ -250,7 +250,7 @@ describe('MsgSampleGenerationService', () => {
       const { dbScript } = await service.generateDbScript(responseWithApostrophe, 'test-token');
 
       expect(dbScript).not.toContain("it's time");
-      expect(dbScript).toContain('its time');
+      expect(dbScript).toContain("it''s time");
     });
 
     it('uses NULL for missing tracked fields', async () => {
@@ -319,7 +319,7 @@ describe('MsgSampleGenerationService', () => {
       const result = service.generateEnrichmentDbScript(mockEnrichmentResponse, 'test-token');
 
       expect(result).not.toContain("Bob's account");
-      expect(result).toContain('Bobs account');
+      expect(result).toContain("Bob''s account");
     });
 
     it('generates separate DDL and DML blocks for multiple enrichment tables', () => {

@@ -13,7 +13,8 @@ function escapeSqlString(value: any): string {
     return 'NULL';
   }
   const stringValue = String(value);
-  return stringValue.replace(/'/g, "''");
+  // eslint-disable-next-line @stylistic/quotes -- We need to use single quotes for SQL string literals, so we escape single quotes by doubling them
+  return stringValue.replace(/'/g, "''");  
 }
 
 export function executeConfiguredFunctions(
