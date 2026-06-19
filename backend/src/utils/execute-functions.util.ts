@@ -14,7 +14,7 @@ function escapeSqlString(value: any): string {
   }
   const stringValue = String(value);
   // eslint-disable-next-line @stylistic/quotes -- We need to use single quotes for SQL string literals, so we escape single quotes by doubling them
-  return stringValue.replace(/'/g, "''");
+  return `'${stringValue.replace(/'/g, "''")}'`;
 }
 
 export function executeConfiguredFunctions(
@@ -25,7 +25,7 @@ export function executeConfiguredFunctions(
 ): string {
   const loggerService = new Logger();
   let dbScript = '';
-  loggerService.log(`starting to execute configured functions based on mapping configuration ${JSON.stringify(transactionRelationship)}`);
+  loggerService.log('Starting to execute configured functions based on mapping configuration');
 
   if (configuredFunctions) {
     for (const row of configuredFunctions) {
@@ -33,14 +33,7 @@ export function executeConfiguredFunctions(
       const functionToCall = row.functionName;
       let sources = row.params ?? [];
 
-      const ALLOWED_DB_FUNCTIONS = [
-        'addAccount',
-        'addEntity',
-        'addAccountHolder',
-        'saveTransactionHistory',
-        'addDataModelTable',
-        'saveTransactionDetails',
-      ];
+      const ALLOWED_DB_FUNCTIONS = ['addAccount', 'addEntity', 'addAccountHolder', 'saveTransactionDetails'];
       if (!ALLOWED_DB_FUNCTIONS.includes(functionToCall)) {
         throw new Error(`Function '${functionToCall}' is not in the allowed functions list`);
       }

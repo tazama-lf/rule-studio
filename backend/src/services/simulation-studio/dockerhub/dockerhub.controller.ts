@@ -39,7 +39,7 @@ export class DockerHubController {
     responses: CommonResponses.SUCCESS_200(DockerHubTagsResponseDto, 'Tags retrieved successfully'),
   })
   async getTagsForRule(@Query('rule') rule: string, @User() user: AuthenticatedUser): Promise<DockerHubTagsResponseDto> {
-    if (!rule.trim()) {
+    if (typeof rule !== 'string' || !rule.trim()) {
       throw new BadRequestException('`rule` query parameter is required.');
     }
     return await this.dockerHubService.getTagsForRule(user.tenantId, rule.trim());
