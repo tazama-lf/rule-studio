@@ -1,9 +1,11 @@
-import { useEffect, type MutableRefObject } from "react";
+import { useEffect, memo, useState, type MutableRefObject } from "react";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import LinkIcon from "@mui/icons-material/Link";
 import {
   Box,
+  CircularProgress,
   Collapse,
   IconButton,
   MenuItem,
@@ -28,13 +30,14 @@ import useTriggerDataController, {
   type TriggerOverrideType,
 } from "../../../hooks/SimStudio/useTriggerDataController";
 import { useGetFakerSemanticDataQuery } from "../../../redux/Api/SimStudio";
+import FieldMappingModal from "../TxtpSelection/FieldMappingModal";
 
 const OVERRIDE_OPTIONS: { label: string; value: TriggerOverrideType }[] = [
-  { label: "No Override", value: "null" },
+  { label: "Use Sample Value", value: "null" },
   { label: "Set Static Value", value: "static" },
   { label: "Use Range", value: "range" },
-  { label: "Auto-generate", value: "generated" },
-  { label: "Remove Field", value: "remove" },
+  { label: "Skip Field", value: "remove" },
+  { label: "Random", value: "random" },
 ];
 
 // ── Field Overrides Table ─────────────────────────────────────────────────────
@@ -45,7 +48,7 @@ interface FieldOverridesTableProps {
   semanticOptions: { id: string; name: string }[];
 }
 
-const FieldOverridesTable = ({ entry, onOverrideChange, semanticOptions }: FieldOverridesTableProps) => {
+const FieldOverridesTable = memo(({ entry, onOverrideChange, semanticOptions }: FieldOverridesTableProps) => {
   const getOverride = (path: string): TriggerOverride =>
     entry.fieldOverrides[path] ?? { overrideType: "null", staticValue: "", rangeMin: "", rangeMax: "", semanticId: "" };
 
@@ -62,7 +65,7 @@ const FieldOverridesTable = ({ entry, onOverrideChange, semanticOptions }: Field
           <TableHead>
             <TableRow>
               <TableCell sx={{ fontWeight: 600, fontSize: "12px", bgcolor: "#fbf9fa", width: "30%" }}>Field Name</TableCell>
-              <TableCell sx={{ fontWeight: 600, fontSize: "12px", bgcolor: "#fbf9fa", width: "20%" }}>Override Type</TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: "12px", bgcolor: "#fbf9fa", width: "20%" }}>Actions</TableCell>
               <TableCell sx={{ fontWeight: 600, fontSize: "12px", bgcolor: "#fbf9fa", width: "22%" }}>Static Value</TableCell>
               <TableCell sx={{ fontWeight: 600, fontSize: "12px", bgcolor: "#fbf9fa" }}>Range</TableCell>
               <TableCell sx={{ fontWeight: 600, fontSize: "12px", bgcolor: "#fbf9fa", width: "18%" }}>Semantics</TableCell>
@@ -98,7 +101,7 @@ const FieldOverridesTable = ({ entry, onOverrideChange, semanticOptions }: Field
                             staticValue: newType === "static" ? override.staticValue : "",
                             rangeMin: newType === "range" ? override.rangeMin : "",
                             rangeMax: newType === "range" ? override.rangeMax : "",
-                            semanticId: override.semanticId,
+                            semanticId: newType === "random" ? override.semanticId : "",
                           });
                         }}
                         sx={{ fontSize: "12px", minWidth: 160, "& .MuiSelect-select": { py: "4px" } }}
@@ -151,6 +154,7 @@ const FieldOverridesTable = ({ entry, onOverrideChange, semanticOptions }: Field
                         value={override.semanticId ?? ""}
                         size="small"
                         displayEmpty
+                        disabled={override.overrideType !== "random"}
                         onChange={(e) => onOverrideChange(entry.id, path, { ...override, semanticId: e.target.value })}
                         sx={{ fontSize: "12px", minWidth: 140, "& .MuiSelect-select": { py: "4px" } }}
                       >
@@ -171,13 +175,13 @@ const FieldOverridesTable = ({ entry, onOverrideChange, semanticOptions }: Field
       </TableContainer>
     </S.FieldConfigSection>
   );
-};
+});
 
-// ── Entry Row ─────────────────────────────────────────────────────────────────
+// ── Entry Accordion ──────────────────────────────────────────────────────────
 
-interface EntryRowProps {
+interface EntryAccordionProps {
   entry: TriggerEntry;
-  index: number;
+  canRemove?: boolean;
   onToggle: (id: string) => void;
   onRemove: (id: string) => void;
   onNumMessagesChange: (id: string, value: number) => void;
@@ -185,39 +189,31 @@ interface EntryRowProps {
   semanticOptions: { id: string; name: string }[];
 }
 
-const EntryRow = ({
+const EntryAccordion = memo(({
   entry,
-  index,
+
+  canRemove = true,
   onToggle,
   onRemove,
   onNumMessagesChange,
   onOverrideChange,
   semanticOptions,
-}: EntryRowProps) => (
-  <>
-    <TableRow hover sx={{ bgcolor: "#fff" }}>
-      <TableCell sx={{ width: 48, borderBottom: "1px solid #e0e0e0", pr: 0 }}>
-        <IconButton size="small" onClick={() => onToggle(entry.id)}>
-          {entry.expanded ? (
-            <ExpandMoreIcon sx={{ fontSize: 16 }} />
-          ) : (
-            <ChevronRightIcon sx={{ fontSize: 16 }} />
-          )}
-        </IconButton>
-      </TableCell>
-      <TableCell sx={{ fontWeight: 500, fontSize: "13px", borderBottom: "1px solid #e0e0e0" }}>
-        {index + 1}
-      </TableCell>
-      <TableCell sx={{ borderBottom: "1px solid #e0e0e0" }}>
-        <Box display="flex" alignItems="center">
-          <Typography sx={{ fontSize: "13px", fontWeight: 600 }}>{entry.txtp}</Typography>
-          {index === 0 && <S.PrimaryBadge>Primary</S.PrimaryBadge>}
-        </Box>
-      </TableCell>
-      <TableCell sx={{ fontSize: "13px", borderBottom: "1px solid #e0e0e0" }}>
-        {entry.version}
-      </TableCell>
-      <TableCell sx={{ borderBottom: "1px solid #e0e0e0" }}>
+}: EntryAccordionProps) => (
+  <Box sx={{ bgcolor: "#fff", border: "1px solid #e5e7eb", borderRadius: 1, overflow: "hidden" }}>
+    <Box display="flex" alignItems="center" px={1.5} py={1} gap={1.5}>
+      <IconButton size="small" onClick={() => onToggle(entry.id)}>
+        {entry.expanded ? (
+          <ExpandMoreIcon sx={{ fontSize: 16 }} />
+        ) : (
+          <ChevronRightIcon sx={{ fontSize: 16 }} />
+        )}
+      </IconButton>
+      <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>{entry.txtp}</Typography>
+
+      <Typography sx={{ fontSize: 12, color: "#6b7280" }}>v{entry.version}</Typography>
+      <Box flex={1} />
+      <Box display="flex" alignItems="center" gap={1}>
+        <Typography sx={{ fontSize: 12, color: "#6b7280", whiteSpace: "nowrap" }}>Messages:</Typography>
         <TextField
           type="text"
           inputMode="numeric"
@@ -229,21 +225,86 @@ const EntryRow = ({
               onNumMessagesChange(entry.id, val === "" ? 0 : Number(val));
             }
           }}
-          sx={{ width: 130, "& .MuiOutlinedInput-root": { height: "34px", fontSize: "13px" } }}
+          sx={{ width: 90, "& .MuiOutlinedInput-root": { height: "30px", fontSize: "13px" } }}
         />
-      </TableCell>
-      <TableCell sx={{ borderBottom: "1px solid #e0e0e0" }}>
+      </Box>
+      {canRemove && (
         <S.RemoveText onClick={() => onRemove(entry.id)}>Remove</S.RemoveText>
-      </TableCell>
-    </TableRow>
-    <TableRow>
-      <TableCell colSpan={6} sx={{ p: 0, borderBottom: entry.expanded ? "1px solid #e0e0e0" : "none" }}>
-        <Collapse in={entry.expanded} timeout="auto" unmountOnExit>
-          <FieldOverridesTable entry={entry} onOverrideChange={onOverrideChange} semanticOptions={semanticOptions} />
-        </Collapse>
-      </TableCell>
-    </TableRow>
-  </>
+      )}
+    </Box>
+    <Collapse in={entry.expanded} timeout={150}>
+      <Box sx={{ borderTop: "1px solid #e5e7eb" }}>
+        <FieldOverridesTable entry={entry} onOverrideChange={onOverrideChange} semanticOptions={semanticOptions} />
+      </Box>
+    </Collapse>
+  </Box>
+));
+
+// ── Linked Pair Container ────────────────────────────────────────────────────
+
+interface LinkedPairContainerProps {
+  primary: TriggerEntry;
+  related: TriggerEntry;
+  isPrimaryFirst: boolean;
+  onToggle: (id: string) => void;
+  onRemovePair: (primaryId: string, relatedId: string) => void;
+  onAddMapping: (primaryId: string, relatedId: string) => void;
+  onNumMessagesChange: (id: string, value: number) => void;
+  onOverrideChange: (entryId: string, fieldPath: string, override: TriggerOverride) => void;
+  semanticOptions: { id: string; name: string }[];
+}
+
+const LinkedPairContainer = ({
+  primary,
+  related,
+  onToggle,
+  onRemovePair,
+  onAddMapping,
+  onNumMessagesChange,
+  onOverrideChange,
+  semanticOptions,
+}: LinkedPairContainerProps) => (
+  <Box sx={{ border: "2px solid #bfdbfe", borderRadius: 1.5, overflow: "hidden" }}>
+    <Box
+      sx={{
+        bgcolor: "#eff6ff",
+        px: 2,
+        py: 0.75,
+        borderBottom: "1px solid #dbeafe",
+        display: "flex",
+        alignItems: "center",
+        gap: 1,
+      }}
+    >
+      <LinkIcon sx={{ fontSize: 14, color: "#3b82f6" }} />
+      <Typography sx={{ fontSize: 11, fontWeight: 600, color: "#1d4ed8" }}>
+        Linked Transaction Pair
+      </Typography>
+      <Box flex={1} />
+      <S.AddMappingText onClick={() => onAddMapping(primary.id, related.id)}>Add Mapping</S.AddMappingText>
+      <S.RemoveText onClick={() => onRemovePair(primary.id, related.id)}>Remove</S.RemoveText>
+    </Box>
+    <Box sx={{ p: 1.5, display: "flex", flexDirection: "column", gap: 1 }}>
+      <EntryAccordion
+        entry={primary}
+        canRemove={false}
+        onToggle={onToggle}
+        onRemove={() => {}}
+        onNumMessagesChange={onNumMessagesChange}
+        onOverrideChange={onOverrideChange}
+        semanticOptions={semanticOptions}
+      />
+      <EntryAccordion
+        entry={related}
+        canRemove={false}
+        onToggle={onToggle}
+        onRemove={() => {}}
+        onNumMessagesChange={onNumMessagesChange}
+        onOverrideChange={onOverrideChange}
+        semanticOptions={semanticOptions}
+      />
+    </Box>
+  </Box>
 );
 
 // ── Main Component ─────────────────────────────────────────────────────────────
@@ -256,21 +317,54 @@ const TriggerData = ({ onSaveRef }: TriggerDataProps) => {
   const { values, functions } = useTriggerDataController();
   const { data: semanticData } = useGetFakerSemanticDataQuery();
   const semanticOptions = semanticData?.data ?? [];
-  const { entries, numMessages, adding, primaryTxtp } = values;
+  const { entries, numMessages, adding, isLoading, primaryTxtp } = values;
   const {
     setNumMessages,
     handleAdd,
     handleRemove,
+    handleRemovePair,
     handleToggleExpand,
     handleNumMessagesChange,
     handleOverrideChange,
     saveTriggerConfigs,
   } = functions;
 
+  const [mappingModal, setMappingModal] = useState<{
+    primaryId: string;
+    relatedId: string;
+    primaryConfigId: number;
+    relatedConfigId: number;
+  } | null>(null);
+
+  const handleOpenMapping = (primaryId: string, relatedId: string) => {
+    const primaryEntry = entries.find((e) => e.id === primaryId);
+    const relatedEntry = entries.find((e) => e.id === relatedId);
+    if (!primaryEntry?.triggerId || !relatedEntry?.triggerId) return;
+    setMappingModal({
+      primaryId,
+      relatedId,
+      primaryConfigId: primaryEntry.triggerId,
+      relatedConfigId: relatedEntry.triggerId,
+    });
+  };
+
+  const handleCloseMappingModal = () => setMappingModal(null);
+
+  const modalPrimary = mappingModal ? entries.find((e) => e.id === mappingModal.primaryId) : undefined;
+  const modalRelated = mappingModal ? entries.find((e) => e.id === mappingModal.relatedId) : undefined;
+
   useEffect(() => {
     if (onSaveRef) onSaveRef.current = saveTriggerConfigs;
     return () => { if (onSaveRef) onSaveRef.current = null; };
   }, [onSaveRef, saveTriggerConfigs]);
+
+  const primaryEntries = entries.filter((e) => !e.relatedTxtpConfigId);
+  const relatedEntries = entries.filter((e) => e.relatedTxtpConfigId != null);
+  const entryPairs = primaryEntries.map((primary, idx) => ({
+    primary,
+    isFirstPrimary: idx === 0,
+    related: relatedEntries.find((r) => r.relatedTxtpConfigId === primary.triggerId),
+  }));
 
   return (
     <Box>
@@ -282,8 +376,6 @@ const TriggerData = ({ onSaveRef }: TriggerDataProps) => {
           field overrides.
         </Text>
       </S.InfoBanner>
-
-      {/* Add form */}
       <S.AddFormCard>
         <Box minWidth={140}>
           <S.FieldLabel>TXTP</S.FieldLabel>
@@ -344,42 +436,58 @@ const TriggerData = ({ onSaveRef }: TriggerDataProps) => {
           />
         </Box>
       </S.AddFormCard>
-      <TableContainer component={Paper} variant="outlined">
-        <MuiTable>
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ width: 48, bgcolor: "#fbf9fa", pr: 0 }} />
-              <TableCell sx={{ bgcolor: "#fbf9fa", fontWeight: 600, fontSize: "13px" }}>Order</TableCell>
-              <TableCell sx={{ bgcolor: "#fbf9fa", fontWeight: 600, fontSize: "13px" }}>TXTP</TableCell>
-              <TableCell sx={{ bgcolor: "#fbf9fa", fontWeight: 600, fontSize: "13px" }}>Version</TableCell>
-              <TableCell sx={{ bgcolor: "#fbf9fa", fontWeight: 600, fontSize: "13px" }}>No. of Messages</TableCell>
-              <TableCell sx={{ bgcolor: "#fbf9fa", fontWeight: 600, fontSize: "13px" }}>Action</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {entries.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 4, color: "#9ca3af" }}>
-                  No trigger configs added yet. Click <strong>Add</strong> to create one.
-                </TableCell>
-              </TableRow>
-            ) : (
-              entries.map((entry, idx) => (
-                <EntryRow
-                  key={entry.id}
-                  entry={entry}
-                  index={idx}
+      <Paper variant="outlined">
+        {isLoading ? (
+          <Box sx={{ py: 6, display: "flex", justifyContent: "center", alignItems: "center", gap: 2 }}>
+            <CircularProgress size={22} />
+            <Typography sx={{ fontSize: 13, color: "#6b7280" }}>Loading trigger configurations…</Typography>
+          </Box>
+        ) : entries.length === 0 ? (
+          <Box sx={{ py: 4, textAlign: "center", color: "#9ca3af" }}>
+            No trigger configs added yet. Click <strong>Add</strong> to create one.
+          </Box>
+        ) : (
+          <Box sx={{ p: 1.5, display: "flex", flexDirection: "column", gap: 1.5 }}>
+            {entryPairs.map((pair) =>
+              pair.related ? (
+                <LinkedPairContainer
+                  key={pair.primary.id}
+                  primary={pair.primary}
+                  related={pair.related}
+                  isPrimaryFirst={pair.isFirstPrimary}
+                  onToggle={handleToggleExpand}
+                  onRemovePair={handleRemovePair}
+                  onAddMapping={handleOpenMapping}
+                  onNumMessagesChange={handleNumMessagesChange}
+                  onOverrideChange={handleOverrideChange}
+                  semanticOptions={semanticOptions}
+                />
+              ) : (
+                <EntryAccordion
+                  key={pair.primary.id}
+                  entry={pair.primary}
                   onToggle={handleToggleExpand}
                   onRemove={handleRemove}
                   onNumMessagesChange={handleNumMessagesChange}
                   onOverrideChange={handleOverrideChange}
                   semanticOptions={semanticOptions}
                 />
-              ))
+              )
             )}
-          </TableBody>
-        </MuiTable>
-      </TableContainer>
+          </Box>
+        )}
+      </Paper>
+      {mappingModal && modalPrimary && modalRelated && (
+        <FieldMappingModal
+          open
+          onClose={handleCloseMappingModal}
+          primary={{ txtp: modalPrimary.txtp, version: modalPrimary.version, fields: modalPrimary.payloadFields }}
+          related={{ txtp: modalRelated.txtp, version: modalRelated.version, fields: modalRelated.payloadFields }}
+          primaryConfigId={mappingModal.primaryConfigId}
+          relatedConfigId={mappingModal.relatedConfigId}
+          mappingType="trigger"
+        />
+      )}
     </Box>
   );
 };

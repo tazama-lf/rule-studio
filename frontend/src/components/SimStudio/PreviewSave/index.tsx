@@ -1,21 +1,41 @@
 import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
 import { Box, CircularProgress } from "@mui/material";
+import toast from "react-hot-toast";
 import Button from "../../Button";
 import { LocalStorage } from "../../../utils/Common/enums";
-import { extractData } from "../../../utils/Common/storage";
-import { useGetGenerationSummaryQuery } from "../../../redux/Api/SimStudio";
+import { extractData, insertData } from "../../../utils/Common/storage";
+import { useGetGenerationSummaryQuery, useRunSimulationMutation } from "../../../redux/Api/SimStudio";
+import { useSimStudioTab } from "../../../contexts/SimStudioTabContext";
 import * as S from "./PreviewSave.styles";
 
 const PreviewSave = () => {
     const generationId = extractData("sim_gen_id", LocalStorage, false) as number | null;
+    const suiteId = extractData("sim_suite_id", LocalStorage, false) as number | null;
+    const { enableNextTab } = useSimStudioTab();
+    const [runSimulation, { isLoading: isRunning }] = useRunSimulationMutation();
 
-    const { data, isLoading } = useGetGenerationSummaryQuery(generationId!, {
+    const { data, isLoading, isFetching } = useGetGenerationSummaryQuery(generationId!, {
         skip: !generationId,
+        refetchOnMountOrArgChange: true,
     });
+
+    const handleRunSimulation = async () => {
+        if (!suiteId || !generationId) {
+            toast.error("Missing suite or generation ID. Please restart the wizard.");
+            return;
+        }
+        try {
+            await runSimulation({ suiteId: Number(suiteId), generationId: Number(generationId) }).unwrap();
+            insertData(true, "sim_results_locked", LocalStorage, false);
+            enableNextTab();
+        } catch {
+            toast.error("Failed to run simulation. Please try again.");
+        }
+    };
 
     const summary = data?.data;
 
-    if (isLoading || !summary) {
+    if (isLoading || isFetching || !summary) {
         return (
             <Box display="flex" justifyContent="center" py={10}>
                 <CircularProgress size={32} />
@@ -85,12 +105,13 @@ const PreviewSave = () => {
                     
                     <Button
                         type="primary"
-                        text="Run Simulation"
+                        text={isRunning ? "Running…" : "Run Simulation"}
                         size=""
                         width="auto"
                         height="38px"
-                        Icon={PlayArrowOutlinedIcon}
-                        onClick={() => {}}
+                        Icon={isRunning ? undefined : PlayArrowOutlinedIcon}
+                        onClick={() => void handleRunSimulation()}
+                        disabled={isRunning}
                     />
                 </S.ActionRow>
             </S.SummaryCard>

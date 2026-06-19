@@ -17,9 +17,14 @@ export class AddTriggerTxtpConfigDto {
   @IsInt()
   @Min(1)
   message_count?: number;
+
+  @ApiProperty({ required: false, example: 123 })
+  @IsOptional()
+  @IsNumber()
+  related_trigger_txtp_id?: number;
 }
 
-export class TriggerFieldOverrideDto {
+export class TriggerFieldStrategyDto {
   @ApiProperty({ example: 1 })
   id: number;
 
@@ -29,8 +34,9 @@ export class TriggerFieldOverrideDto {
   @ApiProperty({ example: 'CdtTrfTxInf.IntrBkSttlmAmt.value' })
   field_path: string;
 
-  @ApiProperty({ example: 'static', enum: ['static', 'range', 'generated', 'remove', 'null'] })
-  override_type: string;
+  @ApiProperty({ example: 'static', enum: ['keep_sample', 'static', 'range', 'random', 'skip'] })
+  @IsEnum(['keep_sample', 'static', 'range', 'random', 'skip'])
+  strategy_code: string;
 
   @ApiProperty({ required: false })
   static_value?: unknown;
@@ -51,14 +57,14 @@ export class TriggerFieldOverrideDto {
   created_at: string;
 }
 
-export class UpsertTriggerFieldOverrideDto {
+export class UpsertTriggerFieldStrategyDto {
   @ApiProperty({ example: 'CdtTrfTxInf.IntrBkSttlmAmt.value' })
   @IsString()
   field_path: string;
 
-  @ApiProperty({ example: 'static', enum: ['static', 'range', 'generated', 'remove', 'null'] })
-  @IsEnum(['static', 'range', 'generated', 'remove', 'null'])
-  override_type: string;
+  @ApiProperty({ example: 'static', enum: ['keep_sample', 'static', 'range', 'skip', 'random'] })
+  @IsEnum(['keep_sample', 'static', 'range', 'skip', 'random'])
+  strategy_code: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
@@ -85,7 +91,7 @@ export class UpsertTriggerFieldOverrideDto {
   generator_options?: Record<string, unknown>;
 }
 
-export class TriggerTxtpConfigWithOverridesDto {
+export class TriggerTxtpConfigWithStrategiesDto {
   @ApiProperty({ example: 1 })
   trigger_txtp_config_id: number;
 
@@ -113,24 +119,24 @@ export class TriggerTxtpConfigWithOverridesDto {
   @ApiProperty({ required: false, example: 'optional notes' })
   notes?: string;
 
-  @ApiProperty({ type: [TriggerFieldOverrideDto] })
-  field_overrides: TriggerFieldOverrideDto[];
+  @ApiProperty({ type: [TriggerFieldStrategyDto] })
+  field_strategies: TriggerFieldStrategyDto[];
 }
 
 export class TriggerConfigsListDto {
   @ApiProperty()
   success: boolean;
 
-  @ApiProperty({ type: [TriggerTxtpConfigWithOverridesDto] })
-  data: TriggerTxtpConfigWithOverridesDto[];
+  @ApiProperty({ type: [TriggerTxtpConfigWithStrategiesDto] })
+  data: TriggerTxtpConfigWithStrategiesDto[];
 }
 
-export class TriggerConfigWithOverridesResponseDto {
+export class TriggerConfigWithStrategiesResponseDto {
   @ApiProperty()
   success: boolean;
 
-  @ApiProperty({ type: TriggerTxtpConfigWithOverridesDto })
-  data: TriggerTxtpConfigWithOverridesDto;
+  @ApiProperty({ type: TriggerTxtpConfigWithStrategiesDto })
+  data: TriggerTxtpConfigWithStrategiesDto;
 }
 
 export class BulkTriggerConfigItemDto {
@@ -175,18 +181,78 @@ export class BulkTriggerConfigItemDto {
   @IsObject()
   generator_profile?: Record<string, unknown>;
 
-  @ApiProperty({ required: false, type: [UpsertTriggerFieldOverrideDto] })
+  @ApiProperty({ required: false, type: [UpsertTriggerFieldStrategyDto] })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => UpsertTriggerFieldOverrideDto)
-  field_overrides?: UpsertTriggerFieldOverrideDto[];
+  @Type(() => UpsertTriggerFieldStrategyDto)
+  field_strategies?: UpsertTriggerFieldStrategyDto[];
 }
 
 export class BulkUpdateTriggerConfigsResponseDto {
   @ApiProperty()
   success: boolean;
 
-  @ApiProperty({ type: [TriggerTxtpConfigWithOverridesDto] })
-  data: TriggerTxtpConfigWithOverridesDto[];
+  @ApiProperty({ type: [TriggerTxtpConfigWithStrategiesDto] })
+  data: TriggerTxtpConfigWithStrategiesDto[];
+}
+
+export class TriggerMappingPairDto {
+  @ApiProperty({ example: 'FITOFI.amount' })
+  @IsString()
+  primary: string;
+
+  @ApiProperty({ example: 'msgId' })
+  @IsString()
+  related: string;
+}
+
+export class CreateTriggerMappingDto {
+  @ApiProperty({ example: 123 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  primary_txtp_id: number;
+
+  @ApiProperty({ example: 456 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  related_txtp_id: number;
+
+  @ApiProperty({ type: [TriggerMappingPairDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TriggerMappingPairDto)
+  mapping: TriggerMappingPairDto[];
+}
+
+export class TriggerMappingDto {
+  @ApiProperty({ example: 1 })
+  id: number;
+
+  @ApiProperty({ example: 123 })
+  primary_tx_id: number;
+
+  @ApiProperty({ example: 456 })
+  related_tx_id: number;
+
+  @ApiProperty({ type: [TriggerMappingPairDto] })
+  mapping: TriggerMappingPairDto[];
+}
+
+export class TriggerMappingsResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty({ type: [TriggerMappingDto] })
+  data: TriggerMappingDto[];
+}
+
+export class TriggerMappingResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty({ type: TriggerMappingDto })
+  data: TriggerMappingDto;
 }

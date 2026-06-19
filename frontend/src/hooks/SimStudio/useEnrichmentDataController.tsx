@@ -9,7 +9,7 @@ import {
 } from "../../redux/Api/SimStudio";
 
 export type SchemaFieldType = "String" | "Number" | "Boolean" | "Date" | "UUID";
-export type GenerationStrategy = "Sample Value" | "Static" | "Range" | "Auto-generate";
+export type GenerationStrategy = "Sample Value" | "Static" | "Range" | "Skip Field" | "Random";
 
 export interface SchemaField {
     id: string;
@@ -40,11 +40,14 @@ const flattenJson = (obj: Record<string, unknown>, prefix = ""): { path: string;
     for (const [key, val] of Object.entries(obj)) {
         const path = prefix ? `${prefix}.${key}` : key;
         if (Array.isArray(val)) {
-            if (val.length > 0 && typeof val[0] === "object" && val[0] !== null) {
-                result.push(...flattenJson(val[0] as Record<string, unknown>, `${path}[0]`));
-            } else {
-                result.push({ path, value: val[0] ?? "" });
-            }
+            val.forEach((item, index) => {
+                const itemPath = `${path}[${index}]`;
+                if (typeof item === "object" && item !== null && !Array.isArray(item)) {
+                    result.push(...flattenJson(item as Record<string, unknown>, itemPath));
+                } else {
+                    result.push({ path: itemPath, value: item ?? "" });
+                }
+            });
         } else if (typeof val === "object" && val !== null) {
             result.push(...flattenJson(val as Record<string, unknown>, path));
         } else {
@@ -59,7 +62,7 @@ const useEnrichmentDataController = (
 ) => {
     const generationId = extractData("sim_gen_id", LocalStorage, false) as number | null;
 
-    const { data: enrichmentTablesData } = useGetEnrichmentTablesQuery(generationId!, {
+    const { data: enrichmentTablesData, isLoading: isLoadingTables } = useGetEnrichmentTablesQuery(generationId!, {
         skip: !generationId,
     });
     const [createEnrichmentTable, { isLoading: isSaving }] = useCreateEnrichmentTableMutation();
@@ -165,19 +168,12 @@ const useEnrichmentDataController = (
     }, []);
 
     useEffect(() => {
-        if (!onSaveRef) {
-            return;
-        }
-
-        onSaveRef.current = saveEnrichmentRecords;
-
-        return () => {
-            onSaveRef.current = null;
-        };
+        if (onSaveRef) onSaveRef.current = saveEnrichmentRecords;
+        return () => { if (onSaveRef) onSaveRef.current = null; };
     }, [onSaveRef, saveEnrichmentRecords]);
 
     return {
-        values: { tableName, numberOfRows, sampleJson, jsonError, schemaFields, savedRecords, isSaving, isDeleting },
+        values: { tableName, numberOfRows, sampleJson, jsonError, schemaFields, savedRecords, isSaving, isDeleting, isLoading: isLoadingTables },
         functions: {
             setTableName,
             setNumberOfRows,

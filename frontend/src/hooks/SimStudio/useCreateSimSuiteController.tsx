@@ -7,17 +7,17 @@ import * as yup from "yup";
 import type { DropdownOption } from "../../components/DropDown";
 import { useSimStudioTab } from "../../contexts/SimStudioTabContext";
 import { useGetTypesQuery, useLazyGetTxtpVersionsQuery } from "../../redux/Api/Config";
-import { useCreateSuiteMutation, useUpdateWizardProgressMutation, useLazyGetSuiteByIdQuery } from "../../redux/Api/SimStudio";
+import { useCreateSuiteMutation, usePatchSuiteMutation, useUpdateWizardProgressMutation, useLazyGetSuiteByIdQuery } from "../../redux/Api/SimStudio";
 import { useGetRulesQuery, useLazyGetRuleTagsQuery } from "../../redux/Api/DockerHub";
 import { LocalStorage } from "../../utils/Common/enums";
-import { insertData, extractData } from "../../utils/Common/storage";
+import { insertData, extractData, removeData } from "../../utils/Common/storage";
 import { SimStudioTabs } from "../../utils/Constants/data";
-import PlaceholderStep from "../../components/SimStudio/PlaceholderStep";
 import Step1RuleDetails from "../../components/SimStudio/RuleDetails";
 import TxtpSelection from "../../components/SimStudio/TxtpSelection";
 import TriggerData from "../../components/SimStudio/TriggerData";
 import EnrichmentData from "../../components/SimStudio/EnrichmentData";
 import PreviewSave from "../../components/SimStudio/PreviewSave";
+import SimulationResults from "../../components/SimStudio/SimulationResults";
 
 export interface Step1Values {
     suite_name: string;
@@ -69,7 +69,13 @@ const useCreateSimSuiteController = () => {
     const navigate = useNavigate();
     const { selectedTab, tabs, enableNextTab, enablePreviousTab } = useSimStudioTab();
     const [createSuite, { isLoading: isCreatingSuite }] = useCreateSuiteMutation();
+    const [patchSuite, { isLoading: isPatchingSuite }] = usePatchSuiteMutation();
     const [updateWizardProgress] = useUpdateWizardProgressMutation();
+    const isCloneMode = extractData("sim_clone_mode", LocalStorage, false) === true;
+    const cloneType = extractData("sim_clone_type", LocalStorage, false) as string | null;
+    const isSuiteCloneMode = isCloneMode && cloneType === "suite";
+    const isGenerationCloneMode = isCloneMode && !isSuiteCloneMode;
+    const isResultsLocked = selectedTab === "simulation_results" && extractData("sim_results_locked", LocalStorage, false) === true;
 
     const extractGenId = useCallback(() => {
         const genId = extractData("sim_gen_id", LocalStorage, false) as string | number | null;
@@ -121,6 +127,7 @@ const useCreateSimSuiteController = () => {
     const step2SaveRef = useRef<(() => Promise<boolean>) | null>(null);
     const step3SaveRef = useRef<(() => Promise<boolean>) | null>(null);
     const step4SaveRef = useRef<(() => Promise<boolean>) | null>(null);
+    const hasExistingSuite = existingSuite !== null;
 
     const {
         control,
@@ -128,6 +135,9 @@ const useCreateSimSuiteController = () => {
         watch,
         setValue,
         reset,
+        trigger,
+        getValues,
+        clearErrors,
         formState: { errors },
     } = useForm<Step1Values>({
         resolver: yupResolver(step1Schema) as never,
@@ -170,11 +180,13 @@ const useCreateSimSuiteController = () => {
     useEffect(() => {
         if (selectedTxtp?.value) {
             fetchVersions(String(selectedTxtp.value));
-            setValue("version", null);
-        } else {
+            if (existingSuite?.primary_txtp !== selectedTxtp.value) {
+                setValue("version", null);
+            }
+        } else if (!hasExistingSuite) {
             setValue("version", null);
         }
-    }, [selectedTxtp, fetchVersions, setValue]);
+    }, [selectedTxtp, fetchVersions, setValue, existingSuite?.primary_txtp, hasExistingSuite]);
 
     const versionOptions = useMemo<DropdownOption[]>(() => {
         if (!versionsData || !Array.isArray(versionsData)) return [];
@@ -188,9 +200,13 @@ const useCreateSimSuiteController = () => {
     useEffect(() => {
         if (selectedRule?.value) {
             void getRuleTags({ rule: String(selectedRule.value) });
+            if (existingSuite?.rule_name !== selectedRule.value) {
+                setValue("rule_version", null);
+            }
+        } else if (!hasExistingSuite) {
+            setValue("rule_version", null);
         }
-        setValue("rule_version", null);
-    }, [selectedRule, setValue, getRuleTags]);
+    }, [selectedRule, setValue, getRuleTags, existingSuite?.rule_name, hasExistingSuite]);
 
     const ruleVersionOptions = useMemo<DropdownOption[]>(() => {
         return ruleTagsData?.tags.map((t) => ({ label: t.name, value: t.name })) ?? [];
@@ -198,6 +214,8 @@ const useCreateSimSuiteController = () => {
 
     const handleBack = () => {
         if (selectedTab === SimStudioTabs[0].value) {
+            removeData("sim_clone_mode", LocalStorage);
+            removeData("sim_clone_type", LocalStorage);
             navigate("/sim-studio");
         } else {
             enablePreviousTab();
@@ -206,14 +224,56 @@ const useCreateSimSuiteController = () => {
 
     const handleNextStep = () => {
         if (selectedTab === SimStudioTabs[0].value) {
-            if (existingSuite) {
+            if (existingSuite && !isCloneMode) {
                 enableNextTab();
+                return;
+            }
+            if (isCloneMode && existingSuite) {
+                void (async () => {
+                    clearErrors(["associated_rule", "txtp", "version", "rule_config"]);
+                    const cloneFields: (keyof Step1Values)[] = isSuiteCloneMode
+                        ? ["suite_name", "description", "rule_version"]
+                        : ["rule_version"];
+                    const isCloneDetailsValid = await trigger(cloneFields);
+                    if (!isCloneDetailsValid) return;
+
+                    const suiteId = extractSuiteId();
+                    const genId = extractGenId();
+                    if (!suiteId || !genId) {
+                        toast.error("Cloned simulation details are missing. Please clone again.");
+                        return;
+                    }
+
+                    const data = getValues();
+                    const patchBody = isSuiteCloneMode
+                        ? {
+                            name: data.suite_name,
+                            description: data.description || undefined,
+                            rule_version: data.rule_version?.value ? String(data.rule_version.value) : undefined,
+                        }
+                        : {
+                            rule_version: data.rule_version?.value ? String(data.rule_version.value) : undefined,
+                        };
+                    try {
+                        await patchSuite({
+                            suiteId,
+                            body: patchBody,
+                        }).unwrap();
+                        void updateWizardProgress({ generationId: genId, current_step_num: 2, completed_step_num: 1 });
+                        removeData("sim_clone_mode", LocalStorage);
+                        removeData("sim_clone_type", LocalStorage);
+                        enableNextTab();
+                    } catch {
+                        toast.error("Failed to update cloned simulation details. Please try again.");
+                    }
+                })();
                 return;
             }
             void handleSubmit(async (data) => {
                 try {
                     let parsedRuleConfig: Record<string, unknown>;
                     try { parsedRuleConfig = JSON.parse(data.rule_config || '{}') as Record<string, unknown>; } catch { parsedRuleConfig = {}; }
+
                     const result = await createSuite({
                         name: data.suite_name,
                         description: data.description || undefined,
@@ -283,23 +343,32 @@ const useCreateSimSuiteController = () => {
                         versionLoading={versionLoading}
                         existingSuite={existingSuite}
                         isSuiteLoading={isSuiteLoading}
+                        isCloneMode={isCloneMode}
+                        isSuiteCloneMode={isSuiteCloneMode}
+                        isGenerationCloneMode={isGenerationCloneMode}
                     />
                 );
             case 'txtp_selection':      return <TxtpSelection onSaveRef={step2SaveRef} />;
             case 'trigger_data':        return <TriggerData onSaveRef={step3SaveRef} />;
             case 'enrichment_data':     return <EnrichmentData onSaveRef={step4SaveRef} />;
             case 'preview_save':        return <PreviewSave />;
-            case 'simulation_results':  return <PlaceholderStep title="Simulation Results" />;
-            case 'summary':             return <PlaceholderStep title="Summary" />;
+            case 'simulation_results':  return <SimulationResults />;
             default:                    return null;
         }
     };
 
     const currentStepIndex = tabs.findIndex(t => t.value === selectedTab);
-    const isStep1ReadOnly = selectedTab === SimStudioTabs[0].value && existingSuite !== null;
+    const isStep1ReadOnly = selectedTab === SimStudioTabs[0].value && existingSuite !== null && !isCloneMode;
 
     return {
-        values: { currentStepIndex, totalSteps: tabs.length, isCreatingSuite, selectedTab, isStep1ReadOnly },
+        values: {
+            currentStepIndex,
+            totalSteps: tabs.length,
+            isCreatingSuite: isCreatingSuite || isPatchingSuite,
+            selectedTab,
+            isStep1ReadOnly,
+            isResultsLocked,
+        },
         functions: { handleBack, handleNextStep, renderStep },
     };
 };

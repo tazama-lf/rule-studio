@@ -27,6 +27,17 @@ export interface SuiteGeneration {
     generation_number: number;
     status: string;
     simulation_type: string;
+    rule_repo?: string;
+    rule_name?: string;
+    rule_version?: string;
+    wizard_snapshot?: { currentStep?: number; completedSteps?: number[] };
+    generation_metadata?: Record<string, unknown>;
+    trigger_count?: number | null;
+    result_entries?: number | null;
+    result_entry_count?: number | null;
+    outcome?: string | null;
+    created_at?: string;
+    updated_at?: string;
 }
 
 export interface ContextTxtpConfig {
@@ -42,20 +53,22 @@ export interface ContextTxtpConfig {
     sample_payload_snapshot?: Record<string, unknown>;
     generator_profile?: Record<string, unknown>;
     field_strategies?: FieldStrategy[];
+    related_transaction?: string | null;
+    related_txtp_config_id?: number | null;
 }
 
 export interface FieldStrategy {
-    id: number;
-    context_txtp_config_id: number;
+    id: string | number;
+    context_txtp_config_id: string | number;
     field_path: string;
     strategy_code: string;
     static_value?: unknown;
-    range_min?: number;
-    range_max?: number;
-    faker_semantic_type?: string;
-    generator_type?: string;
+    range_min?: number | null;
+    range_max?: number | null;
+    faker_semantic_type?: string | null;
+    generator_type?: string | null;
     generator_options?: Record<string, unknown>;
-    is_required_override?: boolean;
+    is_required_override?: boolean | null;
 }
 
 export interface UpsertFieldStrategyItem {
@@ -84,12 +97,40 @@ export interface TriggerFieldOverride {
     field_path: string;
     override_type: string;
     static_value?: unknown;
-    range_min?: number;
-    range_max?: number;
-    faker_semantic_type?: string;
-    generator_type?: string;
+    range_min?: number | null;
+    range_max?: number | null;
+    faker_semantic_type?: string | null;
+    generator_type?: string | null;
     generator_options?: Record<string, unknown>;
     created_at: string;
+}
+
+export interface TriggerFieldStrategy {
+    id: string | number;
+    trigger_txtp_config_id: string | number;
+    field_path: string;
+    strategy_code: string;
+    range_min: number | null;
+    range_max: number | null;
+    faker_semantic_type: string | null;
+    generator_options: Record<string, unknown>;
+    created_at: string;
+    static_value?: unknown;
+}
+
+export interface TriggerTxtpConfigDetail {
+    trigger_txtp_config_id: string | number;
+    txtp: string;
+    txtp_version: string;
+    message_count: number;
+    display_order: number;
+    payload_template_json: Record<string, unknown>;
+    link_to_context_pairs: boolean;
+    expected_result_band?: string | null;
+    notes?: string | null;
+    related_txtp_config_id?: number | null;
+    related_transaction?: string | null;
+    field_strategies: TriggerFieldStrategy[];
 }
 
 export interface TriggerTxtpConfig {
@@ -103,26 +144,28 @@ export interface TriggerTxtpConfig {
     expected_result_band?: string;
     notes?: string;
     field_overrides: TriggerFieldOverride[];
+    field_strategies?: TriggerFieldStrategy[];
+    related_transaction?: string | null;
+    related_txtp_config_id?: number | null;
 }
 
 export interface BulkTriggerConfigItem {
     trigger_txtp_config_id: number;
     message_count?: number;
     payload_template_json?: Record<string, unknown>;
-    field_overrides?: {
+    field_strategies?: {
         field_path: string;
-        override_type: string;
+        strategy_code: string;
         static_value?: unknown;
         range_min?: number;
         range_max?: number;
         faker_semantic_type?: string;
-        generator_type?: string;
         generator_options?: Record<string, unknown>;
     }[];
 }
 
 export interface SuiteListItem {
-    id: number;
+    id: number | string;
     name: string;
     rule_name?: string;
     rule_config?: Record<string, unknown>;
@@ -134,11 +177,11 @@ export interface SuiteListItem {
     updated_at: string;
     created_by: string;
     wizard_progress: Record<string, unknown>;
-    generation_id?: number;
+    generation_id?: number | string;
 }
 
 export interface SuiteDetail {
-    id: number;
+    id: number | string;
     name: string;
     description?: string;
     rule_name?: string;
@@ -146,9 +189,23 @@ export interface SuiteDetail {
     rule_config?: Record<string, unknown>;
     primary_txtp?: string;
     primary_txtp_version?: string;
-    status: string;
-    wizard_progress: Record<string, unknown>;
-    generation_id?: number;
+    status?: string;
+    wizard_progress?: Record<string, unknown>;
+    generation_id?: number | string | null;
+}
+
+export interface SuiteDetailResponse {
+    success: boolean;
+    message?: string;
+    suite: SuiteDetail;
+    data?: SuiteDetail;
+}
+
+interface RawSuiteDetailResponse {
+    success: boolean;
+    message?: string;
+    suite?: SuiteDetail;
+    data?: SuiteDetail | { suite?: SuiteDetail; data?: SuiteDetail };
 }
 
 export interface SuitesListResponse {
@@ -167,6 +224,27 @@ export interface SuitesListQuery {
     updated_to?: string;
     offset?: number;
     limit?: number;
+}
+
+export interface SuitesCountData {
+    total_suites: number;
+    total_run: number;
+    total_draft_suites: number;
+    total_completed_suites: number;
+    latest_run_at: string | number | null;
+}
+
+export interface SuitesCountResponse {
+    success: boolean;
+    data: SuitesCountData;
+}
+
+export interface CloneSuiteResponse {
+    success: boolean;
+    data: {
+        suite: SuiteDetail;
+        generation_id: number | string | null;
+    };
 }
 
 export interface ContextTxtpSummary {
@@ -195,6 +273,50 @@ export interface GenerationSummaryResponse {
     data: GenerationSummaryData;
 }
 
+export interface SuiteTriggerResult {
+    id: string | number;
+    trigger_id: string | number | null;
+    rule_result: Record<string, unknown>;
+    independent_variable: string | null;
+    sub_rule_ref: string;
+}
+
+export interface SuiteRunResult {
+    run_id: string | number;
+    generation_id: string | number;
+    rule_name: string;
+    rule_version: string;
+    trigger_count: number | null;
+    outcome: string;
+    triggers: SuiteTriggerResult[];
+}
+
+export interface SuiteResultResponse {
+    success: boolean;
+    message: string;
+    data: {
+        suite_id: number;
+        results: SuiteRunResult[];
+    };
+}
+
+export interface MappingItem {
+    primary: string;
+    related: string;
+}
+
+export interface MappingData {
+    id: string;
+    primary_tx_id: string;
+    related_tx_id: string;
+    mapping: MappingItem[];
+}
+
+export interface MappingResponse {
+    success: boolean;
+    data: MappingData[];
+}
+
 export interface EnrichmentSchemaProperty {
     id: string;
     fieldName: string;
@@ -206,6 +328,17 @@ export interface EnrichmentSchemaProperty {
     semanticId?: string;
 }
 
+export interface EnrichmentFieldStrategy {
+    id?: string | number;
+    field_path: string;
+    strategy_code?: string;
+    static_value?: unknown;
+    range_min?: number | null;
+    range_max?: number | null;
+    faker_semantic_type?: string | null;
+    generator_options?: Record<string, unknown>;
+}
+
 export interface EnrichmentTableDto {
     id: number;
     table_name: string;
@@ -213,6 +346,7 @@ export interface EnrichmentTableDto {
     row_count: number;
     payload_template_json: Record<string, unknown>;
     schema_template_json: { properties: EnrichmentSchemaProperty[] };
+    field_strategies?: EnrichmentFieldStrategy[];
 }
 
 export interface CreateEnrichmentTablePayload {
@@ -225,7 +359,7 @@ export interface CreateEnrichmentTablePayload {
 
 export const simStudioApi = createApi({
     reducerPath: "simStudioApi",
-    tagTypes: ["EnrichmentTables"] as const,
+    tagTypes: ["EnrichmentTables", "GenerationSummary", "SuiteGenerations", "SuiteResult"] as const,
     baseQuery: fetchBaseQuery({
         baseUrl: `${BASE_URL}/simulation-studio/`,
         prepareHeaders: (headers) => {
@@ -250,6 +384,10 @@ export const simStudioApi = createApi({
             },
         }),
 
+        getSuitesCount: builder.query<SuitesCountResponse, void>({
+            query: () => "suites/counts",
+        }),
+
         createSuite: builder.mutation<{ success: boolean; data: {
             id: number;
             generation_id: number;
@@ -262,8 +400,21 @@ export const simStudioApi = createApi({
             }),
         }),
 
+        patchSuite: builder.mutation<{ success: boolean; suite: SuiteDetail }, { suiteId: number; body: Partial<CreateSuitePayload> }>({
+            query: ({ suiteId, body }) => ({
+                url: `suites/${suiteId}`,
+                method: "PATCH",
+                body,
+            }),
+        }),
+
         getLatestGeneration: builder.query<{ success: boolean; data: SuiteGeneration }, number>({
             query: (suiteId) => `suites/${suiteId}/generations/latest`,
+        }),
+
+        getSuiteGenerations: builder.query<{ success: boolean; data: SuiteGeneration[] }, number>({
+            query: (suiteId) => `suites/${suiteId}/generations`,
+            providesTags: (_result, _error, suiteId) => [{ type: "SuiteGenerations", id: suiteId }],
         }),
 
         getContextConfigs: builder.query<{ success: boolean; data: ContextTxtpConfig[] }, number>({
@@ -272,7 +423,7 @@ export const simStudioApi = createApi({
 
         createContextConfig: builder.mutation<
             { success: boolean; data: ContextTxtpConfig },
-            { generationId: number; txtp: string; txtp_version: string; message_count?: number; display_order?: number }
+            { generationId: number; txtp: string; txtp_version: string; message_count?: number; display_order?: number; related_context_txtp_id?: number }
         >({
             query: ({ generationId, ...body }) => ({
                 url: `generations/${generationId}/context-configs`,
@@ -320,7 +471,7 @@ export const simStudioApi = createApi({
 
         createTriggerConfig: builder.mutation<
             { success: boolean; data: TriggerTxtpConfig },
-            { generationId: number; txtp: string; txtp_version: string; message_count?: number }
+            { generationId: number; txtp: string; txtp_version: string; message_count?: number; related_trigger_txtp_id?: number }
         >({
             query: ({ generationId, ...body }) => ({
                 url: `generations/${generationId}/trigger-configs`,
@@ -365,7 +516,10 @@ export const simStudioApi = createApi({
                 method: "POST",
                 body,
             }),
-            invalidatesTags: ["EnrichmentTables"],
+            invalidatesTags: (_result, _error, { generationId }) => [
+                "EnrichmentTables",
+                { type: "GenerationSummary", id: generationId },
+            ],
         }),
 
         deleteEnrichmentTable: builder.mutation<{ success: boolean; message: string }, { generationId: number; tableId: number }>({
@@ -373,27 +527,85 @@ export const simStudioApi = createApi({
                 url: `generations/${generationId}/enrichment-tables/${tableId}`,
                 method: "DELETE",
             }),
-            invalidatesTags: ["EnrichmentTables"],
+            invalidatesTags: (_result, _error, { generationId }) => [
+                "EnrichmentTables",
+                { type: "GenerationSummary", id: generationId },
+            ],
         }),
 
         getGenerationSummary: builder.query<GenerationSummaryResponse, number>({
             query: (generationId) => `generations/${generationId}/summary`,
+            providesTags: (_result, _error, generationId) => [{ type: "GenerationSummary", id: generationId }],
         }),
 
         resumeGeneration: builder.query<{
             success: boolean;
             data: { id: number; suite_id: number; wizard_snapshot: { currentStep?: number; completedSteps?: number[] } };
-        }, number>({
-            query: (suiteId) => `suites/${suiteId}/generations/resume`,
+        }, { suiteId: number; generationId: number }>({
+            query: ({ suiteId, generationId }) => `suites/${suiteId}/generations/${generationId}/resume`,
         }),
 
-        getSuiteById: builder.query<{ success: boolean; suite: SuiteDetail }, number>({
+        cloneGeneration: builder.mutation<{ success: boolean; data: SuiteGeneration }, { suite_id: number; generation_id: number }>({
+            query: (body) => ({
+                url: "generation/clone",
+                method: "POST",
+                body,
+            }),
+            invalidatesTags: (_result, _error, { suite_id }) => [{ type: "SuiteGenerations", id: suite_id }],
+        }),
+
+        cloneSuite: builder.mutation<CloneSuiteResponse, { suite_id: number }>({
+            query: (body) => ({
+                url: "suites/clone",
+                method: "POST",
+                body,
+            }),
+        }),
+
+        getSuiteById: builder.query<SuiteDetailResponse, number>({
             query: (suiteId) => `suites/${suiteId}`,
+            transformResponse: (response: RawSuiteDetailResponse) => {
+                const responseData = response.data;
+                const nestedSuite = responseData && "suite" in responseData ? responseData.suite : undefined;
+                const nestedData = responseData && "data" in responseData ? responseData.data : undefined;
+                const suite = response.suite ?? nestedSuite ?? nestedData ?? responseData;
+
+                return {
+                    success: response.success,
+                    message: response.message,
+                    suite: suite as SuiteDetail,
+                    data: suite as SuiteDetail,
+                };
+            },
         }),
 
         getFakerSemanticData: builder.query<{ success: boolean; data: FakerSemanticItem[] }, void>({
-            query: () => `${BASE_URL}/faker-semantic-data`,
+            query: () => `faker-semantic-data`,
             transformResponse: (response: { success: boolean; message?: string; data: FakerSemanticItem[] }) => ({ success: response.success, data: response.data }),
+        }),
+
+        getContextMapping: builder.query<MappingResponse, { primaryId: number; relatedId: number }>({
+            query: ({ primaryId, relatedId }) => `context-mappings/${primaryId}/${relatedId}`,
+        }),
+
+        saveContextMapping: builder.mutation<{ success: boolean }, { primary_txtp_id: number; related_txtp_id: number; mapping: MappingItem[] }>({
+            query: (body) => ({
+                url: `context-mappings`,
+                method: "POST",
+                body,
+            }),
+        }),
+
+        getTriggerMapping: builder.query<MappingResponse, { primaryId: number; relatedId: number }>({
+            query: ({ primaryId, relatedId }) => `trigger-mappings/${primaryId}/${relatedId}`,
+        }),
+
+        saveTriggerMapping: builder.mutation<{ success: boolean }, { primary_txtp_id: number; related_txtp_id: number; mapping: MappingItem[] }>({
+            query: (body) => ({
+                url: `trigger-mappings`,
+                method: "POST",
+                body,
+            }),
         }),
 
         updateWizardProgress: builder.mutation<{ success: boolean }, { generationId: number; current_step_num: number; completed_step_num: number }>({
@@ -404,14 +616,47 @@ export const simStudioApi = createApi({
             }),
             transformResponse: (response: { success: boolean; message?: string }) => ({ success: response.success }),
         }),
+
+        getSuiteResult: builder.query<SuiteResultResponse, number>({
+            query: (suiteId) => `suites/${suiteId}/result`,
+            providesTags: (_result, _error, suiteId) => [{ type: "SuiteResult", id: suiteId }],
+        }),
+
+        getTriggerConfigById: builder.query<{ success: boolean; data: TriggerTxtpConfigDetail }, number>({
+            query: (configId) => `trigger-configs/${configId}`,
+        }),
+
+        runSimulation: builder.mutation<{ success: boolean; message: string }, { suiteId: number; generationId: number }>({
+            query: (body) => ({
+                url: "run-simulation",
+                method: "POST",
+                body,
+            }),
+            invalidatesTags: (_result, _error, { suiteId }) => [{ type: "SuiteResult", id: suiteId }],
+        }),
+
+        rerunSimulation: builder.mutation<{ success?: boolean }, { suiteId: number; generationId: number }>({
+            query: (body) => ({
+                url: "rerun-simulation",
+                method: "POST",
+                body,
+            }),
+            invalidatesTags: (_result, _error, { suiteId }) => [
+                { type: "SuiteGenerations", id: suiteId },
+                { type: "SuiteResult", id: suiteId },
+            ],
+        }),
     }),
 });
 
 export const {
     useGetSuitesQuery,
+    useGetSuitesCountQuery,
     useCreateSuiteMutation,
+    usePatchSuiteMutation,
     useGetLatestGenerationQuery,
     useLazyGetLatestGenerationQuery,
+    useGetSuiteGenerationsQuery,
     useGetContextConfigsQuery,
     useLazyGetContextConfigsQuery,
     useCreateContextConfigMutation,
@@ -428,7 +673,18 @@ export const {
     useDeleteEnrichmentTableMutation,
     useGetGenerationSummaryQuery,
     useLazyResumeGenerationQuery,
+    useCloneGenerationMutation,
+    useCloneSuiteMutation,
     useLazyGetSuiteByIdQuery,
+    useGetSuiteByIdQuery,
     useGetFakerSemanticDataQuery,
     useUpdateWizardProgressMutation,
+    useLazyGetContextMappingQuery,
+    useSaveContextMappingMutation,
+    useLazyGetTriggerMappingQuery,
+    useSaveTriggerMappingMutation,
+    useGetSuiteResultQuery,
+    useLazyGetTriggerConfigByIdQuery,
+    useRunSimulationMutation,
+    useRerunSimulationMutation,
 } = simStudioApi;

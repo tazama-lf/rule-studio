@@ -23,6 +23,10 @@ import { ContextTxtpConfigModule } from './services/simulation-studio/context-tx
 import { TriggerTxtpConfigModule } from './services/simulation-studio/trigger-txtp-config/trigger-txtp-config.module';
 import { EnrichmentTableModule } from './services/simulation-studio/enrichment-table/enrichment-table.module';
 import { FakerSemanticDataModule } from './services/simulation-studio/faker-semantic-data/faker_semantic_data.module';
+import { SuiteResultModule } from './services/simulation-studio/suite-result/suite-result.module';
+import { MsgSampleGenerationModule } from './services/msg-sample-generation/msg-sample-generation.module';
+import { RunSimulationModule } from './services/simulation-studio/generation-engine/run-simulation.module';
+import { EphemeralEnvModule } from './services/simulation-studio/ephemeral-env/ephemeral-env.module';
 
 @Module({
   imports: [
@@ -50,6 +54,10 @@ import { FakerSemanticDataModule } from './services/simulation-studio/faker-sema
     TriggerTxtpConfigModule,
     EnrichmentTableModule,
     FakerSemanticDataModule,
+    SuiteResultModule,
+    MsgSampleGenerationModule,
+    RunSimulationModule,
+    EphemeralEnvModule,
   ],
   controllers: [AppController],
   providers: [AppService],

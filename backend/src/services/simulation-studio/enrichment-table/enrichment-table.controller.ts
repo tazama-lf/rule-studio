@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseArrayPipe, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiParam, ApiBody } from '@nestjs/swagger';
 import { RequireAnyClaims, TazamaClaims } from 'src/decorators/auth.decorator';
 import { ApiSwagger, mergeResponses, CommonResponses } from 'src/decorators/swagger.decorator';
@@ -71,8 +71,7 @@ export class EnrichmentTableController {
   })
   async bulkUpdateEnrichmentTables(
     @Param('generationId', ParseIntPipe) generationId: number,
-    @Body(new ParseArrayPipe({ items: BulkEnrichmentUpdateItemDto }))
-    items: BulkEnrichmentUpdateItemDto[],
+    @Body() items: BulkEnrichmentUpdateItemDto[],
     @User() user: AuthenticatedUser,
   ): Promise<BulkUpdateEnrichmentTablesResponseDto> {
     return await this.enrichmentTableService.bulkUpdateEnrichmentTables(user.token.tokenString, generationId, items);
@@ -85,7 +84,7 @@ export class EnrichmentTableController {
   @ApiParam({ name: 'tableId', description: 'Enrichment table id', example: 1 })
   @ApiSwagger({
     summary: 'Delete enrichment table (Step 4 - Remove button)',
-    description: 'Deletes an enrichment table and all its field strategies.',
+    description: 'Deletes an enrichment table and all its field strategies (cascade).',
     responses: mergeResponses(
       CommonResponses.SUCCESS_200(DeleteEnrichmentTableResponseDto, 'Enrichment table deleted successfully'),
       CommonResponses.NOT_FOUND_404('Enrichment table not found'),

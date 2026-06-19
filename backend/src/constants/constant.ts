@@ -66,6 +66,7 @@ export const FETCH_COUNT_DLH = '/v1/admin/dlh/fetch/count';
 // Simulation Studio
 export const SIMULATION_STUDIO_BASE_URL = '/v1/admin/trs/simulation-studio';
 export const SIMULATION_SUITES = `${SIMULATION_STUDIO_BASE_URL}/suites`;
+export const SIMULATION_SUITES_COUNTS = `${SIMULATION_SUITES}/counts`;
 export const SUITE_GENERATIONS = (suiteId: number): string => `${SIMULATION_SUITES}/${suiteId}/generations`;
 export const SUITE_LATEST_GENERATION = (suiteId: number): string => `${SIMULATION_SUITES}/${suiteId}/generations/latest`;
 export const GENERATION_CONTEXT_CONFIGS = (generationId: number): string =>
@@ -83,5 +84,22 @@ export const GENERATION_CONTEXT_CONFIG = (generationId: number, configId: number
   `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/context-configs/${configId}`;
 export const GENERATION_TRIGGER_CONFIG = (generationId: number, configId: number): string =>
   `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/trigger-configs/${configId}`;
-export const RESUME_GENERATION = (suiteId: number): string => `${SIMULATION_STUDIO_BASE_URL}/suites/${suiteId}/generation/resume`;
+export const CONTEXT_MAPPINGS = `${SIMULATION_STUDIO_BASE_URL}/context-mappings`;
+export const CONTEXT_MAPPING_BY_IDS = (primaryTxtpId: number, relatedTxtpId: number): string =>
+  `${CONTEXT_MAPPINGS}/${primaryTxtpId}/${relatedTxtpId}`;
+export const TRIGGER_MAPPINGS = `${SIMULATION_STUDIO_BASE_URL}/trigger-mappings`;
+export const TRIGGER_MAPPING_BY_IDS = (primaryTxtpId: number, relatedTxtpId: number): string =>
+  `${TRIGGER_MAPPINGS}/${primaryTxtpId}/${relatedTxtpId}`;
+export const RESUME_GENERATION = (suiteId: number, generationId: number): string =>
+  `${SIMULATION_STUDIO_BASE_URL}/suites/${suiteId}/generations/${generationId}/resume`;
+export const CLONE_GENERATION = `${SIMULATION_STUDIO_BASE_URL}/generation/clone`;
+export const CLONE_SUITE = `${SIMULATION_SUITES}/clone`;
 export const FAKER_SEMANTIC_DATA = `${SIMULATION_STUDIO_BASE_URL}/faker-semantic-data`;
+export const SUITE_RESULT = (suiteId: number): string => `${SIMULATION_STUDIO_BASE_URL}/suites/${suiteId}/result`;
+export const SAVE_RUN_RESULT = `${SIMULATION_STUDIO_BASE_URL}/runs/result`;
+export const TRIGGER_CONFIG_BY_ID = (configId: number): string => `${SIMULATION_STUDIO_BASE_URL}/trigger-configs/${configId}`;
+export const GENERATION_SAMPLE_TRIGGER_MESSAGES = (generationId: number): string =>
+  `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/sample-trigger-messages`;
+export const GENERATION_SAMPLE_ENRICHMENT_ROWS = (generationId: number): string =>
+  `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/sample-enrichment-rows`;
+export const GENERATION_STATUS = (generationId: number): string => `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/status`;

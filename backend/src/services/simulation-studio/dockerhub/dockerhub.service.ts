@@ -8,33 +8,27 @@ const DOCKERHUB_API = 'https://hub.docker.com/v2';
 @Injectable()
 export class DockerHubService implements OnModuleInit {
   private readonly logger = new Logger(DockerHubService.name);
+  private readonly timeoutMs = 10_000;
   private namespace: string;
   private token: string;
-  private timeoutMs = 10000;
+  private username: string;
 
   constructor(private readonly configService: ConfigService) {}
 
   onModuleInit(): void {
     const token = this.configService.get<string>('DOCKERHUB_TOKEN');
+    const username = this.configService.get<string>('DOCKERHUB_USERNAME');
     const namespace = this.configService.get<string>('DOCKERHUB_NAMESPACE');
 
-    if (!token || !namespace) {
-      throw new Error('Missing required Docker Hub environment variables: DOCKERHUB_TOKEN, DOCKERHUB_NAMESPACE');
+    if (!token || !username || !namespace) {
+      throw new Error('Missing required Docker Hub environment variables: DOCKERHUB_TOKEN, DOCKERHUB_USERNAME, DOCKERHUB_NAMESPACE');
     }
 
     this.token = token;
+    this.username = username;
     this.namespace = namespace;
-    this.timeoutMs = parseInt(this.configService.get<string>('DOCKERHUB_TIMEOUT_MS') ?? '10000', 10);
 
     this.logger.log(`Docker Hub configured for namespace "${this.namespace}"`);
-  }
-
-  private async fetchWithTimeout(url: string): Promise<Response> {
-    const signal = AbortSignal.timeout(this.timeoutMs);
-    return await fetch(url, {
-      signal,
-      headers: { Authorization: `Bearer ${this.token}` },
-    });
   }
 
   private getTenantRulePrefix(tenantId: string): string {
@@ -46,11 +40,18 @@ export class DockerHubService implements OnModuleInit {
     const prefix = this.getTenantRulePrefix(tenantId);
     const normalized = trimmedRuleName.toLowerCase();
 
-    return normalized.startsWith(prefix) ? normalized : `${prefix}${normalized}`;
+    return normalized.startsWith(prefix) ? trimmedRuleName : `${prefix}${trimmedRuleName}`;
+  }
+
+  private async fetchDockerHub(url: string): Promise<Response> {
+    return await fetch(url, {
+      headers: { Authorization: `Bearer ${this.token}` },
+      signal: AbortSignal.timeout(this.timeoutMs),
+    });
   }
 
   private async fetchRepoPage(url: string): Promise<DhRepository[]> {
-    const response = await this.fetchWithTimeout(url);
+    const response = await this.fetchDockerHub(url);
 
     if (!response.ok) {
       this.logger.error(`Docker Hub repositories fetch failed: ${response.status} ${response.statusText}`);
@@ -63,7 +64,7 @@ export class DockerHubService implements OnModuleInit {
   }
 
   private async fetchTagPage(url: string, ruleName: string): Promise<DhTagResult[]> {
-    const response = await this.fetchWithTimeout(url);
+    const response = await this.fetchDockerHub(url);
 
     if (response.status === 404) {
       throw new NotFoundException(`Rule "${ruleName}" not found in Docker Hub namespace "${this.namespace}"`);

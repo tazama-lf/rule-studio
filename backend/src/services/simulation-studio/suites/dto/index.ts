@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsDateString, IsObject, IsEnum, IsOptional, IsInt, Min } from 'class-validator';
+import { IsString, IsNotEmpty, IsDateString, IsObject, IsEnum, IsOptional, IsInt, Min, IsPositive } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SimulationSuiteType, SimulationSuiteStatus } from 'src/utils/enums/simulation.enum';
 
@@ -121,6 +121,33 @@ export class SimulationSuitesListDto {
   @IsInt()
   @Min(0)
   total?: number;
+}
+
+export class SimulationSuitesCountsDto {
+  @ApiProperty({ description: 'Total suites count', example: 42 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  total_suites: number;
+
+  @ApiProperty({ description: 'Total run entries across all suites', example: 7 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  total_run: number;
+
+  @ApiProperty({ description: 'Latest run created_at across all runs', required: false, example: '2026-06-08T10:15:00.000Z' })
+  @IsOptional()
+  @IsDateString()
+  latest_run_at?: string;
+}
+
+export class SimulationSuitesCountsResponseDto {
+  @ApiProperty({ description: 'Request status flag', example: true })
+  success: boolean;
+
+  @ApiProperty({ type: SimulationSuitesCountsDto })
+  data: SimulationSuitesCountsDto;
 }
 
 export class SimulationSuiteResponseDto {
@@ -372,4 +399,12 @@ export class SimulationSuitesQueryDto {
   @IsInt()
   @Min(1)
   limit?: number;
+}
+
+export class CloneSuiteDto {
+  @ApiProperty({ description: 'Source suite id to clone', example: 1 })
+  @Type(() => Number)
+  @IsInt()
+  @IsPositive()
+  suite_id!: number;
 }

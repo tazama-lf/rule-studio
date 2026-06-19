@@ -37,7 +37,7 @@ export class EnrichmentFieldStrategyDto {
   @ApiProperty({ required: false, example: 'VARCHAR(128)' })
   column_type?: string;
 
-  @ApiProperty({ example: 'null', enum: ['static', 'range', 'generated', 'null', 'copy'] })
+  @ApiProperty({ example: 'keep_sample', enum: ['keep_sample', 'static', 'range', 'skip', 'random'] })
   strategy_code: string;
 
   @ApiProperty({ required: false })

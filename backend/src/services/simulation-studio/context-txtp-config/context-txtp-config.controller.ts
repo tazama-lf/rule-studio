@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseArrayPipe, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiParam, ApiBody } from '@nestjs/swagger';
 import { RequireAnyClaims, TazamaClaims } from 'src/decorators/auth.decorator';
 import { ApiSwagger, mergeResponses, CommonResponses } from 'src/decorators/swagger.decorator';
@@ -9,6 +9,9 @@ import type { AuthenticatedUser } from '../../auth/auth.types';
 import { ContextTxtpConfigService } from './context-txtp-config.service';
 import {
   AddContextTxtpConfigDto,
+  CreateContextMappingDto,
+  ContextMappingResponseDto,
+  ContextMappingsResponseDto,
   BulkConfigItemDto,
   ContextConfigWithStrategiesResponseDto,
   ContextConfigsWithStrategiesListDto,
@@ -78,7 +81,7 @@ export class ContextTxtpConfigController {
   })
   async bulkUpdateContextConfigs(
     @Param('generationId', ParseIntPipe) generationId: number,
-    @Body(new ParseArrayPipe({ items: BulkConfigItemDto })) items: BulkConfigItemDto[],
+    @Body() items: BulkConfigItemDto[],
     @User() user: AuthenticatedUser,
   ): Promise<BulkUpdateContextConfigsResponseDto> {
     return await this.contextTxtpConfigService.bulkUpdateContextConfigs(user.token.tokenString, generationId, items);
@@ -102,5 +105,53 @@ export class ContextTxtpConfigController {
     @User() user: AuthenticatedUser,
   ): Promise<{ success: boolean; message: string }> {
     return await this.contextTxtpConfigService.deleteContextTxtpConfig(user.token.tokenString, generationId, configId);
+  }
+
+  @Post('context-mappings')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @Audit()
+  @ApiBody({ type: CreateContextMappingDto })
+  @ApiSwagger({
+    summary: 'Create context mapping',
+    description: 'Creates a mapping row for primary_txtp_id and related_txtp_id.',
+    responses: mergeResponses(CommonResponses.CREATED_201(ContextMappingResponseDto, 'Context mapping created successfully')),
+  })
+  async createContextMapping(@Body() body: CreateContextMappingDto, @User() user: AuthenticatedUser): Promise<ContextMappingResponseDto> {
+    return await this.contextTxtpConfigService.createContextMapping(user.token.tokenString, body);
+  }
+
+  @Get('context-mappings/:primaryTxtpId/:relatedTxtpId')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @ApiParam({ name: 'primaryTxtpId', description: 'Primary txtp config id', example: 123 })
+  @ApiParam({ name: 'relatedTxtpId', description: 'Related txtp config id', example: 456 })
+  @ApiSwagger({
+    summary: 'Get context mappings by ids',
+    description: 'Returns all mapping rows for a primary/related tx id pair.',
+    responses: mergeResponses(CommonResponses.SUCCESS_200(ContextMappingsResponseDto, 'Context mappings retrieved successfully')),
+  })
+  async getContextMappings(
+    @Param('primaryTxtpId', ParseIntPipe) primaryTxtpId: number,
+    @Param('relatedTxtpId', ParseIntPipe) relatedTxtpId: number,
+    @User() user: AuthenticatedUser,
+  ): Promise<ContextMappingsResponseDto> {
+    return await this.contextTxtpConfigService.getContextMappings(user.token.tokenString, primaryTxtpId, relatedTxtpId);
+  }
+
+  @Delete('context-mappings/:primaryTxtpId/:relatedTxtpId')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @Audit()
+  @ApiParam({ name: 'primaryTxtpId', description: 'Primary txtp config id', example: 123 })
+  @ApiParam({ name: 'relatedTxtpId', description: 'Related txtp config id', example: 456 })
+  @ApiSwagger({
+    summary: 'Delete context mappings by ids',
+    description: 'Deletes all mapping rows for a primary/related tx id pair.',
+    responses: mergeResponses(CommonResponses.SUCCESS_200(Object, 'Context mappings deleted')),
+  })
+  async deleteContextMapping(
+    @Param('primaryTxtpId', ParseIntPipe) primaryTxtpId: number,
+    @Param('relatedTxtpId', ParseIntPipe) relatedTxtpId: number,
+    @User() user: AuthenticatedUser,
+  ): Promise<{ success: boolean; message: string }> {
+    return await this.contextTxtpConfigService.deleteContextMapping(user.token.tokenString, primaryTxtpId, relatedTxtpId);
   }
 }

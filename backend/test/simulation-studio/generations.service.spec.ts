@@ -69,6 +69,8 @@ describe('GenerationsService', () => {
             deleteContextTxtpConfig: jest.fn(),
             deleteTriggerTxtpConfig: jest.fn(),
             resumeGeneration: jest.fn(),
+            cloneGeneration: jest.fn(),
+            updateGenerationStatus: jest.fn(),
           },
         },
       ],
@@ -159,7 +161,7 @@ describe('GenerationsService', () => {
         context_count: 100,
         trigger_count: 10,
         enrichment_table_count: 1,
-        iteration_number: 1,
+        iteration_number: 0,
       },
     };
 
@@ -191,7 +193,6 @@ describe('GenerationsService', () => {
       expect(result.data.context_count).toBe(100);
       expect(result.data.trigger_count).toBe(10);
       expect(result.data.enrichment_table_count).toBe(1);
-      expect(result.data.iteration_number).toBe(1);
     });
 
     it('logs and rethrows on error', async () => {
@@ -268,36 +269,82 @@ describe('GenerationsService', () => {
     });
   });
 
-  describe('resumeGeneration', () => {
-    it('forwards token and suiteId, returns the draft generation', async () => {
-      adminServiceClient.resumeGeneration.mockResolvedValue(mockGeneration);
+  describe('cloneGeneration', () => {
+    it('forwards token and generationId, returns cloned generation', async () => {
+      adminServiceClient.cloneGeneration.mockResolvedValue(mockGenerationResponse);
 
-      const result = await service.resumeGeneration('test-token', 42);
+      const result = await service.cloneGeneration('test-token', 1);
 
-      expect(result).toEqual(mockGeneration);
-      expect(adminServiceClient.resumeGeneration).toHaveBeenCalledWith('test-token', 42);
-    });
-
-    it('returns a generation with DRAFT status and wizard snapshot', async () => {
-      const draftGeneration: SuiteGenerationDto = {
-        ...mockGeneration,
-        status: 'DRAFT',
-        wizard_snapshot: { current_step_num: 2, completed_step_num: 1 },
-      };
-      adminServiceClient.resumeGeneration.mockResolvedValue(draftGeneration);
-
-      const result = await service.resumeGeneration('test-token', 42);
-
-      expect(result.status).toBe('DRAFT');
-      expect(result.wizard_snapshot).toEqual({ current_step_num: 2, completed_step_num: 1 });
+      expect(result).toEqual(mockGenerationResponse);
+      expect(adminServiceClient.cloneGeneration).toHaveBeenCalledWith('test-token', 1);
     });
 
     it('logs and rethrows on error', async () => {
-      const error = new Error('No draft generation found');
+      const error = new Error('Clone failed');
+      adminServiceClient.cloneGeneration.mockRejectedValue(error);
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+      await expect(service.cloneGeneration('test-token', 1)).rejects.toThrow('Clone failed');
+      expect(loggerSpy).toHaveBeenCalledWith('Error cloning generation 1', expect.any(String));
+    });
+  });
+
+  describe('updateGenerationStatus', () => {
+    it('forwards token, generationId and status to admin-service', async () => {
+      adminServiceClient.updateGenerationStatus.mockResolvedValue({ success: true, message: 'Status updated' });
+
+      const result = await service.updateGenerationStatus('test-token', 1, 'RUNNING');
+
+      expect(result.success).toBe(true);
+      expect(adminServiceClient.updateGenerationStatus).toHaveBeenCalledWith('test-token', 1, { status: 'RUNNING' });
+    });
+
+    it('logs and rethrows on error', async () => {
+      adminServiceClient.updateGenerationStatus.mockRejectedValue(new Error('Update failed'));
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+      await expect(service.updateGenerationStatus('test-token', 1, 'RUNNING')).rejects.toThrow('Update failed');
+      expect(loggerSpy).toHaveBeenCalledWith('Error updating status for generation 1', expect.any(String));
+    });
+  });
+
+  describe('resumeGeneration', () => {
+    it('forwards token, suiteId and generationId, returns wrapped generation response', async () => {
+      adminServiceClient.resumeGeneration.mockResolvedValue(mockGenerationResponse);
+
+      const result = await service.resumeGeneration('test-token', 42, 7);
+
+      expect(result).toEqual(mockGenerationResponse);
+      expect(adminServiceClient.resumeGeneration).toHaveBeenCalledWith('test-token', 42, 7);
+    });
+
+    it('returns a generation with DRAFT status and wizard snapshot', async () => {
+      const draftGenerationResponse: SuiteGenerationResponseDto = {
+        ...mockGenerationResponse,
+        data: { ...mockGeneration, status: 'DRAFT', wizard_snapshot: { current_step_num: 2, completed_step_num: 1 } },
+      };
+      adminServiceClient.resumeGeneration.mockResolvedValue(draftGenerationResponse);
+
+      const result = await service.resumeGeneration('test-token', 42, 7);
+
+      expect(result.data.status).toBe('DRAFT');
+      expect(result.data.wizard_snapshot).toEqual({ current_step_num: 2, completed_step_num: 1 });
+    });
+
+    it('throws NotFoundException when data is null', async () => {
+      adminServiceClient.resumeGeneration.mockResolvedValue({ success: true, data: null as unknown as SuiteGenerationDto });
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+      await expect(service.resumeGeneration('test-token', 42, 7)).rejects.toThrow('No DRAFT generation found for suite 42');
+      expect(loggerSpy).toHaveBeenCalledWith('Error resuming generation for suite 42', expect.any(String));
+    });
+
+    it('logs and rethrows on admin-service error', async () => {
+      const error = new Error('Admin service unavailable');
       adminServiceClient.resumeGeneration.mockRejectedValue(error);
       const loggerSpy = jest.spyOn(service['logger'], 'error');
 
-      await expect(service.resumeGeneration('test-token', 42)).rejects.toThrow('No draft generation found');
+      await expect(service.resumeGeneration('test-token', 42, 7)).rejects.toThrow('Admin service unavailable');
       expect(loggerSpy).toHaveBeenCalledWith('Error resuming generation for suite 42', expect.any(String));
     });
   });

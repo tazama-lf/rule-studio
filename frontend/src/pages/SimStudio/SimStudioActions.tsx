@@ -1,36 +1,28 @@
-import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import { Box, CircularProgress, IconButton, Tooltip } from "@mui/material";
 import { memo } from "react";
 
 interface SimStudioActionsProps {
     onView: () => void;
-    onResume?: () => void;
-    isDraft?: boolean;
-    isResuming?: boolean;
+    onClone: () => void;
+    isCloning?: boolean;
 }
 
-const SimStudioActions = ({ onView, onResume, isDraft, isResuming }: SimStudioActionsProps) => {
+const SimStudioActions = ({ onView, onClone, isCloning = false }: SimStudioActionsProps) => {
     return (
         <Box display="flex" alignItems="center" gap={0.5}>
-            {isDraft && (
-                <Tooltip title="Resume">
-                    <span>
-                        <IconButton
-                            size="small"
-                            sx={{ color: "#f59e0b" }}
-                            onClick={onResume}
-                            disabled={isResuming}
-                        >
-                            {isResuming ? (
-                                <CircularProgress size={16} sx={{ color: "#f59e0b" }} />
-                            ) : (
-                                <PlayCircleOutlineIcon fontSize="small" />
-                            )}
-                        </IconButton>
-                    </span>
-                </Tooltip>
-            )}
+            <Tooltip title="Clone Suite">
+                <span>
+                    <IconButton size="small" sx={{ color: "#0e7490" }} onClick={onClone} disabled={isCloning}>
+                        {isCloning ? (
+                            <CircularProgress size={16} sx={{ color: "#0e7490" }} />
+                        ) : (
+                            <ContentCopyIcon fontSize="small" />
+                        )}
+                    </IconButton>
+                </span>
+            </Tooltip>
             <Tooltip title="View">
                 <IconButton size="small" sx={{ color: "text.ternary" }} onClick={onView}>
                     <VisibilityOutlinedIcon fontSize="small" />

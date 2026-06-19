@@ -34,7 +34,7 @@ export class DockerHubController {
   @ApiSwagger({
     summary: 'Get all tags for a published rule',
     description:
-      'Retrieves all Docker Hub tags for the specified rule repository within the calling tenant namespace.' +
+      'Retrieves all Docker Hub tags for the specified rule repository within the namespace of the calling tenant. ' +
       'The tenant is identified from the `tenantId` claim in the Bearer JWT.',
     responses: CommonResponses.SUCCESS_200(DockerHubTagsResponseDto, 'Tags retrieved successfully'),
   })

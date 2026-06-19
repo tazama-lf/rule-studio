@@ -1,4 +1,4 @@
-import { Box, styled } from "@mui/material";
+import { Box, Button, styled } from "@mui/material";
 
 export const StatCard = styled(Box)(({ theme }) => ({
     display: "flex",
@@ -41,6 +41,29 @@ export const FiltersRow = styled(Box)(({ theme }) => ({
     gap: theme.spacing(1.5),
     marginTop: theme.spacing(3),
     flexWrap: "wrap",
+}));
+
+export const FilterButton = styled(Button)(({ theme }) => ({
+    height: "36px",
+    padding: theme.spacing(0, 1.25),
+    borderRadius: "6px",
+    border: "none",
+    backgroundColor: "transparent",
+    color: theme.palette.text.secondary,
+    textTransform: "none",
+    fontSize: "14px",
+    fontWeight: 500,
+    boxShadow: "none",
+    "& .MuiButton-startIcon": {
+        marginRight: theme.spacing(0.75),
+    },
+    "& svg": {
+        fontSize: "18px",
+    },
+    "&:hover": {
+        backgroundColor: theme.palette.static.lightGrey,
+        boxShadow: "none",
+    },
 }));
 
 export const TxtpBadge = styled(Box)(({ theme }) => ({

@@ -10,10 +10,12 @@ import { Audit } from 'src/decorators/audit.decorator';
 import {
   PatchSimulationSuitesDto,
   RequestSimulationSuitesDto,
+  SimulationSuitesCountsResponseDto,
   SimulationSuiteResponseDto,
   SimulationSuitesDto,
   SimulationSuitesListDto,
   SimulationSuitesQueryDto,
+  CloneSuiteDto,
 } from './dto';
 
 @ApiTags('simulation-studio')
@@ -43,6 +45,20 @@ export class SimulationStudioController {
   })
   async getSimulationSuites(@User() user: AuthenticatedUser, @Query() query: SimulationSuitesQueryDto): Promise<SimulationSuitesListDto> {
     return await this.simulationStudioService.getSimulationSuites(user.token.tokenString, query);
+  }
+
+  @Get('suites/counts')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @ApiSwagger({
+    summary: 'Get simulation suites counts',
+    description: 'Retrieves total suites, draft suites, completed suites, and latest run timestamp',
+    responses: mergeResponses(
+      CommonResponses.SUCCESS_200(SimulationSuitesCountsResponseDto, 'Simulation suites counts retrieved successfully'),
+      CommonResponses.NOT_FOUND_404('Simulation suites not found'),
+    ),
+  })
+  async getSimulationSuitesCounts(@User() user: AuthenticatedUser): Promise<SimulationSuitesCountsResponseDto> {
+    return await this.simulationStudioService.getSimulationSuitesCounts(user.token.tokenString);
   }
 
   @Get('suites/:id')
@@ -101,5 +117,28 @@ export class SimulationStudioController {
     @User() user: AuthenticatedUser,
   ): Promise<SimulationSuiteResponseDto> {
     return await this.simulationStudioService.patchSimulationSuite(user.token.tokenString, id, payload);
+  }
+
+  @Post('suites/clone')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @Audit()
+  @ApiBody({
+    type: CloneSuiteDto,
+    description: 'Payload containing source suite id to clone',
+  })
+  @ApiSwagger({
+    summary: 'Clone simulation suite',
+    description:
+      'Creates a new suite (Copy) and clones the latest generation with all its context configs, field strategies, trigger configs, field overrides, and enrichment tables.',
+    responses: mergeResponses(
+      CommonResponses.CREATED_201(SimulationSuitesDto, 'Suite cloned successfully'),
+      CommonResponses.NOT_FOUND_404('Source suite not found'),
+    ),
+  })
+  async cloneSuite(
+    @Body() body: CloneSuiteDto,
+    @User() user: AuthenticatedUser,
+  ): Promise<{ success: boolean; data: SimulationSuitesDto & { generation_id: number | null } }> {
+    return await this.simulationStudioService.cloneSuite(user.token.tokenString, body.suite_id);
   }
 }

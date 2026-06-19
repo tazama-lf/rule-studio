@@ -2,8 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { AdminServiceClient } from '../../admin-service-client';
 import type {
   AddTriggerTxtpConfigDto,
+  CreateTriggerMappingDto,
+  TriggerMappingResponseDto,
+  TriggerMappingsResponseDto,
   TriggerConfigsListDto,
-  TriggerConfigWithOverridesResponseDto,
+  TriggerConfigWithStrategiesResponseDto,
   BulkTriggerConfigItemDto,
   BulkUpdateTriggerConfigsResponseDto,
 } from './dto/trigger-txtp-config.dto';
@@ -24,11 +27,21 @@ export class TriggerTxtpConfigService {
     }
   }
 
+  async getTriggerConfigById(token: string, configId: number): Promise<TriggerConfigWithStrategiesResponseDto> {
+    try {
+      return await this.adminServiceClient.getTriggerConfigById(token, configId);
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(`Error fetching trigger config ${configId}`, error.stack);
+      throw err;
+    }
+  }
+
   async addTriggerConfig(
     token: string,
     generationId: number,
     dto: AddTriggerTxtpConfigDto,
-  ): Promise<TriggerConfigWithOverridesResponseDto> {
+  ): Promise<TriggerConfigWithStrategiesResponseDto> {
     try {
       return await this.adminServiceClient.addTriggerTxtpConfig(token, generationId, dto);
     } catch (err) {
@@ -58,6 +71,36 @@ export class TriggerTxtpConfigService {
     } catch (err) {
       const error = err as Error;
       this.logger.error(`Error deleting trigger txtp config ${configId} for generation ${generationId}`, error.stack);
+      throw err;
+    }
+  }
+
+  async createTriggerMapping(token: string, dto: CreateTriggerMappingDto): Promise<TriggerMappingResponseDto> {
+    try {
+      return await this.adminServiceClient.createTriggerMapping(token, dto);
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error('Error creating trigger mapping', error.stack);
+      throw err;
+    }
+  }
+
+  async getTriggerMappings(token: string, primaryTxtpId: number, relatedTxtpId: number): Promise<TriggerMappingsResponseDto> {
+    try {
+      return await this.adminServiceClient.getTriggerMappings(token, primaryTxtpId, relatedTxtpId);
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(`Error fetching trigger mappings for ${primaryTxtpId}/${relatedTxtpId}`, error.stack);
+      throw err;
+    }
+  }
+
+  async deleteTriggerMapping(token: string, primaryTxtpId: number, relatedTxtpId: number): Promise<{ success: boolean; message: string }> {
+    try {
+      return await this.adminServiceClient.deleteTriggerMapping(token, primaryTxtpId, relatedTxtpId);
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(`Error deleting trigger mappings for ${primaryTxtpId}/${relatedTxtpId}`, error.stack);
       throw err;
     }
   }
