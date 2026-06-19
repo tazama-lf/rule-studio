@@ -253,8 +253,14 @@ const useTriggerDataController = () => {
     const handleRemovePair = useCallback((primaryId: string, relatedId: string) => {
         const genId = extractData("sim_gen_id", LocalStorage, false) as string | number | null;
         const primaryEntry = entries.find((e) => e.id === primaryId);
+        const relatedEntry = entries.find((e) => e.id === relatedId);
         if (genId && primaryEntry?.triggerId) {
             void deleteTriggerConfig({ generationId: Number(genId), configId: primaryEntry.triggerId })
+                .unwrap()
+                .catch(() => toast.error("Failed to remove trigger config."));
+        }
+        if (genId && relatedEntry?.triggerId) {
+            void deleteTriggerConfig({ generationId: Number(genId), configId: relatedEntry.triggerId })
                 .unwrap()
                 .catch(() => toast.error("Failed to remove trigger config."));
         }

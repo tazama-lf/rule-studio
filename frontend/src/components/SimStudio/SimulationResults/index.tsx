@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
@@ -132,12 +132,11 @@ const PayloadModal = ({
 }) => {
     const [fetchTriggerConfig, { data, isFetching, isError }] = useLazyGetTriggerConfigByIdQuery();
 
-    useMemo(() => {
+    useEffect(() => {
         if (open && triggerId) {
             void fetchTriggerConfig(Number(triggerId));
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, triggerId]);
+    }, [fetchTriggerConfig, open, triggerId]);
 
     const cfg = data?.data;
     const strategies = cfg?.field_strategies ?? [];
@@ -330,13 +329,19 @@ const RunResultRow = ({
         let rows = run.triggers;
         if (search.trim()) {
             const q = search.toLowerCase();
-            rows = rows.filter(
-                (t) =>
-                    t.trigger_id.toLowerCase().includes(q) ||
-                    t.id.toLowerCase().includes(q) ||
-                    t.sub_rule_ref.toLowerCase().includes(q) ||
-                    t.independent_variable.toLowerCase().includes(q)
-            );
+            rows = rows.filter((t) => {
+                const triggerId = String(t.trigger_id ?? "").toLowerCase();
+                const id = String(t.id ?? "").toLowerCase();
+                const subRuleRef = String(t.sub_rule_ref ?? "").toLowerCase();
+                const independentVariable = String(t.independent_variable ?? "").toLowerCase();
+
+                return (
+                    triggerId.includes(q) ||
+                    id.includes(q) ||
+                    subRuleRef.includes(q) ||
+                    independentVariable.includes(q)
+                );
+            });
         }
         return rows;
     }, [run.triggers, search]);
