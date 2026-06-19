@@ -26,6 +26,7 @@ import { FakerSemanticDataModule } from './services/simulation-studio/faker-sema
 import { SuiteResultModule } from './services/simulation-studio/suite-result/suite-result.module';
 import { MsgSampleGenerationModule } from './services/msg-sample-generation/msg-sample-generation.module';
 import { RunSimulationModule } from './services/simulation-studio/generation-engine/run-simulation.module';
+import { EphemeralEnvModule } from './services/simulation-studio/ephemeral-env/ephemeral-env.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { RunSimulationModule } from './services/simulation-studio/generation-eng
     SuiteResultModule,
     MsgSampleGenerationModule,
     RunSimulationModule,
+    EphemeralEnvModule,
   ],
   controllers: [AppController],
   providers: [AppService],
