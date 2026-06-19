@@ -104,7 +104,10 @@
     "testcontainers": {
       "undici": "^6.21.1"
     },
-    "fast-xml-parser": "5.7.3"
+    "fast-xml-parser": "5.7.3",
+    "dockerode": {
+      "uuid": "^11.1.1"
+    }
   },
   "keywords": [],
   "type": "commonjs"
