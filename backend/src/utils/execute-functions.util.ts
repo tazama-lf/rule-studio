@@ -3,18 +3,19 @@ import { Logger } from '@nestjs/common';
 import { processSourceMapping } from './transformation/mapping-sources.utils';
 
 /**
- * Escapes SQL string literals by doubling internal single quotes
- * Prevents SQL injection when constructing SQL strings
+ * Escapes the contents of a SQL string literal by doubling internal single
+ * quotes. The returned value is the inner, unquoted content — callers are
+ * responsible for wrapping it in single quotes when interpolating into SQL.
  * @param value The string value to escape
- * @returns The escaped string value ready for use in SQL
+ * @returns The escaped string contents (without surrounding quotes)
  */
-function escapeSqlString(value: any): string {
+export function escapeSqlString(value: any): string {
   if (value === null || value === undefined) {
-    return 'NULL';
+    return '';
   }
   const stringValue = String(value);
-  // eslint-disable-next-line @stylistic/quotes -- We need to use single quotes for SQL string literals, so we escape single quotes by doubling them
-  return `'${stringValue.replace(/'/g, "''")}'`;
+  // eslint-disable-next-line @stylistic/quotes -- doubling single quotes is the SQL standard escape
+  return stringValue.replace(/'/g, "''");
 }
 
 export function executeConfiguredFunctions(
