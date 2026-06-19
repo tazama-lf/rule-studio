@@ -2,6 +2,20 @@ import type { TransactionDetails } from '@tazama-lf/frms-coe-lib';
 import { Logger } from '@nestjs/common';
 import { processSourceMapping } from './transformation/mapping-sources.utils';
 
+/**
+ * Escapes SQL string literals by doubling internal single quotes
+ * Prevents SQL injection when constructing SQL strings
+ * @param value The string value to escape
+ * @returns The escaped string value ready for use in SQL
+ */
+function escapeSqlString(value: any): string {
+  if (value === null || value === undefined) {
+    return 'NULL';
+  }
+  const stringValue = String(value);
+  return stringValue.replace(/'/g, "''");
+}
+
 export function executeConfiguredFunctions(
   payload: any,
   configuredMapping: any,
@@ -37,13 +51,26 @@ export function executeConfiguredFunctions(
 
       try {
         if (functionToCall === 'addAccount') {
-          dbScript += `INSERT INTO account (id, tenantId, creDtTm) VALUES ('${sources[0]}', '${sources[1]}', '${sources[2]}') ON CONFLICT (id, tenantId) DO NOTHING;\n`;
+          const id = escapeSqlString(sources[0]);
+          const tenantId = escapeSqlString(sources[1]);
+          const creDtTm = escapeSqlString(sources[2]);
+          dbScript += `INSERT INTO account (id, tenantId, creDtTm) VALUES ('${id}', '${tenantId}', '${creDtTm}') ON CONFLICT (id, tenantId) DO NOTHING;\n`;
         } else if (functionToCall === 'addEntity') {
-          dbScript += `INSERT INTO entity (id, tenantId, creDtTm) VALUES ('${sources[0]}', '${sources[1]}', '${sources[2]}') ON CONFLICT (id, tenantId) DO NOTHING;\n`;
+          const id = escapeSqlString(sources[0]);
+          const tenantId = escapeSqlString(sources[1]);
+          const creDtTm = escapeSqlString(sources[2]);
+          dbScript += `INSERT INTO entity (id, tenantId, creDtTm) VALUES ('${id}', '${tenantId}', '${creDtTm}') ON CONFLICT (id, tenantId) DO NOTHING;\n`;
         } else if (functionToCall === 'addAccountHolder') {
-          dbScript += `INSERT INTO account_holder (source, destination, creDtTm, tenantId) VALUES ('${sources[0]}', '${sources[1]}', '${sources[2]}', '${sources[3]}') ON CONFLICT (source, destination, tenantId) DO NOTHING;\n`;
+          const source = escapeSqlString(sources[0]);
+          const destination = escapeSqlString(sources[1]);
+          const creDtTm = escapeSqlString(sources[2]);
+          const tenantId = escapeSqlString(sources[3]);
+          dbScript += `INSERT INTO account_holder (source, destination, creDtTm, tenantId) VALUES ('${source}', '${destination}', '${creDtTm}', '${tenantId}') ON CONFLICT (source, destination, tenantId) DO NOTHING;\n`;
         } else if (functionToCall === 'saveTransactionDetails') {
-          dbScript += `INSERT INTO transaction (source, destination, transaction) VALUES ('${transactionRelationship.source}', '${transactionRelationship.destination}', '${JSON.stringify(transactionRelationship)}') ON CONFLICT (endToEndId, txTp, tenantId) DO NOTHING;\n`;
+          const source = escapeSqlString(transactionRelationship.source);
+          const destination = escapeSqlString(transactionRelationship.destination);
+          const transaction = escapeSqlString(JSON.stringify(transactionRelationship));
+          dbScript += `INSERT INTO transaction (source, destination, transaction) VALUES ('${source}', '${destination}', '${transaction}') ON CONFLICT (endToEndId, txTp, tenantId) DO NOTHING;\n`;
         }
       } catch (error) {
         const errorMessage = `Function '${functionToCall}' failed: ${String(error)}`;
