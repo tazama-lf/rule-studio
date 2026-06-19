@@ -33,10 +33,7 @@ export class RunSimulationController {
       CommonResponses.NOT_FOUND_404('Suite or generation not found'),
     ),
   })
-  async runSimulation(
-    @Body() body: RunSimulationDto,
-    @User() user: AuthenticatedUser,
-  ): Promise<RunSimulationResponseDto> {
+  async runSimulation(@Body() body: RunSimulationDto, @User() user: AuthenticatedUser): Promise<RunSimulationResponseDto> {
     return await this.runSimulationService.runSimulation(user.token.tokenString, user.tenantId, body);
   }
 

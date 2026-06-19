@@ -117,7 +117,9 @@ export class EphemeralEnvService implements OnModuleDestroy {
       fetchText(`https://raw.githubusercontent.com/${GITHUB_REPO}/${REPO_BRANCH}/core/postgres/migration/config/00-public-base.sql`),
       fetchText(`https://raw.githubusercontent.com/${GITHUB_REPO}/${REPO_BRANCH}/core/postgres/migration/config/02-public-dockerhub.sql`),
     ]);
-    this.logger.log(`[${name}] Downloaded config SQL files (public-base: ${publicBaseSql.length} chars, dockerhub: ${dockerhubSql.length} chars)`);
+    this.logger.log(
+      `[${name}] Downloaded config SQL files (public-base: ${publicBaseSql.length} chars, dockerhub: ${dockerhubSql.length} chars)`,
+    );
 
     this.logger.log(`[${name}] Starting Docker network...`);
     const network = await new Network().start();
@@ -333,7 +335,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
 
       this.logger.log(
         `[${name}] Ready — nats-utilities: http://localhost:${info.ports.natsUtils}, ` +
-        `postgres: localhost:${info.ports.pg}, nats: localhost:${info.ports.nats}`,
+          `postgres: localhost:${info.ports.pg}, nats: localhost:${info.ports.nats}`,
       );
 
       return info;
@@ -387,9 +389,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
     if (sim.info.ports.natsUtils === undefined) {
       // Partial-state guard: the simulation exists but the runtime stack hasn't been
       // spawned yet, so there is no nats-utilities port to point at.
-      throw new BadRequestException(
-        `Simulation '${name}' is in status ${sim.info.status}; nats-utilities is not running yet.`,
-      );
+      throw new BadRequestException(`Simulation '${name}' is in status ${sim.info.status}; nats-utilities is not running yet.`);
     }
     return `http://${sim.info.ports.natsUtilsHost ?? this.containerHost}:${sim.info.ports.natsUtils}`;
   }

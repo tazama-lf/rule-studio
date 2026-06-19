@@ -11,24 +11,23 @@ import { TazamaAuthGuard } from 'src/guards/tazama-auth.guard';
 export class MsgSampleGenerationController {
   constructor(private readonly msgSampleGenerationService: MsgSampleGenerationService) {}
 
-    @Get('transformation/:generationId')
-    @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
-    async applyTransformation(
-        @Param('generationId', ParseIntPipe) generationId: number,
-        @User() user: AuthenticatedUser,
-    ): Promise<{ dbScript: string; functionResultScript: string }> {
-        const response = await this.msgSampleGenerationService.getSampleMessages(generationId, user.token.tokenString);
-        const { dbScript, functionResultScript } = await this.msgSampleGenerationService.generateDbScript(response, user.token.tokenString);
-        return { dbScript, functionResultScript };
-    }
+  @Get('transformation/:generationId')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  async applyTransformation(
+    @Param('generationId', ParseIntPipe) generationId: number,
+    @User() user: AuthenticatedUser,
+  ): Promise<{ dbScript: string; functionResultScript: string }> {
+    const response = await this.msgSampleGenerationService.getSampleMessages(generationId, user.token.tokenString);
+    const { dbScript, functionResultScript } = await this.msgSampleGenerationService.generateDbScript(response, user.token.tokenString);
+    return { dbScript, functionResultScript };
+  }
 
-    @Get(':generationId')
-    @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
-    async getSampleMessages(
-        @Param('generationId', ParseIntPipe) generationId: number,
-        @User() user: AuthenticatedUser,
-    ): Promise<GenerateSampleMessagesResponseDto> {
-        return await this.msgSampleGenerationService.getSampleMessages(generationId, user.token.tokenString);
-    }
-
+  @Get(':generationId')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  async getSampleMessages(
+    @Param('generationId', ParseIntPipe) generationId: number,
+    @User() user: AuthenticatedUser,
+  ): Promise<GenerateSampleMessagesResponseDto> {
+    return await this.msgSampleGenerationService.getSampleMessages(generationId, user.token.tokenString);
+  }
 }

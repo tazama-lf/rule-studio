@@ -356,8 +356,6 @@ export class AdminServiceClient {
     }>('GET', `${CONFIG}/w3/${encodeURIComponent(transactionType)}/${encodeURIComponent(transactionVersion)}`, token);
   }
 
-  
-
   async cloneRule(
     ruleId: string,
     token: string,
@@ -630,9 +628,9 @@ export class AdminServiceClient {
     );
     return response;
   }
-  
-//include the type here
-   async getEnrichmentMessages(token: string, generationId: number): Promise<any> {
+
+  //include the type here
+  async getEnrichmentMessages(token: string, generationId: number): Promise<any> {
     const response = await this.executeHttpRequest<GenerateEnrichmentResponseDto>(
       'GET',
       `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/sample-enrichment-rows`,

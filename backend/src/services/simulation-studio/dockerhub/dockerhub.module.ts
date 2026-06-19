@@ -9,4 +9,4 @@ import { DockerHubService } from './dockerhub.service';
   providers: [DockerHubService],
   exports: [DockerHubService],
 })
-export class DockerHubModule { }
+export class DockerHubModule {}

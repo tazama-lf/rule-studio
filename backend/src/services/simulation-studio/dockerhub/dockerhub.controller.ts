@@ -13,7 +13,7 @@ import { DockerHubRepositoriesResponseDto, DockerHubTagsResponseDto } from './dt
 @Controller('simulation-studio/dockerhub')
 @UseGuards(TazamaAuthGuard)
 export class DockerHubController {
-  constructor(private readonly dockerHubService: DockerHubService) { }
+  constructor(private readonly dockerHubService: DockerHubService) {}
 
   @Get('/api/rules')
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
@@ -34,18 +34,14 @@ export class DockerHubController {
   @ApiSwagger({
     summary: 'Get all tags for a published rule',
     description:
-      'Retrieves all Docker Hub tags for the specified rule repository within the calling tenant\'s namespace. ' +
+      "Retrieves all Docker Hub tags for the specified rule repository within the calling tenant's namespace. " +
       'The tenant is identified from the `tenantId` claim in the Bearer JWT.',
     responses: CommonResponses.SUCCESS_200(DockerHubTagsResponseDto, 'Tags retrieved successfully'),
   })
-  async getTagsForRule(
-    @Query('rule') rule: string,
-    @User() user: AuthenticatedUser,
-  ): Promise<DockerHubTagsResponseDto> {
+  async getTagsForRule(@Query('rule') rule: string, @User() user: AuthenticatedUser): Promise<DockerHubTagsResponseDto> {
     if (!rule.trim()) {
       throw new BadRequestException('`rule` query parameter is required.');
     }
     return await this.dockerHubService.getTagsForRule(user.tenantId, rule.trim());
   }
 }
-

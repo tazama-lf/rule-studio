@@ -51,7 +51,8 @@ export class SimulationInfoDto {
   status: SimulationStatus;
 
   @ApiProperty({
-    description: 'Convenience URL for the REST-to-NATS bridge. Absent while the simulation is in POSTGRES_UP — nats-utilities is not running yet.',
+    description:
+      'Convenience URL for the REST-to-NATS bridge. Absent while the simulation is in POSTGRES_UP — nats-utilities is not running yet.',
     example: 'http://localhost:54325',
     required: false,
   })

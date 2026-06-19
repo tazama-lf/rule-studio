@@ -215,7 +215,7 @@ export class RunSimulationService {
       // before the runtime stack joins so the rule processor never sees an unseeded DB.
       const pgInfo = await this.ephemeralEnvService.spawnPostgres(simName, { ruleName, version });
       const pgPort = pgInfo.ports.pg;
-      const pgHost = pgInfo.ports.pgHost;
+      const { pgHost } = pgInfo.ports;
 
       try {
         await this.seedConfigArtifacts(pgHost, pgPort, { ruleConfig, typology, networkMap });
@@ -224,9 +224,9 @@ export class RunSimulationService {
         const { dbScript, functionResultScript } = await this.msgSampleGenerationService.generateDbScript(sampleResp, token);
         const enrichmentDbScript = this.msgSampleGenerationService.generateEnrichmentDbScript(enrichmentResp, token);
 
-        await this.seedPgDatabase(pgHost,pgPort, 'raw_history', dbScript);
-        await this.seedPgDatabase(pgHost,pgPort, 'event_history', functionResultScript);
-        await this.seedPgDatabase(pgHost,pgPort, 'enrichment', enrichmentDbScript);
+        await this.seedPgDatabase(pgHost, pgPort, 'raw_history', dbScript);
+        await this.seedPgDatabase(pgHost, pgPort, 'event_history', functionResultScript);
+        await this.seedPgDatabase(pgHost, pgPort, 'enrichment', enrichmentDbScript);
 
         // TODO(Phase 3.2): table-count + row-count validation gate. Fail-fast here means we tear down Postgres without ever spawning the runtime stack.
 
@@ -335,7 +335,7 @@ export class RunSimulationService {
     }
   }
 
-  private async seedPgDatabase(pgHost: string,pgPort: number, database: string, dbScript: string): Promise<void> {
+  private async seedPgDatabase(pgHost: string, pgPort: number, database: string, dbScript: string): Promise<void> {
     if (!dbScript || dbScript.trim() === '') {
       this.logger.warn(`No script provided for ${database}, skipping seed`);
       return;

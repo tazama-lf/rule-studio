@@ -58,14 +58,14 @@ export class GenerateEnrichmentResponseDto {
 }
 
 //   enrichment resp {
-      //   success: true,
-      //   data: [
-      //     {
-      //       enrichment_table_id: '28',
-      //       table_name: 'table1',
-      //       table_order: 1,
-      //       row_count: 1,
-      //       rows: [Array]
-      //     }
-      //   ]
-      // }
+//   success: true,
+//   data: [
+//     {
+//       enrichment_table_id: '28',
+//       table_name: 'table1',
+//       table_order: 1,
+//       row_count: 1,
+//       rows: [Array]
+//     }
+//   ]
+// }
