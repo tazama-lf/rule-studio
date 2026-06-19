@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import { IsInt, IsPositive } from 'class-validator';
 
 export type SuiteGenerationStatus = 'DRAFT' | 'READY' | 'RUNNING' | 'COMPLETED' | 'FAILED';
@@ -19,7 +20,7 @@ export class SuiteGenerationDto {
   simulation_type: string;
 
   @ApiProperty({ required: false })
-  rule_repo?: string;
+  rule_name?: string;
 
   @ApiProperty({ required: false })
   rule_version?: string;
@@ -41,6 +42,15 @@ export class SuiteGenerationDto {
 
   @ApiProperty()
   updated_at: string;
+
+  @ApiProperty({ example: 3, description: 'Number of simulation runs for this generation' })
+  run_count!: number;
+
+  @ApiProperty({ example: 12, description: 'Total number of trigger results across all runs' })
+  run_result_count!: number;
+
+  @ApiProperty({ example: 'SUCCESS', required: false, nullable: true, description: 'Outcome of the most recent run' })
+  outcome?: string | null;
 }
 
 export class SuiteGenerationsListDto {
@@ -57,20 +67,6 @@ export class SuiteGenerationResponseDto {
 
   @ApiProperty({ type: SuiteGenerationDto })
   data: SuiteGenerationDto;
-}
-
-// ── Wizard Progress ───────────────────────────────────────────────────────────
-
-export class UpdateWizardProgressDto {
-  @ApiProperty({ example: 2, description: 'Active wizard step number' })
-  @IsInt()
-  @IsPositive()
-  current_step_num!: number;
-
-  @ApiProperty({ example: 2, description: 'Highest completed step (steps 1..N marked complete)' })
-  @IsInt()
-  @IsPositive()
-  completed_step_num!: number;
 }
 
 // ── Generation Summary ────────────────────────────────────────────────────────
@@ -99,10 +95,10 @@ export class GenerationSummaryDto {
   @ApiProperty({ example: 'Q3 Edge Cases' })
   suite_name: string;
 
-  @ApiProperty({ required: false, nullable: true, example: 'Rule 001' })
+  @ApiProperty({ required: false, example: 'Rule 001' })
   associated_rule: string | null;
 
-  @ApiProperty({ required: false, nullable: true, example: 'pacs.008' })
+  @ApiProperty({ required: false, example: 'pacs.008' })
   primary_txtp: string | null;
 
   @ApiProperty({ type: [ContextTxtpSummaryDto] })
@@ -130,4 +126,18 @@ export class GenerationSummaryResponseDto {
 
   @ApiProperty({ type: GenerationSummaryDto })
   data: GenerationSummaryDto;
+}
+
+export class CloneGenerationDto {
+  @ApiProperty({ description: 'Source generation id to clone', example: 1 })
+  @Type(() => Number)
+  @IsInt()
+  @IsPositive()
+  suite_id!: number;
+
+  @ApiProperty({ description: 'Source generation id to clone', example: 1 })
+  @Type(() => Number)
+  @IsInt()
+  @IsPositive()
+  generation_id!: number;
 }

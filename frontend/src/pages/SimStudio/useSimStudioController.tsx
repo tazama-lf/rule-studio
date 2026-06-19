@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import StatusCard from "../../components/Cards/StatusCard";
 import type { TableColumn } from "../../components/Table";
 import useDebouncedSearch from "../../hooks/useDebouncedSearch";
-import { useGetSuitesQuery, useLazyResumeGenerationQuery, type SuiteListItem } from "../../redux/Api/SimStudio";
+import { useCloneSuiteMutation, useGetSuitesQuery, useGetSuitesCountQuery, type SuiteListItem } from "../../redux/Api/SimStudio";
 import { useGetRulesQuery } from "../../redux/Api/DockerHub";
 import { useGetTypesQuery } from "../../redux/Api/Config";
 import { LocalStorage } from "../../utils/Common/enums";
@@ -25,46 +24,44 @@ const computeLatestIteration = (suites: SuiteListItem[]): string => {
     return latestDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
 };
 
+const formatLatestIteration = (latestRunAt?: string | number | null): string => {
+    if (latestRunAt === null || latestRunAt === undefined || latestRunAt === "") return "—";
+    const latestDate = new Date(latestRunAt);
+    if (Number.isNaN(latestDate.getTime())) return "—";
+    const today = new Date();
+    if (latestDate.toDateString() === today.toDateString()) return "Today";
+    return latestDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+};
+
 const useSimStudioController = () => {
     const navigate = useNavigate();
-    const [searchInput, debouncedSearch, handleSearch] = useDebouncedSearch("", 300);
-    const [statusFilter, setStatusFilter] = useState<string>("");
+    const [searchInput, debouncedSearch, setSearchInput] = useDebouncedSearch("", 300);
     const [ruleFilter, setRuleFilter] = useState<string>("");
     const [txtpFilter, setTxtpFilter] = useState<string>("");
     const [lastUpdatedFrom, setLastUpdatedFrom] = useState<string>("");
     const [lastUpdatedTo, setLastUpdatedTo] = useState<string>("");
     const [page, setPage] = useState(0);
-    const [resumingId, setResumingId] = useState<number | null>(null);
-
-    const STEP_TAB_MAP: Record<number, string> = {
-        1: "create_generation",
-        2: "txtp_selection",
-        3: "trigger_data",
-        4: "enrichment_data",
-        5: "preview_save",
-    };
+    const [cloningSuiteId, setCloningSuiteId] = useState<number | null>(null);
+    const [cloneSuite] = useCloneSuiteMutation();
 
     const LIMIT = 10;
 
-    // Reset to first page whenever a filter changes
-    useEffect(() => { setPage(0); }, [debouncedSearch, statusFilter, ruleFilter, txtpFilter, lastUpdatedFrom, lastUpdatedTo]);
     const queryParams = useMemo(() => ({
         search: debouncedSearch || undefined,
-        status: statusFilter || undefined,
         rule_name: ruleFilter || undefined,
         txtp: txtpFilter || undefined,
         updated_from: lastUpdatedFrom || undefined,
         updated_to: lastUpdatedTo || undefined,
         limit: LIMIT,
         offset: page * LIMIT,
-    }), [debouncedSearch, statusFilter, ruleFilter, txtpFilter, lastUpdatedFrom, lastUpdatedTo, page]);
+    }), [debouncedSearch, ruleFilter, txtpFilter, lastUpdatedFrom, lastUpdatedTo, page]);
 
     const { data, isLoading, isFetching } = useGetSuitesQuery(queryParams);
     const { data: rulesData } = useGetRulesQuery();
     const { data: txTypesData } = useGetTypesQuery({});
-    const [triggerResume] = useLazyResumeGenerationQuery();
+    const { data: suitesCountData } = useGetSuitesCountQuery();
 
-    const suites: SuiteListItem[] = data?.suites ?? [];
+    const suites = useMemo<SuiteListItem[]>(() => data?.suites ?? [], [data?.suites]);
 
     const availableRules = useMemo(
         () => rulesData?.rules.map((r) => r.name) ?? [],
@@ -83,12 +80,15 @@ const useSimStudioController = () => {
         return result;
     }, [txTypesData]);
 
-    const stats = useMemo(() => ({
-        total: data?.total ?? suites.length,
-        readyForSimulation: suites.filter((s) => s.status === "COMPLETED" || s.status === "RUNNING").length,
-        drafts: suites.filter((s) => s.status === "DRAFT").length,
-        latestIteration: computeLatestIteration(suites),
-    }), [data, suites]);
+    const stats = useMemo(() => {
+        const counts = suitesCountData?.data;
+
+        return {
+            total: counts?.total_suites ?? data?.total ?? suites.length,
+            readyForSimulation: counts?.total_run ?? suites.filter((s) => s.status === "COMPLETED" || s.status === "RUNNING").length,
+            latestIteration: counts ? formatLatestIteration(counts.latest_run_at) : computeLatestIteration(suites),
+        };
+    }, [data?.total, suites, suitesCountData]);
 
     const tableData = useMemo(() =>
         suites.map((s) => ({
@@ -97,7 +97,6 @@ const useSimStudioController = () => {
             associated_rule: s.rule_name ?? "—",
             txtp: s.primary_txtp ?? "—",
             status: s.status,
-            iterations: s.iteration_count,
             last_updated: s.updated_at ? s.updated_at.split("T")[0] : "—",
         })),
         [suites]
@@ -106,9 +105,33 @@ const useSimStudioController = () => {
     const hasAdvancedFilters = txtpFilter !== "" || lastUpdatedFrom !== "" || lastUpdatedTo !== "";
     const hasAnyFilter =
         searchInput.trim() !== "" ||
-        statusFilter !== "" ||
         ruleFilter !== "" ||
         hasAdvancedFilters;
+
+    const handleSearch = useCallback((value: string) => {
+        setSearchInput(value);
+        setPage(0);
+    }, [setSearchInput]);
+
+    const handleRuleFilter = useCallback((value: string) => {
+        setRuleFilter(value);
+        setPage(0);
+    }, []);
+
+    const handleTxtpFilter = useCallback((value: string) => {
+        setTxtpFilter(value);
+        setPage(0);
+    }, []);
+
+    const handleLastUpdatedFrom = useCallback((value: string) => {
+        setLastUpdatedFrom(value);
+        setPage(0);
+    }, []);
+
+    const handleLastUpdatedTo = useCallback((value: string) => {
+        setLastUpdatedTo(value);
+        setPage(0);
+    }, []);
 
     const handleResetAdvancedFilters = () => {
         setTxtpFilter("");
@@ -119,7 +142,6 @@ const useSimStudioController = () => {
 
     const handleResetAllFilters = () => {
         handleSearch("");
-        setStatusFilter("");
         setRuleFilter("");
         setTxtpFilter("");
         setLastUpdatedFrom("");
@@ -131,22 +153,35 @@ const useSimStudioController = () => {
         navigate(`/sim-studio/view/${row.id}`);
     }, [navigate]);
 
-    const handleResume = useCallback(async (row: Record<string, unknown>) => {
-        const suiteId = row.id as number;
-        setResumingId(suiteId);
-        try {
-            const result = await triggerResume(suiteId).unwrap();
-            const genId = result.data.id;
-            const currentStep = (result.data.wizard_snapshot?.currentStep as number) ?? 1;
-            const tabValue = STEP_TAB_MAP[currentStep] ?? "create_generation";
-            insertData(genId, "sim_gen_id", LocalStorage, false);
-            navigate(`/sim-studio/create?simStudioTab=${tabValue}`);
-        } catch {
-            toast.error("Failed to resume simulation suite. Please try again.");
-        } finally {
-            setResumingId(null);
+    const handleCloneSuite = useCallback(async (row: Record<string, unknown>) => {
+        const suiteId = Number(row.id);
+        if (Number.isNaN(suiteId)) {
+            toast.error("Suite ID is missing for this suite.");
+            return;
         }
-    }, [triggerResume, navigate, STEP_TAB_MAP]);
+
+        setCloningSuiteId(suiteId);
+        try {
+            const result = await cloneSuite({ suite_id: suiteId }).unwrap();
+            const clonedSuiteId = result.data.suite.id;
+            const clonedGenerationId = result.data.generation_id ?? result.data.suite.generation_id;
+            if (!clonedSuiteId || !clonedGenerationId) {
+                toast.error("Cloned suite details are missing. Please try again.");
+                return;
+            }
+
+            insertData(clonedGenerationId, "sim_gen_id", LocalStorage, false);
+            insertData(clonedSuiteId, "sim_suite_id", LocalStorage, false);
+            insertData(true, "sim_clone_mode", LocalStorage, false);
+            insertData("suite", "sim_clone_type", LocalStorage, false);
+            removeData("sim_results_locked", LocalStorage);
+            navigate("/sim-studio/create?simStudioTab=create_generation");
+        } catch {
+            toast.error("Failed to clone simulation suite. Please try again.");
+        } finally {
+            setCloningSuiteId(null);
+        }
+    }, [cloneSuite, navigate]);
 
     const columns: TableColumn[] = useMemo(() => [
         {
@@ -162,32 +197,26 @@ const useSimStudioController = () => {
                 <S.TxtpBadge>{row.txtp as string}</S.TxtpBadge>
             ),
         },
-        {
-            label: "Status",
-            key: "status",
-            render: (row: Record<string, unknown>) => (
-                <StatusCard status={row.status as string} bullet={false} />
-            ),
-        },
-        { label: "Iterations", key: "iterations" },
-        { label: "Last Updated", key: "last_updated", type: "date" as const },
+        { label: "Last Updated", key: "last_updated" },
         {
             label: "Actions",
             key: "actions",
             render: (row: Record<string, unknown>) => (
                 <SimStudioActions
                     onView={() => handleView(row)}
-                    onResume={() => void handleResume(row)}
-                    isDraft={(row.status as string) === "DRAFT"}
-                    isResuming={resumingId === (row.id as number)}
+                    onClone={() => void handleCloneSuite(row)}
+                    isCloning={cloningSuiteId === Number(row.id)}
                 />
             ),
         },
-    ], [handleView, handleResume, resumingId]);
+    ], [cloningSuiteId, handleCloneSuite, handleView]);
 
     const handleCreate = () => {
         removeData("sim_gen_id", LocalStorage);
         removeData("sim_suite_id", LocalStorage);
+        removeData("sim_clone_mode", LocalStorage);
+        removeData("sim_clone_type", LocalStorage);
+        removeData("sim_results_locked", LocalStorage);
         navigate("/sim-studio/create?simStudioTab=create_generation");
     };
 
@@ -202,7 +231,6 @@ const useSimStudioController = () => {
         values: {
             isLoading: isLoading || isFetching,
             searchInput,
-            statusFilter,
             ruleFilter,
             txtpFilter,
             lastUpdatedFrom,
@@ -218,11 +246,10 @@ const useSimStudioController = () => {
         },
         functions: {
             handleSearch,
-            handleStatusFilter: setStatusFilter,
-            handleRuleFilter: setRuleFilter,
-            handleTxtpFilter: setTxtpFilter,
-            handleLastUpdatedFrom: setLastUpdatedFrom,
-            handleLastUpdatedTo: setLastUpdatedTo,
+            handleRuleFilter,
+            handleTxtpFilter,
+            handleLastUpdatedFrom,
+            handleLastUpdatedTo,
             handleResetAdvancedFilters,
             handleResetAllFilters,
             handleCreate,

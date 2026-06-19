@@ -47,6 +47,7 @@ import {
   SIMULATION_STATS,
   SIMULATION_RESULTS,
   SIMULATION_SUITES,
+  SIMULATION_SUITES_COUNTS,
   SUITE_GENERATIONS,
   SUITE_LATEST_GENERATION,
   GENERATION_CONTEXT_CONFIGS,
@@ -57,13 +58,26 @@ import {
   GENERATION_CONTEXT_CONFIG,
   GENERATION_TRIGGER_CONFIG,
   ENRICHMENT_TABLE,
+  CONTEXT_MAPPINGS,
+  CONTEXT_MAPPING_BY_IDS,
+  TRIGGER_MAPPINGS,
+  TRIGGER_MAPPING_BY_IDS,
   SIMULATION_ITEMS,
   EXCLUDED_TYPES,
   STAGE_SIMULATION_ITEMS,
   GET_ALL_EVALUATIONS,
   FETCH_COUNT_DLH,
   RESUME_GENERATION,
+  CLONE_GENERATION,
+  CLONE_SUITE,
   FAKER_SEMANTIC_DATA,
+  SUITE_RESULT,
+  SAVE_RUN_RESULT,
+  TRIGGER_CONFIG_BY_ID,
+  GENERATION_SAMPLE_TRIGGER_MESSAGES,
+  GENERATION_SAMPLE_ENRICHMENT_ROWS,
+  SIMULATION_STUDIO_BASE_URL,
+  GENERATION_STATUS,
 } from '../constants/constant';
 import type { MaskingFiltersDto, MaskingListResponseDto, UpdateMaskDto } from './masking/dto/masking.dto';
 import type {
@@ -84,18 +98,38 @@ import { TransactionTypeDto } from './config/dto/config.dto';
 import { DlhCountDataDto, DlhCountResponse } from './fetch-from-dlh/dto/fetch-from-dlh.dto';
 import {
   PatchSimulationSuitesDto,
+  SimulationSuitesCountsResponseDto,
   SimulationSuiteResponseDto,
   SimulationSuitesDto,
   SimulationSuitesListDto,
   SimulationSuitesQueryDto,
 } from './simulation-studio/suites/dto';
 import type { ISimulationSuiteCreatePayload } from './simulation-studio/interface/simulation-studio.interface';
+import { GenerateEnrichmentResponseDto, GenerateSampleMessagesResponseDto } from './msg-sample-generation/dto/msg-sample-generation.dto';
 
 export interface SimulationMessage {
   messageId: string;
   timestamp: string;
   endpoint: string;
   data: Record<string, unknown>;
+}
+
+export interface TxtpMappingPair {
+  primary: string;
+  related: string;
+}
+
+export interface CreateTxtpMappingPayload {
+  primary_txtp_id: number;
+  related_txtp_id: number;
+  mapping: TxtpMappingPair[];
+}
+
+export interface TxtpMappingDto {
+  id: number;
+  primary_tx_id: number;
+  related_tx_id: number;
+  mapping: TxtpMappingPair[];
 }
 
 @Injectable()
@@ -300,6 +334,26 @@ export class AdminServiceClient {
         payload: Record<string, unknown>;
       };
     }>('GET', `${CONFIG}/${encodeURIComponent(transactionType)}/${encodeURIComponent(transactionVersion)}`, token);
+  }
+
+  async getConfigRowByTxTpw3(
+    transactionType: string,
+    transactionVersion: string,
+    token: string,
+  ): Promise<{
+    config: {
+      schema: Record<string, unknown>;
+      mapping: FieldMapping[];
+      functions: Array<Record<string, unknown>>;
+    };
+  }> {
+    return await this.executeHttpRequest<{
+      config: {
+        schema: Record<string, unknown>;
+        mapping: FieldMapping[];
+        functions: Array<Record<string, unknown>>;
+      };
+    }>('GET', `${CONFIG}/w3/${encodeURIComponent(transactionType)}/${encodeURIComponent(transactionVersion)}`, token);
   }
 
   async cloneRule(
@@ -548,6 +602,10 @@ export class AdminServiceClient {
     return await this.executeHttpRequest<SimulationSuitesListDto>('GET', SIMULATION_SUITES, token, undefined, params);
   }
 
+  async getSimulationSuitesCounts(token: string): Promise<SimulationSuitesCountsResponseDto> {
+    return await this.executeHttpRequest<SimulationSuitesCountsResponseDto>('GET', SIMULATION_SUITES_COUNTS, token);
+  }
+
   async getSimulationSuiteById(token: string, id: number): Promise<SimulationSuiteResponseDto> {
     return await this.executeHttpRequest<SimulationSuiteResponseDto>('GET', `${SIMULATION_SUITES}/${id}`, token);
   }
@@ -558,6 +616,27 @@ export class AdminServiceClient {
 
   async patchSimulationSuite(token: string, id: number, payload: PatchSimulationSuitesDto): Promise<SimulationSuiteResponseDto> {
     return await this.executeHttpRequest<SimulationSuiteResponseDto>('PATCH', `${SIMULATION_SUITES}/${id}`, token, payload);
+  }
+
+  // --- message sampler ---------------------------------------------------------
+
+  async getSampleMessages(token: string, generationId: number): Promise<GenerateSampleMessagesResponseDto> {
+    const response = await this.executeHttpRequest<GenerateSampleMessagesResponseDto>(
+      'GET',
+      `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/sample-messages`,
+      token,
+    );
+    return response;
+  }
+
+  //include the type here
+  async getEnrichmentMessages(token: string, generationId: number): Promise<any> {
+    const response = await this.executeHttpRequest<GenerateEnrichmentResponseDto>(
+      'GET',
+      `${SIMULATION_STUDIO_BASE_URL}/generations/${generationId}/sample-enrichment-rows`,
+      token,
+    );
+    return response;
   }
 
   // ── Generations ──────────────────────────────────────────────────────────────
@@ -584,6 +663,18 @@ export class AdminServiceClient {
     return await this.executeHttpRequest<T>('POST', GENERATION_CONTEXT_CONFIGS(generationId), token, body);
   }
 
+  async createContextMapping<T>(token: string, body: CreateTxtpMappingPayload): Promise<T> {
+    return await this.executeHttpRequest<T>('POST', CONTEXT_MAPPINGS, token, body);
+  }
+
+  async getContextMappings<T>(token: string, primaryTxtpId: number, relatedTxtpId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('GET', CONTEXT_MAPPING_BY_IDS(primaryTxtpId, relatedTxtpId), token);
+  }
+
+  async deleteContextMapping<T>(token: string, primaryTxtpId: number, relatedTxtpId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('DELETE', CONTEXT_MAPPING_BY_IDS(primaryTxtpId, relatedTxtpId), token);
+  }
+
   async bulkUpdateContextConfigs<T>(token: string, generationId: number, body: unknown): Promise<T> {
     return await this.executeHttpRequest<T>('PATCH', GENERATION_CONTEXT_CONFIGS(generationId), token, body);
   }
@@ -594,8 +685,24 @@ export class AdminServiceClient {
     return await this.executeHttpRequest<T>('GET', GENERATION_TRIGGER_CONFIGS(generationId), token);
   }
 
+  async getTriggerConfigById<T>(token: string, configId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('GET', TRIGGER_CONFIG_BY_ID(configId), token);
+  }
+
   async addTriggerTxtpConfig<T>(token: string, generationId: number, body: unknown): Promise<T> {
     return await this.executeHttpRequest<T>('POST', GENERATION_TRIGGER_CONFIGS(generationId), token, body);
+  }
+
+  async createTriggerMapping<T>(token: string, body: CreateTxtpMappingPayload): Promise<T> {
+    return await this.executeHttpRequest<T>('POST', TRIGGER_MAPPINGS, token, body);
+  }
+
+  async getTriggerMappings<T>(token: string, primaryTxtpId: number, relatedTxtpId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('GET', TRIGGER_MAPPING_BY_IDS(primaryTxtpId, relatedTxtpId), token);
+  }
+
+  async deleteTriggerMapping<T>(token: string, primaryTxtpId: number, relatedTxtpId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('DELETE', TRIGGER_MAPPING_BY_IDS(primaryTxtpId, relatedTxtpId), token);
   }
 
   async bulkUpdateTriggerConfigs<T>(token: string, generationId: number, body: unknown): Promise<T> {
@@ -636,11 +743,42 @@ export class AdminServiceClient {
     return await this.executeHttpRequest<T>('DELETE', GENERATION_TRIGGER_CONFIG(generationId, configId), token);
   }
 
-  async resumeGeneration<T>(token: string, suiteId: number): Promise<T> {
-    return await this.executeHttpRequest<T>('GET', RESUME_GENERATION(suiteId), token);
+  async resumeGeneration<T>(token: string, suiteId: number, generationId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('GET', RESUME_GENERATION(suiteId, generationId), token);
+  }
+
+  async cloneGeneration<T>(token: string, generationId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('POST', CLONE_GENERATION, token, { sourceGenerationId: generationId });
+  }
+
+  async cloneSuite<T>(token: string, suiteId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('POST', CLONE_SUITE, token, { sourceSuiteId: suiteId });
   }
 
   async generateFakerSemanticData<T>(token: string): Promise<T> {
     return await this.executeHttpRequest<T>('GET', FAKER_SEMANTIC_DATA, token);
+  }
+
+  async getSuiteResult<T>(token: string, suiteId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('GET', SUITE_RESULT(suiteId), token);
+  }
+
+  async saveRunResult<T>(
+    token: string,
+    body: { gen_id: number; trigger_id: number | null; rule_result: Record<string, unknown>; outcome?: string },
+  ): Promise<T> {
+    return await this.executeHttpRequest<T>('POST', SAVE_RUN_RESULT, token, body);
+  }
+
+  async getSampleTriggerMessages<T>(token: string, generationId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('GET', GENERATION_SAMPLE_TRIGGER_MESSAGES(generationId), token);
+  }
+
+  async getSampleEnrichmentRows<T>(token: string, generationId: number): Promise<T> {
+    return await this.executeHttpRequest<T>('GET', GENERATION_SAMPLE_ENRICHMENT_ROWS(generationId), token);
+  }
+
+  async updateGenerationStatus<T>(token: string, generationId: number, body: { status: string }): Promise<T> {
+    return await this.executeHttpRequest<T>('PATCH', GENERATION_STATUS(generationId), token, body);
   }
 }

@@ -1,6 +1,5 @@
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import LayersOutlinedIcon from '@mui/icons-material/LayersOutlined';
-import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import { Box } from "@mui/material";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -16,7 +15,6 @@ const sharedMenuItems: { icon: React.ReactElement, label: string, route: string,
 
 const trsMenuItems: { icon: React.ReactElement, label: string, route: string, color: string }[] = [
     { icon: <LayersOutlinedIcon />, label: "Sim Studio", route: "sim-studio", color: "#f59e0b" },
-    { icon: <ScienceOutlinedIcon />, label: "Sandbox", route: "sandbox", color: "#2bc08f" },
 ];
 
 const dataEngineerMenuItems: { icon: React.ReactElement, label: string, route: string, color: string }[] = [

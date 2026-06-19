@@ -29,6 +29,9 @@ interface Step1Props {
     versionLoading: boolean;
     existingSuite?: SuiteDetail | null;
     isSuiteLoading?: boolean;
+    isCloneMode?: boolean;
+    isSuiteCloneMode?: boolean;
+    isGenerationCloneMode?: boolean;
 }
 
 interface RuleConfigFieldProps {
@@ -132,17 +135,25 @@ const Step1RuleDetails = ({
     versionLoading,
     existingSuite,
     isSuiteLoading,
+    isCloneMode = false,
+    isSuiteCloneMode = false,
+    isGenerationCloneMode = false,
 }: Step1Props) => {
     if (txLoading || isSuiteLoading) return <Loader center />;
 
     const isDisabled = !!existingSuite;
+    const canEditSuiteDetails = !!existingSuite && isCloneMode && isSuiteCloneMode;
+    const canEditRuleVersion = (!!existingSuite && isCloneMode && (isSuiteCloneMode || isGenerationCloneMode)) || !existingSuite;
+    const isSuiteNameDisabled = isDisabled && !canEditSuiteDetails;
+    const isDescriptionDisabled = isDisabled && !canEditSuiteDetails;
+    const isRuleVersionDisabled = (!!existingSuite && !isCloneMode) || ruleVersionOptions.length === 0;
 
     return (
-        <Box width="100%" maxWidth="700px" display="flex" flexDirection="column">
+        <Box width="100%" display="flex" flexDirection="column">
             <S.InfoBanner>
                 <InfoOutlinedIcon sx={{ color: "#3b82f6", fontSize: 18, flexShrink: 0, mt: "1px" }} />
                 <Typography fontSize={13} color="#1d4ed8" lineHeight={1.5}>
-                    Define the simulation suite metadata and optionally associate it with a rule.
+                    Define the simulation suite metadata and associate it with a rule.
                 </Typography>
             </S.InfoBanner>
             <S.FormCard>
@@ -158,7 +169,7 @@ const Step1RuleDetails = ({
                                     label="Simulation Suite Name"
                                     placeholder="e.g., Q3 Edge Cases"
                                     {...field}
-                                    disabled={isDisabled}
+                                    disabled={isSuiteNameDisabled}
                                     error={errors.suite_name?.message}
                                 />
                             )}
@@ -176,7 +187,7 @@ const Step1RuleDetails = ({
                                     label="Description"
                                     placeholder="Describe the purpose of this simulation suite..."
                                     {...field}
-                                    disabled={isDisabled}
+                                    disabled={isDescriptionDisabled}
                                 />
                             )}
                         />
@@ -209,7 +220,7 @@ const Step1RuleDetails = ({
                                     options={ruleVersionOptions}
                                     value={field.value ?? null}
                                     onChange={(val) => field.onChange(val)}
-                                    disabled={isDisabled || ruleVersionOptions.length === 0}
+                                    disabled={!canEditRuleVersion || isRuleVersionDisabled}
                                     error={error?.message}
                                 />
                             )}

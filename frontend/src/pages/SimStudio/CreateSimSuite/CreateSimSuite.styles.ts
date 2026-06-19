@@ -1,10 +1,13 @@
 import { Box, styled } from "@mui/material";
 
 export const PageContainer = styled(Box)(() => ({
-    minHeight: "100vh",
+    height: "100vh",
+    minHeight: "100dvh",
     backgroundColor: "#f3f4f6",
     display: "flex",
     flexDirection: "column",
+    overflow: "hidden",
+    position: "relative",
 }));
 
 export const TopBar = styled(Box)(({ theme }) => ({
@@ -74,10 +77,11 @@ export const StepConnector = styled(Box)(() => ({
 
 export const ContentArea = styled(Box)(({ theme }) => ({
     flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    padding: theme.spacing(4, 3),
+    minHeight: 0,
+    width: "100%",
+    boxSizing: "border-box",
+    padding: theme.spacing(4, 3, 11),
+    overflowY: "auto",
 }));
 
 export const FormCard = styled(Box)(({ theme }) => ({
@@ -86,7 +90,7 @@ export const FormCard = styled(Box)(({ theme }) => ({
     borderRadius: "8px",
     padding: theme.spacing(3),
     width: "100%",
-    maxWidth: "700px",
+    boxSizing: "border-box",
 }));
 
 export const InfoBanner = styled(Box)(({ theme }) => ({
@@ -99,16 +103,21 @@ export const InfoBanner = styled(Box)(({ theme }) => ({
     borderRadius: "6px",
     marginBottom: theme.spacing(2.5),
     width: "100%",
-    maxWidth: "700px",
+    boxSizing: "border-box",
 }));
 
 export const BottomBar = styled(Box)(({ theme }) => ({
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: theme.spacing(2, 3),
+    minHeight: 64,
+    padding: theme.spacing(1.25, 3),
     backgroundColor: "#fff",
     borderTop: "1px solid #e5e7eb",
-    position: "sticky",
+    boxSizing: "border-box",
+    position: "fixed",
+    right: 0,
     bottom: 0,
+    left: "var(--sidebar-width, 0px)",
+    zIndex: 1200,
 }));

@@ -54,6 +54,14 @@ export const RemoveText = styled(Typography)(() => ({
     "&:hover": { textDecoration: "underline" },
 }));
 
+export const AddMappingText = styled(Typography)(() => ({
+    fontSize: "13px",
+    fontWeight: 500,
+    color: "#2563eb",
+    cursor: "pointer",
+    "&:hover": { textDecoration: "underline" },
+}));
+
 export const FieldConfigSection = styled(Box)(({ theme }) => ({
     padding: theme.spacing(2, 2.5),
     backgroundColor: "#fafafa",

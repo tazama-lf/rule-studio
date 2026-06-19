@@ -1,0 +1,215 @@
+{
+  "info": {
+    "_postman_id": "ephemeral-env-api-v1",
+    "name": "Rule Studio — Ephemeral Env API",
+    "description": "Programmatic ephemeral simulation environments for Tazama rules.\nAll containers (PostgreSQL, NATS, Valkey, rule-processor, nats-utilities) are managed via the testcontainers API — no docker-compose or .env files.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3005",
+      "type": "string",
+      "description": "Rule Studio backend base URL"
+    },
+    {
+      "key": "token",
+      "value": "<paste-your-jwt-here>",
+      "type": "string",
+      "description": "Bearer token from /auth/login"
+    },
+    {
+      "key": "simName",
+      "value": "sim-001",
+      "type": "string",
+      "description": "Name of the simulation to operate on"
+    },
+    {
+      "key": "natsUtilsPort",
+      "value": "0",
+      "type": "string",
+      "description": "Filled in automatically by the Spawn test script"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Spawn simulation",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json.ports) {",
+              "  pm.collectionVariables.set('natsUtilsPort', String(json.ports.natsUtils));",
+              "  pm.collectionVariables.set('simName', json.name);",
+              "}",
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "pm.test('Has natsUtilsUrl', () => pm.expect(json.natsUtilsUrl).to.be.a('string'));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"{{simName}}\",\n  \"ruleNum\": \"901\",\n  \"version\": \"rc\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/simulation-studio/ephemeral",
+          "host": ["{{baseUrl}}"],
+          "path": ["simulation-studio", "ephemeral"]
+        },
+        "description": "Spawns a fully isolated simulation stack. May take 30-120 s for postgres to initialise. The test script captures the nats-utilities port into {{natsUtilsPort}}."
+      },
+      "response": []
+    },
+    {
+      "name": "List simulations",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/simulation-studio/ephemeral",
+          "host": ["{{baseUrl}}"],
+          "path": ["simulation-studio", "ephemeral"]
+        },
+        "description": "Returns all simulations currently running in memory."
+      },
+      "response": []
+    },
+    {
+      "name": "Get simulation",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Name matches', () => pm.expect(json.name).to.eql(pm.collectionVariables.get('simName')));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/simulation-studio/ephemeral/{{simName}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["simulation-studio", "ephemeral", "{{simName}}"]
+        },
+        "description": "Returns port mappings and metadata for a named simulation."
+      },
+      "response": []
+    },
+    {
+      "name": "Send test message via nats-utilities",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// Build nats-utilities URL from the captured port",
+              "const port = pm.collectionVariables.get('natsUtilsPort');",
+              "pm.variables.set('natsUtilsUrl', `http://localhost:${port}`);"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": ["pm.test('Status 200 or 201', () => {", "  pm.expect([200, 201]).to.include(pm.response.code);", "});"],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": {},\n  \"destination\": \"sub-rule-901@rc\",\n  \"consumer\": \"pub-rule-901@rc\",\n  \"functionName\": \"rule-901-rel-rc\",\n  \"awaitReply\": false\n}"
+        },
+        "url": {
+          "raw": "{{natsUtilsUrl}}/natsPublish",
+          "host": ["{{natsUtilsUrl}}"],
+          "path": ["natsPublish"]
+        },
+        "description": "Sends a test message directly to the nats-utilities REST bridge (no auth needed). Update destination/consumer/functionName to match your rule."
+      },
+      "response": []
+    },
+    {
+      "name": "Destroy simulation",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": ["pm.test('Status 204', () => pm.response.to.have.status(204));"],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "{{baseUrl}}/simulation-studio/ephemeral/{{simName}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["simulation-studio", "ephemeral", "{{simName}}"]
+        },
+        "description": "Stops and removes all containers for the named simulation."
+      },
+      "response": []
+    },
+    {
+      "name": "Destroy ALL simulations",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": ["pm.test('Status 204', () => pm.response.to.have.status(204));"],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "{{baseUrl}}/simulation-studio/ephemeral",
+          "host": ["{{baseUrl}}"],
+          "path": ["simulation-studio", "ephemeral"]
+        },
+        "description": "Stops and removes every running simulation."
+      },
+      "response": []
+    }
+  ]
+}

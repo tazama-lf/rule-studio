@@ -1,18 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import type { ContextFieldStrategy } from '../../interface/common.types';
-import {
-  IsString,
-  IsInt,
-  IsOptional,
-  IsEnum,
-  Min,
-  IsNumber,
-  IsObject,
-  IsArray,
-  ValidateNested,
-  ArrayMinSize,
-  IsBoolean,
-} from 'class-validator';
+import { IsString, IsInt, IsOptional, IsEnum, Min, IsNumber, IsObject, IsArray, ValidateNested, ArrayMinSize } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class SuiteContextTxtpConfigDto {
@@ -76,6 +64,11 @@ export class AddContextTxtpConfigDto {
   @IsInt()
   @Min(1)
   message_count?: number;
+
+  @ApiProperty({ required: false, example: 123 })
+  @IsOptional()
+  @IsNumber()
+  related_context_txtp_id?: number;
 }
 
 export class AddContextTxtpConfigResponseDto {
@@ -201,8 +194,8 @@ export class UpsertFieldStrategyDto {
   @IsString()
   field_path: string;
 
-  @ApiProperty({ example: 'static', enum: ['keep_sample', 'static', 'range', 'generated', 'null', 'skip'] })
-  @IsEnum(['keep_sample', 'static', 'range', 'generated', 'null', 'skip'])
+  @ApiProperty({ example: 'static', enum: ['keep_sample', 'static', 'range', 'skip', 'random'] })
+  @IsEnum(['keep_sample', 'static', 'range', 'skip', 'random'])
   strategy_code: ContextFieldStrategy;
 
   @ApiProperty({ required: false })
@@ -231,7 +224,6 @@ export class UpsertFieldStrategyDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsBoolean()
   is_required_override?: boolean;
 }
 
@@ -297,4 +289,65 @@ export class BulkUpdateContextConfigsResponseDto {
 
   @ApiProperty({ type: [ContextTxtpConfigWithStrategiesDto] })
   data: ContextTxtpConfigWithStrategiesDto[];
+}
+
+export class TxtpMappingPairDto {
+  @ApiProperty({ example: 'FITOFI.amount' })
+  @IsString()
+  primary: string;
+
+  @ApiProperty({ example: 'msgId' })
+  @IsString()
+  related: string;
+}
+
+export class CreateContextMappingDto {
+  @ApiProperty({ example: 123 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  primary_txtp_id: number;
+
+  @ApiProperty({ example: 456 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  related_txtp_id: number;
+
+  @ApiProperty({ type: [TxtpMappingPairDto] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => TxtpMappingPairDto)
+  mapping: TxtpMappingPairDto[];
+}
+
+export class ContextMappingDto {
+  @ApiProperty({ example: 1 })
+  id: number;
+
+  @ApiProperty({ example: 123 })
+  primary_tx_id: number;
+
+  @ApiProperty({ example: 456 })
+  related_tx_id: number;
+
+  @ApiProperty({ type: [TxtpMappingPairDto] })
+  mapping: TxtpMappingPairDto[];
+}
+
+export class ContextMappingsResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty({ type: [ContextMappingDto] })
+  data: ContextMappingDto[];
+}
+
+export class ContextMappingResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty({ type: ContextMappingDto })
+  data: ContextMappingDto;
 }

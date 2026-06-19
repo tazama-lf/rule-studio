@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseArrayPipe, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiParam, ApiBody } from '@nestjs/swagger';
 import { RequireAnyClaims, TazamaClaims } from 'src/decorators/auth.decorator';
 import { ApiSwagger, mergeResponses, CommonResponses } from 'src/decorators/swagger.decorator';
@@ -9,9 +9,12 @@ import type { AuthenticatedUser } from '../../auth/auth.types';
 import { TriggerTxtpConfigService } from './trigger-txtp-config.service';
 import {
   AddTriggerTxtpConfigDto,
+  CreateTriggerMappingDto,
+  TriggerMappingResponseDto,
+  TriggerMappingsResponseDto,
   BulkTriggerConfigItemDto,
   TriggerConfigsListDto,
-  TriggerConfigWithOverridesResponseDto,
+  TriggerConfigWithStrategiesResponseDto,
   BulkUpdateTriggerConfigsResponseDto,
 } from './dto/trigger-txtp-config.dto';
 
@@ -40,6 +43,24 @@ export class TriggerTxtpConfigController {
     return await this.triggerTxtpConfigService.getTriggerConfigs(user.token.tokenString, generationId);
   }
 
+  @Get('trigger-configs/:configId')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @ApiParam({ name: 'configId', description: 'Trigger txtp config id', example: 1 })
+  @ApiSwagger({
+    summary: 'Get trigger TXTP config by ID',
+    description: 'Returns a single trigger txtp config with its field strategies by config id.',
+    responses: mergeResponses(
+      CommonResponses.SUCCESS_200(TriggerConfigWithStrategiesResponseDto, 'Trigger config retrieved successfully'),
+      CommonResponses.NOT_FOUND_404('Trigger config not found'),
+    ),
+  })
+  async getTriggerConfigById(
+    @Param('configId', ParseIntPipe) configId: number,
+    @User() user: AuthenticatedUser,
+  ): Promise<TriggerConfigWithStrategiesResponseDto> {
+    return await this.triggerTxtpConfigService.getTriggerConfigById(user.token.tokenString, configId);
+  }
+
   @Post('generations/:generationId/trigger-configs')
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
   @Audit()
@@ -50,7 +71,7 @@ export class TriggerTxtpConfigController {
     description:
       'Creates a new trigger txtp config. txtp+version should match the primary TXTP (locked in UI). Uses sample payload from tcs_config as payload_template_json. Default message_count = 1.',
     responses: mergeResponses(
-      CommonResponses.CREATED_201(TriggerConfigWithOverridesResponseDto, 'Trigger config created successfully'),
+      CommonResponses.CREATED_201(TriggerConfigWithStrategiesResponseDto, 'Trigger config created successfully'),
       CommonResponses.NOT_FOUND_404('tcs_config entry not found for given txtp+version'),
     ),
   })
@@ -58,7 +79,7 @@ export class TriggerTxtpConfigController {
     @Param('generationId', ParseIntPipe) generationId: number,
     @Body() dto: AddTriggerTxtpConfigDto,
     @User() user: AuthenticatedUser,
-  ): Promise<TriggerConfigWithOverridesResponseDto> {
+  ): Promise<TriggerConfigWithStrategiesResponseDto> {
     return await this.triggerTxtpConfigService.addTriggerConfig(user.token.tokenString, generationId, dto);
   }
 
@@ -78,7 +99,7 @@ export class TriggerTxtpConfigController {
   })
   async bulkUpdateTriggerConfigs(
     @Param('generationId', ParseIntPipe) generationId: number,
-    @Body(new ParseArrayPipe({ items: BulkTriggerConfigItemDto })) items: BulkTriggerConfigItemDto[],
+    @Body() items: BulkTriggerConfigItemDto[],
     @User() user: AuthenticatedUser,
   ): Promise<BulkUpdateTriggerConfigsResponseDto> {
     return await this.triggerTxtpConfigService.bulkUpdateTriggerConfigs(user.token.tokenString, generationId, items);
@@ -102,5 +123,53 @@ export class TriggerTxtpConfigController {
     @User() user: AuthenticatedUser,
   ): Promise<{ success: boolean; message: string }> {
     return await this.triggerTxtpConfigService.deleteTriggerTxtpConfig(user.token.tokenString, generationId, configId);
+  }
+
+  @Post('trigger-mappings')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @Audit()
+  @ApiBody({ type: CreateTriggerMappingDto })
+  @ApiSwagger({
+    summary: 'Create trigger mapping',
+    description: 'Creates a mapping row for primary_txtp_id and related_txtp_id.',
+    responses: mergeResponses(CommonResponses.CREATED_201(TriggerMappingResponseDto, 'Trigger mapping created successfully')),
+  })
+  async createTriggerMapping(@Body() body: CreateTriggerMappingDto, @User() user: AuthenticatedUser): Promise<TriggerMappingResponseDto> {
+    return await this.triggerTxtpConfigService.createTriggerMapping(user.token.tokenString, body);
+  }
+
+  @Get('trigger-mappings/:primaryTxtpId/:relatedTxtpId')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @ApiParam({ name: 'primaryTxtpId', description: 'Primary txtp config id', example: 123 })
+  @ApiParam({ name: 'relatedTxtpId', description: 'Related txtp config id', example: 456 })
+  @ApiSwagger({
+    summary: 'Get trigger mappings by ids',
+    description: 'Returns all mapping rows for a primary/related tx id pair.',
+    responses: mergeResponses(CommonResponses.SUCCESS_200(TriggerMappingsResponseDto, 'Trigger mappings retrieved successfully')),
+  })
+  async getTriggerMappings(
+    @Param('primaryTxtpId', ParseIntPipe) primaryTxtpId: number,
+    @Param('relatedTxtpId', ParseIntPipe) relatedTxtpId: number,
+    @User() user: AuthenticatedUser,
+  ): Promise<TriggerMappingsResponseDto> {
+    return await this.triggerTxtpConfigService.getTriggerMappings(user.token.tokenString, primaryTxtpId, relatedTxtpId);
+  }
+
+  @Delete('trigger-mappings/:primaryTxtpId/:relatedTxtpId')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER)
+  @Audit()
+  @ApiParam({ name: 'primaryTxtpId', description: 'Primary txtp config id', example: 123 })
+  @ApiParam({ name: 'relatedTxtpId', description: 'Related txtp config id', example: 456 })
+  @ApiSwagger({
+    summary: 'Delete trigger mappings by ids',
+    description: 'Deletes all mapping rows for a primary/related tx id pair.',
+    responses: mergeResponses(CommonResponses.SUCCESS_200(Object, 'Trigger mappings deleted')),
+  })
+  async deleteTriggerMapping(
+    @Param('primaryTxtpId', ParseIntPipe) primaryTxtpId: number,
+    @Param('relatedTxtpId', ParseIntPipe) relatedTxtpId: number,
+    @User() user: AuthenticatedUser,
+  ): Promise<{ success: boolean; message: string }> {
+    return await this.triggerTxtpConfigService.deleteTriggerMapping(user.token.tokenString, primaryTxtpId, relatedTxtpId);
   }
 }
