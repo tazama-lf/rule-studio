@@ -26,6 +26,20 @@ export class MsgSampleGenerationService {
     return value.replace(/'/g, "''");
   }
 
+  /**
+   * Validates that an identifier is safe to embed inside a quoted Postgres identifier ("...").
+   * Rejects empty/over-long names and anything containing double-quote or NUL, which could break out
+   * of the surrounding quotes even after escaping.
+   */
+  private assertSafeIdentifier(name: string): void {
+    if (typeof name !== 'string' || name.length === 0 || name.length > 63) {
+      throw new Error(`Invalid enrichment table_name: must be a 1..63 char string (got ${JSON.stringify(name)})`);
+    }
+    if (/["\0]/.test(name)) {
+      throw new Error(`Invalid enrichment table_name: must not contain double-quotes or NUL (got ${JSON.stringify(name)})`);
+    }
+  }
+
   constructor(private readonly adminServiceClient: AdminServiceClient) {}
 
   async getSampleMessages(generationId: number, token: string): Promise<GenerateSampleMessagesResponseDto> {
@@ -115,6 +129,7 @@ export class MsgSampleGenerationService {
 
     for (const item of response.data) {
       const tableName = item.table_name;
+      this.assertSafeIdentifier(tableName);
       const escapedTableName = this.escapeIdentifier(tableName);
 
       const ddl = `
@@ -129,6 +144,8 @@ export class MsgSampleGenerationService {
         );`;
 
       dbScript += ddl;
+
+      if (item.rows.length === 0) continue;
 
       const valuesList = item.rows
         .map((row) => {

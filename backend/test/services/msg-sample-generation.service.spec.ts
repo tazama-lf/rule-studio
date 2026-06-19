@@ -358,5 +358,53 @@ describe('MsgSampleGenerationService', () => {
       expect(checksumMatches).toHaveLength(2);
       expect(checksumMatches[0]).toBe(checksumMatches[1]);
     });
+
+    it('emits DDL but no INSERT when an enrichment table has zero rows', () => {
+      const response: GenerateEnrichmentResponseDto = {
+        success: true,
+        data: [{ enrichment_table_id: 'job-empty', table_name: 'empty_table', table_order: 1, row_count: 0, rows: [] }],
+      };
+
+      const result = service.generateEnrichmentDbScript(response, 'test-token');
+
+      expect(result).toContain('CREATE TABLE IF NOT EXISTS public."empty_table"');
+      expect(result).not.toContain('INSERT INTO public."empty_table"');
+    });
+
+    it('rejects an empty table_name', () => {
+      const response: GenerateEnrichmentResponseDto = {
+        success: true,
+        data: [{ enrichment_table_id: 'job-1', table_name: '', table_order: 1, row_count: 1, rows: [{ id: '1' }] }],
+      };
+
+      expect(() => service.generateEnrichmentDbScript(response, 'test-token')).toThrow(/Invalid enrichment table_name/);
+    });
+
+    it('rejects a table_name longer than 63 characters', () => {
+      const response: GenerateEnrichmentResponseDto = {
+        success: true,
+        data: [{ enrichment_table_id: 'job-1', table_name: 'a'.repeat(64), table_order: 1, row_count: 1, rows: [{ id: '1' }] }],
+      };
+
+      expect(() => service.generateEnrichmentDbScript(response, 'test-token')).toThrow(/Invalid enrichment table_name/);
+    });
+
+    it('rejects a table_name containing a double-quote', () => {
+      const response: GenerateEnrichmentResponseDto = {
+        success: true,
+        data: [{ enrichment_table_id: 'job-1', table_name: 'evil"name', table_order: 1, row_count: 1, rows: [{ id: '1' }] }],
+      };
+
+      expect(() => service.generateEnrichmentDbScript(response, 'test-token')).toThrow(/double-quotes or NUL/);
+    });
+
+    it('rejects a table_name containing a NUL byte', () => {
+      const response: GenerateEnrichmentResponseDto = {
+        success: true,
+        data: [{ enrichment_table_id: 'job-1', table_name: 'evil\0name', table_order: 1, row_count: 1, rows: [{ id: '1' }] }],
+      };
+
+      expect(() => service.generateEnrichmentDbScript(response, 'test-token')).toThrow(/double-quotes or NUL/);
+    });
   });
 });
