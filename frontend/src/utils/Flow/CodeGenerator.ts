@@ -166,6 +166,10 @@ const generateNodeCode = (
     return generateSetVariableCode(params, indent, generationMode);
   }
 
+  if (nodeType === 'SetVariableWithType') {
+    return generateSetVariableWithTypeCode(params, indent, generationMode);
+  }
+
   if (nodeType === 'Log') {
     return generateLogCode(params, indent, generationMode);
   }
@@ -456,6 +460,50 @@ const generateSetVariableCode = (params: Record<string, string>, indent: string,
       valueStr = `\`${varValue.replace(/`/g, '\\`')}\``;
     } else {
       valueStr = varValue.startsWith('"') || varValue.startsWith("'") ? varValue : `"${varValue}"`;
+    }
+  }
+  
+  return `${indent}${declarationType} ${varName} = ${valueStr};`;
+};
+
+const generateSetVariableWithTypeCode = (params: Record<string, string>, indent: string, mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
+  const varName = params.name || params.variableName || 'variable';
+  const declarationType = params.declarationType || 'var';
+  const dataType = params.dataType || 'any';
+  const originalValue = params.value || params.variableValue || '';
+
+  const isVariableReference = /\{\{\s*.+?\s*\}\}/.test(originalValue);
+  const varValue = stripVariableIndicators(originalValue, mode);
+
+  if (!varValue || varValue.trim() === '' || dataType === 'undefined') {
+    return `${indent}${declarationType} ${varName};`;
+  }
+
+  let valueStr: string;
+
+  if (isVariableReference) {
+    valueStr = varValue;
+  } else {
+    const isNumber = !isNaN(Number(varValue)) && varValue.trim() !== '';
+    
+    if (dataType === 'number' && isNumber) {
+      valueStr = `${varValue} as unknown as ${dataType}`;
+    } else if (dataType === 'boolean') {
+      valueStr = varValue.toLowerCase() === 'true' || varValue === '1' ? `true as unknown as ${dataType}` : `false as unknown as ${dataType}`;
+    } else if (dataType === 'array') {
+      // 'array' is not a TS type name. An array literal is already typed as an array, so emit
+      // it verbatim; wrap a bare value into a single-element array (no cast needed).
+      valueStr = varValue.trim().startsWith('[') ? varValue : `[${varValue}]`;
+    } else if (dataType === 'object') {
+      // A bare value (e.g. `10`) cannot form an object body — `{10}` is invalid syntax.
+      // Emit an object literal verbatim; otherwise cast the value to object.
+      valueStr = varValue.trim().startsWith('{') ? varValue : `${varValue} as unknown as object`;
+    } else if (isNumber && dataType === 'any') {
+      valueStr = `${varValue} as unknown as ${dataType}`;
+    } else if (varValue.includes('$')) {
+      valueStr = `\`${varValue.replace(/`/g, '\\`')}\``;
+    } else {
+      valueStr = varValue.startsWith('"') || varValue.startsWith("'") ? varValue : `"${varValue}" as unknown as ${dataType}`;
     }
   }
   
