@@ -4,6 +4,15 @@ import { getNodesInBranch } from '../Common/helpers';
 import { getApiNodes, getNodeTemplate } from './nodeTemplateService';
 import { getFunctionParameters, generateFunctionArgs } from './functionParameterUtils';
 
+/**
+ * Escapes a string for safe embedding inside a generated template literal, WHILE preserving
+ * intentional `${...}` interpolation. Backslashes are escaped first (so the escapes we add are
+ * not themselves re-escaped), then backticks — otherwise a trailing `\` or stray backtick in
+ * the input would break out of the literal. `$` is deliberately NOT escaped: callers inject
+ * `${var}` references that must interpolate.
+ */
+const escapeForInterpolatedTemplate = (str: string): string => str.replace(/\\/g, '\\\\').replace(/`/g, '\\`');
+
 interface NestedCanvasData {
   nodes: Node[];
   edges: Edge[];
@@ -457,7 +466,7 @@ const generateSetVariableCode = (params: Record<string, string>, indent: string,
     } else if (isNumber && dataType === 'any') {
       valueStr = varValue;
     } else if (varValue.includes('$')) {
-      valueStr = `\`${varValue.replace(/`/g, '\\`')}\``;
+      valueStr = `\`${escapeForInterpolatedTemplate(varValue)}\``;
     } else {
       valueStr = varValue.startsWith('"') || varValue.startsWith("'") ? varValue : `"${varValue}"`;
     }
@@ -491,19 +500,23 @@ const generateSetVariableWithTypeCode = (params: Record<string, string>, indent:
     } else if (dataType === 'boolean') {
       valueStr = varValue.toLowerCase() === 'true' || varValue === '1' ? `true as unknown as ${dataType}` : `false as unknown as ${dataType}`;
     } else if (dataType === 'array') {
-      // 'array' is not a TS type name. An array literal is already typed as an array, so emit
-      // it verbatim; wrap a bare value into a single-element array (no cast needed).
       valueStr = varValue.trim().startsWith('[') ? varValue : `[${varValue}]`;
     } else if (dataType === 'object') {
-      // A bare value (e.g. `10`) cannot form an object body — `{10}` is invalid syntax.
-      // Emit an object literal verbatim; otherwise cast the value to object.
-      valueStr = varValue.trim().startsWith('{') ? varValue : `${varValue} as unknown as object`;
+      const trimmedObj = varValue.trim();
+      if (trimmedObj.startsWith('{')) {
+        valueStr = trimmedObj;
+      } else if (trimmedObj.includes(':')) {
+        valueStr = `{${varValue}}`;
+      } else {
+        valueStr = `${varValue} as unknown as object`;
+      }
     } else if (isNumber && dataType === 'any') {
       valueStr = `${varValue} as unknown as ${dataType}`;
     } else if (varValue.includes('$')) {
-      valueStr = `\`${varValue.replace(/`/g, '\\`')}\``;
+      valueStr = `\`${escapeForInterpolatedTemplate(varValue)}\``;
     } else {
-      valueStr = varValue.startsWith('"') || varValue.startsWith("'") ? varValue : `"${varValue}" as unknown as ${dataType}`;
+      const serializedValue = varValue.startsWith('"') || varValue.startsWith("'") ? varValue : JSON.stringify(varValue);
+      valueStr = `${serializedValue} as unknown as ${dataType}`;
     }
   }
   
@@ -525,7 +538,7 @@ const generateLogCode = (params: Record<string, string>, indent: string, mode: '
       messageStr = normalizeVariableNames(onlyVariableMatch[1].trim(), mode);
     } else {
       const interpolatedMessage = message.replace(/\{\{\s*(.+?)\s*\}\}/g, (_, varName) => `\${${normalizeVariableNames(varName, mode)}}`);
-      messageStr = `\`${interpolatedMessage.replace(/`/g, '\\`')}\``;
+      messageStr = `\`${escapeForInterpolatedTemplate(interpolatedMessage)}\``;
     }
   } else {
     messageStr = `'${message.replace(/'/g, "\\'")}'`;
@@ -549,7 +562,7 @@ const generateThrowErrorCode = (params: Record<string, string>, indent: string, 
       messageStr = normalizeVariableNames(onlyVariableMatch[1].trim(), mode);
     } else {
       const interpolatedMessage = message.replace(/\{\{\s*(.+?)\s*\}\}/g, (_, varName) => `\${${normalizeVariableNames(varName, mode)}}`);
-      messageStr = `\`${interpolatedMessage.replace(/`/g, '\\`')}\``;
+      messageStr = `\`${escapeForInterpolatedTemplate(interpolatedMessage)}\``;
     }
   } else {
     messageStr = `'${message.replace(/'/g, "\\'")}'`;
