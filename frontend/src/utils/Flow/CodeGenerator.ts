@@ -13,6 +13,9 @@ import { getFunctionParameters, generateFunctionArgs } from './functionParameter
  */
 const escapeForInterpolatedTemplate = (str: string): string => str.replace(/\\/g, '\\\\').replace(/`/g, '\\`');
 
+/** Maps a UI dataType to a valid TS type name. Most match 1:1; 'array' is not a TS type. */
+const toTsType = (dataType: string): string => (dataType === 'array' ? 'Array<unknown>' : dataType);
+
 interface NestedCanvasData {
   nodes: Node[];
   edges: Edge[];
@@ -491,7 +494,7 @@ const generateSetVariableWithTypeCode = (params: Record<string, string>, indent:
   let valueStr: string;
 
   if (isVariableReference) {
-    valueStr = varValue;
+    valueStr = `${varValue} as unknown as ${toTsType(dataType)}`;
   } else {
     const isNumber = !isNaN(Number(varValue)) && varValue.trim() !== '';
     
@@ -500,7 +503,8 @@ const generateSetVariableWithTypeCode = (params: Record<string, string>, indent:
     } else if (dataType === 'boolean') {
       valueStr = varValue.toLowerCase() === 'true' || varValue === '1' ? `true as unknown as ${dataType}` : `false as unknown as ${dataType}`;
     } else if (dataType === 'array') {
-      valueStr = varValue.trim().startsWith('[') ? varValue : `[${varValue}]`;
+      const arrayLiteral = varValue.trim().startsWith('[') ? varValue.trim() : `[${varValue}]`;
+      valueStr = `${arrayLiteral} as unknown as Array<unknown>`;
     } else if (dataType === 'object') {
       const trimmedObj = varValue.trim();
       if (trimmedObj.startsWith('{')) {
