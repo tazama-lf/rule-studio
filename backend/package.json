@@ -41,9 +41,9 @@
     "@nestjs/websockets": "^11.1.19",
     "@socket.io/redis-adapter": "^8.3.0",
     "@tazama-lf/audit-lib": "^1.0.8",
-    "@tazama-lf/auth-lib": "3.0.0",
-    "@tazama-lf/frms-coe-lib": "8.0.0-rc.5",
-    "@tazama-lf/frms-coe-startup-lib": "3.0.2-rc.5",
+    "@tazama-lf/auth-lib": "4.0.0-rc.5",
+    "@tazama-lf/frms-coe-lib": "8.2.0-rc.6",
+    "@tazama-lf/frms-coe-startup-lib": "3.1.0-rc.8",
     "@tazama-lf/tcs-lib": "1.0.156-rc.3",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
@@ -52,7 +52,7 @@
     "crypto-js": "^4.2.0",
     "ioredis": "^5.10.1",
     "jsonwebtoken": "^9.0.3",
-    "nodemailer": "^8.0.1",
+    "nodemailer": "^9.0.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "socket.io": "^4.8.3",
@@ -107,7 +107,10 @@
     "fast-xml-parser": "5.7.3",
     "dockerode": {
       "uuid": "^11.1.1"
-    }
+    },
+    "uuid": "^11.1.1",
+    "@opentelemetry/core": "^2.8.0",
+    "multer": "^2.2.0"
   },
   "keywords": [],
   "type": "commonjs"
