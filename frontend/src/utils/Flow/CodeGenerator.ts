@@ -478,14 +478,14 @@ const generateSetVariableCode = (params: Record<string, string>, indent: string,
   return `${indent}${declarationType} ${varName} = ${valueStr};`;
 };
 
-const generateSetVariableWithTypeCode = (params: Record<string, string>, indent: string, mode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
+const generateSetVariableWithTypeCode = (params: Record<string, string>, indent: string, generationMode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
   const varName = params.name || params.variableName || 'variable';
   const declarationType = params.declarationType || 'var';
   const dataType = params.dataType || 'any';
   const originalValue = params.value || params.variableValue || '';
 
   const isVariableReference = /\{\{\s*.+?\s*\}\}/.test(originalValue);
-  const varValue = stripVariableIndicators(originalValue, mode);
+  const varValue = stripVariableIndicators(originalValue, generationMode);
 
   if (!varValue || varValue.trim() === '' || dataType === 'undefined') {
     return `${indent}${declarationType} ${varName};`;
