@@ -600,8 +600,8 @@ describe('useSimulationController', () => {
                     expect.objectContaining({
                         functionName: '',
                         awaitReply: true,
-                        destination: 'sub-rule-config-456@1.0.0',
-                        consumer: 'pub-rule-config-456@1.0.0',
+                        destination: 'sub-config-456@1.0.0',
+                        consumer: 'pub-config-456@1.0.0',
                         message: { test: 'data' },
                     })
                 );
