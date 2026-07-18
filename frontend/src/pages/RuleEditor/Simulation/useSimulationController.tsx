@@ -326,13 +326,11 @@ const useSimulationController = (props: ISimulation) => {
         if (isReadOnly) {
 
             const rule_config_id = data?.rule_config_id
-            const id = rule_config_id?.toString().split('@')[0]
-            const version = data?.version
             body = {
                 functionName: '',
                 awaitReply: true,
-                destination: `sub-rule-${id}@${version}`,
-                consumer: `pub-rule-${id}@${version}`,
+                destination: `sub-${rule_config_id}`,
+                consumer: `pub-${rule_config_id}`,
                 message: parsedPayload
             };
             mutation = ruleOnly;
