@@ -52,6 +52,44 @@ export const getStatusStyles = (status: string, theme: Theme) => {
                 color: theme.palette.grey[700],
                 borderColor: theme.palette.grey[300],
             };
+        case "RUNNING":
+            return {
+                backgroundColor: '#fefce8',
+                color: '#d28e0e',
+                borderColor: '#fef5b5',
+            };
+        case "COMPLETED":
+        case "Completed":
+            return {
+                backgroundColor: '#f0fdf4',
+                color: '#00a63e',
+                borderColor: '#ddfbe8',
+            };
+        case "FAILED":
+        case "Failed":
+            return {
+                backgroundColor: '#fef2f2',
+                color: '#e7000b',
+                borderColor: '#ffc9c9',
+            };
+        case "Ready for Simulation":
+            return {
+                backgroundColor: '#f0fdf4',
+                color: '#00a63e',
+                borderColor: '#ddfbe8',
+            };
+        case "Draft":
+            return {
+                backgroundColor: theme.palette.grey[100],
+                color: theme.palette.grey[700],
+                borderColor: theme.palette.grey[300],
+            };
+        case "Generated":
+            return {
+                backgroundColor: '#eef2ff',
+                color: '#5641f6',
+                borderColor: '#e1e8ff',
+            };
         default:
             return {
                 backgroundColor: theme.palette.grey[100],

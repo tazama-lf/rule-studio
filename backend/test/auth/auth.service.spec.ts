@@ -97,6 +97,8 @@ describe('AuthService', () => {
         'editor',
         'approver',
         'publisher',
+        'trs_data_engineer_editor',
+        'trs_data_engineer_approver',
       ]);
 
       expect(loggerService.log).toHaveBeenCalledWith(
@@ -121,7 +123,7 @@ describe('AuthService', () => {
       );
 
       expect(loggerService.warn).toHaveBeenCalledWith(
-        `User ${username} does not have required claims (editor, approver, or publisher).`,
+        `User ${username} does not have required claims (editor, approver, publisher, trs_data_engineer_editor, or trs_data_engineer_approver).`,
         'AuthService',
       );
     });

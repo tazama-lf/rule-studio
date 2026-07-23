@@ -1,5 +1,7 @@
 export const NAV_HEIGHT = 60;
 
+export const APACHE_LICENSE_URL = 'https://github.com/tazama-lf/rule-studio/blob/main/LICENSE';
+
 export const serial_no_option = {
   label: "S. No",
   key: "id",
@@ -11,7 +13,7 @@ export const REGEX = {
 
 export const baseFontSizes = {
   bigHeader: {
-    default: '2.2rem',
+    default: '2rem',
     small: '1.75rem',
   },
   header: {

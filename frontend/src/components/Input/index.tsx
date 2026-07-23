@@ -14,7 +14,7 @@ export interface InputProps {
     placeholder?: string;
     value?: string | null;
     onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
-    type?: 'text' | 'password' | 'textarea';
+    type?: 'text' | 'password' | 'textarea' | 'date' | 'time';
     icon?: React.ElementType;
     success?: boolean;
     rows?: number;

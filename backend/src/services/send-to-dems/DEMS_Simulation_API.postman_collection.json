@@ -1,0 +1,253 @@
+{
+  "info": {
+    "_postman_id": "rule-studio-simulation-ws",
+    "name": "Rule Studio – DEMS Simulation + WebSocket",
+    "description": "Full test flow:\n1. Login → saves {{auth_token}}\n2. Start Simulation (HTTP) → saves {{job_id}}\n3. Socket.IO Connect to /simulation namespace\n4. Emit joinJob → subscribe to progress room\n5. Receive simulationProgress events (progress + log combined)\n6. Emit leaveJob → unsubscribe\n\nSocket.IO items require Postman v10+.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3005", "type": "string" },
+    { "key": "auth_token", "value": "", "type": "string" },
+    { "key": "job_id", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "1 – Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) {",
+                  "  pm.collectionVariables.set('auth_token', json.token);",
+                  "  pm.test('Token saved', () => pm.expect(json.token).to.be.a('string'));",
+                  "} else {",
+                  "  pm.test('Login failed – no token in response', () => pm.expect.fail(JSON.stringify(json)));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin@example.com\",\n  \"password\": \"your-password\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Authenticates and saves the JWT to {{auth_token}}. All subsequent requests use this variable."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"message\": \"Login successful\",\n  \"token\": \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2 – Simulation (HTTP)",
+      "item": [
+        {
+          "name": "Start Simulation – single table",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 202', () => pm.response.to.have.status(202));",
+                  "const json = pm.response.json();",
+                  "pm.test('jobId present', () => pm.expect(json.jobId).to.be.a('string'));",
+                  "if (json.jobId) {",
+                  "  pm.collectionVariables.set('job_id', json.jobId);",
+                  "  console.log('Job ID saved:', json.jobId);",
+                  "  console.log('Now open the Socket.IO request, emit joinJob with this jobId, and watch simulationProgress events.');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{auth_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tableNames\": [\"sim001\"]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/send-to-dems/simulate",
+              "host": ["{{base_url}}"],
+              "path": ["send-to-dems", "simulate"]
+            },
+            "description": "Enqueues the simulation job. Returns 202 Accepted immediately with a jobId.\nThe jobId is auto-saved to {{job_id}}.\n\nThen connect to the Socket.IO namespace /simulation and emit joinJob with this jobId to track progress."
+          },
+          "response": [
+            {
+              "name": "202 Accepted",
+              "status": "Accepted",
+              "code": 202,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{\n  \"jobId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Start Simulation – multiple tables",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 202', () => pm.response.to.have.status(202));",
+                  "const json = pm.response.json();",
+                  "if (json.jobId) {",
+                  "  pm.collectionVariables.set('job_id', json.jobId);",
+                  "  console.log('Job ID saved:', json.jobId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{auth_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tableNames\": [\"sim001\", \"sim002\"]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/send-to-dems/simulate",
+              "host": ["{{base_url}}"],
+              "path": ["send-to-dems", "simulate"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3 – WebSocket / Socket.IO",
+      "item": [
+        {
+          "name": "Connect + joinJob",
+          "request": {
+            "url": {
+              "raw": "{{base_url}}/simulation",
+              "host": ["{{base_url}}"],
+              "path": ["simulation"]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "description": "Socket.IO connection to the /simulation namespace.\n\nSteps after connecting:\n1. Messages panel → Event name: joinJob → Body: { \"jobId\": \"{{job_id}}\" } → Send\n2. You will receive a joinedJob acknowledgement: { \"jobId\": \"...\", \"room\": \"job:...\" }\n3. Listen for simulationProgress events. Each payload:\n\n{\n  \"jobId\": \"...\",\n  \"progress\": 25,\n  \"processed\": 50,\n  \"total\": 200,\n  \"status\": \"running\",\n  \"log\": {\n    \"timestamp\": \"2026-04-21T16:26:44.000Z\",\n    \"level\": \"warning\",\n    \"message\": \"Rule engine processing... Alerts triggered.\"\n  }\n}\n\n4. Final event has status=completed and progress=100\n5. To unsubscribe: Event name leaveJob → Body: { \"jobId\": \"{{job_id}}\" }\n\nlog.level colour mapping:\n  info    → grey\n  success → green\n  warning → yellow\n  error   → red"
+          },
+          "response": []
+        },
+        {
+          "name": "[Message] joinJob",
+          "request": {
+            "url": {
+              "raw": "{{base_url}}/simulation",
+              "host": ["{{base_url}}"],
+              "path": ["simulation"]
+            },
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"jobId\": \"{{job_id}}\" }",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Set event name to: joinJob\nSend this after connecting to subscribe to the job room.\nAcknowledgement event back: joinedJob"
+          },
+          "response": []
+        },
+        {
+          "name": "[Message] leaveJob",
+          "request": {
+            "url": {
+              "raw": "{{base_url}}/simulation",
+              "host": ["{{base_url}}"],
+              "path": ["simulation"]
+            },
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"jobId\": \"{{job_id}}\" }",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Set event name to: leaveJob\nUnsubscribes from the job room. No acknowledgement is sent back."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4 – Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [],
+              "body": "{ \"status\": \"ok\" }"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

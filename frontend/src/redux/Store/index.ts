@@ -9,6 +9,12 @@ import { ruleBuilderApi } from '../Api/Rule-builder'
 import { simulationApi } from '../Api/Simulation'
 import { natsApi } from '../Api/Nats'
 import { logsApi } from '../Api/SimulationLogs'
+import { maskingApi } from '../Api/Masking'
+import { sendToDemsApi } from '../Api/SendToDems'
+import { ruleSimulationApi } from '../Api/RuleSimulation'
+import { fetchFromDlhApi } from '../Api/FetchDromDlh'
+import { simStudioApi } from '../Api/SimStudio'
+import { dockerHubApi } from '../Api/DockerHub'
 
 export default configureStore({
     reducer: {
@@ -20,6 +26,12 @@ export default configureStore({
         [simulationApi.reducerPath]: simulationApi.reducer,
         [natsApi.reducerPath]: natsApi.reducer,
         [logsApi.reducerPath]: logsApi.reducer,
+        [maskingApi.reducerPath]: maskingApi.reducer,
+        [sendToDemsApi.reducerPath]: sendToDemsApi.reducer,
+        [ruleSimulationApi.reducerPath]: ruleSimulationApi.reducer,
+        [fetchFromDlhApi.reducerPath]: fetchFromDlhApi.reducer,
+        [simStudioApi.reducerPath]: simStudioApi.reducer,
+        [dockerHubApi.reducerPath]: dockerHubApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
@@ -33,6 +45,12 @@ export default configureStore({
             .concat(simulationApi.middleware)
             .concat(natsApi.middleware)
             .concat(logsApi.middleware)
+            .concat(maskingApi.middleware)
+            .concat(sendToDemsApi.middleware)
+            .concat(ruleSimulationApi.middleware)
+            .concat(fetchFromDlhApi.middleware)
+            .concat(simStudioApi.middleware)
+            .concat(dockerHubApi.middleware)
             .concat(errorLogger)
             .concat(successLogger)
 })

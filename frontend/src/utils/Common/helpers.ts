@@ -15,6 +15,13 @@ interface EdgeWithSourceTarget {
   [key: string]: unknown;
 }
 
+export const generateKey = (key: string): string => {
+  const prefix = key.replace(/\s+/g, '').substring(0, 3).toUpperCase();
+  const randomPart = Math.random().toString(36).substring(2, 2 + prefix.length + 7);
+  return `${prefix}_${randomPart.toUpperCase()}`;
+}
+
+
 export const sortNodesInFlowOrder = <T extends NodeWithId, E extends EdgeWithSourceTarget>(
   nodesToSort: T[],
   edgesToSort: E[]
@@ -179,7 +186,9 @@ export const toDropdown = (value?: string | null): DropdownOption | null =>
   value ? { label: value, value } : null;
 
 export const capitalize = (value: string) =>
-  value.charAt(0).toUpperCase() + value.slice(1);
+  value
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 
 
 const decodeJwtPayload = (token: string): Record<string, unknown> | null => {

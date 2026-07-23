@@ -1,4 +1,5 @@
 import { Box, CssBaseline } from '@mui/material';
+import { APACHE_LICENSE_URL } from '../../../utils/Constants';
 import Logo from '../../../assets/logo.png';
 import tazamaLogo from '../../../assets/tazamaLogo.svg';
 import treeImage from '../../../assets/treeImage.png';
@@ -79,8 +80,18 @@ const Login = () => {
                             <Button text="LOGIN" loading={values?.isLoading} type='primary' size='lg' Icon={LoginIcon} onClick={functions.handleSubmit} />
                         </S.FormWrapper>
 
-                        <S.FooterText variant="body2" color="text.black">
-                            &copy; {new Date().getFullYear()} Tazama. Powered by Paysys Labs.
+                        <S.FooterText variant="body2" color="text.black" align="center">
+                            &copy; {new Date().getFullYear()} LF Charities, Inc. and contributors to the Tazama project
+                            <br />
+                            Licensed under{' '}
+                            <a
+                                href={APACHE_LICENSE_URL}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ color: 'inherit' }}
+                            >
+                                Apache-2.0
+                            </a>
                         </S.FooterText>
                     </S.LoginCard>
                 </S.LeftSection>

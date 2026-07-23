@@ -71,7 +71,8 @@ interface CanvasProps {
   initialNodes?: Node[];
   initialEdges?: Edge[];
   onUpdateNodeInternalsReady?: (updateFn: (nodeId: string) => void) => void;
-  mode?: 'rule-builder' | 'test-case-generate'; 
+  mode?: 'rule-builder' | 'test-case-generate';
+  txtp?: string;
 }
 
 
@@ -93,6 +94,7 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = memo(({
   initialEdges,
   onUpdateNodeInternalsReady,
   mode = 'rule-builder',
+  txtp,
 }) => {
   const extractedNestedCountersRef = useRef(false);
   const hasInitializedStateRef = useRef(false);
@@ -173,6 +175,7 @@ const RuleBuilderCanvas: React.FC<CanvasProps> = memo(({
     onCodeGenerate,
     reactFlowInstance: reactFlowInstance as Record<string, unknown> | undefined,
     mode,
+    txtp,
   });
 
   const {

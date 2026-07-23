@@ -1,23 +1,31 @@
-import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
-import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
-import StorageRoundedIcon from '@mui/icons-material/StorageRounded';
+import LayersOutlinedIcon from '@mui/icons-material/LayersOutlined';
 import { Box } from "@mui/material";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Text } from "../../components/Text";
 import * as S from './Sidebar.styles';
 import LogoutIcon from '@mui/icons-material/Logout';
-import { resetData } from '../../utils/Common/storage';
+import { extractData, resetData } from '../../utils/Common/storage';
+import { TRS_ROLES } from '../../utils/Constants/data';
 
-const menuItems: { icon: React.ReactElement, label: string, route: string, color: string }[] = [
-    { icon: <HomeOutlinedIcon />, label: "Rules Home", route: "home", color: "#8f57ee" },
-    { icon: <StorageRoundedIcon />, label: "Datasets", route: "datasets", color: "#2bc08f" },
-    { icon: <SettingsOutlinedIcon />, label: "Settings", route: "settings", color: "#f5a319" },
-    { icon: <HelpOutlineOutlinedIcon />, label: "Help", route: "help", color: "#8f57ee" },
+const sharedMenuItems: { icon: React.ReactElement, label: string, route: string, color: string }[] = [
+    { icon: <HomeOutlinedIcon />, label: "Home", route: "home", color: "#8f57ee" },
+];
+
+const trsMenuItems: { icon: React.ReactElement, label: string, route: string, color: string }[] = [
+    { icon: <LayersOutlinedIcon />, label: "Sim Studio", route: "sim-studio", color: "#f59e0b" },
+];
+
+const dataEngineerMenuItems: { icon: React.ReactElement, label: string, route: string, color: string }[] = [
+    { icon: <HomeOutlinedIcon />, label: "Masking Configuration", route: "masking-config", color: "#8f57ee" },
 ];
 
 const Sidebar = ({ expanded }: { expanded: boolean; }) => {
+    const user = extractData('user') || {};
+    const isTrs = TRS_ROLES.includes(user?.claims ?? '');
+    const menuItems = isTrs ? [...sharedMenuItems, ...trsMenuItems] : dataEngineerMenuItems;
+
     const [activeIdx, setActiveIdx] = useState(0);
 
     const handleMenuClick = (idx: number) => {

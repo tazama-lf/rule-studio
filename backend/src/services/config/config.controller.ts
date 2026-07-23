@@ -6,6 +6,7 @@ import { RequireAnyClaims, TazamaClaims } from '../../decorators/auth.decorator'
 import { User } from '../../decorators/user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { EndpointKey } from 'src/utils/rbac/rbacHelper';
+import { TransactionTypeDto } from './dto/config.dto';
 
 @ApiTags('Configuration')
 @ApiBearerAuth('JWT-auth')
@@ -15,7 +16,13 @@ export class ConfigController {
   constructor(private readonly configService: ConfigService) {}
 
   @Get('/api/transaction-types')
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @RequireAnyClaims(
+    TazamaClaims.EDITOR,
+    TazamaClaims.APPROVER,
+    TazamaClaims.PUBLISHER,
+    TazamaClaims.DATA_ENGINEER_EDITOR,
+    TazamaClaims.DATA_ENGINEER_APPROVER,
+  )
   @ApiOperation({
     summary: 'Get transaction types',
     description: 'Retrieve all available ISO 20022 transaction types from the configuration service',
@@ -37,7 +44,7 @@ export class ConfigController {
     status: 403,
     description: 'Forbidden - Insufficient permissions',
   })
-  async getTransactionTypes(@User() user: AuthenticatedUser): Promise<string[]> {
+  async getTransactionTypes(@User() user: AuthenticatedUser): Promise<TransactionTypeDto[]> {
     const endpointKey = 'GET /config/api/transaction-types' as EndpointKey;
 
     return await this.configService.getTransactionTypes(user, endpointKey);
@@ -45,7 +52,7 @@ export class ConfigController {
 
   // at this point, we need another API to get all versions for a transaction type
   @Get('/api/versions/:transactionType')
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER, TazamaClaims.DATA_ENGINEER_EDITOR)
   @ApiOperation({
     summary: 'Get versions by transaction type',
     description: 'Retrieve all available versions for a specific transaction type',
@@ -82,7 +89,7 @@ export class ConfigController {
   }
 
   @Get('/api/payload/:transactionType/:transactionVersion')
-  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER, TazamaClaims.DATA_ENGINEER_EDITOR)
   @ApiOperation({
     summary: 'Get payload schema by transaction type',
     description: 'Retrieve the payload schema structure for a specific transaction type',
@@ -127,8 +134,6 @@ export class ConfigController {
 
     return {
       ...response,
-      TxTp: transactionType,
-      TenantId: user.token.tenantId,
     };
   }
 }

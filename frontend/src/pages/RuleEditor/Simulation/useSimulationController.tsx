@@ -29,6 +29,11 @@ const useSimulationController = (props: ISimulation) => {
         [props.data]
     )
 
+    const getEndpointPath = useCallback(
+        () => extractData('trs_endpoint_path', LocalStorage, true) as string | null,
+        []
+    )
+
     const { rule_name } : { rule_name?: string } = data || {};
 
     const user = useMemo(() => extractData('user'), [])
@@ -88,12 +93,6 @@ const useSimulationController = (props: ISimulation) => {
             body: { metadata }
         }
         update(body).unwrap()
-            .then(() => {
-                console.log('Metadata updated successfully', metadata)
-            })
-            .catch((error) => {
-                console.error('Failed to update metadata', error)
-            })
     }, [data?.id, update])
 
     const handleApproval = (type: 'review' | 'approve' | 'reject' | 'deploy') => {
@@ -121,7 +120,6 @@ const useSimulationController = (props: ISimulation) => {
         const rule_config_id = data?.rule_config_id
         const body = {
             ruleId: rule_config_id?.toString().split('@')[0],
-            branchName: 'staging'
         }
         getReportStatus({ ...body })
             .unwrap()
@@ -328,13 +326,11 @@ const useSimulationController = (props: ISimulation) => {
         if (isReadOnly) {
 
             const rule_config_id = data?.rule_config_id
-            const id = rule_config_id?.toString().split('@')[0]
-            const version = data?.version
             body = {
                 functionName: '',
                 awaitReply: true,
-                destination: `sub-rule-${id}@${version}`,
-                consumer: `pub-rule-${id}@${version}`,
+                destination: `sub-${rule_config_id}`,
+                consumer: `pub-${rule_config_id}`,
                 message: parsedPayload
             };
             mutation = ruleOnly;
@@ -353,11 +349,14 @@ const useSimulationController = (props: ISimulation) => {
                 addSimulationLog(body, res, logCategory);
             };
         } else {
+            const endpointPath = getEndpointPath();
+            if (!endpointPath) {
+                toast.error('Transaction type endpoint path not found. Please select a valid transaction type.')
+                return;
+            }
             body = {
                 body: parsedPayload,
-                tenantId: user.tenantId,
-                version: data.txtp_version,
-                txtp: data.txtp
+                endpointPath,
             };
             mutation = endToEnd;
             logCategory = 'end_to_end';

@@ -22,7 +22,7 @@ export class AuthService {
   }
 
   private validateUserToken(token: string, username: string): void {
-    const claimsToCheck = ['editor', 'approver', 'publisher'];
+    const claimsToCheck = ['editor', 'approver', 'publisher', 'trs_data_engineer_editor', 'trs_data_engineer_approver'];
     let claimResult;
     try {
       claimResult = validateTokenAndClaims(token, claimsToCheck);
@@ -32,9 +32,12 @@ export class AuthService {
       throw new UnauthorizedException('Token validation failed');
     }
 
-    const hasRequiredClaim = [claimResult.editor, claimResult.approver, claimResult.publisher].some((claim) => !!claim);
+    const hasRequiredClaim = claimsToCheck.some((claim) => !!claimResult[claim]);
     if (!hasRequiredClaim) {
-      this.loggerService.warn(`User ${username} does not have required claims (editor, approver, or publisher).`, AuthService.name);
+      this.loggerService.warn(
+        `User ${username} does not have required claims (editor, approver, publisher, trs_data_engineer_editor, or trs_data_engineer_approver).`,
+        AuthService.name,
+      );
       throw new UnauthorizedException('Invalid credentials');
     }
   }

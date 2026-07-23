@@ -8,7 +8,7 @@ import { Text } from '../../Text';
 interface InputWrapperProps {
     label?: string;
     value?: string | null;
-    type?: 'text' | 'password' | 'textarea' | 'time';
+    type?: 'text' | 'password' | 'textarea' | 'time' | 'date';
     error?: string;
     view_only?: boolean;
     disabled?: boolean;

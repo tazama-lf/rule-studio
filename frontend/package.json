@@ -1,7 +1,7 @@
 {
   "name": "rule-studio-frontend",
   "private": true,
-  "version": "0.0.0",
+  "version": "4.0.0-rc.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -34,6 +34,7 @@
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.11.0",
     "reactflow": "^11.11.4",
+    "socket.io-client": "^4.8.3",
     "styled-components": "^6.1.19",
     "yup": "^1.7.1"
   },

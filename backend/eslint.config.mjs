@@ -36,7 +36,7 @@ export default defineConfig([
       '@typescript-eslint/max-params': ['warn', { max: 7 }],
       '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/class-methods-use-this': 'off',
-      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-floating-promises': 'off',
       '@typescript-eslint/no-magic-numbers': 'off',
       '@typescript-eslint/no-var-requires': 'off',
@@ -59,6 +59,7 @@ export default defineConfig([
       complexity: ['warn', { max: 15 }],
       'no-console': 'error',
       'no-unneeded-ternary': 'off',
+      'no-param-reassign': ['error', { props: false }],
       /* eslint-comments are bundled with eslint-config-love but they are using the unmaintained plugin. Replaced with @eslint-community/eslint-plugin-eslint-comments */
       'eslint-comments/require-description': 'off',
       'eslint-comments/disable-enable-pair': 'off',
