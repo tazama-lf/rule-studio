@@ -12,6 +12,10 @@ Tazama Rule Studio (TRS) is a comprehensive design-time rule management platform
 - An audit logging system tracking all rule changes, status transitions, and workflow events
 - An ISO 20022 message parsing and validation engine
 
+## User Manual and Video Demonstration
+- Please refer to the user manual here: https://github.com/tazama-lf/docs/blob/dev/Guides/User%20Manuals%20for%20Downloading/Tazama%20Rule%20Studio.docx
+- Please refer to the demonstration video here: https://www.youtube.com/watch?v=c6HAFGqO-xE
+
 ## Architecture
 
 ### High-Level Flow
@@ -366,8 +370,6 @@ docker build -t trs-backend:latest .
 docker run -p 3005:3005 --env-file .env trs-backend:latest
 ```
 
-Please refer to the deployment guide here: https://github.com/tazama-lf/docs/blob/dev/Technical/Deployment-Guides/TRS-Deployment-Guide.md
-
 #### Full Stack with Docker Compose
 
 ```bash
@@ -380,6 +382,8 @@ docker-compose logs -f
 # Stop services
 docker-compose down
 ```
+
+Please refer to the deployment guide here: https://github.com/tazama-lf/docs/blob/dev/Technical/Deployment-Guides/TRS-Deployment-Guide.md
 
 ---
 
