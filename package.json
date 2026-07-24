@@ -1,4 +1,5 @@
 {
+  "version": "4.0.0",
   "scripts": {
     "lint:eslint": "npm run backend:lint:eslint && npm run frontend:lint:eslint",
     "backend:lint:eslint": "cd backend && npm ci && npm run lint",
@@ -8,6 +9,5 @@
     "frontend:test": "cd frontend && npm ci && npm run test",
     "build": "npm run backend:build",
     "backend:build": "cd backend && npm ci && npm run build"
-  },
-  "version": "4.0.0"
+  }
 }
