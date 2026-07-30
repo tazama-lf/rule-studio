@@ -37,6 +37,7 @@ import { serviceSchema } from './serviceSchema';
 
 export const nodeSchemas: Record<string, ObjectSchema<Record<string, unknown>>> = {
   SetVariable: setVariableSchema,
+  SetVariableWithType: setVariableSchema,
   Log: logSchema,
   If: ifSchema,
   FetchDB: fetchDBSchema,
