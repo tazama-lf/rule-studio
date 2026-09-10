@@ -167,6 +167,28 @@ describe('RulesService - extended coverage', () => {
       await expect(service.createRule({ txtp: 'pacs.002' }, user)).rejects.toThrow(BadRequestException);
     });
 
+    it('surfaces AJV validation errors instead of the generic message when schema validation fails', async () => {
+      const user = makeUser('editor');
+      const rbacService = (service as any).rbacService;
+      jest.spyOn(rbacService, 'isRole').mockReturnValue(true);
+      jest.spyOn(rbacService, 'getTier2').mockReturnValue({ allowed: true, allowedStatuses: [] });
+      adminServiceClient.getConfigRowByTxTp.mockResolvedValue({ config: { schema: {}, mapping: {}, payload: {} } } as any);
+      parseExtractService.processForRuleCreation.mockResolvedValue({
+        success: false,
+        message: 'Payload validation failed',
+        correlationId: 'corr-1',
+        ruleRequest: undefined,
+        validationErrors: ["Missing required property 'CreDtTm'"],
+      } as any);
+
+      await expect(service.createRule({ txtp: 'pacs.002' }, user)).rejects.toMatchObject({
+        response: {
+          message: 'Payload validation failed',
+          validationErrors: ["Missing required property 'CreDtTm'"],
+        },
+      });
+    });
+
     it('rethrows errors from adminServiceClient.createRule', async () => {
       const user = makeUser('editor');
       const rbacService = (service as any).rbacService;
