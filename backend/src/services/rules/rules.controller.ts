@@ -139,10 +139,10 @@ export class RulesController {
   // get rule configuration by rule ID
   @Get('/api/configuration/:ruleId')
   @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
-  @ApiParam({ name: 'ruleId', description: 'Rule identifier', example: 'high-value-transfer-001' })
+  @ApiParam({ name: 'ruleId', description: 'Rule identifier in <ruleId>@<ruleCfg> format', example: 'high-value-transfer-001@v1' })
   @ApiSwagger({
     summary: 'Get rule configuration',
-    description: 'Retrieves configuration details for a specific rule by rule ID',
+    description: 'Retrieves configuration details for a specific rule by rule ID and configuration version',
     responses: mergeResponses(
       CommonResponses.SUCCESS_200(undefined, 'Rule configuration retrieved successfully'),
       CommonResponses.NOT_FOUND_404('Rule configuration not found'),

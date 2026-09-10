@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { DropdownOption } from "../../../../components/DropDown";
 import { useGetRuleConfigsIdsQuery, useLazyGetRuleConfigQuery } from "../../../../redux/Api/Rules";
+import { useModal } from "../../../../contexts/ModalContext";
 
 export interface RuleConfigProps {
   handleRuleValue: (val: DropdownOption) => void,
@@ -18,6 +19,7 @@ const useRuleConfigController = ({ handleRuleValue, ruleConfigId, mode }: RuleCo
 
   const { data, isLoading } = useGetRuleConfigsIdsQuery({})
   const [submit, { isLoading: configLoader }] = useLazyGetRuleConfigQuery()
+  const { close } = useModal()
 
   const [ruleId, setRuleId] = useState<DropdownOption | null>(ruleConfigId ? { label: ruleConfigId, value: ruleConfigId } : null);
   const [json, setJson] = useState(null)
@@ -34,12 +36,18 @@ const useRuleConfigController = ({ handleRuleValue, ruleConfigId, mode }: RuleCo
 
   const handleRuleId = (value: DropdownOption) => {
     setRuleId(value)
-    handleRuleValue(value)
+  }
+
+  const handleConfirm = () => {
+    if (ruleId) {
+      handleRuleValue(ruleId)
+    }
+    close()
   }
 
   return {
     values: {
-      ruleConfigs: data?.map((item: IRuleId) => ({ label: item.ruleid, value: item.ruleid })),
+      ruleConfigs: data?.map((item: IRuleId) => ({ label: `${item.ruleid} (${item.rulecfg})`, value: `${item.ruleid}@${item.rulecfg}` })),
       ruleId,
       isLoading,
       configLoader,
@@ -47,7 +55,8 @@ const useRuleConfigController = ({ handleRuleValue, ruleConfigId, mode }: RuleCo
       isView: mode === 'view' || mode === 'edit'
     },
     functions: {
-      handleRuleId
+      handleRuleId,
+      handleConfirm
     }
   }
 }
