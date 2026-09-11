@@ -5,7 +5,6 @@ import addFormats from 'ajv-formats';
 import { randomUUID } from 'node:crypto';
 import { processMappings, FieldMapping } from '@tazama-lf/tcs-lib';
 import { TransactionalMessage, RuleRequest, NetworkMap, DataCache, MetaData } from './dto/message.dto';
-import { AdminServiceClient } from '../admin-service-client';
 import { formatValidationErrors } from '../../utils/validation.utils';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { isPacs002Transaction } from '@tazama-lf/frms-coe-lib';
@@ -16,7 +15,7 @@ export class ParseExtractService {
   private readonly rbacService = new RbacService();
   private readonly ajv: Ajv;
 
-  constructor(private readonly adminServiceClient: AdminServiceClient) {
+  constructor() {
     // Initialize AJV with same configuration as DEMS
     this.ajv = new Ajv({ allErrors: true, logger: false });
     addFormats(this.ajv);
@@ -28,6 +27,7 @@ export class ParseExtractService {
    * @param token Authentication token
    * @returns Processing result optimized for rule creation
    */
+  // eslint-disable-next-line @typescript-eslint/require-await -- no internal await remains after removing the network map fetch (#149), but stays Promise-returning for jest.Mocked<ParseExtractService>.mockResolvedValue(...) call sites
   async processForRuleCreation(
     transactionType: string,
     transactionVersion: string,
@@ -61,7 +61,6 @@ export class ParseExtractService {
         };
       }
       const mappingOutcome = processMappings(payloadToValidate, mappingResult, transactionType);
-      const networkMap = await this.adminServiceClient.getActiveNetworkMap(user.token.tokenString);
 
       this.logger.log(
         `Processed mappings for ${transactionType}: extracted ${Object.keys(mappingOutcome.dataCache).length} data cache entries`,
@@ -71,14 +70,7 @@ export class ParseExtractService {
       const msgIdSourceKey = msgIdMapping?.source?.[0];
       const msgId = msgIdSourceKey ? (payloadToValidate[msgIdSourceKey] as string | undefined) : undefined;
 
-      const ruleRequest: RuleRequest = this.createRuleRequest(
-        payloadToValidate,
-        user,
-        correlationId,
-        mappingOutcome.dataCache,
-        networkMap,
-        msgId,
-      );
+      const ruleRequest: RuleRequest = this.createRuleRequest(payloadToValidate, user, correlationId, mappingOutcome.dataCache, msgId);
 
       return {
         success: true,
@@ -166,7 +158,6 @@ export class ParseExtractService {
    * @param originalRequest The original request for metadata
    * @param correlationId Correlation ID for tracking
    * @param extractedDataCache The data cache extracted from mapping processing
-   * @param extractedNetworkMap The network map fetched for the tenant
    * @returns RuleRequest object ready for rule processing
    */
   private createRuleRequest(
@@ -174,11 +165,12 @@ export class ParseExtractService {
     user: AuthenticatedUser,
     correlationId: string,
     extractedDataCache?: DataCache,
-    extractedNetworkMap?: NetworkMap,
     msgId?: string,
   ): RuleRequest {
-    // Use extracted networkMap or create empty one
-    const networkMap: NetworkMap = extractedNetworkMap ?? {};
+    // A rule has no network map at design/creation time - the map is appended by the
+    // event-director at routing time, and the simulation engine builds its own synthetic
+    // map per run. See tazama-lf/rule-studio#149.
+    const networkMap: NetworkMap = {};
 
     // Use extracted dataCache from mappings or create empty one
     const dataCache: DataCache = extractedDataCache ?? {};

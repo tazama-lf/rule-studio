@@ -118,8 +118,12 @@ export class RulesService {
         user,
       );
       if (!parseResult.ruleRequest) {
-        this.logger.error(`Rule request is missing in parse result for transaction type ${transactionType}`);
-        throw new BadRequestException('Failed to generate rule request from payload');
+        if (parseResult.validationErrors?.length) {
+          this.logger.warn(`Payload validation failed for transaction type ${transactionType}: ${parseResult.validationErrors.join('; ')}`);
+          throw new BadRequestException({ message: parseResult.message, validationErrors: parseResult.validationErrors });
+        }
+        this.logger.error(`Rule request is missing in parse result for transaction type ${transactionType}: ${parseResult.message}`);
+        throw new BadRequestException(parseResult.message);
       }
       const rule = await this.adminServiceClient.createRule(ruleData, user.token.tokenString, parseResult.ruleRequest);
       if (rule.id) {

@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ParseExtractService } from '../../src/services/parse-extract/parse-extract.service';
-import { AdminServiceClient } from '../../src/services/admin-service-client';
 import { AuthenticatedUser } from '../../src/services/auth/auth.types';
 
 describe('ParseExtractService - extractPayloadFromRequest (lines 139-149)', () => {
@@ -17,13 +16,7 @@ describe('ParseExtractService - extractPayloadFromRequest (lines 139-149)', () =
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ParseExtractService,
-        {
-          provide: AdminServiceClient,
-          useValue: { getActiveNetworkMap: jest.fn().mockResolvedValue({}) },
-        },
-      ],
+      providers: [ParseExtractService],
     }).compile();
 
     service = module.get<ParseExtractService>(ParseExtractService);
@@ -73,25 +66,6 @@ describe('ParseExtractService - extractPayloadFromRequest (lines 139-149)', () =
       expect(result).not.toBeNull();
       expect(result.TxTp).toBe('pacs.002');
       expect(result.TenantId).toBeUndefined();
-    });
-  });
-
-  describe('auth header branch coverage', () => {
-    it('processForRuleCreation succeeds with empty schema (covers getActiveNetworkMap)', async () => {
-      const adminSvc = (service as any).adminServiceClient;
-      adminSvc.getActiveNetworkMap.mockResolvedValue({ nodes: [] });
-
-      const result = await service.processForRuleCreation(
-        'pacs.002',
-        '1',
-        {},
-        [],
-        { field: 'value' },
-        mockUser,
-      );
-
-      expect(result.success).toBe(true);
-      expect(result.ruleRequest).toBeDefined();
     });
   });
 });
