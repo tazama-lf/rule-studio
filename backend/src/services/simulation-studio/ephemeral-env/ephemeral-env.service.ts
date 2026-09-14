@@ -22,7 +22,7 @@ const DOCKERHUB_NAMESPACE = process.env.DOCKERHUB_NAMESPACE ?? 'tazamaorg';
 const POSTGRES_IMAGE = process.env.POSTGRES_IMAGE ?? 'postgres:18';
 const NATS_IMAGE = process.env.NATS_IMAGE ?? 'nats:2';
 const VALKEY_IMAGE = process.env.VALKEY_IMAGE ?? 'valkey/valkey:7.2.5';
-const NATS_UTILITIES_IMAGE = process.env.NATS_UTILITIES_IMAGE ?? `${DOCKERHUB_NAMESPACE}/nats-utilities:4.0.0`;
+const NATS_UTILITIES_IMAGE = process.env.NATS_UTILITIES_IMAGE ?? 'tazamaorg/nats-utilities:4.0.0';
 
 interface GithubEntry {
   type: string;
