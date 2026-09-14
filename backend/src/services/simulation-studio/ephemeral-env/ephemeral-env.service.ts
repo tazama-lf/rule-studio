@@ -19,15 +19,9 @@ const GITHUB_REPO = 'tazama-lf/Full-Stack-Docker-Tazama';
 const REPO_BRANCH = process.env.TAZAMA_REPO_BRANCH ?? 'dev';
 const DOCKERHUB_NAMESPACE = process.env.DOCKERHUB_NAMESPACE ?? 'tazamaorg';
 
-// Infrastructure images used by every simulation. Each is overridable via env var
-// (e.g. to point at a private registry mirror on beta) and defaults to the same
-// image/tag the org's own reference stack uses (Full-Stack-Docker-Tazama).
 const POSTGRES_IMAGE = process.env.POSTGRES_IMAGE ?? 'postgres:18';
 const NATS_IMAGE = process.env.NATS_IMAGE ?? 'nats:2';
 const VALKEY_IMAGE = process.env.VALKEY_IMAGE ?? 'valkey/valkey:7.2.5';
-// Was hard-coded to an untrusted personal Docker Hub account (ndxf/nats-utilities:1.0.0)
-// - see tazama-lf/rule-studio#153. Defaults to the official image, verified compatible
-// (same /natsPublish request shape, port, and health-check route as the image it replaces).
 const NATS_UTILITIES_IMAGE = process.env.NATS_UTILITIES_IMAGE ?? `${DOCKERHUB_NAMESPACE}/nats-utilities:4.0.0`;
 
 interface GithubEntry {
