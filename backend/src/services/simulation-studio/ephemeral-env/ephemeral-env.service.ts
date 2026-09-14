@@ -19,6 +19,11 @@ const GITHUB_REPO = 'tazama-lf/Full-Stack-Docker-Tazama';
 const REPO_BRANCH = process.env.TAZAMA_REPO_BRANCH ?? 'dev';
 const DOCKERHUB_NAMESPACE = process.env.DOCKERHUB_NAMESPACE ?? 'tazamaorg';
 
+const POSTGRES_IMAGE = process.env.POSTGRES_IMAGE ?? 'postgres:18';
+const NATS_IMAGE = process.env.NATS_IMAGE ?? 'nats:2';
+const VALKEY_IMAGE = process.env.VALKEY_IMAGE ?? 'valkey/valkey:7.2.5';
+const NATS_UTILITIES_IMAGE = process.env.NATS_UTILITIES_IMAGE ?? 'tazamaorg/nats-utilities:4.0.0';
+
 interface GithubEntry {
   type: string;
   name: string;
@@ -127,7 +132,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
 
     try {
       this.logger.log(`[${name}] Starting postgres...`);
-      const postgres = await new GenericContainer('postgres:18')
+      const postgres = await new GenericContainer(POSTGRES_IMAGE)
         .withNetwork(network)
         .withNetworkAliases('postgres')
         .withEnvironment({
@@ -204,7 +209,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
     // eslint-disable-next-line no-useless-catch -- We want to log the original error before throwing, and we also want to ensure any error during logging doesn't prevent cleanup
     try {
       this.logger.log(`[${name}] Starting NATS...`);
-      const nats = await new GenericContainer('nats:2')
+      const nats = await new GenericContainer(NATS_IMAGE)
         .withNetwork(network)
         .withNetworkAliases('nats')
         .withCommand(['--jetstream', '-m', '8222', '-DVV'])
@@ -214,7 +219,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
       sim.nats = nats;
 
       this.logger.log(`[${name}] Starting Valkey...`);
-      const valkey = await new GenericContainer('valkey/valkey:7.2.5')
+      const valkey = await new GenericContainer(VALKEY_IMAGE)
         .withNetwork(network)
         .withNetworkAliases('valkey')
         .withCommand(['valkey-server', '--port', '6379', '--loglevel', 'verbose'])
@@ -289,7 +294,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
       sim.ruleProcessor = ruleProcessor;
 
       this.logger.log(`[${name}] Starting nats-utilities...`);
-      const natsUtilities = await new GenericContainer('ndxf/nats-utilities:1.0.0')
+      const natsUtilities = await new GenericContainer(NATS_UTILITIES_IMAGE)
         .withNetwork(network)
         .withNetworkAliases('nats-utilities')
         .withEnvironment({
