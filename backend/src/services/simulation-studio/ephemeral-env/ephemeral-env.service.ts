@@ -1,5 +1,6 @@
-import { BadRequestException, Injectable, Logger, NotFoundException, OnModuleDestroy } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException, OnModuleDestroy, ServiceUnavailableException } from '@nestjs/common';
 import { GenericContainer, Network, StartedNetwork, StartedTestContainer, Wait } from 'testcontainers';
+import { FeatureFlagsService } from '../../../common/feature-flags/feature-flags.service';
 import { SimulationInfo, SimulationPorts, SimulationStatus, SpawnOptions } from './interfaces/ephemeral-env.interfaces';
 
 interface SimulationInstance {
@@ -44,8 +45,22 @@ export class EphemeralEnvService implements OnModuleDestroy {
   private readonly logger = new Logger(EphemeralEnvService.name);
   private readonly simulations = new Map<string, SimulationInstance>();
 
+  constructor(private readonly features: FeatureFlagsService) {}
+
   async onModuleDestroy(): Promise<void> {
     await this.destroyAll();
+  }
+
+  private assertSimStudioEnabled(): void {
+    if (!this.features.isSimStudioEnabled()) {
+      throw new ServiceUnavailableException({
+        feature: 'sim-studio',
+        enabled: false,
+        message:
+          'SimStudio is disabled on this deployment. ' +
+          'Set DOCKER_PUBLISH=true and configure DOCKERHUB_TOKEN / DOCKERHUB_USERNAME / DOCKERHUB_NAMESPACE to enable.',
+      });
+    }
   }
 
   private get containerHost(): string {
@@ -75,6 +90,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
    * contract for callers that don't need a seeding gap between the two phases.
    */
   async spawn(name: string, options: SpawnOptions = {}): Promise<SimulationInfo> {
+    this.assertSimStudioEnabled();
     await this.spawnPostgres(name, options);
     return await this.spawnRuntime(name);
   }
@@ -86,6 +102,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
    * spawnRuntime(name) — or destroy(name) to roll back.
    */
   async spawnPostgres(name: string, options: SpawnOptions = {}): Promise<SimulationInfo> {
+    this.assertSimStudioEnabled();
     if (this.simulations.has(name)) {
       throw new BadRequestException(`Simulation '${name}' already exists. Destroy it first.`);
     }
@@ -185,6 +202,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
    * Throws if no POSTGRES_UP entry exists for the given name.
    */
   async spawnRuntime(name: string): Promise<SimulationInfo> {
+    this.assertSimStudioEnabled();
     const sim = this.simulations.get(name);
     if (!sim) {
       throw new NotFoundException(`Simulation '${name}' not found. Call spawnPostgres() first.`);
