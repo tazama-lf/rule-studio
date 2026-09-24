@@ -8,14 +8,13 @@ import * as S from './Sidebar.styles';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { extractData, resetData } from '../../utils/Common/storage';
 import { TRS_ROLES } from '../../utils/Constants/data';
+import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 
 const sharedMenuItems: { icon: React.ReactElement, label: string, route: string, color: string }[] = [
     { icon: <HomeOutlinedIcon />, label: "Home", route: "home", color: "#8f57ee" },
 ];
 
-const trsMenuItems: { icon: React.ReactElement, label: string, route: string, color: string }[] = [
-    { icon: <LayersOutlinedIcon />, label: "Sim Studio", route: "sim-studio", color: "#f59e0b" },
-];
+const SIM_STUDIO_ITEM = { icon: <LayersOutlinedIcon />, label: "Sim Studio", route: "sim-studio", color: "#f59e0b" };
 
 const dataEngineerMenuItems: { icon: React.ReactElement, label: string, route: string, color: string }[] = [
     { icon: <HomeOutlinedIcon />, label: "Masking Configuration", route: "masking-config", color: "#8f57ee" },
@@ -24,6 +23,9 @@ const dataEngineerMenuItems: { icon: React.ReactElement, label: string, route: s
 const Sidebar = ({ expanded }: { expanded: boolean; }) => {
     const user = extractData('user') || {};
     const isTrs = TRS_ROLES.includes(user?.claims ?? '');
+    const { isSimStudioEnabled } = useFeatureFlags();
+
+    const trsMenuItems = isSimStudioEnabled ? [SIM_STUDIO_ITEM] : [];
     const menuItems = isTrs ? [...sharedMenuItems, ...trsMenuItems] : dataEngineerMenuItems;
 
     const [activeIdx, setActiveIdx] = useState(0);
