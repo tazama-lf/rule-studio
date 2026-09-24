@@ -2,6 +2,12 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { EphemeralEnvService } from '../../src/services/simulation-studio/ephemeral-env/ephemeral-env.service';
 import { SimulationStatus } from '../../src/services/simulation-studio/ephemeral-env/interfaces/ephemeral-env.interfaces';
+import { FeatureFlagsService } from '../../src/common/feature-flags/feature-flags.service';
+
+const mockFeaturesEnabled = {
+  isDockerPublishEnabled: () => true,
+  isSimStudioEnabled: () => true,
+} as unknown as FeatureFlagsService;
 
 // ── Testcontainers mock ────────────────────────────────────────────────────
 // resetMocks: true clears implementations between tests, so we set up a
@@ -108,7 +114,7 @@ describe('EphemeralEnvService', () => {
   let service: EphemeralEnvService;
 
   beforeEach(() => {
-    service = new EphemeralEnvService();
+    service = new EphemeralEnvService(mockFeaturesEnabled);
 
     // Re-apply all implementations (resetMocks: true clears them each test)
     applyBuilderImplementations();
@@ -448,6 +454,21 @@ describe('EphemeralEnvService', () => {
       jest.spyOn(service, 'spawnPostgres').mockRejectedValue(new Error('Postgres failed'));
 
       await expect(service.spawn('fail-sim')).rejects.toThrow('Postgres failed');
+    });
+  });
+
+  describe('when SimStudio is disabled', () => {
+    it('spawn / spawnPostgres / spawnRuntime throw ServiceUnavailableException before any work', async () => {
+      const mockFeaturesDisabled = {
+        isDockerPublishEnabled: () => false,
+        isSimStudioEnabled: () => false,
+      } as unknown as FeatureFlagsService;
+      const svc = new EphemeralEnvService(mockFeaturesDisabled);
+
+      const { ServiceUnavailableException } = await import('@nestjs/common');
+      await expect(svc.spawn('any')).rejects.toThrow(ServiceUnavailableException);
+      await expect(svc.spawnPostgres('any')).rejects.toThrow(ServiceUnavailableException);
+      await expect(svc.spawnRuntime('any')).rejects.toThrow(ServiceUnavailableException);
     });
   });
 });
