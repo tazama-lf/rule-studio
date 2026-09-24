@@ -1,5 +1,6 @@
-import { plainToClass } from 'class-transformer';
-import { IsEnum, IsString, IsNumberString, validateSync } from 'class-validator';
+import { plainToClass, Transform } from 'class-transformer';
+import { IsEnum, IsString, IsNumberString, IsBoolean, IsNotEmpty, ValidateIf, validateSync } from 'class-validator';
+
 enum NodeEnv {
   DEVELOPMENT = 'development',
   PRODUCTION = 'production',
@@ -7,6 +8,14 @@ enum NodeEnv {
   DEV = 'dev',
   PROD = 'prod',
 }
+
+const TRUTHY = new Set(['true', '1', 'yes', 'on']);
+const toBool = ({ value }: { value: unknown }): boolean => {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') return TRUTHY.has(value.trim().toLowerCase());
+  return false;
+};
+
 class EnvironmentVariables {
   @IsEnum(NodeEnv)
   NODE_ENV: NodeEnv = NodeEnv.DEVELOPMENT;
@@ -20,6 +29,28 @@ class EnvironmentVariables {
   AUTH_PUBLIC_KEY_PATH: string;
   @IsString()
   CERT_PATH_PUBLIC: string;
+
+  // Optional switch. When absent or falsy, Docker publishing and the whole
+  // SimStudio surface are disabled and the DOCKERHUB_* trio is not required.
+  // When true, the trio below is required.
+  @Transform(toBool)
+  @IsBoolean()
+  DOCKER_PUBLISH = false;
+
+  @ValidateIf((o: EnvironmentVariables) => o.DOCKER_PUBLISH)
+  @IsString()
+  @IsNotEmpty()
+  DOCKERHUB_TOKEN?: string;
+
+  @ValidateIf((o: EnvironmentVariables) => o.DOCKER_PUBLISH)
+  @IsString()
+  @IsNotEmpty()
+  DOCKERHUB_USERNAME?: string;
+
+  @ValidateIf((o: EnvironmentVariables) => o.DOCKER_PUBLISH)
+  @IsString()
+  @IsNotEmpty()
+  DOCKERHUB_NAMESPACE?: string;
 }
 export const validate = (config: Record<string, unknown>): EnvironmentVariables => {
   const validatedConfig = plainToClass(EnvironmentVariables, config, {
