@@ -1,5 +1,13 @@
-import { Injectable, Logger, OnModuleInit, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  InternalServerErrorException,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { FeatureFlagsService } from '../../../common/feature-flags/feature-flags.service';
 import type { DockerHubRepositoriesResponseDto, DockerHubTagsResponseDto } from './dto/dockerhub.dto';
 import type { DhRepository, DhRepositoriesPage, DhTagResult, DhTagsPage } from '../../../interfaces/dockerhub.interfaces';
 
@@ -13,25 +21,68 @@ export class DockerHubService implements OnModuleInit {
   private token: string;
   private username: string;
   private jwt: string;
+  // Runtime state — stays false until a successful login has completed.
+  private ready = false;
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly features: FeatureFlagsService,
+  ) {}
 
   async onModuleInit(): Promise<void> {
+    if (!this.features.isDockerPublishEnabled()) {
+      this.logger.warn(
+        'DOCKER_PUBLISH is false — Docker Hub publishing (and SimStudio) are disabled. ' +
+          'Skipping Docker Hub login at boot.',
+      );
+      return;
+    }
+
     const token = this.configService.get<string>('DOCKERHUB_TOKEN');
     const username = this.configService.get<string>('DOCKERHUB_USERNAME');
     const namespace = this.configService.get<string>('DOCKERHUB_NAMESPACE');
 
+    // Env-validation should already have caught missing values; this defensive
+    // check keeps the service usable if the ConfigModule wiring is ever changed.
     if (!token || !username || !namespace) {
-      throw new Error('Missing required Docker Hub environment variables: DOCKERHUB_TOKEN, DOCKERHUB_USERNAME, DOCKERHUB_NAMESPACE');
+      this.logger.error(
+        'DOCKER_PUBLISH=true but required Docker Hub environment variables are missing: ' +
+          'DOCKERHUB_TOKEN, DOCKERHUB_USERNAME, DOCKERHUB_NAMESPACE. ' +
+          'Feature will remain disabled at runtime.',
+      );
+      return;
     }
 
     this.token = token;
     this.username = username;
     this.namespace = namespace;
 
-    await this.login();
+    try {
+      await this.login();
+      this.ready = true;
+      this.logger.log(`Docker Hub configured for namespace "${this.namespace}"`);
+    } catch (err) {
+      this.logger.error(
+        `Docker Hub login failed at boot; feature will remain disabled at runtime. Error: ${(err as Error).message}`,
+      );
+    }
+  }
 
-    this.logger.log(`Docker Hub configured for namespace "${this.namespace}"`);
+  /** True when Docker publishing is both enabled by config and successfully authenticated. */
+  isReady(): boolean {
+    return this.features.isDockerPublishEnabled() && this.ready;
+  }
+
+  private assertReady(): void {
+    if (!this.isReady()) {
+      throw new ServiceUnavailableException({
+        feature: 'docker-publish',
+        enabled: false,
+        message:
+          'Docker Hub publishing is disabled on this deployment. ' +
+          'Set DOCKER_PUBLISH=true and configure DOCKERHUB_TOKEN / DOCKERHUB_USERNAME / DOCKERHUB_NAMESPACE to enable.',
+      });
+    }
   }
 
   private async login(): Promise<void> {
@@ -110,6 +161,7 @@ export class DockerHubService implements OnModuleInit {
 
   /** Fetch all repositories in the configured namespace, filtered by tenant prefix. */
   async getPublishedRules(tenantId: string): Promise<DockerHubRepositoriesResponseDto> {
+    this.assertReady();
     const firstUrl = `${DOCKERHUB_API}/namespaces/${this.namespace}/repositories?page_size=100`;
     const repos = await this.fetchRepoPage(firstUrl);
     const tenantRulePrefix = this.getTenantRulePrefix(tenantId);
@@ -131,6 +183,7 @@ export class DockerHubService implements OnModuleInit {
 
   /** Fetch all tags for a given rule in the configured namespace. */
   async getTagsForRule(tenantId: string, ruleName: string): Promise<DockerHubTagsResponseDto> {
+    this.assertReady();
     const tenantRuleName = this.toTenantRuleName(tenantId, ruleName);
     const firstUrl = `${DOCKERHUB_API}/namespaces/${this.namespace}/repositories/${encodeURIComponent(tenantRuleName)}/tags?page_size=100`;
     const tags = await this.fetchTagPage(firstUrl, tenantRuleName);
