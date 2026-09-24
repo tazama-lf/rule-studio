@@ -7,13 +7,43 @@ import { User } from '../../decorators/user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { EndpointKey } from 'src/utils/rbac/rbacHelper';
 import { TransactionTypeDto } from './dto/config.dto';
+import { FeatureFlagsService } from '../../common/feature-flags/feature-flags.service';
 
 @ApiTags('Configuration')
 @ApiBearerAuth('JWT-auth')
 @Controller('config')
 @UseGuards(TazamaAuthGuard)
 export class ConfigController {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly features: FeatureFlagsService,
+  ) {}
+
+  @Get('/api/features')
+  @ApiOperation({
+    summary: 'Get feature flags',
+    description:
+      'Returns the current state of runtime feature flags. The frontend uses this to hide UI ' +
+      'for features that are disabled on the deployment (currently: SimStudio and Docker Hub publishing).',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Feature flags',
+    schema: {
+      type: 'object',
+      properties: {
+        dockerPublish: { type: 'boolean' },
+        simStudio: { type: 'boolean' },
+      },
+      required: ['dockerPublish', 'simStudio'],
+    },
+  })
+  getFeatures(): { dockerPublish: boolean; simStudio: boolean } {
+    return {
+      dockerPublish: this.features.isDockerPublishEnabled(),
+      simStudio: this.features.isSimStudioEnabled(),
+    };
+  }
 
   @Get('/api/transaction-types')
   @RequireAnyClaims(
