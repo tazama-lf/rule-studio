@@ -129,18 +129,18 @@ describe('NotificationService', () => {
         'token',
         'group-name',
       );
-      expect(service.getUserGroupMembers).toHaveBeenCalledWith('token', 'group-name', 'approver');
+      expect(service.getUserGroupMembers).toHaveBeenCalledWith('token', 'group-name', 'trs_approver');
       expect(result).toEqual(['user@test.com']);
     });
 
     it('fetches publisher emails for ApproverApprove event', async () => {
       await service.fetchRecipientEmails(EventType.ApproverApprove, 'tenant-1', 'token', 'group-name');
-      expect(service.getUserGroupMembers).toHaveBeenCalledWith('token', 'group-name', 'publisher');
+      expect(service.getUserGroupMembers).toHaveBeenCalledWith('token', 'group-name', 'trs_publisher');
     });
 
     it('fetches editor emails for ApproverReject event', async () => {
       await service.fetchRecipientEmails(EventType.ApproverReject, 'tenant-1', 'token', 'group-name');
-      expect(service.getUserGroupMembers).toHaveBeenCalledWith('token', 'group-name', 'editor');
+      expect(service.getUserGroupMembers).toHaveBeenCalledWith('token', 'group-name', 'trs_editor');
     });
 
     it('fetches all users for PublisherDeploy event', async () => {
