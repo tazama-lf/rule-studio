@@ -1,14 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
-
-const TRUTHY = new Set(['true', '1', 'yes', 'on']);
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class FeatureFlagsService {
   private readonly logger = new Logger(FeatureFlagsService.name);
   private readonly dockerPublish: boolean;
 
-  constructor() {
-    this.dockerPublish = TRUTHY.has((process.env.DOCKER_PUBLISH ?? '').trim().toLowerCase());
+  constructor(config: ConfigService) {
+    // `env.validation.ts` already coerces DOCKER_PUBLISH to a real boolean via
+    // `@Transform(toBool)`; keeping a single source of truth avoids drift
+    // between validation and runtime parsing.
+    this.dockerPublish = config.get<boolean>('DOCKER_PUBLISH') === true;
     this.logger.log(`Feature flags: DOCKER_PUBLISH=${this.dockerPublish} (governs Docker Hub publishing and the whole SimStudio surface)`);
   }
 
