@@ -63,6 +63,10 @@ jest.mock('../../../src/redux/Api/DockerHub', () => ({
     dockerHubApi: makeApiMock('dockerHubApi'),
 }));
 
+jest.mock('../../../src/redux/Api/Features', () => ({
+    featuresApi: makeApiMock('featuresApi'),
+}));
+
 jest.mock('../../../src/middlerwares/apierror.middleware', () =>
     () => (next: (a: unknown) => unknown) => (action: unknown) => next(action)
 );
@@ -142,8 +146,12 @@ describe('Redux Store (redux/Store)', () => {
             expect(state['dockerHubApi']).toBeDefined();
         });
 
-        it('should contain exactly 14 top-level slices', () => {
-            expect(Object.keys(state)).toHaveLength(14);
+        it('should contain the featuresApi slice', () => {
+            expect(state['featuresApi']).toBeDefined();
+        });
+
+        it('should contain exactly 15 top-level slices', () => {
+            expect(Object.keys(state)).toHaveLength(15);
         });
     });
 
@@ -196,6 +204,10 @@ describe('Redux Store (redux/Store)', () => {
 
         it('dockerHubApi slice should start with empty queries', () => {
             expect(state['dockerHubApi'].queries).toEqual({});
+        });
+
+        it('featuresApi slice should start with empty queries', () => {
+            expect(state['featuresApi'].queries).toEqual({});
         });
     });
 
