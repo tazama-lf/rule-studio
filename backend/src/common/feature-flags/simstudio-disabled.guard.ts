@@ -10,10 +10,18 @@ export class SimStudioDisabledGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     if (this.features.isSimStudioEnabled()) return true;
+    // Skip non-HTTP contexts (WebSocket gateways, microservice handlers). The
+    // request object below only exists for HTTP; other transports would blow up
+    // on baseUrl/path access.
+    if (context.getType() !== 'http') return true;
 
     const req = context.switchToHttp().getRequest<Request>();
-    const pathname = req.baseUrl + req.path;
-    if (!pathname.startsWith(SIMSTUDIO_PATH_PREFIX)) return true;
+    const pathname = `${req.baseUrl}${req.path}`.toLowerCase();
+    // Express routing is case-insensitive by default; also guard against a
+    // false-positive on paths that merely start with `simulation-studio` as a
+    // substring (e.g. `/simulation-studiox`).
+    const isSimStudio = pathname === SIMSTUDIO_PATH_PREFIX || pathname.startsWith(`${SIMSTUDIO_PATH_PREFIX}/`);
+    if (!isSimStudio) return true;
 
     throw new ServiceUnavailableException({
       feature: 'sim-studio',
