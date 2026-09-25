@@ -10,10 +10,13 @@ import { ROUTES } from './routes';
 import PrivateRoute from './routes/PrivateRoute';
 import ProtectedRoute from './routes/ProtectedRoute';
 import RoleRoute from './routes/RoleRoute';
+import SimStudioGuard from './routes/SimStudioGuard';
 import SuspenseLoader from './components/SuspenseLoader';
 import theme from './utils/Theme';
 
 const themeMode = createTheme(theme());
+
+const isSimStudioPath = (p: string) => p.startsWith('/sim-studio');
 
 function App() {
 
@@ -23,12 +26,22 @@ function App() {
   );
 
   const trsWithLayoutRoutes = useMemo(
-    () => ROUTES.filter(route => route.private === true && route.layout === true && route.roleGroup === 'trs'),
+    () => ROUTES.filter(route => route.private === true && route.layout === true && route.roleGroup === 'trs' && !isSimStudioPath(route.path)),
+    []
+  );
+
+  const trsWithLayoutSimStudioRoutes = useMemo(
+    () => ROUTES.filter(route => route.private === true && route.layout === true && route.roleGroup === 'trs' && isSimStudioPath(route.path)),
     []
   );
 
   const trsWithoutLayoutRoutes = useMemo(
-    () => ROUTES.filter(route => route.private === true && route.layout === false && route.roleGroup === 'trs'),
+    () => ROUTES.filter(route => route.private === true && route.layout === false && route.roleGroup === 'trs' && !isSimStudioPath(route.path)),
+    []
+  );
+
+  const trsWithoutLayoutSimStudioRoutes = useMemo(
+    () => ROUTES.filter(route => route.private === true && route.layout === false && route.roleGroup === 'trs' && isSimStudioPath(route.path)),
     []
   );
 
@@ -60,12 +73,22 @@ function App() {
                     {trsWithLayoutRoutes.map((item, index) => (
                       <Route key={index} path={item.path} element={item.element} />
                     ))}
+                    <Route element={<SimStudioGuard />}>
+                      {trsWithLayoutSimStudioRoutes.map((item, index) => (
+                        <Route key={`ss-${index}`} path={item.path} element={item.element} />
+                      ))}
+                    </Route>
                   </Route>
                 </Route>
                 <Route element={<RoleRoute group="trs" />}>
                   {trsWithoutLayoutRoutes.map((item, index) => (
                     <Route key={index} path={item.path} element={item.element} />
                   ))}
+                  <Route element={<SimStudioGuard />}>
+                    {trsWithoutLayoutSimStudioRoutes.map((item, index) => (
+                      <Route key={`ss-nl-${index}`} path={item.path} element={item.element} />
+                    ))}
+                  </Route>
                 </Route>
                 <Route element={<RoleRoute group="data-engineer" />}>
                   <Route element={<MainLayout />}>

@@ -1,7 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { InternalServerErrorException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DockerHubService } from '../../src/services/simulation-studio/dockerhub/dockerhub.service';
+import { FeatureFlagsService } from '../../src/common/feature-flags/feature-flags.service';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -49,17 +50,31 @@ const mockConfigService = {
   }[key]),
 };
 
+const mockFeaturesEnabled = {
+  isDockerPublishEnabled: () => true,
+  isSimStudioEnabled: () => true,
+} as unknown as FeatureFlagsService;
+
+const mockFeaturesDisabled = {
+  isDockerPublishEnabled: () => false,
+  isSimStudioEnabled: () => false,
+} as unknown as FeatureFlagsService;
+
 // ─── suite ───────────────────────────────────────────────────────────────────
 
 describe('DockerHubService', () => {
   let service: DockerHubService;
 
-  const bootService = async (loginResp: Response = okResp(LOGIN_BODY)) => {
+  const bootService = async (
+    loginResp: Response = okResp(LOGIN_BODY),
+    features: FeatureFlagsService = mockFeaturesEnabled,
+  ) => {
     global.fetch = jest.fn().mockResolvedValueOnce(loginResp);
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DockerHubService,
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: FeatureFlagsService, useValue: features },
       ],
     }).compile();
 
@@ -74,7 +89,7 @@ describe('DockerHubService', () => {
   // ─── onModuleInit / login ───────────────────────────────────────────────────
 
   describe('onModuleInit', () => {
-    it('exchanges the PAT for a JWT at /v2/users/login', async () => {
+    it('exchanges the PAT for a JWT at /v2/users/login when enabled', async () => {
       await bootService();
 
       const call = (global.fetch as jest.Mock).mock.calls[0];
@@ -87,17 +102,65 @@ describe('DockerHubService', () => {
       });
     });
 
-    it('throws InternalServerErrorException when Docker Hub login fails at boot', async () => {
+    it('does not throw when Docker Hub login fails at boot; feature is marked disabled', async () => {
       global.fetch = jest.fn().mockResolvedValueOnce(failResp(401, 'Unauthorized'));
       const module: TestingModule = await Test.createTestingModule({
         providers: [
           DockerHubService,
           { provide: ConfigService, useValue: mockConfigService },
+          { provide: FeatureFlagsService, useValue: mockFeaturesEnabled },
         ],
       }).compile();
 
       const svc = module.get(DockerHubService);
-      await expect(svc.onModuleInit()).rejects.toThrow(InternalServerErrorException);
+      await expect(svc.onModuleInit()).resolves.toBeUndefined();
+      expect(svc.isReady()).toBe(false);
+      await expect(svc.getPublishedRules(TENANT_ID)).rejects.toThrow(ServiceUnavailableException);
+    });
+  });
+
+  // ─── disabled by feature flag ───────────────────────────────────────────────
+
+  describe('when DOCKER_PUBLISH is false', () => {
+    it('does not perform any Docker Hub network call at boot', async () => {
+      global.fetch = jest.fn();
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          DockerHubService,
+          { provide: ConfigService, useValue: mockConfigService },
+          { provide: FeatureFlagsService, useValue: mockFeaturesDisabled },
+        ],
+      }).compile();
+      const svc = module.get(DockerHubService);
+      await svc.onModuleInit();
+      expect(global.fetch).not.toHaveBeenCalled();
+      expect(svc.isReady()).toBe(false);
+    });
+
+    it('getPublishedRules throws ServiceUnavailableException', async () => {
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          DockerHubService,
+          { provide: ConfigService, useValue: mockConfigService },
+          { provide: FeatureFlagsService, useValue: mockFeaturesDisabled },
+        ],
+      }).compile();
+      const svc = module.get(DockerHubService);
+      await svc.onModuleInit();
+      await expect(svc.getPublishedRules(TENANT_ID)).rejects.toThrow(ServiceUnavailableException);
+    });
+
+    it('getTagsForRule throws ServiceUnavailableException', async () => {
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          DockerHubService,
+          { provide: ConfigService, useValue: mockConfigService },
+          { provide: FeatureFlagsService, useValue: mockFeaturesDisabled },
+        ],
+      }).compile();
+      const svc = module.get(DockerHubService);
+      await svc.onModuleInit();
+      await expect(svc.getTagsForRule(TENANT_ID, 'case105')).rejects.toThrow(ServiceUnavailableException);
     });
   });
 

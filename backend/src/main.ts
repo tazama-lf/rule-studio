@@ -7,6 +7,8 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { RedisIoAdapter } from './adapters/redis-io.adapter';
+import { FeatureFlagsService } from './common/feature-flags/feature-flags.service';
+import { SimStudioDisabledGuard } from './common/feature-flags/simstudio-disabled.guard';
 
 /**
  * Bootstraps, configures, and starts the NestJS application.
@@ -32,6 +34,8 @@ async function bootstrap(): Promise<void> {
       transform: true,
     }),
   );
+
+  app.useGlobalGuards(new SimStudioDisabledGuard(app.get(FeatureFlagsService)));
 
   const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? '')
     .split(',')

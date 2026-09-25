@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule as NestConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { FeatureFlagsModule } from './common/feature-flags/feature-flags.module';
+import { validate } from './services/config/env.validation';
 import { AuthModule } from './services/auth/auth.module';
 import { LoggerModule } from './logger-service/logger-service.module';
 import { RulesModule } from './services/rules/rules.module';
@@ -30,6 +33,8 @@ import { EphemeralEnvModule } from './services/simulation-studio/ephemeral-env/e
 
 @Module({
   imports: [
+    NestConfigModule.forRoot({ isGlobal: true, validate }),
+    FeatureFlagsModule,
     AuditModule,
     AuthModule,
     LoggerModule,

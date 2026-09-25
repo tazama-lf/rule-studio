@@ -14,11 +14,17 @@ jest.mock('../../../src/utils/Common/storage', () => ({
   extractData: jest.fn(),
 }));
 
+jest.mock('../../../src/hooks/useFeatureFlags', () => ({
+  useFeatureFlags: jest.fn(),
+}));
+
 import { resetData, extractData } from '../../../src/utils/Common/storage';
+import { useFeatureFlags } from '../../../src/hooks/useFeatureFlags';
 
 const mockNavigate = jest.fn();
 const mockResetData = resetData as jest.Mock;
 const mockExtractData = extractData as jest.Mock;
+const mockUseFeatureFlags = useFeatureFlags as jest.Mock;
 
 // TRS user (claims: 'editor') → shows Home + Sim Studio
 const trsUser = { claims: 'editor' };
@@ -28,6 +34,12 @@ describe('Sidebar Component', () => {
     jest.clearAllMocks();
     (useNavigate as jest.Mock).mockReturnValue(mockNavigate);
     mockExtractData.mockReturnValue(trsUser);
+    // Default: SimStudio enabled — matches every pre-existing assertion in this file.
+    mockUseFeatureFlags.mockReturnValue({
+      isLoading: false,
+      isDockerPublishEnabled: true,
+      isSimStudioEnabled: true,
+    });
   });
 
   describe('Basic Rendering', () => {
@@ -405,6 +417,29 @@ describe('Sidebar Component', () => {
 
       fireEvent.click(screen.getByText('Masking Configuration'));
       expect(mockNavigate).toHaveBeenCalledWith('masking-config');
+    });
+  });
+
+  describe('SimStudio feature flag', () => {
+    it('hides the Sim Studio item when isSimStudioEnabled is false', () => {
+      mockUseFeatureFlags.mockReturnValue({
+        isLoading: false,
+        isDockerPublishEnabled: false,
+        isSimStudioEnabled: false,
+      });
+      render(<Sidebar expanded={true} />);
+      expect(screen.getByText('Home')).toBeInTheDocument();
+      expect(screen.queryByText('Sim Studio')).not.toBeInTheDocument();
+    });
+
+    it('hides the Sim Studio item while the feature flag query is loading', () => {
+      mockUseFeatureFlags.mockReturnValue({
+        isLoading: true,
+        isDockerPublishEnabled: false,
+        isSimStudioEnabled: false,
+      });
+      render(<Sidebar expanded={true} />);
+      expect(screen.queryByText('Sim Studio')).not.toBeInTheDocument();
     });
   });
 });

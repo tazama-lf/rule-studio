@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ServiceUnavailableException } from '@nestjs/common';
 import { DockerHubController } from '../../src/services/simulation-studio/dockerhub/dockerhub.controller';
 import { DockerHubService } from '../../src/services/simulation-studio/dockerhub/dockerhub.service';
 import type { AuthenticatedUser } from '../../src/services/auth/auth.types';
@@ -95,6 +95,19 @@ describe('DockerHubController', () => {
       const user = makeUser();
 
       await expect(controller.getPublishedRules(user)).rejects.toThrow('downstream error');
+    });
+
+    it('propagates ServiceUnavailableException when the feature is disabled', async () => {
+      service.getPublishedRules.mockRejectedValue(
+        new ServiceUnavailableException({
+          feature: 'docker-publish',
+          enabled: false,
+          message: 'Docker Hub publishing is disabled on this deployment.',
+        }),
+      );
+      const user = makeUser();
+
+      await expect(controller.getPublishedRules(user)).rejects.toThrow(ServiceUnavailableException);
     });
   });
 
