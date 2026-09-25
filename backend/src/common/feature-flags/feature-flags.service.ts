@@ -9,9 +9,7 @@ export class FeatureFlagsService {
 
   constructor() {
     this.dockerPublish = TRUTHY.has((process.env.DOCKER_PUBLISH ?? '').trim().toLowerCase());
-    this.logger.log(
-      `Feature flags: DOCKER_PUBLISH=${this.dockerPublish} (governs Docker Hub publishing and the whole SimStudio surface)`,
-    );
+    this.logger.log(`Feature flags: DOCKER_PUBLISH=${this.dockerPublish} (governs Docker Hub publishing and the whole SimStudio surface)`);
   }
 
   isDockerPublishEnabled(): boolean {

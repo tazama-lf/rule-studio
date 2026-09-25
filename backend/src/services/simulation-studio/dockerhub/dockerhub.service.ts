@@ -31,10 +31,7 @@ export class DockerHubService implements OnModuleInit {
 
   async onModuleInit(): Promise<void> {
     if (!this.features.isDockerPublishEnabled()) {
-      this.logger.warn(
-        'DOCKER_PUBLISH is false — Docker Hub publishing (and SimStudio) are disabled. ' +
-          'Skipping Docker Hub login at boot.',
-      );
+      this.logger.warn('DOCKER_PUBLISH is false — Docker Hub publishing (and SimStudio) are disabled. Skipping Docker Hub login at boot.');
       return;
     }
 
@@ -62,9 +59,7 @@ export class DockerHubService implements OnModuleInit {
       this.ready = true;
       this.logger.log(`Docker Hub configured for namespace "${this.namespace}"`);
     } catch (err) {
-      this.logger.error(
-        `Docker Hub login failed at boot; feature will remain disabled at runtime. Error: ${(err as Error).message}`,
-      );
+      this.logger.error(`Docker Hub login failed at boot; feature will remain disabled at runtime. Error: ${(err as Error).message}`);
     }
   }
 
