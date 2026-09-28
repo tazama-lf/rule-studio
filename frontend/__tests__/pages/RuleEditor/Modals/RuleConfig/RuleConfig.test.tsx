@@ -6,6 +6,7 @@ import type { DropdownOption } from '../../../../../src/components/DropDown';
 
 const mockHandleRuleValue = jest.fn();
 const mockHandleRuleId = jest.fn();
+const mockHandleConfirm = jest.fn();
 const mockRuleConfigs = [
   { label: 'rule1', value: 'rule1' },
   { label: 'rule2', value: 'rule2' },
@@ -26,6 +27,7 @@ jest.mock('../../../../../src/pages/RuleEditor/Modals/RuleConfig/useRuleConfigCo
     },
     functions: {
       handleRuleId: mockHandleRuleId,
+      handleConfirm: mockHandleConfirm,
     },
   })),
 }));
@@ -88,6 +90,16 @@ jest.mock('../../../../../src/components/JsonFormatter', () => ({
   ),
 }));
 
+jest.mock('../../../../../src/components/ModalFooter', () => ({
+  __esModule: true,
+  default: ({ onSubmit, title }: { onSubmit: () => void; title?: string }) => (
+    <div data-testid="modal-footer">
+      <button data-testid="footer-cancel">Cancel</button>
+      <button data-testid="footer-submit" onClick={onSubmit}>{title}</button>
+    </div>
+  ),
+}));
+
 const theme = createTheme();
 
 const renderWithTheme = (component: React.ReactElement) => {
@@ -111,6 +123,7 @@ describe('RuleConfig Component', () => {
       },
       functions: {
         handleRuleId: mockHandleRuleId,
+        handleConfirm: mockHandleConfirm,
       },
     });
   });
@@ -191,6 +204,7 @@ describe('RuleConfig Component', () => {
         },
         functions: {
           handleRuleId: mockHandleRuleId,
+          handleConfirm: mockHandleConfirm,
         },
       });
 
@@ -218,6 +232,7 @@ describe('RuleConfig Component', () => {
         },
         functions: {
           handleRuleId: mockHandleRuleId,
+          handleConfirm: mockHandleConfirm,
         },
       });
 
@@ -246,6 +261,7 @@ describe('RuleConfig Component', () => {
         },
         functions: {
           handleRuleId: mockHandleRuleId,
+          handleConfirm: mockHandleConfirm,
         },
       });
 
@@ -301,6 +317,7 @@ describe('RuleConfig Component', () => {
         },
         functions: {
           handleRuleId: mockHandleRuleId,
+          handleConfirm: mockHandleConfirm,
         },
       });
 
@@ -337,7 +354,7 @@ describe('RuleConfig Component', () => {
       );
 
       const select = screen.getByTestId('dropdown-select');
-      expect(select.getAttribute('data-placeholder')).toBe('Select Transaction type');
+      expect(select.getAttribute('data-placeholder')).toBe('Select Rule Configuration');
     });
 
     it('should be searchable', () => {
@@ -453,6 +470,7 @@ describe('RuleConfig Component', () => {
         },
         functions: {
           handleRuleId: mockHandleRuleId,
+          handleConfirm: mockHandleConfirm,
         },
       });
 
@@ -481,6 +499,7 @@ describe('RuleConfig Component', () => {
         },
         functions: {
           handleRuleId: mockHandleRuleId,
+          handleConfirm: mockHandleConfirm,
         },
       });
 
@@ -509,6 +528,7 @@ describe('RuleConfig Component', () => {
         },
         functions: {
           handleRuleId: mockHandleRuleId,
+          handleConfirm: mockHandleConfirm,
         },
       });
 
@@ -628,6 +648,7 @@ describe('RuleConfig Component', () => {
         },
         functions: {
           handleRuleId: mockHandleRuleId,
+          handleConfirm: mockHandleConfirm,
         },
       });
 
@@ -655,6 +676,7 @@ describe('RuleConfig Component', () => {
         },
         functions: {
           handleRuleId: mockHandleRuleId,
+          handleConfirm: mockHandleConfirm,
         },
       });
 
@@ -682,6 +704,7 @@ describe('RuleConfig Component', () => {
         },
         functions: {
           handleRuleId: mockHandleRuleId,
+          handleConfirm: mockHandleConfirm,
         },
       });
 
@@ -694,6 +717,62 @@ describe('RuleConfig Component', () => {
       );
 
       expect(screen.queryByTestId('dropdown')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Modal Footer (OK/Cancel)', () => {
+    it('should render the footer when isView is false', () => {
+      renderWithTheme(
+        <RuleConfig
+          handleRuleValue={mockHandleRuleValue}
+          ruleConfigId={undefined}
+          mode={null}
+        />
+      );
+
+      expect(screen.getByTestId('modal-footer')).toBeInTheDocument();
+    });
+
+    it('should not render the footer when isView is true', () => {
+      const useRuleConfigController = require('../../../../../src/pages/RuleEditor/Modals/RuleConfig/useRuleConfigController').default;
+      useRuleConfigController.mockReturnValue({
+        values: {
+          ruleConfigs: mockRuleConfigs,
+          ruleId: { label: 'rule1', value: 'rule1' },
+          isLoading: false,
+          configLoader: false,
+          json: mockJsonData,
+          isView: true,
+        },
+        functions: {
+          handleRuleId: mockHandleRuleId,
+          handleConfirm: mockHandleConfirm,
+        },
+      });
+
+      renderWithTheme(
+        <RuleConfig
+          handleRuleValue={mockHandleRuleValue}
+          ruleConfigId="rule1"
+          mode="view"
+        />
+      );
+
+      expect(screen.queryByTestId('modal-footer')).not.toBeInTheDocument();
+    });
+
+    it('should call handleConfirm when the footer submit button is clicked', () => {
+      renderWithTheme(
+        <RuleConfig
+          handleRuleValue={mockHandleRuleValue}
+          ruleConfigId={undefined}
+          mode={null}
+        />
+      );
+
+      fireEvent.click(screen.getByTestId('footer-submit'));
+
+      expect(mockHandleConfirm).toHaveBeenCalled();
     });
   });
 
@@ -711,6 +790,7 @@ describe('RuleConfig Component', () => {
         },
         functions: {
           handleRuleId: mockHandleRuleId,
+          handleConfirm: mockHandleConfirm,
         },
       });
 
@@ -738,6 +818,7 @@ describe('RuleConfig Component', () => {
         },
         functions: {
           handleRuleId: mockHandleRuleId,
+          handleConfirm: mockHandleConfirm,
         },
       });
 
@@ -773,6 +854,7 @@ describe('RuleConfig Component', () => {
         },
         functions: {
           handleRuleId: mockHandleRuleId,
+          handleConfirm: mockHandleConfirm,
         },
       });
 

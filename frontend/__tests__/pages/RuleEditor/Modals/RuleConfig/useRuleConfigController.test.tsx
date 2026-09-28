@@ -5,6 +5,7 @@ import type { DropdownOption } from '../../../../../src/components/DropDown';
 
 const mockHandleRuleValue = jest.fn();
 const mockSubmit = jest.fn();
+const mockClose = jest.fn();
 const mockRuleConfigsData = [
   { ruleid: 'rule1', rulecfg: 'config1', tenantid: 'tenant1' },
   { ruleid: 'rule2', rulecfg: 'config2', tenantid: 'tenant2' },
@@ -20,6 +21,10 @@ jest.mock('../../../../../src/redux/Api/Rules', () => ({
     mockSubmit,
     { isLoading: false },
   ]),
+}));
+
+jest.mock('../../../../../src/contexts/ModalContext', () => ({
+  useModal: jest.fn(() => ({ open: jest.fn(), close: mockClose })),
 }));
 
 describe('useRuleConfigController', () => {
@@ -266,9 +271,9 @@ describe('useRuleConfigController', () => {
       );
 
       expect(result.current.values.ruleConfigs).toEqual([
-        { label: 'rule1', value: 'rule1' },
-        { label: 'rule2', value: 'rule2' },
-        { label: 'rule3', value: 'rule3' },
+        { label: 'rule1 (config1)', value: 'rule1@config1' },
+        { label: 'rule2 (config2)', value: 'rule2@config2' },
+        { label: 'rule3 (config3)', value: 'rule3@config3' },
       ]);
     });
 
@@ -383,7 +388,7 @@ describe('useRuleConfigController', () => {
       expect(result.current.values.ruleId).toEqual(newValue);
     });
 
-    it('should call handleRuleValue prop when handleRuleId is called', () => {
+    it('should not call handleRuleValue prop when handleRuleId is called (commit is deferred to confirm)', () => {
       const { result } = renderHook(() =>
         useRuleConfigController({
           handleRuleValue: mockHandleRuleValue,
@@ -398,7 +403,7 @@ describe('useRuleConfigController', () => {
         result.current.functions.handleRuleId(newValue);
       });
 
-      expect(mockHandleRuleValue).toHaveBeenCalledWith(newValue);
+      expect(mockHandleRuleValue).not.toHaveBeenCalled();
     });
 
     it('should trigger config fetch when ruleId changes', async () => {
@@ -419,6 +424,61 @@ describe('useRuleConfigController', () => {
       await waitFor(() => {
         expect(mockSubmit).toHaveBeenCalledWith({ id: 'rule2' });
       });
+    });
+  });
+
+  describe('handleConfirm Function', () => {
+    it('should have handleConfirm function', () => {
+      const { result } = renderHook(() =>
+        useRuleConfigController({
+          handleRuleValue: mockHandleRuleValue,
+          ruleConfigId: undefined,
+          mode: null,
+        })
+      );
+
+      expect(result.current.functions.handleConfirm).toBeDefined();
+      expect(typeof result.current.functions.handleConfirm).toBe('function');
+    });
+
+    it('should call handleRuleValue with the selected ruleId and close the modal on confirm', () => {
+      const { result } = renderHook(() =>
+        useRuleConfigController({
+          handleRuleValue: mockHandleRuleValue,
+          ruleConfigId: undefined,
+          mode: null,
+        })
+      );
+
+      const newValue: DropdownOption = { label: 'rule2 (config2)', value: 'rule2@config2' };
+
+      act(() => {
+        result.current.functions.handleRuleId(newValue);
+      });
+
+      act(() => {
+        result.current.functions.handleConfirm();
+      });
+
+      expect(mockHandleRuleValue).toHaveBeenCalledWith(newValue);
+      expect(mockClose).toHaveBeenCalled();
+    });
+
+    it('should close the modal without calling handleRuleValue when nothing was selected', () => {
+      const { result } = renderHook(() =>
+        useRuleConfigController({
+          handleRuleValue: mockHandleRuleValue,
+          ruleConfigId: undefined,
+          mode: null,
+        })
+      );
+
+      act(() => {
+        result.current.functions.handleConfirm();
+      });
+
+      expect(mockHandleRuleValue).not.toHaveBeenCalled();
+      expect(mockClose).toHaveBeenCalled();
     });
   });
 
@@ -516,6 +576,7 @@ describe('useRuleConfigController', () => {
       );
 
       expect(result.current.functions).toHaveProperty('handleRuleId');
+      expect(result.current.functions).toHaveProperty('handleConfirm');
     });
   });
 
@@ -639,7 +700,7 @@ describe('useRuleConfigController', () => {
       );
 
       const firstConfig = result.current.values.ruleConfigs?.[0];
-      expect(firstConfig).toEqual({ label: 'rule1', value: 'rule1' });
+      expect(firstConfig).toEqual({ label: 'rule1 (config1)', value: 'rule1@config1' });
     });
 
     it('should preserve all items from data', () => {
