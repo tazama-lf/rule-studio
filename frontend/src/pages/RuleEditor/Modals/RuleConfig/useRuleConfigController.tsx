@@ -47,7 +47,7 @@ const useRuleConfigController = ({ handleRuleValue, ruleConfigId, mode }: RuleCo
 
   return {
     values: {
-      ruleConfigs: data?.map((item: IRuleId) => ({ label: `${item.ruleid} (${item.rulecfg})`, value: `${item.ruleid}@${item.rulecfg}` })),
+      ruleConfigs: data?.map((item: IRuleId) => ({ label: item.ruleid, value: item.ruleid })),
       ruleId,
       isLoading,
       configLoader,
