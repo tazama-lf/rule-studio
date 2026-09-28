@@ -1,12 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ParseExtractService } from '../../src/services/parse-extract/parse-extract.service';
-import { AdminServiceClient } from '../../src/services/admin-service-client';
 import { RuleRequest } from '../../src/services/parse-extract/dto/message.dto';
 import { AuthenticatedUser } from '../../src/services/auth/auth.types';
 
 describe('ParseExtractService - AJV Validation', () => {
   let service: ParseExtractService;
-  let mockAdminServiceClient: jest.Mocked<AdminServiceClient>;
 
   const schema = {
     type: 'object',
@@ -32,14 +30,6 @@ describe('ParseExtractService - AJV Validation', () => {
     required: ['FIToFICstmrCdtTrf'],
   };
 
-  const mockConfig = {
-    config: {
-      schema,
-      mapping: [],
-      payload: {},
-    },
-  };
-
   const mockUser: AuthenticatedUser = {
     token: {
       tokenString: 'Bearer token',
@@ -53,18 +43,11 @@ describe('ParseExtractService - AJV Validation', () => {
   };
 
   beforeEach(async () => {
-    const mockAdminService = {
-      getSchemaByTxTp: jest.fn(),
-      getConfigRowByTxTp: jest.fn(),
-      getActiveNetworkMap: jest.fn(),
-    };
-
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ParseExtractService, { provide: AdminServiceClient, useValue: mockAdminService }],
+      providers: [ParseExtractService],
     }).compile();
 
     service = module.get<ParseExtractService>(ParseExtractService);
-    mockAdminServiceClient = module.get(AdminServiceClient);
   });
 
   describe('Payload Validation', () => {
@@ -78,9 +61,6 @@ describe('ParseExtractService - AJV Validation', () => {
           },
         },
       };
-
-      mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockConfig as any);
-      mockAdminServiceClient.getActiveNetworkMap.mockResolvedValue({});
 
       const result = await service.processForRuleCreation('pacs.008.001.10', '10', schema, [], validPayload, mockUser);
 
@@ -103,9 +83,6 @@ describe('ParseExtractService - AJV Validation', () => {
         },
       };
 
-      mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockConfig as any);
-      mockAdminServiceClient.getActiveNetworkMap.mockResolvedValue({});
-
       const result = await service.processForRuleCreation('pacs.008.001.10', '10', schema, [], invalidPayload, mockUser);
 
       expect(result.success).toBe(false);
@@ -123,9 +100,6 @@ describe('ParseExtractService - AJV Validation', () => {
         },
       };
 
-      mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockConfig as any);
-      mockAdminServiceClient.getActiveNetworkMap.mockResolvedValue({});
-
       const result = await service.processForRuleCreation('pacs.008.001.10', '10', schema, [], invalidPayload, mockUser);
 
       expect(result.success).toBe(false);
@@ -134,7 +108,6 @@ describe('ParseExtractService - AJV Validation', () => {
     });
 
     it('should handle empty schema (allows any payload)', async () => {
-      mockAdminServiceClient.getActiveNetworkMap.mockResolvedValue({});
 
       // Empty schema validates any payload successfully
       const result = await service.processForRuleCreation('unknown.transaction', '1', {}, [], { SomeData: {} }, mockUser);
@@ -154,9 +127,6 @@ describe('ParseExtractService - AJV Validation', () => {
           },
         },
       };
-
-      mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockConfig as any);
-      mockAdminServiceClient.getActiveNetworkMap.mockResolvedValue({});
 
       const result = await service.processForRuleCreation(
         requestWithEmbeddedPayload.TxTp,
@@ -195,9 +165,6 @@ describe('ParseExtractService - AJV Validation', () => {
         },
       };
 
-      mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockConfig as any);
-      mockAdminServiceClient.getActiveNetworkMap.mockResolvedValue({});
-
       const result = await service.processForRuleCreation('pacs.008.001.10', '10', schema, [], validPayload, mockUser);
 
       expect(result.success).toBe(true);
@@ -235,9 +202,6 @@ describe('ParseExtractService - AJV Validation', () => {
           },
         },
       };
-
-      mockAdminServiceClient.getConfigRowByTxTp.mockResolvedValue(mockConfig as any);
-      mockAdminServiceClient.getActiveNetworkMap.mockResolvedValue({});
 
       const result = await service.processForRuleCreation('pacs.008.001.10', '10', schema, [], invalidPayload, mockUser);
 
