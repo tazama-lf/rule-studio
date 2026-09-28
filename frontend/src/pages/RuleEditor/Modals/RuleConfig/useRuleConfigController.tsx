@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { DropdownOption } from "../../../../components/DropDown";
 import { useGetRuleConfigsIdsQuery, useLazyGetRuleConfigQuery } from "../../../../redux/Api/Rules";
 import { useModal } from "../../../../contexts/ModalContext";
@@ -21,8 +21,22 @@ const useRuleConfigController = ({ handleRuleValue, ruleConfigId, mode }: RuleCo
   const [submit, { isLoading: configLoader }] = useLazyGetRuleConfigQuery()
   const { close } = useModal()
 
-  const [ruleId, setRuleId] = useState<DropdownOption | null>(ruleConfigId ? { label: ruleConfigId, value: ruleConfigId } : null);
+  const [selection, setSelection] = useState<DropdownOption | null>(null);
   const [json, setJson] = useState(null)
+
+  // Derive the current selection: user's in-modal pick wins; otherwise resolve
+  // the incoming ruleConfigId against loaded data so the DropDown renders the
+  // matching option's label. If no match (or data not yet loaded), fall back
+  // to using the raw prop for both label and value.
+  const ruleId = useMemo<DropdownOption | null>(() => {
+    if (selection) return selection
+    if (!ruleConfigId) return null
+    if (data) {
+      const match = (data as IRuleId[]).find((item) => item.ruleid === ruleConfigId)
+      if (match) return { label: match.ruleid, value: match.ruleid }
+    }
+    return { label: ruleConfigId, value: ruleConfigId }
+  }, [selection, ruleConfigId, data])
 
   useEffect(() => {
     if (ruleId) {
@@ -35,7 +49,7 @@ const useRuleConfigController = ({ handleRuleValue, ruleConfigId, mode }: RuleCo
   }, [ruleId, submit])
 
   const handleRuleId = (value: DropdownOption) => {
-    setRuleId(value)
+    setSelection(value)
   }
 
   const handleConfirm = () => {
@@ -47,7 +61,7 @@ const useRuleConfigController = ({ handleRuleValue, ruleConfigId, mode }: RuleCo
 
   return {
     values: {
-      ruleConfigs: data?.map((item: IRuleId) => ({ label: `${item.ruleid} (${item.rulecfg})`, value: `${item.ruleid}@${item.rulecfg}` })),
+      ruleConfigs: data?.map((item: IRuleId) => ({ label: item.ruleid, value: item.ruleid })),
       ruleId,
       isLoading,
       configLoader,

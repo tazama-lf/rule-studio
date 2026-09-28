@@ -271,9 +271,9 @@ describe('useRuleConfigController', () => {
       );
 
       expect(result.current.values.ruleConfigs).toEqual([
-        { label: 'rule1 (config1)', value: 'rule1@config1' },
-        { label: 'rule2 (config2)', value: 'rule2@config2' },
-        { label: 'rule3 (config3)', value: 'rule3@config3' },
+        { label: 'rule1', value: 'rule1' },
+        { label: 'rule2', value: 'rule2' },
+        { label: 'rule3', value: 'rule3' },
       ]);
     });
 
@@ -450,7 +450,7 @@ describe('useRuleConfigController', () => {
         })
       );
 
-      const newValue: DropdownOption = { label: 'rule2 (config2)', value: 'rule2@config2' };
+      const newValue: DropdownOption = { label: 'rule2', value: 'rule2' };
 
       act(() => {
         result.current.functions.handleRuleId(newValue);
@@ -700,7 +700,7 @@ describe('useRuleConfigController', () => {
       );
 
       const firstConfig = result.current.values.ruleConfigs?.[0];
-      expect(firstConfig).toEqual({ label: 'rule1 (config1)', value: 'rule1@config1' });
+      expect(firstConfig).toEqual({ label: 'rule1', value: 'rule1' });
     });
 
     it('should preserve all items from data', () => {
@@ -713,6 +713,140 @@ describe('useRuleConfigController', () => {
       );
 
       expect(result.current.values.ruleConfigs).toHaveLength(mockRuleConfigsData.length);
+    });
+  });
+
+  describe('Regression — realistic admin-service payload (issue #157)', () => {
+    // Admin-service GET /rules/api/ids returns records where `ruleid` already
+    // holds the composite lookup key <rule-number>@<version>, and `rulecfg` is
+    // a duplicate of the version portion. The frontend must pass `ruleid`
+    // verbatim as the `configuration/:id` lookup key — composing `${ruleid}@${rulecfg}`
+    // produces a triple-@ URL that admin-service returns 404 for.
+    const realisticRuleConfigsData = [
+      { ruleid: '001@4.0.0', rulecfg: '4.0.0', tenantid: 'TAZAMA' },
+      { ruleid: '002@4.0.0', rulecfg: '4.0.0', tenantid: 'TAZAMA' },
+      { ruleid: 'EFRuP@4.0.0', rulecfg: 'none', tenantid: 'TAZAMA' },
+    ];
+
+    beforeEach(() => {
+      const { useGetRuleConfigsIdsQuery } = require('../../../../../src/redux/Api/Rules');
+      useGetRuleConfigsIdsQuery.mockReturnValue({
+        data: realisticRuleConfigsData,
+        isLoading: false,
+      });
+    });
+
+    it('option value must equal ruleid verbatim (no double-@ composition)', () => {
+      const { result } = renderHook(() =>
+        useRuleConfigController({
+          handleRuleValue: mockHandleRuleValue,
+          ruleConfigId: undefined,
+          mode: null,
+        })
+      );
+
+      const configs = result.current.values.ruleConfigs ?? [];
+      expect(configs).toEqual([
+        { label: '001@4.0.0', value: '001@4.0.0' },
+        { label: '002@4.0.0', value: '002@4.0.0' },
+        { label: 'EFRuP@4.0.0', value: 'EFRuP@4.0.0' },
+      ]);
+    });
+
+    it('every option value has exactly two @-separated segments (matches admin-service key contract)', () => {
+      const { result } = renderHook(() =>
+        useRuleConfigController({
+          handleRuleValue: mockHandleRuleValue,
+          ruleConfigId: undefined,
+          mode: null,
+        })
+      );
+
+      const configs = result.current.values.ruleConfigs ?? [];
+      configs.forEach((opt: DropdownOption) => {
+        expect(opt.value.split('@')).toHaveLength(2);
+      });
+    });
+
+    it('submit fires with the raw ruleid as id (the admin-service lookup key)', async () => {
+      const { result } = renderHook(() =>
+        useRuleConfigController({
+          handleRuleValue: mockHandleRuleValue,
+          ruleConfigId: undefined,
+          mode: null,
+        })
+      );
+
+      const picked: DropdownOption = { label: '001@4.0.0', value: '001@4.0.0' };
+
+      act(() => {
+        result.current.functions.handleRuleId(picked);
+      });
+
+      await waitFor(() => {
+        expect(mockSubmit).toHaveBeenCalledWith({ id: '001@4.0.0' });
+      });
+    });
+
+    it('handleConfirm commits a rule_config_id whose value.split("@").length === 2', () => {
+      const { result } = renderHook(() =>
+        useRuleConfigController({
+          handleRuleValue: mockHandleRuleValue,
+          ruleConfigId: undefined,
+          mode: null,
+        })
+      );
+
+      const picked: DropdownOption = { label: '002@4.0.0', value: '002@4.0.0' };
+
+      act(() => {
+        result.current.functions.handleRuleId(picked);
+      });
+      act(() => {
+        result.current.functions.handleConfirm();
+      });
+
+      expect(mockHandleRuleValue).toHaveBeenCalledTimes(1);
+      const committed = mockHandleRuleValue.mock.calls[0][0] as DropdownOption;
+      expect(committed.value.split('@')).toHaveLength(2);
+      expect(committed.value).toBe('002@4.0.0');
+    });
+
+    it('initial selection resolves against loaded data (clone / resume path)', async () => {
+      const { result } = renderHook(() =>
+        useRuleConfigController({
+          handleRuleValue: mockHandleRuleValue,
+          ruleConfigId: '002@4.0.0',
+          mode: null,
+        })
+      );
+
+      await waitFor(() => {
+        expect(result.current.values.ruleId).toEqual({
+          label: '002@4.0.0',
+          value: '002@4.0.0',
+        });
+      });
+    });
+
+    it('initial selection remains unresolved when ruleConfigId is not in loaded data', async () => {
+      const { result } = renderHook(() =>
+        useRuleConfigController({
+          handleRuleValue: mockHandleRuleValue,
+          ruleConfigId: '999@9.9.9',
+          mode: null,
+        })
+      );
+
+      // Falls back to the useState seed — label/value both equal the raw prop.
+      // The dropdown will render whatever label the caller provided; the
+      // resolution effect only overwrites when a match is found.
+      await waitFor(() => {
+        expect(result.current.values.ruleId).toEqual({
+          label: '999@9.9.9',
+          value: '999@9.9.9',
+        });
+      });
     });
   });
 
