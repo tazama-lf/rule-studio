@@ -9,7 +9,7 @@ export class AuthService {
   constructor(
     private readonly httpService: HttpService,
     private readonly loggerService: LoggerService,
-  ) {}
+  ) { }
 
   private extractToken(data): string {
     const token = typeof data === 'string' ? data : (data?.token ?? data?.access_token ?? data?.jwt ?? data?.user?.token);
@@ -22,7 +22,10 @@ export class AuthService {
   }
 
   private validateUserToken(token: string, username: string): void {
-    const claimsToCheck = ['editor', 'approver', 'publisher', 'trs_data_engineer_editor', 'trs_data_engineer_approver'];
+    const claimsToCheck = (process.env.ALLOWED_ROLES ?? '')
+      .split(',')
+      .map(role => role.trim())
+      .filter(Boolean);
     let claimResult;
     try {
       claimResult = validateTokenAndClaims(token, claimsToCheck);
@@ -32,10 +35,12 @@ export class AuthService {
       throw new UnauthorizedException('Token validation failed');
     }
 
-    const hasRequiredClaim = claimsToCheck.some((claim) => !!claimResult[claim]);
+    const hasRequiredClaim = claimsToCheck.some(
+      claim => claimResult[claim],
+    );
     if (!hasRequiredClaim) {
       this.loggerService.warn(
-        `User ${username} does not have required claims (editor, approver, publisher, trs_data_engineer_editor, or trs_data_engineer_approver).`,
+        `User ${username} does not have any allowed role.`,
         AuthService.name,
       );
       throw new UnauthorizedException('Invalid credentials');

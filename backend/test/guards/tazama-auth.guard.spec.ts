@@ -16,12 +16,16 @@ function createMockJWT(payload: any): string {
 describe('TazamaAuthGuard', () => {
   let guard: TazamaAuthGuard;
   let reflector: Reflector;
+  let originalAllowedRoles: string | undefined;
 
   const mockValidateTokenAndClaims = authLib.validateTokenAndClaims as jest.MockedFunction<
     typeof authLib.validateTokenAndClaims
   >;
 
   beforeEach(async () => {
+    originalAllowedRoles = process.env.ALLOWED_ROLES;
+    process.env.ALLOWED_ROLES = 'editor,approver,publisher';
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TazamaAuthGuard,
@@ -38,6 +42,10 @@ describe('TazamaAuthGuard', () => {
     reflector = module.get<Reflector>(Reflector);
 
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    process.env.ALLOWED_ROLES = originalAllowedRoles;
   });
 
   const createMockContext = (headers: any = {}, user?: any): ExecutionContext =>
