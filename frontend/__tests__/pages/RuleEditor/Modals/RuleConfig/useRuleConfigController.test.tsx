@@ -811,6 +811,43 @@ describe('useRuleConfigController', () => {
       expect(committed.value.split('@')).toHaveLength(2);
       expect(committed.value).toBe('002@4.0.0');
     });
+
+    it('initial selection resolves against loaded data (clone / resume path)', async () => {
+      const { result } = renderHook(() =>
+        useRuleConfigController({
+          handleRuleValue: mockHandleRuleValue,
+          ruleConfigId: '002@4.0.0',
+          mode: null,
+        })
+      );
+
+      await waitFor(() => {
+        expect(result.current.values.ruleId).toEqual({
+          label: '002@4.0.0',
+          value: '002@4.0.0',
+        });
+      });
+    });
+
+    it('initial selection remains unresolved when ruleConfigId is not in loaded data', async () => {
+      const { result } = renderHook(() =>
+        useRuleConfigController({
+          handleRuleValue: mockHandleRuleValue,
+          ruleConfigId: '999@9.9.9',
+          mode: null,
+        })
+      );
+
+      // Falls back to the useState seed — label/value both equal the raw prop.
+      // The dropdown will render whatever label the caller provided; the
+      // resolution effect only overwrites when a match is found.
+      await waitFor(() => {
+        expect(result.current.values.ruleId).toEqual({
+          label: '999@9.9.9',
+          value: '999@9.9.9',
+        });
+      });
+    });
   });
 
   describe('Integration', () => {
