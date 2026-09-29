@@ -4,6 +4,18 @@ import { getNodesInBranch } from '../Common/helpers';
 import { getApiNodes, getNodeTemplate } from './nodeTemplateService';
 import { getFunctionParameters, generateFunctionArgs } from './functionParameterUtils';
 
+/**
+ * Escapes a string for safe embedding inside a generated template literal, WHILE preserving
+ * intentional `${...}` interpolation. Backslashes are escaped first (so the escapes we add are
+ * not themselves re-escaped), then backticks — otherwise a trailing `\` or stray backtick in
+ * the input would break out of the literal. `$` is deliberately NOT escaped: callers inject
+ * `${var}` references that must interpolate.
+ */
+const escapeForInterpolatedTemplate = (str: string): string => str.replace(/\\/g, '\\\\').replace(/`/g, '\\`');
+
+/** Maps a UI dataType to a valid TS type name. Most match 1:1; 'array' is not a TS type. */
+const toTsType = (dataType: string): string => (dataType === 'array' ? 'Array<unknown>' : dataType);
+
 interface NestedCanvasData {
   nodes: Node[];
   edges: Edge[];
@@ -164,6 +176,10 @@ const generateNodeCode = (
 
   if (nodeType === 'SetVariable') {
     return generateSetVariableCode(params, indent, generationMode);
+  }
+
+  if (nodeType === 'SetVariableWithType') {
+    return generateSetVariableWithTypeCode(params, indent, generationMode);
   }
 
   if (nodeType === 'Log') {
@@ -453,9 +469,58 @@ const generateSetVariableCode = (params: Record<string, string>, indent: string,
     } else if (isNumber && dataType === 'any') {
       valueStr = varValue;
     } else if (varValue.includes('$')) {
-      valueStr = `\`${varValue.replace(/`/g, '\\`')}\``;
+      valueStr = `\`${escapeForInterpolatedTemplate(varValue)}\``;
     } else {
       valueStr = varValue.startsWith('"') || varValue.startsWith("'") ? varValue : `"${varValue}"`;
+    }
+  }
+  
+  return `${indent}${declarationType} ${varName} = ${valueStr};`;
+};
+
+const generateSetVariableWithTypeCode = (params: Record<string, string>, indent: string, generationMode: 'rule-builder' | 'test-case-generate' = 'test-case-generate'): string => {
+  const varName = params.name || params.variableName || 'variable';
+  const declarationType = params.declarationType || 'var';
+  const dataType = params.dataType || 'any';
+  const originalValue = params.value || params.variableValue || '';
+
+  const isVariableReference = /\{\{\s*.+?\s*\}\}/.test(originalValue);
+  const varValue = stripVariableIndicators(originalValue, generationMode);
+
+  if (!varValue || varValue.trim() === '' || dataType === 'undefined') {
+    return `${indent}${declarationType} ${varName};`;
+  }
+
+  let valueStr: string;
+
+  if (isVariableReference) {
+    valueStr = `${varValue} as unknown as ${toTsType(dataType)}`;
+  } else {
+    const isNumber = !isNaN(Number(varValue)) && varValue.trim() !== '';
+    
+    if (dataType === 'number' && isNumber) {
+      valueStr = `${varValue} as unknown as ${dataType}`;
+    } else if (dataType === 'boolean') {
+      valueStr = varValue.toLowerCase() === 'true' || varValue === '1' ? `true as unknown as ${dataType}` : `false as unknown as ${dataType}`;
+    } else if (dataType === 'array') {
+      const arrayLiteral = varValue.trim().startsWith('[') ? varValue.trim() : `[${varValue}]`;
+      valueStr = `${arrayLiteral} as unknown as Array<unknown>`;
+    } else if (dataType === 'object') {
+      const trimmedObj = varValue.trim();
+      if (trimmedObj.startsWith('{')) {
+        valueStr = trimmedObj;
+      } else if (trimmedObj.includes(':')) {
+        valueStr = `{${varValue}}`;
+      } else {
+        valueStr = `${varValue} as unknown as object`;
+      }
+    } else if (isNumber && dataType === 'any') {
+      valueStr = `${varValue} as unknown as ${dataType}`;
+    } else if (varValue.includes('$')) {
+      valueStr = `\`${escapeForInterpolatedTemplate(varValue)}\``;
+    } else {
+      const serializedValue = varValue.startsWith('"') || varValue.startsWith("'") ? varValue : JSON.stringify(varValue);
+      valueStr = `${serializedValue} as unknown as ${dataType}`;
     }
   }
   
@@ -477,7 +542,7 @@ const generateLogCode = (params: Record<string, string>, indent: string, mode: '
       messageStr = normalizeVariableNames(onlyVariableMatch[1].trim(), mode);
     } else {
       const interpolatedMessage = message.replace(/\{\{\s*(.+?)\s*\}\}/g, (_, varName) => `\${${normalizeVariableNames(varName, mode)}}`);
-      messageStr = `\`${interpolatedMessage.replace(/`/g, '\\`')}\``;
+      messageStr = `\`${escapeForInterpolatedTemplate(interpolatedMessage)}\``;
     }
   } else {
     messageStr = `'${message.replace(/'/g, "\\'")}'`;
@@ -501,7 +566,7 @@ const generateThrowErrorCode = (params: Record<string, string>, indent: string, 
       messageStr = normalizeVariableNames(onlyVariableMatch[1].trim(), mode);
     } else {
       const interpolatedMessage = message.replace(/\{\{\s*(.+?)\s*\}\}/g, (_, varName) => `\${${normalizeVariableNames(varName, mode)}}`);
-      messageStr = `\`${interpolatedMessage.replace(/`/g, '\\`')}\``;
+      messageStr = `\`${escapeForInterpolatedTemplate(interpolatedMessage)}\``;
     }
   } else {
     messageStr = `'${message.replace(/'/g, "\\'")}'`;

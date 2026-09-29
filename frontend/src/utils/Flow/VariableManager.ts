@@ -20,10 +20,10 @@ export const extractVariablesFromNodes = (nodes: Node[]): Variable[] => {
   nodes.forEach((node) => {
     const nodeData = node.data as EditableNodeData;
     
-    if (nodeData.nodeType === 'SetVariable') {
+    if (nodeData.nodeType === 'SetVariable' || nodeData.nodeType === 'SetVariableWithType') {
       const params = nodeData.params || {};
       const varName = params.name || params.variableName;
-      
+
       if (varName && varName.trim()) {
         variables.push({
           name: varName.trim(),
@@ -110,8 +110,8 @@ export const isVariableDeclaredBefore = (
 ): boolean => {
   const declaringNodes = nodes.filter((node) => {
     const nodeData = node.data as EditableNodeData;
-    if (nodeData.nodeType !== 'SetVariable') return false;
-    
+    if (nodeData.nodeType !== 'SetVariable' && nodeData.nodeType !== 'SetVariableWithType') return false;
+
     const params = nodeData.params || {};
     const varName = params.name || params.variableName;
     return varName?.trim() === variableName;
