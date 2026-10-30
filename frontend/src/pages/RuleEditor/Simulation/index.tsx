@@ -82,7 +82,7 @@ const Simulation = (props: ISimulation) => {
                         <>
                             <Button
                                 height="40px"
-                                width="170px"
+                                width="200px"
                                 type="secondary"
                                 size="lg"
                                 text={!values?.codeSynced ? "Synced" : "Sync On Github"}
