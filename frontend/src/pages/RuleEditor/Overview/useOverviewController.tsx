@@ -14,7 +14,6 @@ import { ruleTypes } from "../../../utils/Constants/data";
 import { createRuleSchema } from "../../../validation/schemas";
 import RuleConfig from "../Modals/RuleConfig";
 import ViewNetworkMap from "../Modals/ViewNetworkMap";
-import { useCreateRepoMutation } from '../../../redux/Api/Simulation';
 
 interface RuleFormValues {
     rule_name: string;
@@ -44,7 +43,6 @@ const useOverviewController = (props: IOverviewProps) => {
 
     const { data: types, isLoading } = useGetTypesQuery({})
     const [submit, { isLoading: createLoading }] = useCreateRuleMutation()
-    const [createRepo, { isLoading: repoLoading }] = useCreateRepoMutation()
     const [clone] = useCloneRuleMutation()
     const [getVersions] = useLazyGetTxtpVersionsQuery()
 
@@ -123,14 +121,7 @@ const useOverviewController = (props: IOverviewProps) => {
                     : 'Rule Successfully Created'
             )
 
-            const currentRuleConfigId = values.rule_config_id?.value;
-
-            const repoBody = {
-                ruleId: currentRuleConfigId?.toString().split('@')[0].toLowerCase(),
-                ruleVersion: currentRuleConfigId?.toString().split('@')[1]
-            }
-
-            await createRepo(repoBody).unwrap()
+            // The GitHub repository is created later, on Sync On Github in the Simulation tab
             enableNextTab()
         } catch (error: unknown) {
             const errorMessage =
@@ -218,7 +209,7 @@ const useOverviewController = (props: IOverviewProps) => {
             errors,
             isLoading,
             rule_config_id: getValues('rule_config_id'),
-            createLoading: createLoading || repoLoading,
+            createLoading,
             transactions: (types as { transaction_type: string; endpoint_path: string }[] | undefined)
                 ?.reduce((acc: { label: string; value: string }[], item) => {
                     if (!acc.some(t => t.value === item.transaction_type)) {

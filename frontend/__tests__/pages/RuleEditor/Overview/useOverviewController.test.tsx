@@ -479,7 +479,7 @@ describe('useOverviewController', () => {
         expect(result.current.values.createLoading).toBe(true);
     });
 
-    it('should handle repoLoading state correctly', () => {
+    it('should not report loading from repository bootstrap', () => {
         const { useCreateRepoMutation } = require('../../../../src/redux/Api/Simulation');
         useCreateRepoMutation.mockReturnValue([
             mockCreateRepo,
@@ -492,33 +492,73 @@ describe('useOverviewController', () => {
 
         const { result } = renderHook(() => useOverviewController({ mode: 'create' }));
 
-        expect(result.current.values.createLoading).toBe(true);
+        expect(result.current.values.createLoading).toBe(false);
     });
 
-    it('should combine createLoading and repoLoading states', () => {
-        const { useCreateRuleMutation } = require('../../../../src/redux/Api/Rules');
-        useCreateRuleMutation.mockReturnValue([
-            mockSubmit,
-            {
-                isLoading: true,
-                error: undefined,
-            },
-            {}
-        ]);
+    describe('rule creation does not bootstrap a GitHub repository', () => {
+        const toast = require('react-hot-toast').default;
 
-        const { useCreateRepoMutation } = require('../../../../src/redux/Api/Simulation');
-        useCreateRepoMutation.mockReturnValue([
-            mockCreateRepo,
-            {
-                isLoading: true,
-                error: undefined,
-            },
-            {}
-        ]);
+        it('should save the rule and enable the next tab without calling bootstrap', async () => {
+            mockSubmit.mockReturnValue({
+                unwrap: jest.fn().mockResolvedValue({ id: 'new-rule-id' }),
+            });
 
-        const { result } = renderHook(() => useOverviewController({ mode: 'create' }));
+            const { result } = renderHook(() => useOverviewController({ mode: 'create' }));
 
-        expect(result.current.values.createLoading).toBe(true);
+            await act(async () => {
+                await result.current.functions.handleSubmit();
+            });
+
+            expect(mockSubmit).toHaveBeenCalledTimes(1);
+            expect(mockInsertData).toHaveBeenCalledWith({ id: 'new-rule-id' }, 'trs_rule', expect.anything(), true);
+            expect(toast.success).toHaveBeenCalledWith('Rule Successfully Created');
+            expect(mockEnableNextTab).toHaveBeenCalledTimes(1);
+            expect(mockCreateRepo).not.toHaveBeenCalled();
+            expect(toast.error).not.toHaveBeenCalled();
+        });
+
+        it('should report a failed rule creation without calling bootstrap', async () => {
+            mockSubmit.mockReturnValue({
+                unwrap: jest.fn().mockRejectedValue({}),
+            });
+
+            const { result } = renderHook(() => useOverviewController({ mode: 'create' }));
+
+            await act(async () => {
+                await result.current.functions.handleSubmit();
+            });
+
+            expect(toast.error).toHaveBeenCalledWith('Failed to create rule');
+            expect(toast.success).not.toHaveBeenCalled();
+            expect(mockEnableNextTab).not.toHaveBeenCalled();
+            expect(mockCreateRepo).not.toHaveBeenCalled();
+        });
+
+        it('should clone the rule and enable the next tab without calling bootstrap', async () => {
+            mockClone.mockReturnValue({
+                unwrap: jest.fn().mockResolvedValue({ id: 'cloned-rule-id' }),
+            });
+            const data = {
+                id: 'source-rule-id',
+                description: 'Test Description',
+                txtp: 'pacs.002.001.10',
+                txtp_version: '1.0',
+                version: '1.0.0',
+                rule_config_id: '123@1.0',
+                rule_type: 'typology'
+            };
+
+            const { result } = renderHook(() => useOverviewController({ mode: 'clone', data }));
+
+            await act(async () => {
+                await result.current.functions.handleSubmit();
+            });
+
+            expect(mockClone).toHaveBeenCalledWith(expect.objectContaining({ id: 'source-rule-id' }));
+            expect(toast.success).toHaveBeenCalledWith('Rule Successfully Cloned');
+            expect(mockEnableNextTab).toHaveBeenCalledTimes(1);
+            expect(mockCreateRepo).not.toHaveBeenCalled();
+        });
     });
 
     it('should return control from useForm', () => {
