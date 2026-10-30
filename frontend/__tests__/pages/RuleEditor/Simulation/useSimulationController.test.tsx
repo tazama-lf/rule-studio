@@ -44,6 +44,8 @@ jest.mock('react-hook-form', () => ({
     }),
 }));
 
+const mockCreateRepo = jest.fn();
+let mockRepoLoading = false;
 const mockUploadCode = jest.fn();
 const mockMergeBranch = jest.fn();
 const mockGetReportStatus = jest.fn();
@@ -57,6 +59,7 @@ const mockUpdateMetadata = jest.fn();
 const mockAddLogs = jest.fn();
 
 jest.mock('../../../../src/redux/Api/Simulation', () => ({
+    useCreateRepoMutation: () => [mockCreateRepo, { isLoading: mockRepoLoading }],
     useUploadCodeMutation: () => [mockUploadCode, { isLoading: false }],
     useMergeBranchMutation: () => [mockMergeBranch, { isLoading: false }],
     useLazyGetReportStatusQuery: () => [mockGetReportStatus, { isLoading: false }],
@@ -127,6 +130,10 @@ describe('useSimulationController', () => {
         });
         mockUpdateMetadata.mockReturnValue({
             unwrap: jest.fn().mockResolvedValue({}),
+        });
+        mockRepoLoading = false;
+        mockCreateRepo.mockReturnValue({
+            unwrap: jest.fn().mockResolvedValue({ success: true }),
         });
         mockGetOrganization.mockReturnValue({
             unwrap: jest.fn().mockResolvedValue({ organization: 'test-org' }),
@@ -359,6 +366,106 @@ describe('useSimulationController', () => {
             await waitFor(() => {
                 expect(mockUpdateMetadata).toHaveBeenCalled();
             });
+        });
+
+        it('should bootstrap the repository before populating it', async () => {
+            mockUploadCode.mockReturnValue({
+                unwrap: jest.fn().mockResolvedValue({ success: true }),
+            });
+
+            const { result } = renderHook(() => useSimulationController({ data: mockData }));
+
+            await act(async () => {
+                await result.current.functions.handleUpload();
+            });
+
+            expect(mockCreateRepo).toHaveBeenCalledWith({
+                ruleId: 'config-456',
+                ruleVersion: '1.0.0',
+            });
+            expect(mockUploadCode).toHaveBeenCalledTimes(1);
+            expect(mockCreateRepo.mock.invocationCallOrder[0])
+                .toBeLessThan(mockUploadCode.mock.invocationCallOrder[0]);
+        });
+
+        it('should not populate or mark synced when bootstrap fails', async () => {
+            mockCreateRepo.mockReturnValue({
+                unwrap: jest.fn().mockRejectedValue(new Error('Bootstrap failed')),
+            });
+
+            const { result } = renderHook(() => useSimulationController({ data: mockData }));
+
+            await act(async () => {
+                await result.current.functions.handleUpload();
+            });
+
+            expect(toast.error).toHaveBeenCalledWith(
+                'Failed to set up GitHub repository. Your rule is saved, please retry sync.'
+            );
+            expect(toast.error).not.toHaveBeenCalledWith('Failed to upload code');
+            expect(toast.success).not.toHaveBeenCalled();
+            expect(mockUploadCode).not.toHaveBeenCalled();
+            expect(mockUpdateMetadata).not.toHaveBeenCalled();
+            expect(result.current.values.codeSynced).toBe(true);
+        });
+
+        it('should not mark synced when populate fails after bootstrap succeeds', async () => {
+            mockUploadCode.mockReturnValue({
+                unwrap: jest.fn().mockRejectedValue(new Error('Upload failed')),
+            });
+
+            const { result } = renderHook(() => useSimulationController({ data: mockData }));
+
+            await act(async () => {
+                await result.current.functions.handleUpload();
+            });
+
+            expect(mockCreateRepo).toHaveBeenCalledTimes(1);
+            expect(toast.error).toHaveBeenCalledWith('Failed to upload code');
+            expect(mockUpdateMetadata).not.toHaveBeenCalled();
+            expect(result.current.values.codeSynced).toBe(true);
+        });
+
+        it('should allow retrying sync after a failed bootstrap', async () => {
+            mockCreateRepo
+                .mockReturnValueOnce({
+                    unwrap: jest.fn().mockRejectedValue(new Error('Bootstrap failed')),
+                })
+                .mockReturnValueOnce({
+                    unwrap: jest.fn().mockResolvedValue({ success: true }),
+                });
+            mockUploadCode.mockReturnValue({
+                unwrap: jest.fn().mockResolvedValue({ success: true }),
+            });
+
+            const { result } = renderHook(() => useSimulationController({ data: mockData }));
+
+            await act(async () => {
+                await result.current.functions.handleUpload();
+            });
+            expect(mockUploadCode).not.toHaveBeenCalled();
+
+            await act(async () => {
+                await result.current.functions.handleUpload();
+            });
+
+            expect(mockCreateRepo).toHaveBeenCalledTimes(2);
+            expect(mockCreateRepo).toHaveBeenNthCalledWith(2, {
+                ruleId: 'config-456',
+                ruleVersion: '1.0.0',
+            });
+            expect(mockUploadCode).toHaveBeenCalledTimes(1);
+            expect(toast.success).toHaveBeenCalledWith('Code Uploaded Successfully');
+            expect(mockUpdateMetadata).toHaveBeenCalledTimes(1);
+            expect(result.current.values.codeSynced).toBe(false);
+        });
+
+        it('should report uploading while bootstrap is in progress', () => {
+            mockRepoLoading = true;
+
+            const { result } = renderHook(() => useSimulationController({ data: mockData }));
+
+            expect(result.current.values.uploading).toBe(true);
         });
     });
 

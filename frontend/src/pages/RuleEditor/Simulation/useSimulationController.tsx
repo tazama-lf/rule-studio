@@ -10,7 +10,7 @@ import { useLazyGetSamplePayloadQuery } from "../../../redux/Api/Config";
 import { useEndToEndMutation, useLazyGetEndReportQuery, useRuleOnlyMutation } from "../../../redux/Api/Nats";
 import { useGetAllFlowQuery, useLazyGetGlobalVariablesQuery } from "../../../redux/Api/Rule-builder";
 import { useUpdateMetadataMutation } from "../../../redux/Api/Rules";
-import { useLazyGetOrganizationQuery, useLazyGetReportStatusQuery, useMergeBranchMutation, useUploadCodeMutation } from "../../../redux/Api/Simulation";
+import { useCreateRepoMutation, useLazyGetOrganizationQuery, useLazyGetReportStatusQuery, useMergeBranchMutation, useUploadCodeMutation } from "../../../redux/Api/Simulation";
 import { useAddSimulationlogsMutation } from "../../../redux/Api/SimulationLogs";
 import { LocalStorage } from "../../../utils/Common/enums";
 import { extractData } from "../../../utils/Common/storage";
@@ -74,6 +74,7 @@ const useSimulationController = (props: ISimulation) => {
 
     const [selected, setSelected] = useState<number | null>(null)
 
+    const [createRepo, { isLoading: repoLoading }] = useCreateRepoMutation()
     const [upload, { isLoading: uploading }] = useUploadCodeMutation()
     const [deploy, { isLoading: deploying }] = useMergeBranchMutation()
     const [getReportStatus, { isLoading: statusLoading }] = useLazyGetReportStatusQuery()
@@ -161,34 +162,48 @@ const useSimulationController = (props: ISimulation) => {
         }, 40000)
     }, [toggleLoader, handleReportStatus])
 
-    const handleUpload = useCallback(() => {
+    const handleUpload = useCallback(async () => {
 
         const rule_config_id = data?.rule_config_id
+
+        const repoBody = {
+            ruleId: rule_config_id?.toString().split('@')[0].toLowerCase(),
+            ruleVersion: rule_config_id?.toString().split('@')[1]
+        }
 
         const body = {
             ruleId: rule_config_id?.toString().split('@')[0],
             ruleCode: flowData?.result?.ts_file_base64_rule_builder,
             testCode: flowData?.result?.ts_file_base64_test_case
         }
-        upload(body).unwrap()
-            .then((res) => {
-                if (res) {
-                    toast.success('Code Uploaded Successfully')
-                    toggleCodeSynced()
-                    updateMetadata({
-                        sync: false,
-                        test: false,
-                        deploy: false,
-                        simulation: false
-                    })
-                    handleLoader()
-                }
-            })
-            .catch(() => {
-                toast.error('Failed to upload code')
-            })
+
+        // Bootstrap creates the repository if it is missing and is safe to repeat,
+        // so a failed sync can simply be retried.
+        try {
+            await createRepo(repoBody).unwrap()
+        } catch {
+            toast.error('Failed to set up GitHub repository. Your rule is saved, please retry sync.')
+            return
+        }
+
+        try {
+            const res = await upload(body).unwrap()
+            if (res) {
+                toast.success('Code Uploaded Successfully')
+                toggleCodeSynced()
+                updateMetadata({
+                    sync: false,
+                    test: false,
+                    deploy: false,
+                    simulation: false
+                })
+                handleLoader()
+            }
+        } catch {
+            toast.error('Failed to upload code')
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [data?.id, upload, toggleCodeSynced, updateMetadata, flowData, handleLoader])
+    }, [data?.id, createRepo, upload, toggleCodeSynced, updateMetadata, flowData, handleLoader])
 
     const handleDeploy = useCallback(() => {
         // if (codeSynced) {
@@ -413,7 +428,7 @@ const useSimulationController = (props: ISimulation) => {
         values: {
             claim: user?.claims,
             status: data?.status,
-            uploading,
+            uploading: repoLoading || uploading,
             deploying,
             viewReport,
             loader: loader || statusLoading,
