@@ -115,13 +115,13 @@ export class NotificationService implements OnModuleInit {
 
       switch (event) {
         case EventType.EditorSubmit:
-          role = 'approver';
+          role = 'trs_approver';
           break;
         case EventType.ApproverApprove:
-          role = 'publisher';
+          role = 'trs_publisher';
           break;
         case EventType.ApproverReject:
-          role = 'editor';
+          role = 'trs_editor';
           break;
         case EventType.PublisherDeploy:
         case EventType.PublisherActivate:
