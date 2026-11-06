@@ -6,6 +6,7 @@ const BASE_URL = import.meta.env.VITE_API_URL as string;
 export interface FeaturesResponse {
     dockerPublish: boolean;
     simStudio: boolean;
+    rulePipeline: boolean;
 }
 
 export const featuresApi = createApi({

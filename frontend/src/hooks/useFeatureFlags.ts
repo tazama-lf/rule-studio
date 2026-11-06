@@ -4,6 +4,7 @@ export interface FeatureFlagsHookResult {
     isLoading: boolean;
     isDockerPublishEnabled: boolean;
     isSimStudioEnabled: boolean;
+    isRulePipelineEnabled: boolean;
 }
 
 // While loading or on error, features are reported as disabled so the UI does
@@ -12,11 +13,12 @@ export const useFeatureFlags = (): FeatureFlagsHookResult => {
     const { data, isLoading, isError } = useGetFeaturesQuery();
 
     if (isLoading || isError || !data) {
-        return { isLoading, isDockerPublishEnabled: false, isSimStudioEnabled: false };
+        return { isLoading, isDockerPublishEnabled: false, isSimStudioEnabled: false, isRulePipelineEnabled: false };
     }
     return {
         isLoading: false,
         isDockerPublishEnabled: data.dockerPublish,
         isSimStudioEnabled: data.simStudio,
+        isRulePipelineEnabled: data.rulePipeline ?? false,
     };
 };

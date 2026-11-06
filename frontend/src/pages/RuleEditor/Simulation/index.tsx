@@ -13,10 +13,13 @@ import EditableJsonPayload from '../../../components/JsonFormatter/EditableJsonP
 import { Controller } from 'react-hook-form';
 import Loader from '../../../components/Loader';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
+import RulePipeline from './RulePipeline';
 
 const Simulation = (props: ISimulation) => {
 
     const { values, functions } = useSimulationController(props);
+    const { isRulePipelineEnabled } = useFeatureFlags();
 
     if (values?.isLoading) {
         return <Box width={'100%'} height={'60vh'} alignItems={'center'} display={'flex'} justifyContent={'center'}>
@@ -77,44 +80,49 @@ const Simulation = (props: ISimulation) => {
                         <Text color="text.ternary" size={'body'}>Submit Code For Review</Text>
                     </Grid>
                 </Box>
-                <Box display={'flex'} gap={2}>
-                    {claims.editor === values?.claim && values?.status === Status.STATUS_01_IN_PROGRESS && values?.mode !== 'view' &&
-                        <>
-                            <Button
-                                height="40px"
-                                width="200px"
-                                type="secondary"
-                                size="lg"
-                                text={!values?.codeSynced ? "Synced" : "Sync On Github"}
-                                Icon={UploadIcon}
-                                loading={values?.uploading}
-                                disabled={!values?.codeSynced}
-                                onClick={functions.handleUpload}
-                            />
-                            <Button
-                                height="40px"
-                                width="170px"
-                                type="secondary"
-                                size="md"
-                                text={values?.codeDeployed ? "Rule Deployed" : "Deploy Rule"}
-                                loading={values?.deploying}
-                                disabled={!values?.viewReport || values?.codeDeployed || values?.isReportFailed}
-                                onClick={functions.handleDeploy}
-                            />
-                        </>
-                    }
-                    <Button
-                        height="40px"
-                        width="170px"
-                        type="secondary"
-                        size="md"
-                        text="View Test Report"
-                        loading={values?.loader}
-                        disabled={!values?.viewReport}
-                        onClick={functions.handleReport}
-                    />
-                </Box>
+                {!isRulePipelineEnabled &&
+                    <Box display={'flex'} gap={2}>
+                        {claims.editor === values?.claim && values?.status === Status.STATUS_01_IN_PROGRESS && values?.mode !== 'view' &&
+                            <>
+                                <Button
+                                    height="40px"
+                                    width="200px"
+                                    type="secondary"
+                                    size="lg"
+                                    text={!values?.codeSynced ? "Synced" : "Sync On Github"}
+                                    Icon={UploadIcon}
+                                    loading={values?.uploading}
+                                    disabled={!values?.codeSynced}
+                                    onClick={functions.handleUpload}
+                                />
+                                <Button
+                                    height="40px"
+                                    width="170px"
+                                    type="secondary"
+                                    size="md"
+                                    text={values?.codeDeployed ? "Rule Deployed" : "Deploy Rule"}
+                                    loading={values?.deploying}
+                                    disabled={!values?.viewReport || values?.codeDeployed || values?.isReportFailed}
+                                    onClick={functions.handleDeploy}
+                                />
+                            </>
+                        }
+                        <Button
+                            height="40px"
+                            width="170px"
+                            type="secondary"
+                            size="md"
+                            text="View Test Report"
+                            loading={values?.loader}
+                            disabled={!values?.viewReport}
+                            onClick={functions.handleReport}
+                        />
+                    </Box>
+                }
             </Box>
+            {isRulePipelineEnabled &&
+                <RulePipeline ruleId={Number(props.data?.id) || undefined} canBuild={claims.editor === values?.claim} />
+            }
             <Section header={'Simulation Scope'} subHeader={'Select the scope of your simulation to determine required inputs and runtime cost'}>
                 <Grid container spacing={2} width={'80%'} display={'flex'} justifyContent={'space-between'} alignSelf={'center'} mb={4}>
                     {simulations.map((item, index) => (

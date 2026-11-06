@@ -1,7 +1,17 @@
 import { BadRequestException, Injectable, Logger, NotFoundException, OnModuleDestroy, ServiceUnavailableException } from '@nestjs/common';
-import { GenericContainer, Network, StartedNetwork, StartedTestContainer, Wait } from 'testcontainers';
+import {
+  GenericContainer,
+  getContainerRuntimeClient,
+  ImageName,
+  Network,
+  StartedNetwork,
+  StartedTestContainer,
+  Wait,
+} from 'testcontainers';
 import { FeatureFlagsService } from '../../../common/feature-flags/feature-flags.service';
 import { SimulationInfo, SimulationPorts, SimulationStatus, SpawnOptions } from './interfaces/ephemeral-env.interfaces';
+import { loadSqlMigrations } from './sql-migrations';
+import { imageRef, loadImageRegistry } from '../../../common/image-registry';
 
 interface SimulationInstance {
   info: SimulationInfo;
@@ -16,29 +26,10 @@ interface SimulationInstance {
   natsUtilities?: StartedTestContainer;
 }
 
-const GITHUB_REPO = 'tazama-lf/Full-Stack-Docker-Tazama';
-const REPO_BRANCH = process.env.TAZAMA_REPO_BRANCH ?? 'dev';
-const DOCKERHUB_NAMESPACE = process.env.DOCKERHUB_NAMESPACE ?? 'tazamaorg';
-
-interface GithubEntry {
-  type: string;
-  name: string;
-  download_url: string;
-}
-
-async function fetchText(url: string): Promise<string> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${url}`);
-  return await res.text();
-}
-
-async function listGithubDir(dirPath: string): Promise<GithubEntry[]> {
-  const url = `https://api.github.com/repos/${GITHUB_REPO}/contents/${dirPath}?ref=${REPO_BRANCH}`;
-  const res = await fetch(url, { headers: { Accept: 'application/vnd.github+json' } });
-  if (!res.ok) throw new Error(`GitHub API ${res.status}: ${url}`);
-  const entries = (await res.json()) as GithubEntry[];
-  return entries.filter((e) => e.type === 'file');
-}
+const POSTGRES_IMAGE = process.env.POSTGRES_IMAGE ?? 'postgres:18';
+const NATS_IMAGE = process.env.NATS_IMAGE ?? 'nats:2';
+const VALKEY_IMAGE = process.env.VALKEY_IMAGE ?? 'valkey/valkey:7.2.5';
+const NATS_UTILITIES_IMAGE = process.env.NATS_UTILITIES_IMAGE ?? 'tazamaorg/nats-utilities:4.0.0';
 
 @Injectable()
 export class EphemeralEnvService implements OnModuleDestroy {
@@ -58,7 +49,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
         enabled: false,
         message:
           'SimStudio is disabled on this deployment. ' +
-          'Set DOCKER_PUBLISH=true and configure DOCKERHUB_TOKEN / DOCKERHUB_USERNAME / DOCKERHUB_NAMESPACE to enable.',
+          'Set DOCKER_PUBLISH=true and configure IMAGE_REGISTRY / IMAGE_NAMESPACE (and IMAGE_REGISTRY_USERNAME / IMAGE_REGISTRY_TOKEN for Docker Hub) to enable.',
       });
     }
   }
@@ -68,6 +59,9 @@ export class EphemeralEnvService implements OnModuleDestroy {
   }
 
   private async assertImageExists(image: string): Promise<void> {
+    const imageName = ImageName.fromString(image);
+    if (imageName.registry) return;
+    if (await (await getContainerRuntimeClient()).image.exists(imageName)) return;
     const colonIdx = image.lastIndexOf(':');
     const nameTag = colonIdx === -1 ? image : image.slice(0, colonIdx);
     const tag = colonIdx === -1 ? 'latest' : image.slice(colonIdx + 1);
@@ -109,6 +103,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
 
     const ruleName = options.ruleName ?? 'rule-901';
     const version = options.version ?? 'rc';
+    const image = options.image ?? imageRef(loadImageRegistry(), ruleName, version);
     // rule-executer builds streams as sub-rule-${RULE_NAME}@${VERSION} — strip any existing 'rule-' prefix
     // so RULE_NAME env stays clean and subjects don't double up (e.g. sub-rule-rule-901@rc)
     const ruleBaseName = ruleName.replace(/^rule-/, '');
@@ -118,25 +113,9 @@ export class EphemeralEnvService implements OnModuleDestroy {
 
     this.logger.log(`[${name}] spawnPostgres: ruleName=${ruleName} version=${version}`);
 
-    this.logger.log(`[${name}] Fetching SQL migration files from GitHub...`);
-
-    const baseSqlEntries = await listGithubDir('core/postgres/migration/base');
-    this.logger.log(`[${name}] Fetched ${baseSqlEntries.length} base SQL entries from GitHub`);
-    const baseSqlContents = await Promise.all(
-      baseSqlEntries.map(async (entry) => ({
-        content: await fetchText(entry.download_url),
-        target: `/docker-entrypoint-initdb.d/${entry.name}`,
-      })),
-    );
-    this.logger.log(`[${name}] Downloaded ${baseSqlContents.length} base SQL files`);
-
-    const [publicBaseSql, dockerhubSql] = await Promise.all([
-      fetchText(`https://raw.githubusercontent.com/${GITHUB_REPO}/${REPO_BRANCH}/core/postgres/migration/config/00-public-base.sql`),
-      fetchText(`https://raw.githubusercontent.com/${GITHUB_REPO}/${REPO_BRANCH}/core/postgres/migration/config/02-public-dockerhub.sql`),
-    ]);
-    this.logger.log(
-      `[${name}] Downloaded config SQL files (public-base: ${publicBaseSql.length} chars, dockerhub: ${dockerhubSql.length} chars)`,
-    );
+    const { baseSqlContents, publicBaseSql, dockerhubSql } = await loadSqlMigrations((message) => {
+      this.logger.log(`[${name}] ${message}`);
+    });
 
     this.logger.log(`[${name}] Starting Docker network...`);
     const network = await new Network().start();
@@ -144,7 +123,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
 
     try {
       this.logger.log(`[${name}] Starting postgres...`);
-      const postgres = await new GenericContainer('postgres:18')
+      const postgres = await new GenericContainer(POSTGRES_IMAGE)
         .withNetwork(network)
         .withNetworkAliases('postgres')
         .withEnvironment({
@@ -177,6 +156,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
         name,
         ruleName,
         version,
+        image,
         functionName,
         natsSubject,
         natsConsumer,
@@ -212,9 +192,8 @@ export class EphemeralEnvService implements OnModuleDestroy {
     }
 
     const { network, info } = sim;
-    const { ruleName, version } = info;
+    const { ruleName, version, image: ruleImage } = info;
     const ruleBaseName = ruleName.replace(/^rule-/, '');
-    const ruleImage = `${DOCKERHUB_NAMESPACE}/${ruleName}:${version}`;
 
     this.logger.log(`[${name}] spawnRuntime: ${ruleImage}`);
     await this.assertImageExists(ruleImage);
@@ -222,7 +201,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
     // eslint-disable-next-line no-useless-catch -- We want to log the original error before throwing, and we also want to ensure any error during logging doesn't prevent cleanup
     try {
       this.logger.log(`[${name}] Starting NATS...`);
-      const nats = await new GenericContainer('nats:2')
+      const nats = await new GenericContainer(NATS_IMAGE)
         .withNetwork(network)
         .withNetworkAliases('nats')
         .withCommand(['--jetstream', '-m', '8222', '-DVV'])
@@ -232,7 +211,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
       sim.nats = nats;
 
       this.logger.log(`[${name}] Starting Valkey...`);
-      const valkey = await new GenericContainer('valkey/valkey:7.2.5')
+      const valkey = await new GenericContainer(VALKEY_IMAGE)
         .withNetwork(network)
         .withNetworkAliases('valkey')
         .withCommand(['valkey-server', '--port', '6379', '--loglevel', 'verbose'])
@@ -307,7 +286,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
       sim.ruleProcessor = ruleProcessor;
 
       this.logger.log(`[${name}] Starting nats-utilities...`);
-      const natsUtilities = await new GenericContainer('ndxf/nats-utilities:1.0.0')
+      const natsUtilities = await new GenericContainer(NATS_UTILITIES_IMAGE)
         .withNetwork(network)
         .withNetworkAliases('nats-utilities')
         .withEnvironment({
@@ -370,11 +349,14 @@ export class EphemeralEnvService implements OnModuleDestroy {
 
     this.logger.log(`Destroying simulation '${name}' (status=${sim.info.status})...`);
 
+    const clients: Array<Promise<unknown>> = [];
+    if (sim.ruleProcessor) clients.push(sim.ruleProcessor.stop());
+    if (sim.natsUtilities) clients.push(sim.natsUtilities.stop());
+    await Promise.allSettled(clients);
+
     const stops: Array<Promise<unknown>> = [sim.postgres.stop()];
     if (sim.nats) stops.push(sim.nats.stop());
     if (sim.valkey) stops.push(sim.valkey.stop());
-    if (sim.ruleProcessor) stops.push(sim.ruleProcessor.stop());
-    if (sim.natsUtilities) stops.push(sim.natsUtilities.stop());
     await Promise.allSettled(stops);
     await sim.network.stop().catch((_e: unknown) => undefined);
 

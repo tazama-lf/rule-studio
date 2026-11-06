@@ -24,7 +24,7 @@ export class ConfigController {
     summary: 'Get feature flags',
     description:
       'Returns the current state of runtime feature flags. The frontend uses this to hide UI ' +
-      'for features that are disabled on the deployment (currently: SimStudio and Docker Hub publishing).',
+      'for features that are disabled on the deployment (currently: SimStudio, Docker Hub publishing and the rule pipeline).',
   })
   @ApiResponse({
     status: 200,
@@ -34,14 +34,16 @@ export class ConfigController {
       properties: {
         dockerPublish: { type: 'boolean' },
         simStudio: { type: 'boolean' },
+        rulePipeline: { type: 'boolean' },
       },
-      required: ['dockerPublish', 'simStudio'],
+      required: ['dockerPublish', 'simStudio', 'rulePipeline'],
     },
   })
-  getFeatures(): { dockerPublish: boolean; simStudio: boolean } {
+  getFeatures(): { dockerPublish: boolean; simStudio: boolean; rulePipeline: boolean } {
     return {
       dockerPublish: this.features.isDockerPublishEnabled(),
       simStudio: this.features.isSimStudioEnabled(),
+      rulePipeline: this.features.isRulePipelineEnabled(),
     };
   }
 

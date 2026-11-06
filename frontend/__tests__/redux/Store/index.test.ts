@@ -67,6 +67,10 @@ jest.mock('../../../src/redux/Api/Features', () => ({
     featuresApi: makeApiMock('featuresApi'),
 }));
 
+jest.mock('../../../src/redux/Api/RulePipeline', () => ({
+    rulePipelineApi: makeApiMock('rulePipelineApi'),
+}));
+
 jest.mock('../../../src/middlerwares/apierror.middleware', () =>
     () => (next: (a: unknown) => unknown) => (action: unknown) => next(action)
 );
@@ -150,8 +154,12 @@ describe('Redux Store (redux/Store)', () => {
             expect(state['featuresApi']).toBeDefined();
         });
 
-        it('should contain exactly 15 top-level slices', () => {
-            expect(Object.keys(state)).toHaveLength(15);
+        it('should contain the rulePipelineApi slice', () => {
+            expect(state['rulePipelineApi']).toBeDefined();
+        });
+
+        it('should contain exactly 16 top-level slices', () => {
+            expect(Object.keys(state)).toHaveLength(16);
         });
     });
 

@@ -18,8 +18,23 @@ jest.mock('react-hook-form', () => ({
     },
 }));
 
+jest.mock('../../../../src/hooks/useFeatureFlags', () => ({
+    useFeatureFlags: jest.fn(),
+}));
+
+jest.mock('../../../../src/pages/RuleEditor/Simulation/RulePipeline', () => ({
+    __esModule: true,
+    default: ({ ruleId, canBuild }: { ruleId?: number; canBuild: boolean }) => (
+        <div data-testid="rule-pipeline">pipeline for rule {String(ruleId)} · canBuild {String(canBuild)}</div>
+    ),
+}));
+
 import Simulation from '../../../../src/pages/RuleEditor/Simulation';
 import useSimulationController from '../../../../src/pages/RuleEditor/Simulation/useSimulationController';
+import { useFeatureFlags } from '../../../../src/hooks/useFeatureFlags';
+
+const mockUseFeatureFlags = useFeatureFlags as jest.MockedFunction<typeof useFeatureFlags>;
+const flags = (isRulePipelineEnabled: boolean) => ({ isLoading: false, isDockerPublishEnabled: false, isSimStudioEnabled: false, isRulePipelineEnabled });
 
 const mockUseSimulationController = useSimulationController as jest.MockedFunction<typeof useSimulationController>;
 
@@ -73,6 +88,36 @@ describe('Simulation Component', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         mockUseSimulationController.mockReturnValue(defaultMockReturn);
+        mockUseFeatureFlags.mockReturnValue(flags(false));
+    });
+
+    describe('Rule pipeline', () => {
+        it('keeps the GitHub buttons and hides Build & Test while the pipeline is off', () => {
+            render(<Simulation data={{ id: 50 }} />);
+
+            expect(screen.getByText('Sync On Github')).toBeInTheDocument();
+            expect(screen.queryByTestId('rule-pipeline')).not.toBeInTheDocument();
+        });
+
+        it('replaces Sync, Deploy and the GitHub report with Build & Test when the pipeline is on', () => {
+            mockUseFeatureFlags.mockReturnValue(flags(true));
+
+            render(<Simulation data={{ id: 50 }} />);
+
+            expect(screen.getByTestId('rule-pipeline')).toHaveTextContent('pipeline for rule 50 · canBuild true');
+            expect(screen.queryByText('Sync On Github')).not.toBeInTheDocument();
+            expect(screen.queryByText('Deploy Rule')).not.toBeInTheDocument();
+            expect(screen.queryByText('View Test Report')).not.toBeInTheDocument();
+        });
+
+        it('lets only editors start builds', () => {
+            mockUseFeatureFlags.mockReturnValue(flags(true));
+            mockUseSimulationController.mockReturnValue({ ...defaultMockReturn, values: { ...defaultMockReturn.values, claim: 'approver' } });
+
+            render(<Simulation data={{ id: 50 }} />);
+
+            expect(screen.getByTestId('rule-pipeline')).toHaveTextContent('canBuild false');
+        });
     });
 
     describe('Component Rendering', () => {

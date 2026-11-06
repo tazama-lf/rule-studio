@@ -1,6 +1,7 @@
 import { plainToClass, Transform } from 'class-transformer';
-import { IsEnum, IsString, IsNumberString, IsBoolean, IsNotEmpty, ValidateIf, validateSync } from 'class-validator';
+import { IsEnum, IsString, IsNumberString, IsBoolean, IsNotEmpty, IsOptional, ValidateIf, validateSync } from 'class-validator';
 import { Logger } from '@nestjs/common';
+import { isDockerHub } from '../../common/image-registry';
 
 enum NodeEnv {
   DEVELOPMENT = 'development',
@@ -32,8 +33,8 @@ class EnvironmentVariables {
   CERT_PATH_PUBLIC: string;
 
   // Optional switch. When absent or falsy, Docker publishing and the whole
-  // SimStudio surface are disabled and the DOCKERHUB_* trio is not required.
-  // When true, the trio below is required.
+  // SimStudio surface are disabled and the IMAGE_* settings are not required.
+  // When true, IMAGE_NAMESPACE is required, plus the credentials for Docker Hub.
   @Transform(toBool)
   @IsBoolean()
   DOCKER_PUBLISH = false;
@@ -41,19 +42,27 @@ class EnvironmentVariables {
   @ValidateIf((o: EnvironmentVariables) => o.DOCKER_PUBLISH)
   @IsString()
   @IsNotEmpty()
-  DOCKERHUB_TOKEN?: string;
+  IMAGE_NAMESPACE?: string;
 
-  @ValidateIf((o: EnvironmentVariables) => o.DOCKER_PUBLISH)
+  @ValidateIf((o: EnvironmentVariables) => o.DOCKER_PUBLISH && isDockerHub(o.IMAGE_REGISTRY))
   @IsString()
   @IsNotEmpty()
-  DOCKERHUB_USERNAME?: string;
+  IMAGE_REGISTRY_USERNAME?: string;
 
-  @ValidateIf((o: EnvironmentVariables) => o.DOCKER_PUBLISH)
+  @ValidateIf((o: EnvironmentVariables) => o.DOCKER_PUBLISH && isDockerHub(o.IMAGE_REGISTRY))
   @IsString()
   @IsNotEmpty()
-  DOCKERHUB_NAMESPACE?: string;
+  IMAGE_REGISTRY_TOKEN?: string;
+
+  @IsOptional()
+  @IsString()
+  IMAGE_REGISTRY?: string;
+
+  @Transform(toBool)
+  @IsBoolean()
+  RULE_PIPELINE_ENABLED = false;
 }
-const DOCKER_HUB_PROPS = new Set(['DOCKERHUB_TOKEN', 'DOCKERHUB_USERNAME', 'DOCKERHUB_NAMESPACE']);
+const IMAGE_REGISTRY_PROPS = new Set(['IMAGE_NAMESPACE', 'IMAGE_REGISTRY_USERNAME', 'IMAGE_REGISTRY_TOKEN']);
 const logger = new Logger('EnvValidation');
 
 export const validate = (config: Record<string, unknown>): EnvironmentVariables => {
@@ -63,17 +72,17 @@ export const validate = (config: Record<string, unknown>): EnvironmentVariables 
   const errors = validateSync(validatedConfig, {
     skipMissingProperties: false,
   });
-  // Docker Hub credential errors are non-fatal: DockerHubService will start in
+  // Image registry setting errors are non-fatal: DockerHubService will start in
   // a disabled state and every /simulation-studio/* route returns 503. Any
   // other validation error still aborts boot.
-  const blocking = errors.filter(({ property }) => !DOCKER_HUB_PROPS.has(property));
+  const blocking = errors.filter(({ property }) => !IMAGE_REGISTRY_PROPS.has(property));
   if (blocking.length > 0) {
     throw new Error(blocking.toString());
   }
-  const dockerHubErrors = errors.filter(({ property }) => DOCKER_HUB_PROPS.has(property));
-  if (dockerHubErrors.length > 0) {
+  const registryErrors = errors.filter(({ property }) => IMAGE_REGISTRY_PROPS.has(property));
+  if (registryErrors.length > 0) {
     logger.warn(
-      `DOCKER_PUBLISH=true but Docker Hub credentials are incomplete (${dockerHubErrors.map((e) => e.property).join(', ')}); publishing will remain disabled at runtime.`,
+      `DOCKER_PUBLISH=true but the image registry settings are incomplete (${registryErrors.map((e) => e.property).join(', ')}); publishing will remain disabled at runtime.`,
     );
   }
   return validatedConfig;

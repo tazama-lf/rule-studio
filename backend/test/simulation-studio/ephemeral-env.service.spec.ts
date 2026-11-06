@@ -1,5 +1,8 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { EphemeralEnvService } from '../../src/services/simulation-studio/ephemeral-env/ephemeral-env.service';
 import { SimulationStatus } from '../../src/services/simulation-studio/ephemeral-env/interfaces/ephemeral-env.interfaces';
 import { FeatureFlagsService } from '../../src/common/feature-flags/feature-flags.service';
@@ -14,6 +17,8 @@ const mockFeaturesEnabled = {
 // minimal factory here and re-apply all implementations in beforeEach.
 
 jest.mock('testcontainers', () => ({
+  ImageName: jest.requireActual<typeof import('testcontainers')>('testcontainers').ImageName,
+  getContainerRuntimeClient: jest.fn(),
   GenericContainer: jest.fn(),
   Network: jest.fn(),
   Wait: {
@@ -23,7 +28,7 @@ jest.mock('testcontainers', () => ({
   },
 }));
 
-import { GenericContainer, Network, Wait } from 'testcontainers';
+import { GenericContainer, getContainerRuntimeClient, Network, Wait } from 'testcontainers';
 
 const MockGenericContainer = GenericContainer as jest.MockedClass<typeof GenericContainer>;
 const MockNetwork = Network as jest.MockedClass<typeof Network>;
@@ -34,6 +39,7 @@ const mockContainerStop = jest.fn<() => Promise<void>>();
 const mockNetworkStop = jest.fn<() => Promise<void>>();
 const mockNetworkStart = jest.fn<() => Promise<unknown>>();
 const mockContainerStart = jest.fn<() => Promise<unknown>>();
+const mockImageExists = jest.fn<() => Promise<boolean>>();
 
 const mockContainerBuilder = {
   withNetwork: jest.fn(),
@@ -69,6 +75,7 @@ function makeStartedContainer(mappedPorts: Record<number, number> = {}) {
 
 function makeSimEntry(overrides: Partial<{
   status: SimulationStatus;
+  image: string;
   natsUtils?: number;
   natsUtilsHost?: string;
 }> = {}) {
@@ -78,6 +85,7 @@ function makeSimEntry(overrides: Partial<{
       name: 'sim-1',
       ruleName: 'rule-901',
       version: 'rc',
+      image: overrides.image ?? 'tazamaorg/rule-901:rc',
       functionName: 'rule-901-rel-rc',
       natsSubject: 'sub-rule-901@rc',
       natsConsumer: 'pub-rule-901@rc',
@@ -127,6 +135,8 @@ describe('EphemeralEnvService', () => {
       withStartupTimeout: jest.fn().mockReturnThis(),
     });
 
+    (getContainerRuntimeClient as jest.Mock<any>).mockResolvedValue({ image: { exists: mockImageExists } });
+    mockImageExists.mockResolvedValue(false);
     mockContainerStop.mockResolvedValue(undefined);
     mockNetworkStop.mockResolvedValue(undefined);
     mockNetworkStart.mockResolvedValue(makeStartedNetwork());
@@ -258,6 +268,25 @@ describe('EphemeralEnvService', () => {
       expect(natsUtilitiesStop).toHaveBeenCalled();
     });
 
+    it('stops the rule processor and nats-utilities before the services they connect to', async () => {
+      const sim = makeSimEntry();
+      const order: string[] = [];
+      const stopper = (name: string) => jest.fn(async () => {
+        order.push(name);
+      });
+      (sim as any).postgres = { stop: stopper('postgres') };
+      (sim as any).nats = { stop: stopper('nats') };
+      (sim as any).valkey = { stop: stopper('valkey') };
+      (sim as any).ruleProcessor = { stop: stopper('ruleProcessor') };
+      (sim as any).natsUtilities = { stop: stopper('natsUtilities') };
+      (service as any).simulations.set('sim-1', sim);
+
+      await service.destroy('sim-1');
+
+      expect(order.slice(0, 2).sort()).toEqual(['natsUtilities', 'ruleProcessor']);
+      expect(order.slice(2).sort()).toEqual(['nats', 'postgres', 'valkey']);
+    });
+
     it('stops the network after containers', async () => {
       const sim = makeSimEntry();
       (service as any).simulations.set('sim-1', sim);
@@ -372,6 +401,39 @@ describe('EphemeralEnvService', () => {
       expect(info.version).toBe('rc');
     });
 
+    it('defaults the rule image to Docker Hub and accepts an explicit one', async () => {
+      mockFetch.mockResolvedValue({ ok: true, status: 200, text: async () => '', json: async () => [] } as Response);
+
+      const hub = await service.spawnPostgres('hub-sim', { ruleName: 'rule-021', version: 'v2' });
+      const local = await service.spawnPostgres('local-sim', { ruleName: 'rule-021', version: 'v2', image: 'localhost:5000/tazama/rule-021:v2' });
+
+      expect(hub.image).toBe(`${process.env.IMAGE_NAMESPACE || 'tazamaorg'}/rule-021:v2`);
+      expect(local.image).toBe('localhost:5000/tazama/rule-021:v2');
+    });
+
+    it('reads SQL migrations from TAZAMA_SQL_DIR instead of GitHub when it is set', async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'sql-'));
+      mkdirSync(join(dir, 'base'));
+      mkdirSync(join(dir, 'config'));
+      writeFileSync(join(dir, 'base', '00-CREATE.sql'), '-- create');
+      writeFileSync(join(dir, 'config', '00-public-base.sql'), '-- public base');
+      writeFileSync(join(dir, 'config', '02-public-dockerhub.sql'), '-- dockerhub');
+      process.env.TAZAMA_SQL_DIR = dir;
+      try {
+        await service.spawnPostgres('offline-sim');
+      } finally {
+        delete process.env.TAZAMA_SQL_DIR;
+        rmSync(dir, { recursive: true, force: true });
+      }
+
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(mockContainerBuilder.withCopyContentToContainer).toHaveBeenCalledWith([
+        { content: '-- create', target: '/docker-entrypoint-initdb.d/00-CREATE.sql' },
+        { content: '-- public base', target: '/docker-entrypoint-initdb.d/01-DATA.sql' },
+        { content: '-- dockerhub', target: '/docker-entrypoint-initdb.d/02-DATA.sql' },
+      ]);
+    });
+
     it('stops the network and rethrows if postgres container start fails', async () => {
       mockNetworkStart.mockResolvedValue(makeStartedNetwork());
       mockContainerStart.mockRejectedValue(new Error('Container failed to start'));
@@ -404,6 +466,29 @@ describe('EphemeralEnvService', () => {
       await expect(service.spawnRuntime('pg-ready')).rejects.toThrow(BadRequestException);
     });
 
+    it('skips the Docker Hub lookup and starts the image as given when it comes from another registry', async () => {
+      const image = 'localhost:5000/tazama/rule-901:rc';
+      (service as any).simulations.set('pg-ready', makeSimEntry({ status: SimulationStatus.POSTGRES_UP, image }));
+      mockContainerStart.mockResolvedValue(makeStartedContainer({ 4222: 44220, 8222: 82220, 6379: 63790, 4000: 40000 }));
+
+      const info = await service.spawnRuntime('pg-ready');
+
+      expect(info.status).toBe(SimulationStatus.UP);
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(MockGenericContainer).toHaveBeenCalledWith(image);
+    });
+
+    it('skips the Docker Hub lookup when the image already exists on this Docker host', async () => {
+      (service as any).simulations.set('pg-ready', makeSimEntry({ status: SimulationStatus.POSTGRES_UP, image: 'tazama/rule-901:rc' }));
+      mockImageExists.mockResolvedValue(true);
+      mockContainerStart.mockResolvedValue(makeStartedContainer({ 4222: 44220, 8222: 82220, 6379: 63790, 4000: 40000 }));
+
+      const info = await service.spawnRuntime('pg-ready');
+
+      expect(info.status).toBe(SimulationStatus.UP);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
     it('promotes status to UP on success', async () => {
       const sim = makeSimEntry({ status: SimulationStatus.POSTGRES_UP });
       (service as any).simulations.set('pg-ready', sim);
@@ -434,7 +519,7 @@ describe('EphemeralEnvService', () => {
   describe('spawn', () => {
     it('calls spawnPostgres then spawnRuntime and returns final info', async () => {
       const postgresInfo = {
-        name: 'all-in-one', ruleName: 'rule-901', version: 'rc',
+        name: 'all-in-one', ruleName: 'rule-901', version: 'rc', image: 'tazamaorg/rule-901:rc',
         functionName: 'rule-901-rel-rc', natsSubject: 'sub-rule-901@rc', natsConsumer: 'pub-rule-901@rc',
         ports: { pg: 54320, pgHost: 'localhost' },
         startedAt: new Date(), status: SimulationStatus.POSTGRES_UP,

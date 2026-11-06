@@ -30,6 +30,7 @@ import { SuiteResultModule } from './services/simulation-studio/suite-result/sui
 import { MsgSampleGenerationModule } from './services/msg-sample-generation/msg-sample-generation.module';
 import { RunSimulationModule } from './services/simulation-studio/generation-engine/run-simulation.module';
 import { EphemeralEnvModule } from './services/simulation-studio/ephemeral-env/ephemeral-env.module';
+import { RulePipelineModule } from './services/rule-pipeline/rule-pipeline.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { EphemeralEnvModule } from './services/simulation-studio/ephemeral-env/e
     MsgSampleGenerationModule,
     RunSimulationModule,
     EphemeralEnvModule,
+    RulePipelineModule,
   ],
   controllers: [AppController],
   providers: [AppService],

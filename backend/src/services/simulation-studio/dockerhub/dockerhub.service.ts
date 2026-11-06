@@ -10,6 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { FeatureFlagsService } from '../../../common/feature-flags/feature-flags.service';
 import type { DockerHubRepositoriesResponseDto, DockerHubTagsResponseDto } from './dto/dockerhub.dto';
 import type { DhRepository, DhRepositoriesPage, DhTagResult, DhTagsPage } from '../../../interfaces/dockerhub.interfaces';
+import { type ImageRegistry, loadImageRegistry, registryApiUrl, tenantRepository } from '../../../common/image-registry';
 
 const DOCKERHUB_API = 'https://hub.docker.com/v2';
 
@@ -21,6 +22,7 @@ export class DockerHubService implements OnModuleInit {
   private token: string;
   private username: string;
   private jwt: string;
+  private registry: ImageRegistry;
   // Runtime state — stays false until a successful login has completed.
   private ready = false;
 
@@ -35,31 +37,37 @@ export class DockerHubService implements OnModuleInit {
       return;
     }
 
-    const token = this.configService.get<string>('DOCKERHUB_TOKEN');
-    const username = this.configService.get<string>('DOCKERHUB_USERNAME');
-    const namespace = this.configService.get<string>('DOCKERHUB_NAMESPACE');
+    const namespace = this.configService.get<string>('IMAGE_NAMESPACE');
+    this.registry = loadImageRegistry({
+      IMAGE_REGISTRY: this.configService.get<string>('IMAGE_REGISTRY'),
+      IMAGE_NAMESPACE: namespace,
+      IMAGE_REGISTRY_USERNAME: this.configService.get<string>('IMAGE_REGISTRY_USERNAME'),
+      IMAGE_REGISTRY_TOKEN: this.configService.get<string>('IMAGE_REGISTRY_TOKEN'),
+    });
+    const { username, token, dockerHub } = this.registry;
 
     // Env-validation should already have caught missing values; this defensive
     // check keeps the service usable if the ConfigModule wiring is ever changed.
-    if (!token || !username || !namespace) {
+    if (!namespace || (dockerHub && (!token || !username))) {
       this.logger.error(
-        'DOCKER_PUBLISH=true but required Docker Hub environment variables are missing: ' +
-          'DOCKERHUB_TOKEN, DOCKERHUB_USERNAME, DOCKERHUB_NAMESPACE. ' +
+        'DOCKER_PUBLISH=true but required image registry environment variables are missing: ' +
+          (dockerHub ? 'IMAGE_NAMESPACE, IMAGE_REGISTRY_USERNAME, IMAGE_REGISTRY_TOKEN. ' : 'IMAGE_NAMESPACE. ') +
           'Feature will remain disabled at runtime.',
       );
       return;
     }
 
-    this.token = token;
-    this.username = username;
+    this.token = token ?? '';
+    this.username = username ?? '';
     this.namespace = namespace;
 
     try {
-      await this.login();
+      if (dockerHub) await this.login();
+      else await this.pingRegistry();
       this.ready = true;
-      this.logger.log(`Docker Hub configured for namespace "${this.namespace}"`);
+      this.logger.log(`Image registry ${this.registry.registry} configured for namespace "${this.namespace}"`);
     } catch (err) {
-      this.logger.error(`Docker Hub login failed at boot; feature will remain disabled at runtime. Error: ${(err as Error).message}`);
+      this.logger.error(`Image registry login failed at boot; feature will remain disabled at runtime. Error: ${(err as Error).message}`);
     }
   }
 
@@ -75,7 +83,7 @@ export class DockerHubService implements OnModuleInit {
         enabled: false,
         message:
           'Docker Hub publishing is disabled on this deployment. ' +
-          'Set DOCKER_PUBLISH=true and configure DOCKERHUB_TOKEN / DOCKERHUB_USERNAME / DOCKERHUB_NAMESPACE to enable.',
+          'Set DOCKER_PUBLISH=true and configure IMAGE_REGISTRY / IMAGE_NAMESPACE (and IMAGE_REGISTRY_USERNAME / IMAGE_REGISTRY_TOKEN for Docker Hub) to enable.',
       });
     }
   }
@@ -102,11 +110,58 @@ export class DockerHubService implements OnModuleInit {
   }
 
   private toTenantRuleName(tenantId: string, ruleName: string): string {
-    const trimmedRuleName = ruleName.trim();
-    const prefix = this.getTenantRulePrefix(tenantId);
-    const normalized = trimmedRuleName.toLowerCase();
+    return tenantRepository(tenantId, ruleName.trim());
+  }
 
-    return normalized.startsWith(prefix) ? trimmedRuleName : `${prefix}${trimmedRuleName}`;
+  private async fetchRegistry(path: string): Promise<Response> {
+    const { username, token } = this.registry;
+    const headers: Record<string, string> =
+      username && token ? { Authorization: `Basic ${Buffer.from(`${username}:${token}`).toString('base64')}` } : {};
+    const url = /^https?:\/\//.test(path) ? path : `${registryApiUrl(this.registry)}${path}`;
+    return await fetch(url, { headers, signal: AbortSignal.timeout(this.timeoutMs) });
+  }
+
+  private async pingRegistry(): Promise<void> {
+    const response = await this.fetchRegistry('/v2/');
+    if (!response.ok) throw new InternalServerErrorException(`Image registry ${this.registry.registry} answered ${response.status}`);
+  }
+
+  private async fetchCatalogPage(path: string): Promise<string[]> {
+    const response = await this.fetchRegistry(path);
+    if (!response.ok) {
+      this.logger.error(`Image registry catalog fetch failed: ${response.status} ${response.statusText}`);
+      throw new InternalServerErrorException(`Failed to fetch rules from ${this.registry.registry}`);
+    }
+    const { repositories } = (await response.json()) as { repositories?: string[] };
+    const next = /<([^>]+)>;\s*rel="next"/.exec(response.headers.get('link') ?? '')?.[1];
+    return [...(repositories ?? []), ...(next ? await this.fetchCatalogPage(next) : [])];
+  }
+
+  private async fetchRegistryRepos(): Promise<DhRepository[]> {
+    const repositories = await this.fetchCatalogPage('/v2/_catalog?n=1000');
+    const prefix = `${this.namespace}/`;
+    return repositories
+      .filter((repo) => repo.startsWith(prefix))
+      .map((repo) => ({
+        name: repo.slice(prefix.length),
+        namespace: this.namespace,
+        repository_type: 'image',
+        pull_count: 0,
+        last_updated: '',
+      }));
+  }
+
+  private async fetchRegistryTags(ruleName: string): Promise<DhTagResult[]> {
+    const response = await this.fetchRegistry(`/v2/${this.namespace}/${encodeURIComponent(ruleName)}/tags/list`);
+    if (response.status === 404) {
+      throw new NotFoundException(`Rule "${ruleName}" not found in ${this.registry.registry} namespace "${this.namespace}"`);
+    }
+    if (!response.ok) {
+      this.logger.error(`Image registry tags fetch failed: ${response.status} ${response.statusText}`);
+      throw new InternalServerErrorException(`Failed to fetch tags for rule "${ruleName}" from ${this.registry.registry}`);
+    }
+    const { tags } = (await response.json()) as { tags?: string[] | null };
+    return (tags ?? []).map((name) => ({ name, last_updated: '', digest: '' }));
   }
 
   private async fetchDockerHub(url: string): Promise<Response> {
@@ -157,8 +212,9 @@ export class DockerHubService implements OnModuleInit {
   /** Fetch all repositories in the configured namespace, filtered by tenant prefix. */
   async getPublishedRules(tenantId: string): Promise<DockerHubRepositoriesResponseDto> {
     this.assertReady();
-    const firstUrl = `${DOCKERHUB_API}/namespaces/${this.namespace}/repositories?page_size=100`;
-    const repos = await this.fetchRepoPage(firstUrl);
+    const repos = this.registry.dockerHub
+      ? await this.fetchRepoPage(`${DOCKERHUB_API}/namespaces/${this.namespace}/repositories?page_size=100`)
+      : await this.fetchRegistryRepos();
     const tenantRulePrefix = this.getTenantRulePrefix(tenantId);
     const tenantRepos = repos.filter((r) => r.name.toLowerCase().startsWith(tenantRulePrefix));
 
@@ -180,8 +236,12 @@ export class DockerHubService implements OnModuleInit {
   async getTagsForRule(tenantId: string, ruleName: string): Promise<DockerHubTagsResponseDto> {
     this.assertReady();
     const tenantRuleName = this.toTenantRuleName(tenantId, ruleName);
-    const firstUrl = `${DOCKERHUB_API}/namespaces/${this.namespace}/repositories/${encodeURIComponent(tenantRuleName)}/tags?page_size=100`;
-    const tags = await this.fetchTagPage(firstUrl, tenantRuleName);
+    const tags = this.registry.dockerHub
+      ? await this.fetchTagPage(
+          `${DOCKERHUB_API}/namespaces/${this.namespace}/repositories/${encodeURIComponent(tenantRuleName)}/tags?page_size=100`,
+          tenantRuleName,
+        )
+      : await this.fetchRegistryTags(tenantRuleName);
 
     this.logger.log(`Fetched ${tags.length} tags for rule "${tenantRuleName}" (tenant "${tenantId}", namespace "${this.namespace}")`);
 

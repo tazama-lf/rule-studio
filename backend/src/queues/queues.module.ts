@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { SIMULATION_QUEUE } from './simulation-queue.constants';
+import { RULE_PIPELINE_QUEUE } from '../services/rule-pipeline/rule-pipeline.types';
 
 @Module({
   imports: [
@@ -18,6 +19,14 @@ import { SIMULATION_QUEUE } from './simulation-queue.constants';
         attempts: 1, // No automatic retries — simulation jobs are not idempotent
         removeOnComplete: { age: 3600 }, // Keep completed jobs in Redis for 1 hour
         removeOnFail: { age: 86400 }, // Keep failed jobs for 24 hours for debugging
+      },
+    }),
+    BullModule.registerQueue({
+      name: RULE_PIPELINE_QUEUE,
+      defaultJobOptions: {
+        attempts: 1,
+        removeOnComplete: { age: 7 * 86400, count: 200 },
+        removeOnFail: { age: 7 * 86400 },
       },
     }),
   ],
