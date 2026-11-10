@@ -6,19 +6,16 @@ import { join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { promisify } from 'node:util';
 import { type ExecResult, GenericContainer, getContainerRuntimeClient, type StartedTestContainer } from 'testcontainers';
-import { type ArtifactProfile, ruleImageRef } from './artifact-profile';
+import { isDockerHub } from '../../common/image-registry';
+import { type ArtifactProfile, type ImageProfile, ruleImageRef } from './artifact-profile';
 import { createGitProvider } from './git-provider';
 import { assertValidRuleSource, prepareExecuter, prepareWorkspace, type RuleSource } from './rule-workspace';
 
 export type { RuleSource } from './rule-workspace';
 
 export interface RuleBuildOptions {
-  templateDir?: string;
-  executerDir?: string;
-  networkMode?: string;
-  allowFailingTests?: boolean;
-  stepTimeoutMs?: number;
   onStage?: (stage: string) => void;
+  onTests?: (tests: UnitTestSummary, reportHtml?: string) => void;
 }
 
 export interface UnitTestSummary {
@@ -77,14 +74,13 @@ export class RulePipelineService {
 
   constructor(private readonly profile: ArtifactProfile) {}
 
-  async build(source: RuleSource, options: RuleBuildOptions): Promise<RuleBuildResult> {
+  async build(source: RuleSource, options: RuleBuildOptions = {}): Promise<RuleBuildResult> {
     assertValidRuleSource(source);
     const { npm, image, sources, builder: settings } = this.profile;
-    const templateDir = options.templateDir ?? sources.templateDir;
-    const executerDir = options.executerDir ?? sources.executerDir;
+    const { templateDir, executerDir } = sources;
     assertInputsExist({ 'npm cache': npm.cacheDir, 'rule template': templateDir, 'rule-executer': executerDir });
     const tag = `rule-${source.ruleId}@${source.version}`;
-    const timeoutMs = options.stepTimeoutMs ?? settings.stepTimeoutMs ?? DEFAULT_STEP_TIMEOUT_MS;
+    const timeoutMs = settings.stepTimeoutMs ?? DEFAULT_STEP_TIMEOUT_MS;
     const durationsMs: Record<string, number> = {};
     let current: string | undefined;
     const timed = async <T>(stage: string, fn: () => Promise<T>): Promise<T> => {
@@ -109,7 +105,7 @@ export class RulePipelineService {
 
       result.gitRepo = await timed('git', async () => await this.pushSource(source, workDir));
 
-      const networkMode = options.networkMode ?? settings.network ?? (npm.source === 'offline' ? 'none' : undefined);
+      const networkMode = settings.network ?? (npm.source === 'offline' ? 'none' : undefined);
       builder = await timed('start', async () => await this.startBuilder(workDir, execDir, networkMode));
       const container = builder;
       const step = async (name: string, command: string): Promise<string> => await this.run(container, tag, name, command, timeoutMs);
@@ -117,7 +113,8 @@ export class RulePipelineService {
       await timed('install', async () => await step('npm ci', 'cd /work && npm ci --ignore-scripts --no-audit --no-fund'));
       result.tests = await timed('test', async () => await this.runTests(container, tag, timeoutMs));
       result.reportHtml = await this.readFile(container, '/work/reports/unit-tests/latest/index.html');
-      if (!result.tests.success && !options.allowFailingTests) {
+      options.onTests?.(result.tests, result.reportHtml);
+      if (!result.tests.success) {
         this.logger.warn(`[${tag}] ${result.tests.failed} of ${result.tests.total} unit tests failed; nothing packaged`);
         return result;
       }
@@ -135,9 +132,7 @@ export class RulePipelineService {
       });
       const ruleImage = await timed('image', async () => await this.buildImage(container, tag, source));
       result.image = ruleImage;
-      if (image.registry) {
-        ruleImage.digest = await timed('push', async () => await this.pushImage(ruleImage.ref));
-      }
+      ruleImage.digest = await timed('push', async () => await this.pushImage(ruleImage.ref));
       return result;
     } catch (err) {
       throw new RuleBuildError((err as Error).message, result, current, { cause: err });
@@ -292,18 +287,12 @@ export class RulePipelineService {
     ].join('\n');
   }
 
-  private registryAuth(): { username: string; password: string; serveraddress: string } | undefined {
-    const { registry, username, password } = this.profile.image;
-    if (!username || !registry) return undefined;
-    return { username, password: password ?? '', serveraddress: registry === 'docker.io' ? 'https://index.docker.io/v1/' : registry };
-  }
-
   private async buildImage(container: StartedTestContainer, tag: string, source: RuleSource): Promise<RuleImage> {
     const ref = ruleImageRef(this.profile.image, source.ruleId, source.version, source.tenantId);
     this.logger.log(`[${tag}] docker build ${ref}`);
     const { dockerode } = (await getContainerRuntimeClient()).container;
     const context = await container.copyArchiveFromContainer('/ctx');
-    const auth = this.registryAuth();
+    const auth = registryAuth(this.profile.image);
     const stream = await dockerode.buildImage(context, {
       t: ref,
       dockerfile: 'ctx/Dockerfile',
@@ -317,7 +306,7 @@ export class RulePipelineService {
   private async pushImage(ref: string): Promise<string | undefined> {
     this.logger.log(`docker push ${ref}`);
     const { dockerode } = (await getContainerRuntimeClient()).container;
-    const stream = await dockerode.getImage(ref).push({ authconfig: this.registryAuth() ?? {} });
+    const stream = await dockerode.getImage(ref).push({ authconfig: registryAuth(this.profile.image) ?? {} });
     const events = await followDockerStream(dockerode.modem, stream, `docker push ${ref}`);
     return events.find((event) => event.aux?.Digest)?.aux?.Digest;
   }
@@ -339,20 +328,26 @@ function assertInputsExist(dirs: Record<string, string | undefined>): void {
   }
 }
 
+export function registryAuth(image: ImageProfile): { username: string; password: string; serveraddress: string } | undefined {
+  const { registry, username, password } = image;
+  if (!username) return undefined;
+  return { username, password: password ?? '', serveraddress: isDockerHub(registry) ? 'https://index.docker.io/v1/' : registry };
+}
+
 function emptySummary(): UnitTestSummary {
   return { total: 0, passed: 0, failed: 0, success: false, coverageThresholdMet: false };
 }
 
-interface DockerEvent {
+export interface DockerEvent {
   error?: string;
   aux?: { Digest?: string };
 }
 
-interface DockerModem {
+export interface DockerModem {
   followProgress: (stream: NodeJS.ReadableStream, onFinished: (err: Error | null, output: DockerEvent[]) => void) => void;
 }
 
-async function followDockerStream(modem: DockerModem, stream: NodeJS.ReadableStream, action: string): Promise<DockerEvent[]> {
+export async function followDockerStream(modem: DockerModem, stream: NodeJS.ReadableStream, action: string): Promise<DockerEvent[]> {
   const follow = promisify(modem.followProgress.bind(modem));
   const output = await follow(stream);
   const failure = output.find((event) => event.error);

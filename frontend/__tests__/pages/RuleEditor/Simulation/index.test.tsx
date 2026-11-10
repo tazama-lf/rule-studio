@@ -110,6 +110,17 @@ describe('Simulation Component', () => {
             expect(screen.queryByText('View Test Report')).not.toBeInTheDocument();
         });
 
+        it('drops the old simulation scope and its Run Simulation button when the pipeline is on', () => {
+            mockUseFeatureFlags.mockReturnValue(flags(true));
+            mockUseSimulationController.mockReturnValue({ ...defaultMockReturn, values: { ...defaultMockReturn.values, selected: 1 } });
+
+            render(<Simulation data={{ id: 50 }} />);
+
+            expect(screen.queryByText('Simulation Scope')).not.toBeInTheDocument();
+            expect(screen.queryByText('Rule-Only Simulation')).not.toBeInTheDocument();
+            expect(screen.queryByText('Run Simulation')).not.toBeInTheDocument();
+        });
+
         it('lets only editors start builds', () => {
             mockUseFeatureFlags.mockReturnValue(flags(true));
             mockUseSimulationController.mockReturnValue({ ...defaultMockReturn, values: { ...defaultMockReturn.values, claim: 'approver' } });

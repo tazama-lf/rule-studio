@@ -1,18 +1,41 @@
 import { BadRequestException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+
+const mockStatus = jest.fn<(target: unknown) => Promise<unknown>>();
+const mockDeploy = jest.fn<(target: unknown, image: unknown) => Promise<unknown>>();
+const mockRunRule = jest.fn<(target: unknown, msgId?: string) => Promise<unknown>>();
+const mockEndToEnd = jest.fn<(target: unknown) => Promise<unknown>>();
+const deployerMock = () => ({ status: mockStatus, deploy: mockDeploy, runRule: mockRunRule, endToEnd: mockEndToEnd });
+jest.mock('../../src/services/rule-pipeline/rule-deployment', () => ({
+  RuleDeployer: jest.fn().mockImplementation(() => deployerMock()),
+}));
+
 import type { FeatureFlagsService } from '../../src/common/feature-flags/feature-flags.service';
 import type { AuthenticatedUser } from '../../src/services/auth/auth.types';
 import type { RulesService } from '../../src/services/rules/rules.service';
 import { loadArtifactProfile } from '../../src/services/rule-pipeline/artifact-profile';
+import { RuleDeployer } from '../../src/services/rule-pipeline/rule-deployment';
 import { RulePipelineBuildsService } from '../../src/services/rule-pipeline/rule-pipeline-builds.service';
 import type { RuleBuildJobResult } from '../../src/services/rule-pipeline/rule-pipeline.types';
 
 const b64 = (s: string): string => Buffer.from(s).toString('base64');
-const user = { userId: 'u1', actorEmail: 'trs-editor@tazama.org' } as unknown as AuthenticatedUser;
+const user = { userId: 'u1', tenantId: 'DEFAULT', actorEmail: 'trs-editor@tazama.org' } as unknown as AuthenticatedUser;
 
 const getRuleById = jest.fn<(...args: unknown[]) => Promise<unknown>>();
 const getRuleFlow = jest.fn<(...args: unknown[]) => Promise<unknown>>();
-const rules = { getRuleById, getRuleFlow } as unknown as RulesService;
+const getRuleConfiguration = jest.fn<(...args: unknown[]) => Promise<unknown>>();
+const rules = { getRuleById, getRuleFlow, getRuleConfiguration } as unknown as RulesService;
+const ruleConfig = { id: 'amount102@1.0.0', cfg: '1.0.0', config: { bands: [{ subRuleRef: '.01' }] } };
+const target = { ruleId: 'amount102', version: '1.0.0', tenantId: 'DEFAULT', txtp: 'pacs.002.001.12', config: ruleConfig };
+const deployEnv = {
+  RULE_DEPLOY_NETWORK: 'tazama-core_default',
+  ADMIN_SERVICE_URL: 'http://admin:3100',
+  TAZAMA_AUTH_URL: 'http://auth:3020/v1/auth',
+  TAZAMA_TMS_URL: 'http://tms:3000',
+  TAZAMA_NATS_UTILS_URL: 'http://nats-utilities:4000',
+  TAZAMA_API_USERNAME: 'api@tazama.org',
+  TAZAMA_API_PASSWORD: 'secret',
+};
 
 interface FakeJob {
   id: string;
@@ -32,7 +55,7 @@ const job = (over: Omit<Partial<FakeJob>, 'data'> & { data?: Partial<FakeJob['da
     timestamp: 1_000 + jobs.length,
     state: 'waiting',
     ...over,
-    data: { ruleDbId: 50, ruleConfigId: 'amount102@1.0.0', simulate: false, source: { ruleId: 'amount102', version: '1.0.0' }, ...over.data },
+    data: { ruleDbId: 50, ruleConfigId: 'amount102@1.0.0', source: { ruleId: 'amount102', version: '1.0.0' }, ...over.data },
     getState: async () => j.state,
   };
   jobs.push(j);
@@ -44,7 +67,7 @@ const queue = {
   getJobs: jest.fn<() => Promise<FakeJob[]>>(),
 };
 
-const result = (over: Partial<RuleBuildJobResult['build']> = {}, simulation?: RuleBuildJobResult['simulation']): RuleBuildJobResult => ({
+const result = (over: Partial<RuleBuildJobResult['build']> = {}): RuleBuildJobResult => ({
   build: {
     ruleId: 'amount102',
     version: '1.0.0',
@@ -57,10 +80,11 @@ const result = (over: Partial<RuleBuildJobResult['build']> = {}, simulation?: Ru
   },
   reportHtml: '<html>report</html>',
   packageTgz: b64('tgz'),
-  simulation,
 });
 
-function service(enabled = true, env: NodeJS.ProcessEnv = { DOCKER_PUBLISH: 'true', IMAGE_REGISTRY: 'localhost:5000', IMAGE_NAMESPACE: 'tazama', RULE_GIT_KIND: 'gitea', RULE_GIT_API_URL: 'http://gitea:3000', RULE_GIT_TOKEN: 'secret' }) {
+const baseEnv = { IMAGE_REGISTRY: 'localhost:5000', IMAGE_NAMESPACE: 'tazama', RULE_GIT_KIND: 'gitea', RULE_GIT_API_URL: 'http://gitea:3000', RULE_GIT_TOKEN: 'secret' };
+
+function service(enabled = true, env: NodeJS.ProcessEnv = baseEnv) {
   const features = { isRulePipelineEnabled: () => enabled } as unknown as FeatureFlagsService;
   return new RulePipelineBuildsService(queue as never, loadArtifactProfile(env), rules, features);
 }
@@ -68,49 +92,48 @@ function service(enabled = true, env: NodeJS.ProcessEnv = { DOCKER_PUBLISH: 'tru
 describe('RulePipelineBuildsService', () => {
   beforeEach(() => {
     jobs = [];
+    (RuleDeployer as unknown as jest.Mock).mockImplementation(() => deployerMock());
     queue.add.mockImplementation(async (_name, data) => job({ data }));
     queue.getJob.mockImplementation(async (id) => jobs.find((j) => j.id === id));
     queue.getJobs.mockImplementation(async () => jobs);
-    getRuleById.mockResolvedValue({ id: 50, rule_config_id: 'Amount102@1.0.0' });
+    getRuleById.mockResolvedValue({ id: 50, rule_config_id: 'Amount102@1.0.0', txtp: 'pacs.002.001.12' });
+    getRuleConfiguration.mockResolvedValue({ configuration: ruleConfig });
     getRuleFlow.mockResolvedValue({ status: 'ok', result: { ts_file_base64_rule_builder: b64('export const rule = 1;'), ts_file_base64_test_case: `data:application/typescript;base64,${b64('test("x", () => {});')}` } });
   });
 
   it('refuses every call when the pipeline is switched off', async () => {
     const s = service(false);
-    await expect(s.start(50, user, false)).rejects.toThrow(ServiceUnavailableException);
+    await expect(s.start(50, user)).rejects.toThrow(ServiceUnavailableException);
     await expect(s.get('1')).rejects.toThrow(ServiceUnavailableException);
     await expect(s.latest(50)).rejects.toThrow(ServiceUnavailableException);
+    await expect(s.deployment(50, user)).rejects.toThrow(ServiceUnavailableException);
+    await expect(s.deploy(50, user)).rejects.toThrow(ServiceUnavailableException);
     expect(queue.add).not.toHaveBeenCalled();
   });
 
   it("queues the rule's current code and tests, read through RulesService with the flow permission", async () => {
-    const view = await service().start(50, user, true);
+    const view = await service().start(50, user);
 
     expect(getRuleFlow).toHaveBeenCalledWith('50', user, 'GET /rules/api/:ruleId/flow');
+    expect(getRuleConfiguration).not.toHaveBeenCalled();
     expect(queue.add).toHaveBeenCalledWith('build', {
       ruleDbId: 50,
       ruleConfigId: 'Amount102@1.0.0',
-      source: { ruleId: 'amount102', version: '1.0.0', ruleCode: 'export const rule = 1;', testCode: 'test("x", () => {});' },
-      simulate: true,
+      source: { ruleId: 'amount102', version: '1.0.0', ruleCode: 'export const rule = 1;', testCode: 'test("x", () => {});', tenantId: 'DEFAULT' },
       requestedBy: 'trs-editor@tazama.org',
     });
-    expect(view).toMatchObject({ buildId: '1', ruleId: 'amount102', version: '1.0.0', status: 'queued', simulate: true, hasReport: false });
-  });
-
-  it('does not ask for a simulation when images are switched off', async () => {
-    await service(true, { RULE_IMAGE_BUILD: 'false' }).start(50, user, true);
-    expect(queue.add).toHaveBeenCalledWith('build', expect.objectContaining({ simulate: false }));
+    expect(view).toMatchObject({ buildId: '1', ruleId: 'amount102', version: '1.0.0', status: 'queued', hasReport: false });
   });
 
   it('rejects rules without a config, without generated code, or with an unusable id', async () => {
     getRuleById.mockResolvedValueOnce({ id: 50, rule_config_id: undefined });
-    await expect(service().start(50, user, false)).rejects.toThrow('has no rule config');
+    await expect(service().start(50, user)).rejects.toThrow('has no rule config');
 
     getRuleFlow.mockResolvedValueOnce({ result: { ts_file_base64_rule_builder: b64('x') } });
-    await expect(service().start(50, user, false)).rejects.toThrow('no generated unit tests');
+    await expect(service().start(50, user)).rejects.toThrow('no generated unit tests');
 
     getRuleById.mockResolvedValueOnce({ id: 50, rule_config_id: 'bad id@1.0.0' });
-    await expect(service().start(50, user, false)).rejects.toThrow(BadRequestException);
+    await expect(service().start(50, user)).rejects.toThrow(BadRequestException);
     expect(queue.add).not.toHaveBeenCalled();
   });
 
@@ -118,22 +141,28 @@ describe('RulePipelineBuildsService', () => {
     job({ state: 'active', progress: { stage: 'test' } });
     job({ state: 'failed', failedReason: '[rule-amount102@1.0.0] npm ci failed (exit 1)' });
 
-    await expect(service().get('1')).resolves.toMatchObject({ status: 'running', stage: 'test' });
+    await expect(service().get('1')).resolves.toMatchObject({ status: 'running', stage: 'test', hasReport: false });
     await expect(service().get('2')).resolves.toMatchObject({ status: 'error', error: '[rule-amount102@1.0.0] npm ci failed (exit 1)' });
   });
 
-  it('marks completed builds passed, failed (tests) or error (simulation), without the package bytes', async () => {
+  it('offers the tests and the report of a running build as soon as the tests ran', async () => {
+    const tests = { total: 13, passed: 13, failed: 0, success: true, coverageThresholdMet: true };
+    job({ state: 'active', progress: { stage: 'image', tests, reportHtml: '<html>early</html>' } });
+
+    const view = await service().get('1');
+    expect(view).toMatchObject({ status: 'running', stage: 'image', tests, hasReport: true });
+    expect(JSON.stringify(view)).not.toContain('<html>');
+    await expect(service().report('1')).resolves.toBe('<html>early</html>');
+  });
+
+  it('marks completed builds passed or failed (tests), without the package bytes', async () => {
     job({ state: 'completed', finishedOn: 2_000, returnvalue: result() });
     job({ state: 'completed', returnvalue: result({ tests: { total: 13, passed: 4, failed: 9, success: false, coverageThresholdMet: false }, package: undefined, image: undefined }) });
-    job({ state: 'completed', data: { simulate: true }, returnvalue: result({}, { ok: false, error: 'rule processor did not start' }) });
-    job({ state: 'completed', data: { simulate: true }, returnvalue: result({}, { ok: true, upMs: 17_000, subject: 'sub-rule-amount102@1.0.0' }) });
 
     const passed = await service().get('1');
     expect(passed).toMatchObject({ status: 'passed', hasReport: true, package: { integrity: 'sha512-abc' }, image: { digest: 'sha256:man' }, gitRepo: expect.any(String) });
     expect(JSON.stringify(passed)).not.toContain(b64('tgz'));
     await expect(service().get('2')).resolves.toMatchObject({ status: 'failed', tests: { failed: 9 } });
-    await expect(service().get('3')).resolves.toMatchObject({ status: 'error', error: 'Simulation failed: rule processor did not start' });
-    await expect(service().get('4')).resolves.toMatchObject({ status: 'passed', simulation: { ok: true, upMs: 17_000 } });
   });
 
   it('shows a broken build with the stage it broke at, its tests, report and source', async () => {
@@ -169,6 +198,88 @@ describe('RulePipelineBuildsService', () => {
     await expect(service().latest(52)).resolves.toBeUndefined();
   });
 
+  it('shows whether the rule is deployed, with the latest run of each kind', async () => {
+    await expect(service().deployment(50, user)).resolves.toEqual({ enabled: false, deployed: false });
+
+    mockStatus.mockResolvedValue({ enabled: true, deployed: true, running: true, current: true, container: 'trs-default-rule-amount102' });
+    const s = service(true, { ...baseEnv, ...deployEnv });
+    await expect(s.deployment(50, user)).resolves.toEqual({ enabled: true, deployed: true, running: true, current: true, container: 'trs-default-rule-amount102', runs: {} });
+    expect(mockStatus).toHaveBeenCalledWith({ ruleId: 'amount102', version: '1.0.0', tenantId: 'DEFAULT' });
+  });
+
+  it('deploys the image of the latest passed build with the rule config', async () => {
+    const s = service(true, { ...baseEnv, ...deployEnv });
+    const deployed = { ok: true, container: 'trs-default-rule-amount102', typology: 'trs-amount102@1.0.0' };
+    mockDeploy.mockResolvedValue(deployed);
+    job({ state: 'completed', returnvalue: result() });
+
+    await expect(s.deploy(50, user)).resolves.toEqual(deployed);
+    expect(getRuleConfiguration).toHaveBeenCalledWith('Amount102@1.0.0', user, 'GET /rules/api/configuration/:ruleId');
+    expect(mockDeploy).toHaveBeenCalledWith(target, { ref: 'localhost:5000/tazama/rule-amount102:1.0.0', id: 'sha256:img', digest: 'sha256:man' });
+
+    mockDeploy.mockRejectedValueOnce(new Error('Updating network map 4.0.0 failed: HTTP 400'));
+    await expect(s.deploy(50, user)).resolves.toEqual({ ok: false, error: 'Updating network map 4.0.0 failed: HTTP 400' });
+  });
+
+  it('deploys nothing without a passed, pushed build of the current version or a rule config', async () => {
+    const s = service(true, { ...baseEnv, ...deployEnv });
+    await expect(s.deploy(50, user)).rejects.toThrow('There is no passed build with a pushed image');
+
+    job({ state: 'completed', returnvalue: result({ image: { ref: 'localhost:5000/tazama/rule-amount102:1.0.0', id: 'sha256:img' } }) });
+    await expect(s.deploy(50, user)).rejects.toThrow('There is no passed build with a pushed image');
+
+    job({ state: 'completed', returnvalue: result() });
+    job({ state: 'active', progress: { stage: 'test' } });
+    await expect(s.deploy(50, user)).rejects.toThrow('There is no passed build with a pushed image');
+
+    job({ state: 'completed', data: { source: { ruleId: 'amount102', version: '0.9.0' } }, returnvalue: result() });
+    await expect(s.deploy(50, user)).rejects.toThrow('The last build is of amount102@0.9.0; run Build & Test for amount102@1.0.0 first.');
+
+    job({ state: 'completed', returnvalue: result() });
+    getRuleConfiguration.mockRejectedValue(new Error('Configuration not found'));
+    await expect(s.deploy(50, user)).rejects.toThrow('Rule config Amount102@1.0.0 was not found');
+    expect(mockDeploy).not.toHaveBeenCalled();
+  });
+
+  it('runs the rule on the latest evaluated transaction and keeps the latest result of each kind', async () => {
+    const s = service(true, { ...baseEnv, ...deployEnv });
+    const evaluation = { status: 'NALT', tadpResult: { typologyResult: [] } };
+    mockRunRule.mockImplementation(async (_t, msgId) => ({ kind: 'rule', ok: true, msgId: msgId ?? 'sample', ranAt: 't', tookMs: 20, result: { subRuleRef: '.x01' } }));
+    mockEndToEnd.mockResolvedValue({ kind: 'e2e', ok: true, msgId: 'e2e-1', ranAt: 't', tookMs: 1200, result: { subRuleRef: '.x01' }, evaluation });
+    mockStatus.mockResolvedValue({ enabled: true, deployed: true });
+
+    await expect(s.runRule(50, user)).resolves.toMatchObject({ ok: true, msgId: 'sample', result: { subRuleRef: '.x01' } });
+    expect(mockRunRule).toHaveBeenLastCalledWith(target, undefined);
+    await s.runRule(50, user);
+    expect(mockRunRule).toHaveBeenLastCalledWith(target, 'sample');
+
+    await expect(s.runEndToEnd(50, user)).resolves.toMatchObject({ kind: 'e2e', evaluation });
+    expect(mockEndToEnd).toHaveBeenCalledWith(target);
+    await s.runRule(50, user);
+    expect(mockRunRule).toHaveBeenLastCalledWith(target, 'e2e-1');
+
+    const { runs } = await s.deployment(50, user);
+    expect(runs).toEqual({ rule: expect.objectContaining({ kind: 'rule', msgId: 'e2e-1' }), e2e: expect.objectContaining({ kind: 'e2e', evaluation }) });
+  });
+
+  it('reports a run that fails and starts the next rule run from a new transaction', async () => {
+    const s = service(true, { ...baseEnv, ...deployEnv });
+    mockEndToEnd.mockResolvedValueOnce({ kind: 'e2e', ok: true, msgId: 'e2e-1', ranAt: 't', tookMs: 1 });
+    await s.runEndToEnd(50, user);
+    mockRunRule.mockRejectedValueOnce(new Error('Tazama has not evaluated a message with id e2e-1'));
+
+    await expect(s.runRule(50, user)).resolves.toMatchObject({ kind: 'rule', ok: false, error: 'Tazama has not evaluated a message with id e2e-1' });
+    mockRunRule.mockResolvedValueOnce({ kind: 'rule', ok: true, msgId: 'm2', ranAt: 't', tookMs: 1 });
+    await s.runRule(50, user);
+    expect(mockRunRule).toHaveBeenLastCalledWith(target, undefined);
+  });
+
+  it('refuses runs when deployment is not configured', async () => {
+    await expect(service().runRule(50, user)).rejects.toThrow(ServiceUnavailableException);
+    await expect(service().runEndToEnd(50, user)).rejects.toThrow(ServiceUnavailableException);
+    await expect(service().deploy(50, user)).rejects.toThrow(ServiceUnavailableException);
+  });
+
   it('describes the configuration without credentials', () => {
     const config = service().config();
 
@@ -177,7 +288,9 @@ describe('RulePipelineBuildsService', () => {
       npm: { source: 'public', registry: 'https://registry.npmjs.org', scopeRegistry: 'https://npm.pkg.github.com' },
       image: { build: true, registry: 'localhost:5000', namespace: 'tazama' },
       git: { kind: 'gitea', url: 'http://gitea:3000', owner: 'tazama-rules', branch: 'staging' },
+      deploy: { enabled: false },
     });
-    expect(JSON.stringify(config)).not.toContain('secret');
+    expect(service(true, { ...baseEnv, ...deployEnv }).config().deploy).toEqual({ enabled: true, network: 'tazama-core_default' });
+    expect(JSON.stringify(service(true, { ...baseEnv, ...deployEnv }).config())).not.toContain('secret');
   });
 });

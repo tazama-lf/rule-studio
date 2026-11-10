@@ -33,23 +33,22 @@ class EnvironmentVariables {
   CERT_PATH_PUBLIC: string;
 
   // Optional switch. When absent or falsy, Docker publishing and the whole
-  // SimStudio surface are disabled and the IMAGE_* settings are not required.
-  // When true, IMAGE_NAMESPACE is required, plus the credentials for Docker Hub.
+  // SimStudio surface are disabled.
   @Transform(toBool)
   @IsBoolean()
   DOCKER_PUBLISH = false;
 
-  @ValidateIf((o: EnvironmentVariables) => o.DOCKER_PUBLISH)
+  @ValidateIf((o: EnvironmentVariables) => o.DOCKER_PUBLISH || o.RULE_PIPELINE_ENABLED)
   @IsString()
   @IsNotEmpty()
   IMAGE_NAMESPACE?: string;
 
-  @ValidateIf((o: EnvironmentVariables) => o.DOCKER_PUBLISH && isDockerHub(o.IMAGE_REGISTRY))
+  @ValidateIf((o: EnvironmentVariables) => (o.DOCKER_PUBLISH || o.RULE_PIPELINE_ENABLED) && isDockerHub(o.IMAGE_REGISTRY))
   @IsString()
   @IsNotEmpty()
   IMAGE_REGISTRY_USERNAME?: string;
 
-  @ValidateIf((o: EnvironmentVariables) => o.DOCKER_PUBLISH && isDockerHub(o.IMAGE_REGISTRY))
+  @ValidateIf((o: EnvironmentVariables) => (o.DOCKER_PUBLISH || o.RULE_PIPELINE_ENABLED) && isDockerHub(o.IMAGE_REGISTRY))
   @IsString()
   @IsNotEmpty()
   IMAGE_REGISTRY_TOKEN?: string;
@@ -82,7 +81,7 @@ export const validate = (config: Record<string, unknown>): EnvironmentVariables 
   const registryErrors = errors.filter(({ property }) => IMAGE_REGISTRY_PROPS.has(property));
   if (registryErrors.length > 0) {
     logger.warn(
-      `DOCKER_PUBLISH=true but the image registry settings are incomplete (${registryErrors.map((e) => e.property).join(', ')}); publishing will remain disabled at runtime.`,
+      `The image registry settings are incomplete (${registryErrors.map((e) => e.property).join(', ')}); publishing stays disabled and rule pipeline pushes will fail.`,
     );
   }
   return validatedConfig;

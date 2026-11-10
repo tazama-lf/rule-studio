@@ -71,19 +71,22 @@ class RestGitProvider implements GitProvider {
   }
 
   async pushFiles(repo: string, files: GitFile[], message: string): Promise<void> {
-    const { owner, branch, kind } = this.profile;
-    /* eslint-disable no-await-in-loop -- commits on one branch must be sequential */
-    for (const file of files) {
-      const path = `/repos/${owner}/${repo}/contents/${file.path}`;
-      const current = await this.request('GET', `${path}?ref=${branch}`);
-      if (!current.ok && current.status !== 404) await this.fail(current, `read of ${file.path}`);
-      const sha = current.ok ? ((await current.json()) as { sha: string }).sha : undefined;
+    await files.reduce(async (previous, file) => {
+      await previous;
+      await this.pushFile(repo, file, message);
+    }, Promise.resolve());
+  }
 
-      const body = { message, branch, sha, content: Buffer.from(file.content).toString('base64') };
-      const method = kind === 'gitea' && !sha ? 'POST' : 'PUT';
-      const res = await this.request(method, path, body);
-      if (!res.ok) await this.fail(res, `write of ${file.path}`);
-    }
-    /* eslint-enable no-await-in-loop */
+  private async pushFile(repo: string, file: GitFile, message: string): Promise<void> {
+    const { owner, branch, kind } = this.profile;
+    const path = `/repos/${owner}/${repo}/contents/${file.path}`;
+    const current = await this.request('GET', `${path}?ref=${branch}`);
+    if (!current.ok && current.status !== 404) await this.fail(current, `read of ${file.path}`);
+    const sha = current.ok ? ((await current.json()) as { sha: string }).sha : undefined;
+
+    const body = { message, branch, sha, content: Buffer.from(file.content).toString('base64') };
+    const method = kind === 'gitea' && !sha ? 'POST' : 'PUT';
+    const res = await this.request(method, path, body);
+    if (!res.ok) await this.fail(res, `write of ${file.path}`);
   }
 }

@@ -7,7 +7,6 @@ export enum SimulationStatus {
 export interface SpawnOptions {
   ruleName?: string;
   version?: string;
-  image?: string;
 }
 
 // `pg`/`pgHost` are populated as soon as spawnPostgres returns. The other

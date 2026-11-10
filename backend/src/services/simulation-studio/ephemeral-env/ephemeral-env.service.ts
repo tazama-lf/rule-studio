@@ -103,7 +103,7 @@ export class EphemeralEnvService implements OnModuleDestroy {
 
     const ruleName = options.ruleName ?? 'rule-901';
     const version = options.version ?? 'rc';
-    const image = options.image ?? imageRef(loadImageRegistry(), ruleName, version);
+    const image = imageRef(loadImageRegistry(), ruleName, version);
     // rule-executer builds streams as sub-rule-${RULE_NAME}@${VERSION} — strip any existing 'rule-' prefix
     // so RULE_NAME env stays clean and subjects don't double up (e.g. sub-rule-rule-901@rc)
     const ruleBaseName = ruleName.replace(/^rule-/, '');

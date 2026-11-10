@@ -9,6 +9,7 @@ import {
     useStartRuleBuildMutation,
     type RuleBuild,
     type RulePipelineConfig,
+    type RuleResult,
 } from "../../../../redux/Api/RulePipeline";
 import { getAuthToken } from "../../../../utils/Common/storage";
 import PipelineReport from "./PipelineReport";
@@ -29,7 +30,6 @@ export const STAGES: ReadonlyArray<{ key: string; label: string }> = [
     { key: "assemble", label: "Rule executer" },
     { key: "image", label: "Image" },
     { key: "push", label: "Push" },
-    { key: "simulate", label: "Simulation" },
 ];
 
 const ACTIVE = new Set(["queued", "running"]);
@@ -41,16 +41,15 @@ export const describeConfig = (config?: RulePipelineConfig): string[] => {
     const npm = config.npm.source === "offline" ? "npm: offline cache"
         : config.npm.source === "mirror" ? `npm: ${config.npm.registry ?? "mirror"}`
             : "npm: npmjs + GitHub Packages";
-    const image = !config.image.build ? "image: off (package only)"
-        : config.image.registry ? `image: ${config.image.registry}/${config.image.namespace}` : "image: Docker host only";
+    const image = config.image.build ? `image: ${config.image.registry}/${config.image.namespace}` : "image: off (package only)";
     const git = config.git.kind === "none" ? "git: off"
         : `git: ${config.git.kind}${config.git.owner ? ` ${config.git.owner}` : ""}${config.git.branch ? ` (${config.git.branch})` : ""}`;
-    return [npm, image, git];
+    const deploy = config.deploy.enabled ? `deploy: ${config.deploy.network ?? "Tazama"}` : "deploy: off";
+    return [npm, image, git, deploy];
 };
 
 const failedStageOf = (build: RuleBuild): string | undefined => {
     if (build.status === "failed") return "test";
-    if (build.status === "error" && build.simulation && !build.simulation.ok) return "simulate";
     return build.status === "error" ? build.stage : undefined;
 };
 
@@ -63,15 +62,18 @@ export const stageState = (build: RuleBuild, key: string): StageState => {
     }
     const failed = failedStageOf(build);
     if (failed === key) return "failed";
-    if (key === "simulate") return build.simulation?.ok ? "done" : "skipped";
     return build.durationsMs && key in build.durationsMs ? "done" : "skipped";
 };
 
 export const formatDuration = (ms?: number): string => {
     if (ms === undefined) return "";
+    if (ms < 1000) return `${ms} ms`;
     const seconds = ms / 1000;
     return seconds < 60 ? `${seconds.toFixed(1)} s` : `${Math.floor(seconds / 60)} min ${Math.round(seconds % 60)} s`;
 };
+
+export const describeResult = (result?: RuleResult, reason = result?.reason): string =>
+    result ? `${result.subRuleRef}${reason ? ` · ${reason}` : ""}` : "";
 
 export const describeStatus = (build: RuleBuild): { severity: "success" | "error" | "info"; label: string; text: string } => {
     switch (build.status) {
@@ -105,7 +107,6 @@ export const describeProblem = (error?: string): BuildProblem | undefined => {
 
 const useRulePipelineController = ({ ruleId, canBuild }: IRulePipeline) => {
     const { open } = useModal()
-    const [simulate, setSimulate] = useState(true)
     const [buildId, setBuildId] = useState<string>()
 
     const { data: config } = useGetPipelineConfigQuery()
@@ -137,12 +138,12 @@ const useRulePipelineController = ({ ruleId, canBuild }: IRulePipeline) => {
 
     const handleBuild = useCallback(async () => {
         if (!ruleId) return
-        const started = await startRuleBuild({ ruleId, simulate: simulate && Boolean(config?.image.build) }).unwrap().catch(() => undefined)
+        const started = await startRuleBuild(ruleId).unwrap().catch(() => undefined)
         if (!started) return
         lastStatus.current = started.status
         setBuildId(started.buildId)
         setPolling(true)
-    }, [ruleId, simulate, config, startRuleBuild])
+    }, [ruleId, startRuleBuild])
 
     const handleReport = useCallback(() => {
         if (build) open('Test Report', <PipelineReport buildId={build.buildId} />, null, { maxWidth: 'xl' })
@@ -170,14 +171,11 @@ const useRulePipelineController = ({ ruleId, canBuild }: IRulePipeline) => {
         values: {
             build,
             chips,
-            simulate,
-            canSimulate: Boolean(config?.image.build),
             canBuild: canBuild && Boolean(ruleId),
             running,
             starting,
         },
         functions: {
-            setSimulate,
             handleBuild,
             handleReport,
             handleDownload,

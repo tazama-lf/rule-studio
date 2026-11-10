@@ -53,6 +53,16 @@ describe('validate() — env.validation', () => {
     warn.mockRestore();
   });
 
+  it('warns when the rule pipeline is on without the registry it pushes every image to', () => {
+    const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    expect(() => validate({ ...baseValid, RULE_PIPELINE_ENABLED: 'true' })).not.toThrow();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('IMAGE_NAMESPACE, IMAGE_REGISTRY_USERNAME, IMAGE_REGISTRY_TOKEN'));
+    warn.mockClear();
+    validate({ ...baseValid, RULE_PIPELINE_ENABLED: 'true', IMAGE_REGISTRY: 'localhost:5055', IMAGE_NAMESPACE: 'tazama' });
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
   it('does NOT throw when DOCKER_PUBLISH=true and the IMAGE_* settings are missing (feature stays disabled at runtime instead)', () => {
     expect(() => validate({ ...baseValid, DOCKER_PUBLISH: 'true' })).not.toThrow();
   });

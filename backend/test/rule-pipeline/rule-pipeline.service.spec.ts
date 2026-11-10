@@ -68,7 +68,7 @@ function write(path: string, content: string): void {
 
 describe('RulePipelineService', () => {
   let root: string;
-  let options: { templateDir: string; executerDir: string };
+  let profile: (env?: NodeJS.ProcessEnv) => ReturnType<typeof loadArtifactProfile>;
 
   beforeEach(() => {
     root = mkdtempSync(join(tmpdir(), 'rule-pipeline-spec-'));
@@ -78,7 +78,7 @@ describe('RulePipelineService', () => {
       write(join(root, dir, 'tsconfig.json'), '{}');
       write(join(root, dir, 'src', 'index.ts'), '');
     }
-    options = { templateDir: join(root, 'template'), executerDir: join(root, 'executer') };
+    profile = (env = {}) => loadArtifactProfile({ RULE_TEMPLATE_DIR: join(root, 'template'), RULE_EXECUTER_DIR: join(root, 'executer'), ...env });
 
     for (const key of Object.keys(builder) as Array<keyof typeof builder>) {
       if (key !== 'start') builder[key].mockReturnThis();
@@ -112,16 +112,16 @@ describe('RulePipelineService', () => {
   });
 
   it('rejects an invalid rule before starting any container', async () => {
-    const pipeline = new RulePipelineService(loadArtifactProfile({}));
+    const pipeline = new RulePipelineService(profile());
 
-    await expect(pipeline.build({ ...source, version: '1.0.0\nRUN id' }, options)).rejects.toThrow('Invalid rule version');
+    await expect(pipeline.build({ ...source, version: '1.0.0\nRUN id' })).rejects.toThrow('Invalid rule version');
     expect(MockGenericContainer).not.toHaveBeenCalled();
   });
 
   it('produces the package with its SHA-512 and an image, running every step as the unprivileged user', async () => {
-    const pipeline = new RulePipelineService(loadArtifactProfile({ RULE_BASE_IMAGE_MIRROR: 'localhost:5000', RULE_NPM_TOKEN: 'npm-secret' }));
+    const pipeline = new RulePipelineService(profile({ RULE_BASE_IMAGE_MIRROR: 'localhost:5000', RULE_NPM_TOKEN: 'npm-secret' }));
 
-    const result = await pipeline.build(source, options);
+    const result = await pipeline.build(source);
 
     expect(result).toMatchObject({
       tests: { total: 4, passed: 4, failed: 0, success: true, coverageThresholdMet: true },
@@ -129,7 +129,6 @@ describe('RulePipelineService', () => {
       package: { file: tgzFile, integrity, shasum, size: tgz.length, tgz },
       image: { ref: 'tazamaorg/default-rule-903:1.0.0', id: 'sha256:image-id' },
     });
-    expect(result.image?.digest).toBeUndefined();
     expect(builder.withResourcesQuota).toHaveBeenCalledWith({ memory: 2, cpu: 2 });
     const steps = mockExec.mock.calls.filter(([cmd]) => cmd[0] === 'sh' && !cmd[2].startsWith('mkdir'));
     expect(steps.length).toBeGreaterThan(0);
@@ -140,12 +139,12 @@ describe('RulePipelineService', () => {
     expect(dockerfile.target).toBe('/ctx/Dockerfile');
     expect(dockerfile.content).toContain('FROM localhost:5000/distroless/nodejs20-debian11:nonroot');
     expect(dockerfile.content).toContain(`tazama.rule.integrity="${integrity}"`);
-    expect(mockPush).not.toHaveBeenCalled();
+    expect(mockPush).toHaveBeenCalledWith({ authconfig: {} });
     expect(mockStop).toHaveBeenCalled();
   });
 
   it('stops after the package when no image is wanted', async () => {
-    const result = await new RulePipelineService(loadArtifactProfile({ RULE_IMAGE_BUILD: 'false' })).build(source, options);
+    const result = await new RulePipelineService(profile({ RULE_IMAGE_BUILD: 'false' })).build(source);
 
     expect(result.package?.integrity).toBe(integrity);
     expect(result.image).toBeUndefined();
@@ -156,7 +155,7 @@ describe('RulePipelineService', () => {
   it('fails when the package bytes copied out of the builder do not match their SHA-512 in the builder', async () => {
     answer({ 'base64 -w0': ok(Buffer.from('tampered').toString('base64')) });
 
-    await expect(new RulePipelineService(loadArtifactProfile({})).build(source, options)).rejects.toThrow(
+    await expect(new RulePipelineService(profile()).build(source)).rejects.toThrow(
       'tazama-lf-rule-903-1.0.0.tgz changed while copying out of the builder',
     );
     expect(mockStop).toHaveBeenCalled();
@@ -165,18 +164,20 @@ describe('RulePipelineService', () => {
   it('reports coverage separately from test success', async () => {
     answer({ 'npx jest': failed('coverage threshold not met') });
 
-    const result = await new RulePipelineService(loadArtifactProfile({})).build(source, options);
+    const result = await new RulePipelineService(profile()).build(source);
 
     expect(result.tests).toMatchObject({ success: true, coverageThresholdMet: false });
     expect(result.image?.ref).toBe('tazamaorg/default-rule-903:1.0.0');
   });
 
-  it('packages nothing when unit tests fail', async () => {
+  it('packages nothing when unit tests fail, and hands over the test report as soon as the tests ran', async () => {
     const results = JSON.stringify({ numTotalTests: 13, numPassedTests: 4, numFailedTests: 9, numTotalTestSuites: 1, numPassedTestSuites: 0 });
     answer({ 'npx jest': failed('9 failed'), 'test-results.json': ok(results) });
+    const onTests = jest.fn();
 
-    const result = await new RulePipelineService(loadArtifactProfile({})).build(source, options);
+    const result = await new RulePipelineService(profile()).build(source, { onTests });
 
+    expect(onTests).toHaveBeenCalledWith(expect.objectContaining({ total: 13, failed: 9 }), '<html>report</html>');
     expect(result.tests).toMatchObject({ total: 13, failed: 9, success: false });
     expect(result.reportHtml).toBe('<html>report</html>');
     expect(result.package).toBeUndefined();
@@ -189,7 +190,7 @@ describe('RulePipelineService', () => {
     const results = JSON.stringify({ numTotalTests: 0, numPassedTests: 0, numFailedTests: 0, numTotalTestSuites: 1, numPassedTestSuites: 0 });
     answer({ 'npx jest': failed('TS2307'), 'test-results.json': ok(results) });
 
-    const result = await new RulePipelineService(loadArtifactProfile({})).build(source, options);
+    const result = await new RulePipelineService(profile()).build(source);
 
     expect(result.tests.success).toBe(false);
     expect(result.package).toBeUndefined();
@@ -198,10 +199,10 @@ describe('RulePipelineService', () => {
   it('pushes to the configured registry with credentials and records the manifest digest', async () => {
     dockerEvents = [{ status: 'pushed' }, { aux: { Tag: '1.0.0', Digest: 'sha256:manifest', Size: 1234 } }];
     const pipeline = new RulePipelineService(
-      loadArtifactProfile({ DOCKER_PUBLISH: 'true', IMAGE_REGISTRY: 'harbor.corp', IMAGE_REGISTRY_USERNAME: 'bot', IMAGE_REGISTRY_TOKEN: 'pw' }),
+      profile({ IMAGE_REGISTRY: 'harbor.corp', IMAGE_REGISTRY_USERNAME: 'bot', IMAGE_REGISTRY_TOKEN: 'pw' }),
     );
 
-    const result = await pipeline.build(source, options);
+    const result = await pipeline.build(source);
 
     expect(result.image).toEqual({ ref: 'harbor.corp/tazamaorg/default-rule-903:1.0.0', id: 'sha256:image-id', digest: 'sha256:manifest' });
     expect(mockPush).toHaveBeenCalledWith({ authconfig: { username: 'bot', password: 'pw', serveraddress: 'harbor.corp' } });
@@ -215,7 +216,7 @@ describe('RulePipelineService', () => {
     const cache = join(root, 'npm-cache');
     mkdirSync(cache);
 
-    await new RulePipelineService(loadArtifactProfile({ RULE_NPM_SOURCE: 'offline', RULE_NPM_CACHE: cache })).build(source, options);
+    await new RulePipelineService(profile({ RULE_NPM_SOURCE: 'offline', RULE_NPM_CACHE: cache })).build(source);
 
     expect(builder.withNetworkMode).toHaveBeenCalledWith('none');
     expect(builder.withCopyDirectoriesToContainer).toHaveBeenCalledWith(expect.arrayContaining([{ source: cache, target: '/home/node/.npm' }]));
@@ -227,7 +228,7 @@ describe('RulePipelineService', () => {
     mkdirSync(cache);
     answer({ 'npm pkg set dependencies.rule': failed('npm warn deprecated glob@7.2.3: old\nnpm error code ENOTCACHED\nnpm error request to x failed') });
 
-    const build = new RulePipelineService(loadArtifactProfile({ RULE_NPM_SOURCE: 'offline', RULE_NPM_CACHE: cache })).build(source, options);
+    const build = new RulePipelineService(profile({ RULE_NPM_SOURCE: 'offline', RULE_NPM_CACHE: cache })).build(source);
 
     await expect(build).rejects.toThrow(/rule-executer build failed \(exit 1\):\nnpm error code ENOTCACHED\nnpm error request to x failed\nThe offline npm cache/);
     await expect(build).rejects.not.toThrow('npm warn');
@@ -236,7 +237,7 @@ describe('RulePipelineService', () => {
   it('keeps what a failed build did and names the stage it failed at', async () => {
     answer({ 'npm run build': failed('src/rule.ts(31,23): error TS2339') });
 
-    const error = await new RulePipelineService(loadArtifactProfile({})).build(source, options).catch((err: unknown) => err);
+    const error = await new RulePipelineService(profile()).build(source).catch((err: unknown) => err);
 
     expect(error).toBeInstanceOf(RuleBuildError);
     expect(error).toMatchObject({ stage: 'package', partial: { tests: { success: true }, durationsMs: { install: expect.any(Number), test: expect.any(Number) } } });
@@ -244,16 +245,16 @@ describe('RulePipelineService', () => {
   });
 
   it('refuses an offline build whose npm cache does not exist', async () => {
-    const pipeline = new RulePipelineService(loadArtifactProfile({ RULE_NPM_SOURCE: 'offline', RULE_NPM_CACHE: join(root, 'missing') }));
+    const pipeline = new RulePipelineService(profile({ RULE_NPM_SOURCE: 'offline', RULE_NPM_CACHE: join(root, 'missing') }));
 
-    await expect(pipeline.build(source, options)).rejects.toThrow('does not exist');
+    await expect(pipeline.build(source)).rejects.toThrow('does not exist');
     expect(MockGenericContainer).not.toHaveBeenCalled();
   });
 
   it('fails with the step output and stops the builder when a step fails', async () => {
     answer({ 'npm ci': failed('npm error code EINTEGRITY') });
 
-    await expect(new RulePipelineService(loadArtifactProfile({})).build(source, options)).rejects.toThrow(
+    await expect(new RulePipelineService(profile()).build(source)).rejects.toThrow(
       /npm ci failed \(exit 1\):\nnpm error code EINTEGRITY/,
     );
     expect(mockStop).toHaveBeenCalled();
@@ -262,7 +263,7 @@ describe('RulePipelineService', () => {
   it('times out a step that never finishes and stops the builder', async () => {
     answer({ 'npm ci': new Promise<Exec>(() => undefined) });
 
-    await expect(new RulePipelineService(loadArtifactProfile({})).build(source, { ...options, stepTimeoutMs: 50 })).rejects.toThrow(
+    await expect(new RulePipelineService(profile({ RULE_STEP_TIMEOUT_SECONDS: '0.05' })).build(source)).rejects.toThrow(
       'npm ci timed out',
     );
     expect(mockStop).toHaveBeenCalled();
@@ -271,7 +272,7 @@ describe('RulePipelineService', () => {
   it('fails the build when Docker reports an error inside the build stream', async () => {
     dockerEvents = [{ error: 'pull access denied' }];
 
-    await expect(new RulePipelineService(loadArtifactProfile({})).build(source, options)).rejects.toThrow(
+    await expect(new RulePipelineService(profile()).build(source)).rejects.toThrow(
       'docker build tazamaorg/default-rule-903:1.0.0 failed: pull access denied',
     );
     expect(mockStop).toHaveBeenCalled();

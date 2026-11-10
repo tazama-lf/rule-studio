@@ -4,11 +4,12 @@ import CloseIcon from '@mui/icons-material/Close';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import DownloadIcon from '@mui/icons-material/Download';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import { Alert, AlertTitle, Box, Checkbox, Chip, CircularProgress, Collapse, FormControlLabel, Link, Tooltip } from "@mui/material";
+import { Alert, AlertTitle, Box, Chip, CircularProgress, Collapse, Link, Tooltip } from "@mui/material";
 import Button from "../../../../components/Button";
 import { Text } from "../../../../components/Text";
 import Section from "../../../../components/Wrappers/Section";
 import type { RuleBuild } from "../../../../redux/Api/RulePipeline";
+import DeployedRule from "./DeployedRule";
 import useRulePipelineController, { describeProblem, describeStatus, formatDuration, STAGES, stageState, type IRulePipeline, type StageState } from "./useRulePipelineController";
 
 const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
@@ -108,7 +109,7 @@ const BuildResult = ({ build, onReport, onDownload }: { build: RuleBuild; onRepo
                     : <Problem build={build} />
             }
 
-            {(build.tests || build.package || build.image || build.gitRepo || build.simulation) &&
+            {(build.tests || build.package || build.image || build.gitRepo) &&
                 <Box mt={2}>
                     {build.tests &&
                         <Row label="Tests">
@@ -132,15 +133,6 @@ const BuildResult = ({ build, onReport, onDownload }: { build: RuleBuild; onRepo
                             <Link href={build.gitRepo} target="_blank" rel="noreferrer"><Mono>{build.gitRepo}</Mono></Link>
                         </Row>
                     }
-                    {build.simulation &&
-                        <Row label="Simulation">
-                            <Mono>
-                                {build.simulation.ok
-                                    ? `Up in ${formatDuration(build.simulation.upMs)}, listening on ${build.simulation.subject ?? ''}; torn down`
-                                    : `Did not start: ${build.simulation.error ?? ''}`}
-                            </Mono>
-                        </Row>
-                    }
                 </Box>
             }
 
@@ -161,7 +153,7 @@ const RulePipeline = (props: IRulePipeline) => {
     return (
         <Section
             header={'Build & Test'}
-            subHeader={"Runs this rule's unit tests in a throwaway container, packages it and, as configured, builds, pushes and simulates its image."}
+            subHeader={"Runs this rule's unit tests in a build container, packages it and pushes its image to the registry. Deploy that image to Tazama below to run the rule."}
         >
             <Box width={'100%'}>
                 <Box display={'flex'} justifyContent={'space-between'} alignItems={'center'} flexWrap={'wrap'} gap={2}>
@@ -170,24 +162,17 @@ const RulePipeline = (props: IRulePipeline) => {
                         {values.chips.map((chip) => <Chip key={chip} size="small" variant="outlined" label={chip} />)}
                     </Box>
                     {values.canBuild &&
-                        <Box display={'flex'} alignItems={'center'} gap={2}>
-                            <FormControlLabel
-                                sx={{ m: 0 }}
-                                control={<Checkbox size="small" checked={values.simulate && values.canSimulate} disabled={!values.canSimulate || values.running} onChange={(e) => functions.setSimulate(e.target.checked)} />}
-                                label={<Text size={'sub'} color="black">Simulate the built image</Text>}
-                            />
-                            <Button
-                                height="40px"
-                                width="170px"
-                                type="primary"
-                                size="md"
-                                text={values.running ? "Building…" : "Build & Test"}
-                                Icon={PlayArrowIcon}
-                                loading={values.starting || values.running}
-                                disabled={values.running}
-                                onClick={functions.handleBuild}
-                            />
-                        </Box>
+                        <Button
+                            height="40px"
+                            width="170px"
+                            type="primary"
+                            size="md"
+                            text={values.running ? "Building…" : "Build & Test"}
+                            Icon={PlayArrowIcon}
+                            loading={values.starting || values.running}
+                            disabled={values.running}
+                            onClick={functions.handleBuild}
+                        />
                     }
                 </Box>
 
@@ -195,10 +180,12 @@ const RulePipeline = (props: IRulePipeline) => {
                     ? <BuildResult build={build} onReport={functions.handleReport} onDownload={() => { void functions.handleDownload() }} />
                     : <Box mt={2} p={2} border={'1px dashed'} borderColor={'static.border'} borderRadius={2}>
                         <Text size={'sub'} color="text.ternary">
-                            {values.canBuild ? 'No builds yet. Build & Test checks the rule the way the pipeline ships it: unit tests, package, image and, if selected, a short simulation.' : 'No builds yet.'}
+                            {values.canBuild ? 'No builds yet. Build & Test checks the rule the way the pipeline ships it: unit tests, package and image.' : 'No builds yet.'}
                         </Text>
                     </Box>
                 }
+
+                <DeployedRule ruleId={props.ruleId} build={build} canRun={values.canBuild} />
             </Box>
         </Section>
     )

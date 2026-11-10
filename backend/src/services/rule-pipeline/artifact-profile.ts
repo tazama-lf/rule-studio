@@ -1,5 +1,5 @@
 import { resolve } from 'node:path';
-import { loadImageRegistry, tenantRepository } from '../../common/image-registry';
+import { imageRef, isDockerHub, loadImageRegistry, tenantRepository } from '../../common/image-registry';
 
 export type NpmSource = 'public' | 'mirror' | 'offline';
 
@@ -14,10 +14,21 @@ export interface NpmProfile {
 
 export interface ImageProfile {
   build: boolean;
-  registry?: string;
+  registry: string;
   namespace: string;
   username?: string;
   password?: string;
+}
+
+export interface DeployProfile {
+  network: string;
+  envFile?: string;
+  adminUrl: string;
+  authUrl: string;
+  tmsUrl: string;
+  natsUtilsUrl: string;
+  username: string;
+  password: string;
 }
 
 export type GitProviderKind = 'gitea' | 'github' | 'none';
@@ -52,6 +63,7 @@ export interface ArtifactProfile {
   baseImages: BaseImages;
   sources: PipelineSources;
   builder: BuilderSettings;
+  deploy?: DeployProfile;
 }
 
 const NPMJS = 'https://registry.npmjs.org';
@@ -69,6 +81,11 @@ function required(value: string | undefined, name: string, reason: string): stri
 }
 
 const trimSlash = (url: string): string => url.replace(/\/$/, '');
+
+const setting = (value?: string): string | undefined => {
+  const trimmed = value?.trim();
+  return trimmed === '' ? undefined : trimmed;
+};
 
 function loadNpm(env: NodeJS.ProcessEnv): NpmProfile {
   const source = oneOf(env.RULE_NPM_SOURCE, 'public', ['public', 'mirror', 'offline'], 'RULE_NPM_SOURCE');
@@ -88,13 +105,28 @@ function loadNpm(env: NodeJS.ProcessEnv): NpmProfile {
 
 function loadImage(env: NodeJS.ProcessEnv): ImageProfile {
   const target = loadImageRegistry(env);
-  const publish = /^(true|1|yes|on)$/i.test((env.DOCKER_PUBLISH ?? '').trim());
   return {
     build: env.RULE_IMAGE_BUILD !== 'false',
-    registry: publish ? target.registry : undefined,
+    registry: target.registry,
     namespace: target.namespace,
     username: target.username,
     password: target.token,
+  };
+}
+
+function loadDeploy(env: NodeJS.ProcessEnv): DeployProfile | undefined {
+  const network = setting(env.RULE_DEPLOY_NETWORK);
+  if (!network) return undefined;
+  const reason = 'when RULE_DEPLOY_NETWORK is set';
+  return {
+    network,
+    envFile: setting(env.RULE_DEPLOY_ENV_FILE),
+    adminUrl: trimSlash(required(env.ADMIN_SERVICE_URL, 'ADMIN_SERVICE_URL', reason)),
+    authUrl: trimSlash(required(env.TAZAMA_AUTH_URL, 'TAZAMA_AUTH_URL', reason)),
+    tmsUrl: trimSlash(required(env.TAZAMA_TMS_URL, 'TAZAMA_TMS_URL', reason)),
+    natsUtilsUrl: trimSlash(required(env.TAZAMA_NATS_UTILS_URL, 'TAZAMA_NATS_UTILS_URL', reason)),
+    username: required(env.TAZAMA_API_USERNAME, 'TAZAMA_API_USERNAME', reason),
+    password: required(env.TAZAMA_API_PASSWORD, 'TAZAMA_API_PASSWORD', reason),
   };
 }
 
@@ -128,10 +160,14 @@ export function loadArtifactProfile(env: NodeJS.ProcessEnv = process.env): Artif
       network: env.RULE_BUILDER_NETWORK === '' ? undefined : env.RULE_BUILDER_NETWORK,
       stepTimeoutMs: env.RULE_STEP_TIMEOUT_SECONDS ? Number(env.RULE_STEP_TIMEOUT_SECONDS) * 1000 : undefined,
     },
+    deploy: loadDeploy(env),
   };
 }
 
 export function ruleImageRef(image: ImageProfile, ruleId: string, version: string, tenantId = 'DEFAULT'): string {
-  const repo = `${image.namespace}/${tenantRepository(tenantId, `rule-${ruleId}`)}:${version}`;
-  return image.registry ? `${image.registry}/${repo}` : repo;
+  return imageRef(
+    { registry: image.registry, namespace: image.namespace, dockerHub: isDockerHub(image.registry) },
+    tenantRepository(tenantId, `rule-${ruleId}`),
+    version,
+  );
 }

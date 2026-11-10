@@ -401,14 +401,25 @@ describe('EphemeralEnvService', () => {
       expect(info.version).toBe('rc');
     });
 
-    it('defaults the rule image to Docker Hub and accepts an explicit one', async () => {
+    it('takes the rule image from the image registry settings', async () => {
       mockFetch.mockResolvedValue({ ok: true, status: 200, text: async () => '', json: async () => [] } as Response);
+      const saved = { registry: process.env.IMAGE_REGISTRY, namespace: process.env.IMAGE_NAMESPACE };
 
-      const hub = await service.spawnPostgres('hub-sim', { ruleName: 'rule-021', version: 'v2' });
-      const local = await service.spawnPostgres('local-sim', { ruleName: 'rule-021', version: 'v2', image: 'localhost:5000/tazama/rule-021:v2' });
+      try {
+        delete process.env.IMAGE_REGISTRY;
+        process.env.IMAGE_NAMESPACE = 'tazama';
+        const hub = await service.spawnPostgres('hub-sim', { ruleName: 'rule-021', version: 'v2' });
+        process.env.IMAGE_REGISTRY = 'localhost:5000';
+        const local = await service.spawnPostgres('local-sim', { ruleName: 'rule-021', version: 'v2' });
 
-      expect(hub.image).toBe(`${process.env.IMAGE_NAMESPACE || 'tazamaorg'}/rule-021:v2`);
-      expect(local.image).toBe('localhost:5000/tazama/rule-021:v2');
+        expect(hub.image).toBe('tazama/rule-021:v2');
+        expect(local.image).toBe('localhost:5000/tazama/rule-021:v2');
+      } finally {
+        for (const [key, value] of [['IMAGE_REGISTRY', saved.registry], ['IMAGE_NAMESPACE', saved.namespace]] as const) {
+          if (value === undefined) delete process.env[key];
+          else process.env[key] = value;
+        }
+      }
     });
 
     it('reads SQL migrations from TAZAMA_SQL_DIR instead of GitHub when it is set', async () => {

@@ -123,57 +123,59 @@ const Simulation = (props: ISimulation) => {
             {isRulePipelineEnabled &&
                 <RulePipeline ruleId={Number(props.data?.id) || undefined} canBuild={claims.editor === values?.claim} />
             }
-            <Section header={'Simulation Scope'} subHeader={'Select the scope of your simulation to determine required inputs and runtime cost'}>
-                <Grid container spacing={2} width={'80%'} display={'flex'} justifyContent={'space-between'} alignSelf={'center'} mb={4}>
-                    {simulations.map((item, index) => (
-                        <SimulationBox key={index} data={item} />
-                    ))}
-                </Grid>
+            {!isRulePipelineEnabled &&
+                <Section header={'Simulation Scope'} subHeader={'Select the scope of your simulation to determine required inputs and runtime cost'}>
+                    <Grid container spacing={2} width={'80%'} display={'flex'} justifyContent={'space-between'} alignSelf={'center'} mb={4}>
+                        {simulations.map((item, index) => (
+                            <SimulationBox key={index} data={item} />
+                        ))}
+                    </Grid>
 
-                <Grid container spacing={2} width={'100%'} mt={2}>
-                    {
-                        values?.payloadLoading ?
-                            <Box width={'100%'} display={'flex'} justifyContent={'center'}>
-                                <Loader />
-                            </Box> :
-                            values?.selected &&
-                            <Grid size={{ xs: 12, md: values?.result ? 6 : 12 }}>
-                                <Controller
-                                    name="payload"
-                                    control={values?.control}
-                                    render={({ field }) => (
-                                        <EditableJsonPayload
-                                            label="Payload (Edit values only)"
-                                            value={field.value}
-                                            onChange={field.onChange}
-                                            error={values?.errors.payload?.message}
-                                        />
-                                    )}
-                                />
-                            </Grid>
+                    <Grid container spacing={2} width={'100%'} mt={2}>
+                        {
+                            values?.payloadLoading ?
+                                <Box width={'100%'} display={'flex'} justifyContent={'center'}>
+                                    <Loader />
+                                </Box> :
+                                values?.selected &&
+                                <Grid size={{ xs: 12, md: values?.result ? 6 : 12 }}>
+                                    <Controller
+                                        name="payload"
+                                        control={values?.control}
+                                        render={({ field }) => (
+                                            <EditableJsonPayload
+                                                label="Payload (Edit values only)"
+                                                value={field.value}
+                                                onChange={field.onChange}
+                                                error={values?.errors.payload?.message}
+                                            />
+                                        )}
+                                    />
+                                </Grid>
+                        }
+
+                        {values?.result ?
+                            <Grid size={{ xs: 12, md: 6 }} overflow={'hidden'}>
+                                <FormattedJsonSection label="Result" value={JSON.stringify(values?.result)} />
+                            </Grid> : null
+                        }
+                    </Grid>
+
+                    {values?.selected &&
+                        <Box width={'100%'} display={'flex'} gap={2} justifyContent={'flex-end'} mt={2}>
+                            <Button
+                                height="40px"
+                                width="170px"
+                                type="secondary"
+                                size="md"
+                                text="Run Simulation"
+                                loading={values?.simulating}
+                                onClick={functions.onSubmit}
+                            />
+                        </Box>
                     }
-
-                    {values?.result ?
-                        <Grid size={{ xs: 12, md: 6 }} overflow={'hidden'}>
-                            <FormattedJsonSection label="Result" value={JSON.stringify(values?.result)} />
-                        </Grid> : null
-                    }
-                </Grid>
-
-                {values?.selected &&
-                    <Box width={'100%'} display={'flex'} gap={2} justifyContent={'flex-end'} mt={2}>
-                        <Button
-                            height="40px"
-                            width="170px"
-                            type="secondary"
-                            size="md"
-                            text="Run Simulation"
-                            loading={values?.simulating}
-                            onClick={functions.onSubmit}
-                        />
-                    </Box>
-                }
-            </Section>
+                </Section>
+            }
             {/* <Section header={'Configuration Association'} subHeader={'Associate this rule with transaction flow, network context, and typology definitions'}>
                 <Grid container size={12} spacing={2} alignItems={'flex-start'} justifyContent={'space-between'}>
                     <Grid size={{ xs: 12, md: 6 }}>

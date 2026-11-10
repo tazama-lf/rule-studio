@@ -1,6 +1,5 @@
-import { Body, Controller, Get, Header, HttpCode, Param, ParseIntPipe, Post, Res, StreamableFile, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiProduces, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { IsBoolean, IsOptional } from 'class-validator';
+import { Controller, Get, Header, HttpCode, Param, ParseIntPipe, Post, Res, StreamableFile, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiProduces, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { Audit } from '../../decorators/audit.decorator';
 import { RequireAnyClaims, TazamaClaims } from '../../decorators/auth.decorator';
@@ -8,13 +7,7 @@ import { User } from '../../decorators/user.decorator';
 import { TazamaAuthGuard } from '../../guards/tazama-auth.guard';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { RulePipelineBuildsService } from './rule-pipeline-builds.service';
-import type { RuleBuildView, RulePipelineConfigView } from './rule-pipeline.types';
-
-export class StartRuleBuildDto {
-  @IsOptional()
-  @IsBoolean()
-  simulate?: boolean;
-}
+import type { RuleBuildView, RuleDeploymentStatus, RuleDeployResult, RulePipelineConfigView, RuleRunResult } from './rule-pipeline.types';
 
 @ApiTags('Rule Pipeline')
 @ApiBearerAuth('JWT-auth')
@@ -38,20 +31,67 @@ export class RulePipelineController {
   @Audit()
   @RequireAnyClaims(TazamaClaims.EDITOR)
   @ApiParam({ name: 'id', description: 'Numeric rule ID', example: 50, type: 'number' })
-  @ApiBody({ type: StartRuleBuildDto, required: false })
   @ApiOperation({
     summary: 'Build and test a rule',
     description:
-      'Queues a build of the current code and tests of the rule: unit tests, npm package and, as configured, an image, a registry push, ' +
-      'a copy of the source in git and a smoke simulation. Poll the returned build for progress.',
+      'Queues a build of the current code and tests of the rule: unit tests, npm package and, as configured, an image, a registry push ' +
+      'and a copy of the source in git. Poll the returned build for progress.',
   })
   @ApiResponse({ status: 202, description: 'Build queued' })
-  async start(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() body: StartRuleBuildDto,
-    @User() user: AuthenticatedUser,
-  ): Promise<RuleBuildView> {
-    return await this.builds.start(id, user, body.simulate ?? false);
+  async start(@Param('id', ParseIntPipe) id: number, @User() user: AuthenticatedUser): Promise<RuleBuildView> {
+    return await this.builds.start(id, user);
+  }
+
+  @Get('/rules/:id/deployment')
+  @RequireAnyClaims(TazamaClaims.EDITOR, TazamaClaims.APPROVER, TazamaClaims.PUBLISHER)
+  @ApiParam({ name: 'id', description: 'Numeric rule ID', example: 50, type: 'number' })
+  @ApiOperation({
+    summary: 'Deployed rule',
+    description: 'Whether the rule runs on Tazama, which version, and the latest result of each kind of run.',
+  })
+  async deployment(@Param('id', ParseIntPipe) id: number, @User() user: AuthenticatedUser): Promise<RuleDeploymentStatus> {
+    return await this.builds.deployment(id, user);
+  }
+
+  @Post('/rules/:id/deployment')
+  @HttpCode(200)
+  @Audit()
+  @RequireAnyClaims(TazamaClaims.EDITOR)
+  @ApiParam({ name: 'id', description: 'Numeric rule ID', example: 50, type: 'number' })
+  @ApiOperation({
+    summary: 'Deploy the rule to Tazama',
+    description: 'Runs the image of the latest passed build in the Tazama network and adds the rule to the active network map.',
+  })
+  async deploy(@Param('id', ParseIntPipe) id: number, @User() user: AuthenticatedUser): Promise<RuleDeployResult> {
+    return await this.builds.deploy(id, user);
+  }
+
+  @Post('/rules/:id/runs/rule')
+  @HttpCode(200)
+  @Audit()
+  @RequireAnyClaims(TazamaClaims.EDITOR)
+  @ApiParam({ name: 'id', description: 'Numeric rule ID', example: 50, type: 'number' })
+  @ApiOperation({
+    summary: 'Run the deployed rule',
+    description:
+      'Sends the latest transaction Tazama evaluated for the rule, with its data cache, straight to the deployed rule and returns its result. ' +
+      'Without one, a sample transaction goes through Tazama first.',
+  })
+  async runRule(@Param('id', ParseIntPipe) id: number, @User() user: AuthenticatedUser): Promise<RuleRunResult> {
+    return await this.builds.runRule(id, user);
+  }
+
+  @Post('/rules/:id/runs/end-to-end')
+  @HttpCode(200)
+  @Audit()
+  @RequireAnyClaims(TazamaClaims.EDITOR)
+  @ApiParam({ name: 'id', description: 'Numeric rule ID', example: 50, type: 'number' })
+  @ApiOperation({
+    summary: 'Run a transaction end to end',
+    description: 'Sends a new pacs.008 and pacs.002 through TMS and returns the full evaluation, with the result of the deployed rule.',
+  })
+  async runEndToEnd(@Param('id', ParseIntPipe) id: number, @User() user: AuthenticatedUser): Promise<RuleRunResult> {
+    return await this.builds.runEndToEnd(id, user);
   }
 
   @Get('/rules/:id/builds/latest')
