@@ -10,7 +10,7 @@ import { CLAIMS_KEY, IS_PUBLIC_KEY, ANY_CLAIMS_KEY } from '../decorators/auth.de
 export class TazamaAuthGuard implements CanActivate {
   private readonly logger = new Logger(TazamaAuthGuard.name);
 
-  constructor(private readonly reflector: Reflector) {}
+  constructor(private readonly reflector: Reflector) { }
 
   canActivate(context: ExecutionContext): boolean {
     const logContext = 'TazamaAuthGuard.canActivate()';
@@ -21,7 +21,6 @@ export class TazamaAuthGuard implements CanActivate {
     const token = this.extractBearerToken(request.headers.authorization, logContext);
 
     const { requiredClaims, anyClaims } = this.getClaimsFromDecorators(context);
-
     let validated: ClaimValidationResult;
     try {
       validated = validateTokenAndClaims(token, [...requiredClaims, ...anyClaims]);
@@ -54,23 +53,39 @@ export class TazamaAuthGuard implements CanActivate {
 
     const actorName = innerDecoded.name as string | undefined;
 
-    const realmAccess = innerDecoded.realm_access as { roles?: string[] } | undefined;
-    const realmRoles = realmAccess?.roles;
+    const allowedRoles = (
+      process.env.ALLOWED_ROLES ?? ''
+    )
+      .split(',')
+      .map(role => role.trim().toLowerCase())
+      .filter(Boolean);
 
-    const supportedRoles = new Set(['editor', 'approver', 'publisher', 'trs_data_engineer_editor', 'trs_data_engineer_approver']);
-    const actorRole = realmRoles?.find((role: string) => supportedRoles.has(role.toLowerCase()));
-    if (!actorRole) {
-      throw new UnauthorizedException('No supported RBAC role found in token');
+    const realmAccess = innerDecoded.realm_access as { roles?: string[] } | undefined;
+    const realmRoles =
+      realmAccess?.roles?.map(role => role.toLowerCase()) ?? [];
+
+    const matchedRoles = realmRoles.filter(role =>
+      allowedRoles.includes(role),
+    );
+
+    if (matchedRoles.length === 0) {
+      this.logger.warn(
+        `Invalid credentials.`,
+      );
+
+      throw new UnauthorizedException('Invalid credentials');
     }
+
+    const actorRole = matchedRoles[0];
 
     const sourceIP =
       request.ip ?? (request.headers['x-forwarded-for'] as string | undefined)?.split(',')[0].trim() ?? request.socket.remoteAddress;
 
     const allowedStatuses = innerDecoded.status
       ? (innerDecoded.status as string)
-          .split(',')
-          .map((s) => s.trim())
-          .filter((s) => s.length > 0)
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0)
       : undefined;
 
     if (allowedStatuses) {
