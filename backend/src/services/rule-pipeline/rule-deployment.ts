@@ -180,8 +180,9 @@ export function replayNetworkMap(target: RuleTarget): NetworkMap {
 
 function messageFor(messages: Message[], txtp: string): Message {
   const message = messages.find((m) => m.TxTp === txtp);
-  if (!message)
+  if (!message) {
     throw new Error(`There is no sample ${txtp} message; end-to-end runs support ${messages.map((m) => m.TxTp).join(' and ')} rules`);
+  }
   return message;
 }
 
@@ -302,8 +303,9 @@ export class RuleDeployer {
     if (!response.ok) throw new Error(`nats-utilities answered HTTP ${response.status}: ${JSON.stringify(body).slice(0, 300)}`);
     const reply = body?.data;
     if (!reply?.ruleResult?.subRuleRef) throw new Error(`The rule replied without a result: ${JSON.stringify(body).slice(0, 300)}`);
-    if (reply.transaction && msgIdOf(reply.transaction) !== id)
+    if (reply.transaction && msgIdOf(reply.transaction) !== id) {
       throw new Error('The result of another transaction arrived first; run it again');
+    }
     const result = reply.ruleResult;
     const reason = reasonOf(target.config, result);
     const failed = result.subRuleRef === '.err';
@@ -362,8 +364,9 @@ export class RuleDeployer {
     const evaluated = (data as { data?: { transaction?: Message; dataCache?: Record<string, unknown> } } | undefined)?.data;
     if (status !== 200 || !evaluated?.transaction) throw new Error(`Tazama has not evaluated a message with id ${msgId}`);
     const { transaction, dataCache } = evaluated;
-    if (transaction.TxTp !== target.txtp)
+    if (transaction.TxTp !== target.txtp) {
       throw new Error(`${msgId} is a ${transaction.TxTp}; rule ${ruleRef(target)} handles ${target.txtp}`);
+    }
     return { transaction, DataCache: dataCache ?? {} };
   }
 

@@ -245,10 +245,11 @@ export class RulePipelineBuildsService {
     const found = (await this.rulesService
       .getRuleConfiguration(ruleConfigId, user, 'GET /rules/api/configuration/:ruleId')
       .catch(() => undefined)) as { configuration?: RuleConfiguration } | undefined;
-    if (!found?.configuration?.id)
+    if (!found?.configuration?.id) {
       throw new BadRequestException(
         `Rule config ${ruleConfigId} was not found; save the rule config before deploying or running the rule.`,
       );
+    }
     return found.configuration;
   }
 
