@@ -16,6 +16,7 @@ import { fetchFromDlhApi } from '../Api/FetchDromDlh'
 import { simStudioApi } from '../Api/SimStudio'
 import { dockerHubApi } from '../Api/DockerHub'
 import { featuresApi } from '../Api/Features'
+import { rulePipelineApi } from '../Api/RulePipeline'
 
 export default configureStore({
     reducer: {
@@ -34,6 +35,7 @@ export default configureStore({
         [simStudioApi.reducerPath]: simStudioApi.reducer,
         [dockerHubApi.reducerPath]: dockerHubApi.reducer,
         [featuresApi.reducerPath]: featuresApi.reducer,
+        [rulePipelineApi.reducerPath]: rulePipelineApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
@@ -54,6 +56,7 @@ export default configureStore({
             .concat(simStudioApi.middleware)
             .concat(dockerHubApi.middleware)
             .concat(featuresApi.middleware)
+            .concat(rulePipelineApi.middleware)
             .concat(errorLogger)
             .concat(successLogger)
 })

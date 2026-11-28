@@ -1,0 +1,21 @@
+services:
+  rule-studio-backend:
+    build:
+      args:
+        RULE_TEMPLATE_REPO: ${RULE_TEMPLATE_REPO:-https://github.com/tazama-lf/rule-studio-example.git}
+        RULE_TEMPLATE_REF: ${RULE_TEMPLATE_REF:-dev}
+        RULE_EXECUTER_REPO: ${RULE_EXECUTER_REPO:-https://github.com/tazama-lf/rule-executer.git}
+        RULE_EXECUTER_REF: ${RULE_EXECUTER_REF:-fix/447-rule-studio-enrichment}
+    environment:
+      RULE_PIPELINE_ENABLED: 'true'
+      TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
+      TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE: /var/run/docker.sock
+      TESTCONTAINERS_RYUK_PRIVILEGED: 'true'
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    group_add:
+      - '${DOCKER_GID:-999}'
+    security_opt:
+      - label=disable

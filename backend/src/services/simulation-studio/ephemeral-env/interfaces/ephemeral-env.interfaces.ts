@@ -27,6 +27,7 @@ export interface SimulationInfo {
   name: string;
   ruleName: string;
   version: string;
+  image: string;
   functionName: string;
   natsSubject: string;
   natsConsumer: string;

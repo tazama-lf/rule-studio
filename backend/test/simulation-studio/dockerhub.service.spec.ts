@@ -25,11 +25,12 @@ const makeTag = (name: string) => ({
   digest: `sha256:${name}`,
 });
 
-const okResp = (body: unknown) =>
+const okResp = (body: unknown, headers: Record<string, string> = {}) =>
   ({
     ok: true,
     status: 200,
     statusText: 'OK',
+    headers: new Headers(headers),
     json: jest.fn().mockResolvedValue(body),
   } as unknown as Response);
 
@@ -44,9 +45,9 @@ const failResp = (status: number, statusText = 'Error') =>
 const mockConfigService = {
   get: (key: string) =>
   ({
-    DOCKERHUB_TOKEN: 'dckr_pat_test',
-    DOCKERHUB_USERNAME: 'testuser',
-    DOCKERHUB_NAMESPACE: NAMESPACE,
+    IMAGE_REGISTRY_TOKEN: 'dckr_pat_test',
+    IMAGE_REGISTRY_USERNAME: 'testuser',
+    IMAGE_NAMESPACE: NAMESPACE,
   }[key]),
 };
 
@@ -350,6 +351,71 @@ describe('DockerHubService', () => {
 
       const result = await service.getTagsForRule(TENANT_ID, RULE);
       expect(result.tags[0]).toEqual({ name: 'v3', last_updated: '2026-05-01T00:00:00Z', digest: 'sha256:abc' });
+    });
+  });
+
+  describe('with a registry other than Docker Hub', () => {
+    const bootRegistry = async (responses: Response[]) => {
+      const fetchMock = jest.fn();
+      responses.forEach((r) => fetchMock.mockResolvedValueOnce(r));
+      global.fetch = fetchMock;
+      const config = { get: (key: string) => ({ IMAGE_REGISTRY: 'localhost:5055', IMAGE_NAMESPACE: NAMESPACE })[key] };
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          DockerHubService,
+          { provide: ConfigService, useValue: config },
+          { provide: FeatureFlagsService, useValue: mockFeaturesEnabled },
+        ],
+      }).compile();
+      service = module.get(DockerHubService);
+      await service.onModuleInit();
+      return fetchMock;
+    };
+
+    it('checks the registry API instead of logging in to Docker Hub', async () => {
+      const fetchMock = await bootRegistry([okResp({})]);
+      expect(service.isReady()).toBe(true);
+      expect(fetchMock.mock.calls[0][0]).toMatch(/^https?:\/\/[^/]+:5055\/v2\/$/);
+    });
+
+    it('lists the tenant rules in the namespace from the catalog', async () => {
+      await bootRegistry([
+        okResp({}),
+        okResp({ repositories: [`${NAMESPACE}/${TENANT_ID}-rule-021`, `${NAMESPACE}/other-rule-021`, `elsewhere/${TENANT_ID}-rule-002`] }),
+      ]);
+      const result = await service.getPublishedRules(TENANT_ID);
+      expect(result.rules.map((r) => r.name)).toEqual([`${TENANT_ID}-rule-021`]);
+      expect(result.count).toBe(1);
+    });
+
+    it('follows the catalog pages the registry links to', async () => {
+      const fetchMock = await bootRegistry([
+        okResp({}),
+        okResp({ repositories: [`${NAMESPACE}/${TENANT_ID}-rule-001`] }, { Link: `</v2/_catalog?last=${NAMESPACE}%2F${TENANT_ID}-rule-001&n=1000>; rel="next"` }),
+        okResp({ repositories: [`${NAMESPACE}/${TENANT_ID}-rule-002`] }),
+      ]);
+      const result = await service.getPublishedRules(TENANT_ID);
+      expect(fetchMock.mock.calls[1][0]).toContain('/v2/_catalog?n=1000');
+      expect(fetchMock.mock.calls[2][0]).toContain('/v2/_catalog?last=');
+      expect(result.rules.map((r) => r.name)).toEqual([`${TENANT_ID}-rule-001`, `${TENANT_ID}-rule-002`]);
+    });
+
+    it('lists the tags of a rule without latest', async () => {
+      const fetchMock = await bootRegistry([okResp({}), okResp({ name: `${NAMESPACE}/${TENANT_ID}-rule-021`, tags: ['4.0.0', 'latest'] })]);
+      const result = await service.getTagsForRule(TENANT_ID, 'rule-021');
+      expect(fetchMock.mock.calls[1][0]).toContain(`/v2/${NAMESPACE}/${TENANT_ID}-rule-021/tags/list`);
+      expect(result.tags.map((t) => t.name)).toEqual(['4.0.0']);
+    });
+
+    it('reports an unknown rule as not found', async () => {
+      await bootRegistry([okResp({}), failResp(404, 'Not Found')]);
+      await expect(service.getTagsForRule(TENANT_ID, 'rule-999')).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('stays disabled when the registry does not answer', async () => {
+      await bootRegistry([failResp(503, 'Unavailable')]);
+      expect(service.isReady()).toBe(false);
+      await expect(service.getPublishedRules(TENANT_ID)).rejects.toBeInstanceOf(ServiceUnavailableException);
     });
   });
 });

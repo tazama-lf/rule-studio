@@ -1,9 +1,10 @@
 import { ConfigService } from '@nestjs/config';
 import { FeatureFlagsService } from '../../src/common/feature-flags/feature-flags.service';
 
-const mkConfig = (value: boolean | undefined): ConfigService =>
+const mkConfig = (value: boolean | undefined, rulePipeline?: boolean): ConfigService =>
   ({
-    get: <T,>(key: string): T | undefined => (key === 'DOCKER_PUBLISH' ? (value as unknown as T) : undefined),
+    get: <T,>(key: string): T | undefined =>
+      (({ DOCKER_PUBLISH: value, RULE_PIPELINE_ENABLED: rulePipeline }) as Record<string, unknown>)[key] as T | undefined,
   }) as ConfigService;
 
 describe('FeatureFlagsService', () => {
@@ -23,5 +24,11 @@ describe('FeatureFlagsService', () => {
     const s = new FeatureFlagsService(mkConfig(undefined));
     expect(s.isDockerPublishEnabled()).toBe(false);
     expect(s.isSimStudioEnabled()).toBe(false);
+  });
+
+  it('reports the rule pipeline separately from Docker Hub publishing', () => {
+    expect(new FeatureFlagsService(mkConfig(false, true)).isRulePipelineEnabled()).toBe(true);
+    expect(new FeatureFlagsService(mkConfig(false, true)).isSimStudioEnabled()).toBe(false);
+    expect(new FeatureFlagsService(mkConfig(true, undefined)).isRulePipelineEnabled()).toBe(false);
   });
 });

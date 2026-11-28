@@ -27,8 +27,8 @@ export class SimStudioDisabledGuard implements CanActivate {
       feature: 'sim-studio',
       enabled: false,
       message:
-        'SimStudio (and Docker Hub publishing) is disabled on this deployment. ' +
-        'Set DOCKER_PUBLISH=true and configure DOCKERHUB_TOKEN / DOCKERHUB_USERNAME / DOCKERHUB_NAMESPACE to enable.',
+        'SimStudio (and image publishing) is disabled on this deployment. ' +
+        'Set DOCKER_PUBLISH=true and configure IMAGE_REGISTRY / IMAGE_NAMESPACE (and IMAGE_REGISTRY_USERNAME / IMAGE_REGISTRY_TOKEN for Docker Hub) to enable.',
     });
   }
 }

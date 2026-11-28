@@ -1319,7 +1319,10 @@ export const generateTypeScriptCode = (
   }
   
   const nestedData = nestedCanvasData[handleTransactionNode.id];
-  const nestedCode = generateNestedFlowCode(nestedData.nodes, nestedData.edges, '  ', nodes, 'rule-builder');
+  const nestedCode = generateNestedFlowCode(nestedData.nodes, nestedData.edges, '  ', nodes, 'rule-builder').replace(
+    /\breq\.transaction\b/g,
+    'transaction',
+  );
   
   const isNodeConnected = (nodeId: string): boolean => {
     return edges.some((edge) => edge.source === nodeId || edge.target === nodeId);
