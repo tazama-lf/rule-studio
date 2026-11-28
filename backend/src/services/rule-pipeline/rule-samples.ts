@@ -8,10 +8,18 @@ export function sampleTransactions(now = new Date()): Message[] {
   const [endToEndId, instrId, debtor, creditor] = [id(), id(), id(), id()];
   const party = (name: string, ref: string): Record<string, unknown> => ({
     Nm: name,
-    Id: { PrvtId: { DtAndPlcOfBirth: { BirthDt: '1968-02-01', CityOfBirth: 'Unknown', CtryOfBirth: 'ZZ' }, Othr: [{ Id: ref, SchmeNm: { Prtry: 'MSISDN' } }] } },
+    Id: {
+      PrvtId: {
+        DtAndPlcOfBirth: { BirthDt: '1968-02-01', CityOfBirth: 'Unknown', CtryOfBirth: 'ZZ' },
+        Othr: [{ Id: ref, SchmeNm: { Prtry: 'MSISDN' } }],
+      },
+    },
     CtctDtls: { MobNb: '+27-730975224' },
   });
-  const account = (name: string, ref: string): Record<string, unknown> => ({ Id: { Othr: [{ Id: ref, SchmeNm: { Prtry: 'MSISDN' } }] }, Nm: name });
+  const account = (name: string, ref: string): Record<string, unknown> => ({
+    Id: { Othr: [{ Id: ref, SchmeNm: { Prtry: 'MSISDN' } }] },
+    Nm: name,
+  });
   const agent = (member: string): Record<string, unknown> => ({ FinInstnId: { ClrSysMmbId: { MmbId: member } } });
   const amount = { Amt: 100, Ccy: 'USD' };
   const pacs008: Message = {

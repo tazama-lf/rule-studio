@@ -176,7 +176,9 @@ export class RulePipelineBuildsService {
     }
     const target = await this.target(ruleDbId, user);
     if (build.ruleId !== target.ruleId || build.version !== target.version) {
-      throw new BadRequestException(`The last build is of ${build.ruleId}@${build.version}; run Build & Test for ${target.ruleId}@${target.version} first.`);
+      throw new BadRequestException(
+        `The last build is of ${build.ruleId}@${build.version}; run Build & Test for ${target.ruleId}@${target.version} first.`,
+      );
     }
     return await deployer.deploy(target, build.image).catch((err: unknown): RuleDeployResult => {
       this.logger.error(`Deploying ${target.ruleId}@${target.version} failed: ${(err as Error).message}`);
@@ -204,7 +206,13 @@ export class RulePipelineBuildsService {
     const message = `${key}:${target.txtp}`;
     const ranAt = new Date();
     const result = await work(deployer, target, this.messages.get(message)).catch(
-      (err: unknown): RuleRunResult => ({ kind, ok: false, ranAt: ranAt.toISOString(), tookMs: Date.now() - ranAt.getTime(), error: (err as Error).message }),
+      (err: unknown): RuleRunResult => ({
+        kind,
+        ok: false,
+        ranAt: ranAt.toISOString(),
+        tookMs: Date.now() - ranAt.getTime(),
+        error: (err as Error).message,
+      }),
     );
     if (result.msgId) {
       this.messages.set(message, result.msgId);
@@ -234,10 +242,13 @@ export class RulePipelineBuildsService {
   }
 
   private async ruleConfig(ruleConfigId: string, user: AuthenticatedUser): Promise<RuleConfiguration> {
-    const found = (await this.rulesService.getRuleConfiguration(ruleConfigId, user, 'GET /rules/api/configuration/:ruleId').catch(
-      () => undefined,
-    )) as { configuration?: RuleConfiguration } | undefined;
-    if (!found?.configuration?.id) throw new BadRequestException(`Rule config ${ruleConfigId} was not found; save the rule config before deploying or running the rule.`);
+    const found = (await this.rulesService
+      .getRuleConfiguration(ruleConfigId, user, 'GET /rules/api/configuration/:ruleId')
+      .catch(() => undefined)) as { configuration?: RuleConfiguration } | undefined;
+    if (!found?.configuration?.id)
+      throw new BadRequestException(
+        `Rule config ${ruleConfigId} was not found; save the rule config before deploying or running the rule.`,
+      );
     return found.configuration;
   }
 

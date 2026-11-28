@@ -5,7 +5,14 @@ import { getContainerRuntimeClient } from 'testcontainers';
 import type { DeployProfile, ImageProfile } from './artifact-profile';
 import { type Message, msgIdOf, sampleTransactions } from './rule-samples';
 import { followDockerStream, registryAuth } from './rule-pipeline.service';
-import type { RuleAlert, RuleContainerState, RuleDeploymentStatus, RuleDeployResult, RuleResultView, RuleRunResult } from './rule-pipeline.types';
+import type {
+  RuleAlert,
+  RuleContainerState,
+  RuleDeploymentStatus,
+  RuleDeployResult,
+  RuleResultView,
+  RuleRunResult,
+} from './rule-pipeline.types';
 
 interface Outcome {
   subRuleRef: string;
@@ -92,7 +99,9 @@ async function containerState(
 
 function outcomes(config: RuleConfiguration): { exits: string[]; results: string[] } {
   const { bands, cases, exitConditions } = config.config ?? {};
-  const results = cases ? [cases.alternative.subRuleRef, ...cases.expressions.map((e) => e.subRuleRef)] : (bands ?? []).map((b) => b.subRuleRef);
+  const results = cases
+    ? [cases.alternative.subRuleRef, ...cases.expressions.map((e) => e.subRuleRef)]
+    : (bands ?? []).map((b) => b.subRuleRef);
   return { exits: (exitConditions ?? []).map((e) => e.subRuleRef), results };
 }
 
@@ -118,7 +127,13 @@ export function ruleTypology(target: RuleTarget, flowProcessor?: ConfigRef): Typ
         ],
       },
       ...(flowProcessor
-        ? [{ ...flowProcessor, termId: termId(flowProcessor.id, flowProcessor.cfg), wghts: FLOW_PROCESSOR_REFS.map((ref) => ({ ref, wght: 0 })) }]
+        ? [
+            {
+              ...flowProcessor,
+              termId: termId(flowProcessor.id, flowProcessor.cfg),
+              wghts: FLOW_PROCESSOR_REFS.map((ref) => ({ ref, wght: 0 })),
+            },
+          ]
         : []),
     ],
     workflow: { alertThreshold: 200, interdictionThreshold: 400, ...(flowProcessor ? { flowProcessor: flowProcessor.id } : {}) },
@@ -136,7 +151,9 @@ export function flowProcessorOf(map: NetworkMap, txtp: string): ConfigRef | unde
 
 export function withRuleTypology(map: NetworkMap, target: RuleTarget, typology: Typology): { map: NetworkMap; replaced: string[] } {
   const own = (t: NetworkMapTypology): boolean => t.cfg.startsWith(`trs-${target.ruleId}@`);
-  const replaced = [...new Set(map.messages.flatMap((m) => m.typologies.filter(own).map((t) => t.cfg)))].filter((cfg) => cfg !== typology.cfg);
+  const replaced = [...new Set(map.messages.flatMap((m) => m.typologies.filter(own).map((t) => t.cfg)))].filter(
+    (cfg) => cfg !== typology.cfg,
+  );
   const entry: NetworkMapTypology = { id: typology.id, cfg: typology.cfg, rules: typology.rules.map(({ id, cfg }) => ({ id, cfg })) };
   const messages = map.messages.map((m) => ({ ...m, typologies: m.typologies.filter((t) => !own(t)) }));
   const index = messages.findIndex((m) => m.txTp === target.txtp);
@@ -163,7 +180,8 @@ export function replayNetworkMap(target: RuleTarget): NetworkMap {
 
 function messageFor(messages: Message[], txtp: string): Message {
   const message = messages.find((m) => m.TxTp === txtp);
-  if (!message) throw new Error(`There is no sample ${txtp} message; end-to-end runs support ${messages.map((m) => m.TxTp).join(' and ')} rules`);
+  if (!message)
+    throw new Error(`There is no sample ${txtp} message; end-to-end runs support ${messages.map((m) => m.TxTp).join(' and ')} rules`);
   return message;
 }
 
@@ -210,10 +228,26 @@ export class RuleDeployer {
     const typology = ruleTypology(target, flowProcessorOf(map, target.txtp));
     const path = `/configuration/typology/${TYPOLOGY_ID}/${encodeURIComponent(typology.cfg)}`;
     const exists = (await this.admin(token, 'GET', path)).status === 200;
-    await this.adminOk(token, exists ? 'PUT' : 'POST', exists ? path : '/configuration/typology', typology, `Saving typology ${typology.cfg}`);
+    await this.adminOk(
+      token,
+      exists ? 'PUT' : 'POST',
+      exists ? path : '/configuration/typology',
+      typology,
+      `Saving typology ${typology.cfg}`,
+    );
     const next = withRuleTypology(map, target, typology);
-    await this.adminOk(token, 'PUT', `/configuration/network_map/${encodeURIComponent(map.cfg)}`, next.map, `Updating network map ${map.cfg}`);
-    await Promise.all(next.replaced.map(async (cfg) => await this.admin(token, 'DELETE', `/configuration/typology/${TYPOLOGY_ID}/${encodeURIComponent(cfg)}`)));
+    await this.adminOk(
+      token,
+      'PUT',
+      `/configuration/network_map/${encodeURIComponent(map.cfg)}`,
+      next.map,
+      `Updating network map ${map.cfg}`,
+    );
+    await Promise.all(
+      next.replaced.map(
+        async (cfg) => await this.admin(token, 'DELETE', `/configuration/typology/${TYPOLOGY_ID}/${encodeURIComponent(cfg)}`),
+      ),
+    );
     await this.adminOk(token, 'POST', '/configuration/network_map/reload', { reloadMode: 'broadcast' }, 'Reloading the network map');
     this.logger.log(`Deployed ${ruleRef(target)} as ${name} (${pinned}) with typology ${typology.cfg} in network map ${map.cfg}`);
     return { ok: true, container: name, network: this.profile.network, image: pinned, typology: typology.cfg, networkMap: map.cfg };
@@ -262,15 +296,27 @@ export class RuleDeployer {
       }),
       signal: AbortSignal.timeout(timeoutMs),
     });
-    const body = parse(await response.text()) as { data?: { transaction?: Record<string, unknown>; ruleResult?: RuleResultView } } | undefined;
+    const body = parse(await response.text()) as
+      | { data?: { transaction?: Record<string, unknown>; ruleResult?: RuleResultView } }
+      | undefined;
     if (!response.ok) throw new Error(`nats-utilities answered HTTP ${response.status}: ${JSON.stringify(body).slice(0, 300)}`);
     const reply = body?.data;
     if (!reply?.ruleResult?.subRuleRef) throw new Error(`The rule replied without a result: ${JSON.stringify(body).slice(0, 300)}`);
-    if (reply.transaction && msgIdOf(reply.transaction) !== id) throw new Error('The result of another transaction arrived first; run it again');
+    if (reply.transaction && msgIdOf(reply.transaction) !== id)
+      throw new Error('The result of another transaction arrived first; run it again');
     const result = reply.ruleResult;
     const reason = reasonOf(target.config, result);
     const failed = result.subRuleRef === '.err';
-    return { kind: 'rule', ok: !failed, msgId: id, ranAt: new Date(started).toISOString(), tookMs: Date.now() - started, result, reason, error: failed ? reason : undefined };
+    return {
+      kind: 'rule',
+      ok: !failed,
+      msgId: id,
+      ranAt: new Date(started).toISOString(),
+      tookMs: Date.now() - started,
+      result,
+      reason,
+      error: failed ? reason : undefined,
+    };
   }
 
   async endToEnd(target: RuleTarget, timeoutMs = 60_000): Promise<RuleRunResult> {
@@ -307,12 +353,17 @@ export class RuleDeployer {
     return { msgId, alert: await this.waitForEvaluation(token, msgId, timeoutMs) };
   }
 
-  private async evaluatedMessage(token: string, msgId: string, target: RuleTarget): Promise<{ transaction: Message; DataCache: Record<string, unknown> }> {
+  private async evaluatedMessage(
+    token: string,
+    msgId: string,
+    target: RuleTarget,
+  ): Promise<{ transaction: Message; DataCache: Record<string, unknown> }> {
     const { status, data } = await this.admin(token, 'GET', `/reports/getreportbymsgid?msgid=${encodeURIComponent(msgId)}`);
     const evaluated = (data as { data?: { transaction?: Message; dataCache?: Record<string, unknown> } } | undefined)?.data;
     if (status !== 200 || !evaluated?.transaction) throw new Error(`Tazama has not evaluated a message with id ${msgId}`);
     const { transaction, dataCache } = evaluated;
-    if (transaction.TxTp !== target.txtp) throw new Error(`${msgId} is a ${transaction.TxTp}; rule ${ruleRef(target)} handles ${target.txtp}`);
+    if (transaction.TxTp !== target.txtp)
+      throw new Error(`${msgId} is a ${transaction.TxTp}; rule ${ruleRef(target)} handles ${target.txtp}`);
     return { transaction, DataCache: dataCache ?? {} };
   }
 
@@ -327,7 +378,7 @@ export class RuleDeployer {
   private async submit(token: string, message: Message): Promise<void> {
     const response = await fetch(`${this.profile.tmsUrl}/v1/evaluate/iso20022/${message.TxTp}`, {
       method: 'POST',
-      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      headers: { 'authorization': `Bearer ${token}`, 'content-type': 'application/json' },
       body: JSON.stringify(message),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
@@ -405,11 +456,23 @@ export class RuleDeployer {
   private async ensureRuleConfig(token: string, target: RuleTarget): Promise<void> {
     const path = `/configuration/rule/${encodeURIComponent(target.config.id)}/${encodeURIComponent(target.config.cfg)}`;
     if ((await this.admin(token, 'GET', path)).status === 200) return;
-    await this.adminOk(token, 'POST', '/configuration/rule', { ...target.config, tenantId: target.tenantId }, `Saving rule config ${target.config.id}`);
+    await this.adminOk(
+      token,
+      'POST',
+      '/configuration/rule',
+      { ...target.config, tenantId: target.tenantId },
+      `Saving rule config ${target.config.id}`,
+    );
   }
 
   private async activeNetworkMap(token: string): Promise<NetworkMap> {
-    const { data } = await this.adminOk<{ data?: NetworkMap[] }>(token, 'GET', '/configuration/network_map', undefined, 'Reading the network map');
+    const { data } = await this.adminOk<{ data?: NetworkMap[] }>(
+      token,
+      'GET',
+      '/configuration/network_map',
+      undefined,
+      'Reading the network map',
+    );
     const map = (data ?? []).find((m) => m.active);
     if (!map) throw new Error('There is no active network map to add the rule to');
     return map;
